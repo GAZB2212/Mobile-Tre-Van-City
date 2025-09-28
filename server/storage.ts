@@ -9,9 +9,10 @@ import {
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  // Users
+  // Users (Replit Auth compatible)
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  promoteToAdmin(userId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
   // Vans
@@ -419,15 +420,61 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id);
+    
+    // Check if user should be admin based on environment variable
+    const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
+    const shouldBeAdmin = adminUserIds.includes(userData.id);
+    
+    if (existingUser) {
+      const updatedUser: User = {
+        ...existingUser,
+        ...userData,
+        isAdmin: shouldBeAdmin || existingUser.isAdmin, // Preserve existing admin status or set based on env
+        updatedAt: new Date()
+      };
+      this.users.set(userData.id, updatedUser);
+      return updatedUser;
+    } else {
+      const newUser: User = {
+        ...userData,
+        email: userData.email || null,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        profileImageUrl: userData.profileImageUrl || null,
+        isAdmin: shouldBeAdmin,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.users.set(userData.id, newUser);
+      return newUser;
+    }
+  }
+
+  async promoteToAdmin(userId: string): Promise<User | undefined> {
+    const existingUser = this.users.get(userId);
+    if (!existingUser) {
+      return undefined;
+    }
+    
+    const updatedUser: User = {
+      ...existingUser,
+      isAdmin: true,
+      updatedAt: new Date()
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     this.users.set(id, user);
     return user;
   }

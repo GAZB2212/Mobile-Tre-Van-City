@@ -2,10 +2,41 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertVanSchema, insertKitSchema, insertUpgradeSchema, insertQuoteSchema, insertLeadSchema } from "@shared/schema";
 
+// Admin authorization middleware
+const isAdmin = async (req: any, res: any, next: any) => {
+  const userId = req.user?.claims?.sub;
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  const user = await storage.getUser(userId);
+  if (!user || !user.isAdmin) {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  
+  next();
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Vans endpoints
+  // Setup authentication
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Public vans endpoints
   app.get("/api/vans", async (req, res) => {
     try {
       const filters = {
@@ -55,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/vans", async (req, res) => {
+  app.post("/api/vans", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const validatedData = insertVanSchema.parse(req.body);
       const van = await storage.createVan(validatedData);
@@ -87,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/kits", async (req, res) => {
+  app.post("/api/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const validatedData = insertKitSchema.parse(req.body);
       const kit = await storage.createKit(validatedData);
@@ -120,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upgrades", async (req, res) => {
+  app.post("/api/upgrades", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const validatedData = insertUpgradeSchema.parse(req.body);
       const upgrade = await storage.createUpgrade(validatedData);
@@ -256,6 +287,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to calculate price" });
+    }
+  });
+
+  // Admin CRUD endpoints for vans
+  app.post("/api/admin/vans", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const vanData = insertVanSchema.parse(req.body);
+      const van = await storage.createVan(vanData);
+      res.json(van);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create van" });
+    }
+  });
+
+  app.put("/api/admin/vans/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const vanData = insertVanSchema.partial().parse(req.body);
+      const van = await storage.updateVan(req.params.id, vanData);
+      if (!van) {
+        return res.status(404).json({ error: "Van not found" });
+      }
+      res.json(van);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update van" });
+    }
+  });
+
+  app.delete("/api/admin/vans/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteVan(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Van not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete van" });
+    }
+  });
+
+  // Admin CRUD endpoints for kits
+  app.post("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const kitData = insertKitSchema.parse(req.body);
+      const kit = await storage.createKit(kitData);
+      res.json(kit);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create kit" });
+    }
+  });
+
+  app.put("/api/admin/kits/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const kitData = insertKitSchema.partial().parse(req.body);
+      const kit = await storage.updateKit(req.params.id, kitData);
+      if (!kit) {
+        return res.status(404).json({ error: "Kit not found" });
+      }
+      res.json(kit);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update kit" });
+    }
+  });
+
+  app.delete("/api/admin/kits/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteKit(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Kit not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete kit" });
+    }
+  });
+
+  // Admin CRUD endpoints for upgrades
+  app.post("/api/admin/upgrades", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const upgradeData = insertUpgradeSchema.parse(req.body);
+      const upgrade = await storage.createUpgrade(upgradeData);
+      res.json(upgrade);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create upgrade" });
+    }
+  });
+
+  app.put("/api/admin/upgrades/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const upgradeData = insertUpgradeSchema.partial().parse(req.body);
+      const upgrade = await storage.updateUpgrade(req.params.id, upgradeData);
+      if (!upgrade) {
+        return res.status(404).json({ error: "Upgrade not found" });
+      }
+      res.json(upgrade);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update upgrade" });
+    }
+  });
+
+  app.delete("/api/admin/upgrades/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteUpgrade(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Upgrade not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete upgrade" });
+    }
+  });
+
+  // Bootstrap endpoint to promote first admin user (protected by secret)
+  app.post("/api/admin/bootstrap", async (req, res) => {
+    try {
+      const { secret, userId } = req.body;
+      
+      // Check if bootstrap secret matches
+      if (!process.env.ADMIN_BOOTSTRAP_SECRET || secret !== process.env.ADMIN_BOOTSTRAP_SECRET) {
+        return res.status(401).json({ error: "Invalid bootstrap secret" });
+      }
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID required" });
+      }
+      
+      // Get the user and promote to admin
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Promote user to admin using dedicated method
+      const adminUser = await storage.promoteToAdmin(userId);
+      if (!adminUser) {
+        return res.status(500).json({ error: "Failed to promote user to admin" });
+      }
+      
+      res.json({ 
+        message: "User promoted to admin successfully", 
+        user: { 
+          id: adminUser.id, 
+          email: adminUser.email, 
+          isAdmin: adminUser.isAdmin 
+        } 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to bootstrap admin user" });
+    }
+  });
+
+  // Admin endpoints for viewing quotes and leads
+  app.get("/api/admin/quotes", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quotes = await storage.getQuotes();
+      res.json(quotes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch quotes" });
+    }
+  });
+
+  app.get("/api/admin/leads", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const leads = await storage.getLeads();
+      res.json(leads);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch leads" });
     }
   });
 
