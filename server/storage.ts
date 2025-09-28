@@ -66,37 +66,48 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    // Seed some demo data
+    // Real MTVC kit data from Jotform
     const sampleKits: Kit[] = [
       {
-        id: "starter",
-        name: "Starter Kit",
-        description: "Perfect for small operations and getting started",
-        includes: ["Tyre Changer", "Wheel Balancer", "Air Compressor"],
+        id: "pack-1-non-euro6-t1000",
+        name: "Pack 1 - Non Euro 6 with T1000 Pro & Mini Spin",
+        description: "Complete mobile tyre fitting setup with T1000 Pro tyre changer and Mini Spin wheel balancer for Non Euro 6 vehicles",
+        includes: ["T1000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "Air Compressor", "Basic Tool Set"],
         powerKw: "3.5",
-        price: 1250000,
+        price: 574500, // £5,745.00 in pence
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        id: "professional", 
-        name: "Professional Kit",
-        description: "Complete setup for professional mobile services",
-        includes: ["Advanced Tyre Changer", "Digital Wheel Balancer", "High-Capacity Compressor", "Valve Tools"],
-        powerKw: "5.2",
-        price: 1850000,
+        id: "pack-2-euro6-t1000",
+        name: "Pack 2 - Euro 6 with T1000 Pro & Mini Spin",
+        description: "Complete mobile tyre fitting setup with T1000 Pro tyre changer and Mini Spin wheel balancer for Euro 6 vehicles",
+        includes: ["T1000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "Euro 6 Compatible Air System", "Basic Tool Set"],
+        powerKw: "3.5",
+        price: 594500, // Estimated £5,945.00 in pence
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        id: "premium",
-        name: "Premium Kit", 
-        description: "Top-tier equipment for high-volume operations",
-        includes: ["Premium Tyre Changer", "Laser Wheel Balancer", "Dual-Stage Compressor", "Complete Tool Set", "TPMS Tools"],
-        powerKw: "7.8",
-        price: 2450000,
+        id: "pack-3-non-euro6-t2000",
+        name: "Pack 3 - Non Euro 6 with T2000 Pro & Mini Spin",
+        description: "Advanced mobile tyre fitting setup with T2000 Pro tyre changer and Mini Spin wheel balancer for Non Euro 6 vehicles",
+        includes: ["T2000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "High-Capacity Air Compressor", "Professional Tool Set"],
+        powerKw: "5.0",
+        price: 644500, // Estimated £6,445.00 in pence
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "pack-4-euro6-t2000",
+        name: "Pack 4 - Euro 6 with T2000 Pro & Mini Spin",
+        description: "Premium mobile tyre fitting setup with T2000 Pro tyre changer and Mini Spin wheel balancer for Euro 6 vehicles",
+        includes: ["T2000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "Euro 6 Compatible High-Capacity Air System", "Professional Tool Set"],
+        powerKw: "5.0",
+        price: 664500, // Estimated £6,645.00 in pence
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -176,52 +187,222 @@ export class MemStorage implements IStorage {
     ];
 
     const sampleUpgrades: Upgrade[] = [
+      // Air System Upgrades
       {
-        id: "lighting-led",
-        name: "LED Lighting Package",
-        category: "lighting",
-        description: "Professional LED lighting for work area",
-        price: 89500,
+        id: "mounted-pto-air-system",
+        name: "Mounted PTO Air System Upgrade",
+        category: "air-systems",
+        description: "MTVC40, 40CFM rotary screw compressor - perfect for mobile tyre fitting vehicles with compact, powerful design",
+        price: 549500, // £5,495.00
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        id: "cctv-system",
-        name: "CCTV Security System",
-        category: "security",
-        description: "4-camera security system with recording",
-        price: 149500,
+        id: "compressor-12hp-270l",
+        name: "Compressor Upgrade To 12hp 270 Litre Electric Start",
+        category: "air-systems",
+        description: "High-capacity 12hp compressor with 270 litre tank and electric start",
+        price: 100000, // £1,000.00
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        id: "shelving-racking",
-        name: "Professional Racking System",
-        category: "storage",
-        description: "Heavy-duty shelving and tool storage",
-        price: 67500,
+        id: "air-reel-9m-fini",
+        name: "Fini 9 meter Air Reel With Built In Compressor",
+        category: "air-systems",
+        description: "Professional 9 meter air reel with built-in compressor",
+        price: 24500, // £245.00
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
-        id: "inverter-3kw",
-        name: "3kW Power Inverter",
-        category: "power",
-        description: "High-capacity power inverter for equipment",
-        price: 125000,
+        id: "compressor-reel-15m",
+        name: "15m Compressor Reel",
+        category: "air-systems",
+        description: "Keep your air lines neat and tidy with our compressor reel",
+        price: 17500, // £175.00
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
+      // Equipment Upgrades
       {
-        id: "vehicle-wrap",
-        name: "Professional Vehicle Wrap",
+        id: "super-spin-upgrade",
+        name: "Upgrade to Super Spin auto spin wheel balancer",
+        category: "equipment",
+        description: "Upgrade your wheel balancer to Super Spin auto spin technology",
+        price: 45000, // £450.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Branding & Wrapping
+      {
+        id: "full-bespoke-wrap",
+        name: "Full Bespoke Wrap",
         category: "branding",
-        description: "Custom vehicle wrap with your branding",
-        price: 189500,
+        description: "Give your van kerb appeal with bespoke full van wrap (LWB/MWB available)",
+        price: 320000, // £3,200.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "half-wrap",
+        name: "Half Wrap",
+        category: "branding",
+        description: "Give your van the WOW factor with a half wrap (LWB/MWB available)",
+        price: 180000, // £1,800.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "graphic-pack",
+        name: "Graphic Pack",
+        category: "branding",
+        description: "Vehicle graphic pack with printed panels on sides and rear, text on doors and rear doors",
+        price: 100000, // £1,000.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Security & CCTV
+      {
+        id: "van-cctv-system",
+        name: "Van Online CCTV/DVR System",
+        category: "security",
+        description: "4-6 camera online/offline CCTV system for extra security and peace of mind",
+        price: 220000, // £2,200.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "vehicle-immobiliser",
+        name: "Vehicle Immobiliser",
+        category: "security",
+        description: "Most advanced vehicle immobiliser on the market to protect your business asset",
+        price: 50000, // £500.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "vehicle-tracker",
+        name: "Vehicle Tracker",
+        category: "security",
+        description: "Vehicle tracker with app to track your vehicle",
+        price: 35000, // £350.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Lighting
+      {
+        id: "light-pack",
+        name: "Light Pack",
+        category: "lighting",
+        description: "8 LED flashing repeaters, LED light bar to roof & working lights. Optional upgrade to LED scene lights",
+        price: 120000, // £1,200.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Business Setup
+      {
+        id: "business-package",
+        name: "All You Need Business Package",
+        category: "business",
+        description: "Website, business cards, leaflets, & social media setup (max 2 platforms)",
+        price: 155000, // £1,550.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "branded-website",
+        name: "Branded Website",
+        category: "business",
+        description: "Fully branded website for your business (from £1050+VAT depending on specification)",
+        price: 105000, // £1,050.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Technology & Comfort
+      {
+        id: "remote-control",
+        name: "Remote Control",
+        category: "technology",
+        description: "Control all of your van's accessories with wireless remote system",
+        price: 69500, // £695.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "apple-carplay",
+        name: "Apple CarPlay",
+        category: "technology",
+        description: "Apple CarPlay or Android Auto (vehicle dependent, starting price)",
+        price: 65000, // £650.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "heated-seat",
+        name: "Heated Seat",
+        category: "comfort",
+        description: "Heated driver's seat to keep warm on cold winter days",
+        price: 55000, // £550.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Storage & Tools
+      {
+        id: "tyre-racking",
+        name: "Tyre Racking",
+        category: "storage",
+        description: "Professional tyre storage racking (tyres not included)",
+        price: 49500, // £495.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "tool-chest-155pc",
+        name: "155 Piece Neilsen Tool Chest",
+        category: "storage",
+        description: "Complete 155 piece professional tool chest",
+        price: 45000, // £450.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Safety
+      {
+        id: "chapter-8-livery",
+        name: "Rear Chapter 8 Livery",
+        category: "safety",
+        description: "Fluorescent and reflective chapter 8 kit for roadside visibility",
+        price: 45000, // £450.00
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      // Power Systems
+      {
+        id: "lifepo4-battery-200ah",
+        name: "200ah LiFePO4 Battery Upgrade and Brackets",
+        category: "power",
+        description: "Upgrade your battery system to 200ah for longer lasting power",
+        price: 30000, // £300.00
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -293,7 +474,7 @@ export class MemStorage implements IStorage {
       ...insertVan, 
       id,
       vatIncluded: insertVan.vatIncluded ?? false,
-      images: Array.isArray(insertVan.images) ? insertVan.images : [],
+      images: (insertVan.images && Array.isArray(insertVan.images)) ? insertVan.images : [],
       createdAt: new Date(),
       updatedAt: new Date()
     };

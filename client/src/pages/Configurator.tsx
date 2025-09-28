@@ -32,6 +32,43 @@ export default function Configurator() {
   const [selectedUpgrades, setSelectedUpgrades] = useState<string[]>([]);
   const [showVAT, setShowVAT] = useState(true);
 
+  // Load saved configuration from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('configuratorState');
+      if (savedConfig) {
+        const parsed = JSON.parse(savedConfig);
+        if (parsed.selectedVan) setSelectedVan(parsed.selectedVan);
+        if (parsed.selectedKit) setSelectedKit(parsed.selectedKit);
+        if (parsed.selectedUpgrades && Array.isArray(parsed.selectedUpgrades)) {
+          setSelectedUpgrades(parsed.selectedUpgrades);
+        }
+        if (typeof parsed.showVAT === 'boolean') setShowVAT(parsed.showVAT);
+        if (typeof parsed.currentStep === 'number' && parsed.currentStep >= 1 && parsed.currentStep <= 4) {
+          setCurrentStep(parsed.currentStep);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load configurator state from localStorage:', error);
+    }
+  }, []);
+
+  // Save configuration to localStorage whenever state changes
+  useEffect(() => {
+    const configState = {
+      currentStep,
+      selectedVan,
+      selectedKit,
+      selectedUpgrades,
+      showVAT
+    };
+    try {
+      localStorage.setItem('configuratorState', JSON.stringify(configState));
+    } catch (error) {
+      console.warn('Failed to save configurator state to localStorage:', error);
+    }
+  }, [currentStep, selectedVan, selectedKit, selectedUpgrades, showVAT]);
+
   // Fetch configurator data
   const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
     queryKey: ['/api/configurator/data'],

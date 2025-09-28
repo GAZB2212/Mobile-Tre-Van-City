@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { z } from "zod";
 import { storage } from "./storage";
 import { insertVanSchema, insertKitSchema, insertUpgradeSchema, insertQuoteSchema, insertLeadSchema } from "@shared/schema";
 
@@ -209,7 +210,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/configurator/calculate", async (req, res) => {
     try {
-      const { vanId, kitId, upgradeIds = [] } = req.body;
+      // Validate request body
+      const bodySchema = z.object({
+        vanId: z.string().optional(),
+        kitId: z.string().optional(),
+        upgradeIds: z.array(z.string()).default([])
+      });
+      
+      const { vanId, kitId, upgradeIds } = bodySchema.parse(req.body);
       
       let subtotal = 0;
       
