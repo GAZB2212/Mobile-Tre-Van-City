@@ -293,7 +293,7 @@ export class MemStorage implements IStorage {
       ...insertVan, 
       id,
       vatIncluded: insertVan.vatIncluded ?? false,
-      images: insertVan.images ?? [],
+      images: Array.isArray(insertVan.images) ? insertVan.images : [],
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -309,7 +309,7 @@ export class MemStorage implements IStorage {
       ...existing, 
       ...insertVan,
       vatIncluded: insertVan.vatIncluded ?? existing.vatIncluded,
-      images: insertVan.images ?? existing.images,
+      images: Array.isArray(insertVan.images) ? insertVan.images : existing.images,
       updatedAt: new Date()
     };
     this.vans.set(id, updated);
@@ -334,7 +334,7 @@ export class MemStorage implements IStorage {
     const kit: Kit = { 
       ...insertKit, 
       id,
-      includes: insertKit.includes ?? [],
+      includes: Array.isArray(insertKit.includes) ? insertKit.includes : [],
       published: insertKit.published ?? true,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -350,7 +350,7 @@ export class MemStorage implements IStorage {
     const updated: Kit = { 
       ...existing, 
       ...insertKit,
-      includes: insertKit.includes ?? existing.includes,
+      includes: Array.isArray(insertKit.includes) ? insertKit.includes : existing.includes,
       published: insertKit.published ?? existing.published,
       updatedAt: new Date()
     };
@@ -423,7 +423,7 @@ export class MemStorage implements IStorage {
       id,
       company: insertQuote.company ?? null,
       vanId: insertQuote.vanId ?? null,
-      selectedUpgradeIds: insertQuote.selectedUpgradeIds ?? [],
+      selectedUpgradeIds: Array.isArray(insertQuote.selectedUpgradeIds) ? insertQuote.selectedUpgradeIds : [],
       notes: insertQuote.notes ?? null,
       createdAt: new Date()
     };
