@@ -3,27 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Calculator, Download } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface PriceSummaryProps {
-  basePrice: number;
-  kitPrice: number;
-  upgradesPrice: number;
+  subtotal: number;
+  vat: number;
+  total: number;
   showVAT: boolean;
   onVATToggle: (show: boolean) => void;
   onRequestQuote: () => void;
+  isCalculating?: boolean;
 }
 
 export default function PriceSummary({ 
-  basePrice, 
-  kitPrice, 
-  upgradesPrice, 
+  subtotal, 
+  vat, 
+  total, 
   showVAT, 
   onVATToggle,
-  onRequestQuote 
+  onRequestQuote,
+  isCalculating = false
 }: PriceSummaryProps) {
-  const subtotal = basePrice + kitPrice + upgradesPrice;
-  const vat = subtotal * 0.2; // 20% VAT
-  const total = showVAT ? subtotal + vat : subtotal;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -44,34 +44,20 @@ export default function PriceSummary({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Price Breakdown */}
-        <div className="space-y-3">
-          {basePrice > 0 && (
-            <div className="flex justify-between" data-testid="price-base-van">
-              <span className="text-muted-foreground">Base Van</span>
-              <span className="font-medium">{formatPrice(basePrice)}</span>
-            </div>
-          )}
-          {kitPrice > 0 && (
-            <div className="flex justify-between" data-testid="price-equipment-kit">
-              <span className="text-muted-foreground">Equipment Kit</span>
-              <span className="font-medium">{formatPrice(kitPrice)}</span>
-            </div>
-          )}
-          {upgradesPrice > 0 && (
-            <div className="flex justify-between" data-testid="price-upgrades">
-              <span className="text-muted-foreground">Upgrades</span>
-              <span className="font-medium">{formatPrice(upgradesPrice)}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="border-t pt-3">
-          <div className="flex justify-between text-lg font-semibold" data-testid="price-subtotal">
-            <span>Subtotal</span>
-            <span>{formatPrice(subtotal)}</span>
+        {isCalculating && (
+          <div className="flex justify-center py-4">
+            <LoadingSpinner size="sm" />
           </div>
-        </div>
+        )}
+
+        {!isCalculating && subtotal > 0 && (
+          <div className="border-t pt-3">
+            <div className="flex justify-between text-lg font-semibold" data-testid="price-subtotal">
+              <span>Equipment Total</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+          </div>
+        )}
 
         {/* VAT Toggle */}
         <div className="flex items-center justify-between py-2 border rounded-lg px-3">
@@ -86,7 +72,7 @@ export default function PriceSummary({
           />
         </div>
 
-        {showVAT && (
+        {!isCalculating && showVAT && vat > 0 && (
           <div className="flex justify-between text-muted-foreground" data-testid="price-vat">
             <span>VAT (20%)</span>
             <span>{formatPrice(vat)}</span>
@@ -94,15 +80,25 @@ export default function PriceSummary({
         )}
 
         {/* Total */}
-        <div className="border-t pt-3">
-          <div className="flex justify-between text-xl font-bold" data-testid="price-total">
-            <span>Total</span>
-            <span className="text-chart-2">{formatPrice(total)}</span>
+        {!isCalculating && total > 0 && (
+          <div className="border-t pt-3">
+            <div className="flex justify-between text-xl font-bold" data-testid="price-total">
+              <span>Total</span>
+              <span className="text-chart-2">
+                {formatPrice(showVAT ? total : subtotal)}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {showVAT ? 'Inc. VAT' : 'Ex. VAT'}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {showVAT ? 'Inc. VAT' : 'Ex. VAT'}
-          </p>
-        </div>
+        )}
+
+        {!isCalculating && subtotal === 0 && (
+          <div className="text-center py-6 text-muted-foreground">
+            <p>Select equipment to see pricing</p>
+          </div>
+        )}
 
         {/* Benefits */}
         <div className="space-y-2 py-3">

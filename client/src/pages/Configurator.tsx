@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ConfiguratorStepper from "@/components/ConfiguratorStepper";
@@ -6,26 +7,72 @@ import EquipmentGrid from "@/components/EquipmentGrid";
 import PriceSummary from "@/components/PriceSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import type { Kit, Upgrade } from "@shared/schema";
+
+interface ConfiguratorData {
+  kits: Kit[];
+  upgrades: Record<string, Upgrade[]>;
+}
+
+interface PricingData {
+  subtotal: number;
+  vat: number;
+  total: number;
+  vatRate: number;
+}
 
 export default function Configurator() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedVan, setSelectedVan] = useState<string | null>(null);
   const [selectedKit, setSelectedKit] = useState<string | null>(null);
+  const [selectedUpgrades, setSelectedUpgrades] = useState<string[]>([]);
   const [showVAT, setShowVAT] = useState(true);
+
+  // Fetch configurator data
+  const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
+    queryKey: ['/api/configurator/data'],
+  });
+
+  // Calculate pricing
+  const calculatePricing = useMutation<PricingData, Error, { vanId?: string; kitId?: string; upgradeIds: string[] }>({
+    mutationFn: async ({ vanId, kitId, upgradeIds }) => {
+      const response = await fetch('/api/configurator/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vanId, kitId, upgradeIds }),
+      });
+      if (!response.ok) throw new Error('Failed to calculate pricing');
+      return response.json();
+    },
+  });
+
+  // Calculate pricing when selections change
+  useEffect(() => {
+    if (selectedKit) {
+      calculatePricing.mutate({
+        vanId: selectedVan || undefined,
+        kitId: selectedKit,
+        upgradeIds: selectedUpgrades,
+      });
+    }
+  }, [selectedVan, selectedKit, selectedUpgrades]);
+
+  const handleUpgradeToggle = (upgradeId: string) => {
+    setSelectedUpgrades(prev => 
+      prev.includes(upgradeId) 
+        ? prev.filter(id => id !== upgradeId)
+        : [...prev, upgradeId]
+    );
+  };
 
   const handleRequestQuote = () => {
     console.log('Quote requested for configurator');
-    // todo: remove mock functionality - implement actual quote request
+    // todo: implement actual quote request with form submission
   };
-
-  // todo: remove mock functionality
-  const basePrice = 4500000; // £45,000
-  const kitPrices: Record<string, number> = {
-    starter: 1250000,
-    professional: 1850000,
-    premium: 2450000
-  };
-  const kitPrice = selectedKit ? kitPrices[selectedKit] : 0;
-  const upgradesPrice = 750000; // £7,500
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,74 +92,162 @@ export default function Configurator() {
           onStepChange={setCurrentStep}
         />
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            {currentStep === 1 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Choose Your Base Van</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Select from our stock vehicles or indicate you'll provide your own van.
-                  </p>
-                  {/* Base van selection would go here */}
-                  <div className="flex gap-4">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              {currentStep === 1 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Choose Your Base Van</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">
+                      Select from our stock vehicles or indicate you'll provide your own van.
+                    </p>
+                    <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Note:</strong> You can proceed directly to equipment selection. Van pricing will be calculated separately based on your specific requirements.
+                      </p>
+                    </div>
+                    <div className="flex gap-4">
+                      <Button 
+                        onClick={() => setCurrentStep(2)}
+                        className="bg-chart-3 hover:bg-chart-3/90 text-black"
+                        data-testid="button-next-step-1"
+                      >
+                        Continue to Equipment
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {currentStep === 2 && configuratorData && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold mb-2">Choose Your Equipment Kit</h2>
+                    <p className="text-muted-foreground">
+                      Select the tyre changing equipment that best fits your business needs
+                    </p>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {configuratorData.kits.map((kit) => (
+                      <Card 
+                        key={kit.id} 
+                        className={`cursor-pointer transition-all hover-elevate ${
+                          selectedKit === kit.id ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => setSelectedKit(kit.id)}
+                        data-testid={`card-kit-${kit.id}`}
+                      >
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg leading-tight">{kit.name}</CardTitle>
+                            <Badge variant="secondary">
+                              £{(kit.price / 100).toLocaleString()}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {kit.description}
+                          </p>
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Includes:</p>
+                            {kit.includes.map((item, index) => (
+                              <p key={index} className="text-xs text-muted-foreground">• {item}</p>
+                            ))}
+                          </div>
+                          <div className="mt-3 pt-3 border-t">
+                            <Badge variant="outline" className="text-xs">
+                              {kit.powerKw}kW Power
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  <div className="flex gap-4 mt-6">
                     <Button 
-                      onClick={() => setCurrentStep(2)}
-                      className="bg-chart-3 hover:bg-chart-3/90 text-black"
-                      data-testid="button-next-step-1"
+                      variant="outline" 
+                      onClick={() => setCurrentStep(1)}
+                      data-testid="button-back-step-2"
                     >
-                      Continue to Equipment
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={() => setCurrentStep(3)}
+                      disabled={!selectedKit}
+                      className="bg-chart-3 hover:bg-chart-3/90 text-black"
+                      data-testid="button-next-step-2"
+                    >
+                      Continue to Upgrades
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {currentStep === 2 && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Choose Your Equipment Kit</h2>
-                  <p className="text-muted-foreground">
-                    Select the tyre changing equipment that best fits your business needs
-                  </p>
                 </div>
-                <EquipmentGrid 
-                  selectedKit={selectedKit} 
-                  onKitSelect={setSelectedKit}
-                />
-                <div className="flex gap-4 mt-6">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setCurrentStep(1)}
-                    data-testid="button-back-step-2"
-                  >
-                    Back
-                  </Button>
-                  <Button 
-                    onClick={() => setCurrentStep(3)}
-                    disabled={!selectedKit}
-                    className="bg-chart-3 hover:bg-chart-3/90 text-black"
-                    data-testid="button-next-step-2"
-                  >
-                    Continue to Upgrades
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {currentStep === 3 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Add Upgrades & Extras</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Enhance your van with additional features like lighting, CCTV, racking, and security.
-                  </p>
-                  {/* Upgrades grid would go here */}
-                  <div className="flex gap-4">
+              {currentStep === 3 && configuratorData && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold mb-2">Add Upgrades & Extras</h2>
+                    <p className="text-muted-foreground">
+                      Enhance your van with additional features and equipment upgrades
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    {Object.entries(configuratorData.upgrades).map(([category, upgrades]) => (
+                      <Card key={category}>
+                        <CardHeader>
+                          <CardTitle className="text-lg capitalize">
+                            {category.replace('-', ' ')} Options
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-3">
+                            {upgrades.map((upgrade) => (
+                              <div 
+                                key={upgrade.id}
+                                className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
+                              >
+                                <Checkbox
+                                  id={upgrade.id}
+                                  checked={selectedUpgrades.includes(upgrade.id)}
+                                  onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                  data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <label 
+                                      htmlFor={upgrade.id}
+                                      className="font-medium cursor-pointer leading-tight"
+                                    >
+                                      {upgrade.name}
+                                    </label>
+                                    <Badge variant="secondary" className="ml-2 flex-shrink-0">
+                                      £{(upgrade.price / 100).toLocaleString()}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {upgrade.description}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-4 mt-6">
                     <Button 
                       variant="outline" 
                       onClick={() => setCurrentStep(2)}
@@ -128,52 +263,101 @@ export default function Configurator() {
                       Review Summary
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              )}
 
-            {currentStep === 4 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuration Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Review your configuration and request a detailed quote.
-                  </p>
-                  {/* Summary details would go here */}
-                  <div className="flex gap-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setCurrentStep(3)}
-                      data-testid="button-back-step-4"
-                    >
-                      Back to Upgrades
-                    </Button>
-                    <Button 
-                      onClick={handleRequestQuote}
-                      className="bg-chart-2 hover:bg-chart-2/90"
-                      data-testid="button-final-quote"
-                    >
-                      Request Final Quote
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              {currentStep === 4 && configuratorData && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Configuration Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {selectedKit && (
+                        <div>
+                          <h3 className="font-medium mb-2">Selected Equipment Kit:</h3>
+                          {(() => {
+                            const kit = configuratorData.kits.find(k => k.id === selectedKit);
+                            return kit ? (
+                              <div className="bg-muted/50 rounded-lg p-3">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">{kit.name}</p>
+                                    <p className="text-sm text-muted-foreground">{kit.description}</p>
+                                  </div>
+                                  <Badge variant="secondary">
+                                    £{(kit.price / 100).toLocaleString()}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      )}
+
+                      {selectedUpgrades.length > 0 && (
+                        <div>
+                          <h3 className="font-medium mb-2">Selected Upgrades:</h3>
+                          <div className="space-y-2">
+                            {selectedUpgrades.map(upgradeId => {
+                              const upgrade = Object.values(configuratorData.upgrades)
+                                .flat()
+                                .find(u => u.id === upgradeId);
+                              return upgrade ? (
+                                <div key={upgrade.id} className="bg-muted/50 rounded-lg p-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium">{upgrade.name}</p>
+                                      <p className="text-sm text-muted-foreground">{upgrade.description}</p>
+                                    </div>
+                                    <Badge variant="secondary">
+                                      £{(upgrade.price / 100).toLocaleString()}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator className="my-6" />
+
+                    <div className="flex gap-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setCurrentStep(3)}
+                        data-testid="button-back-step-4"
+                      >
+                        Back to Upgrades
+                      </Button>
+                      <Button 
+                        onClick={handleRequestQuote}
+                        className="bg-chart-2 hover:bg-chart-2/90"
+                        data-testid="button-final-quote"
+                      >
+                        Request Final Quote
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
           </div>
 
-          <div className="lg:col-span-1">
-            <PriceSummary 
-              basePrice={basePrice}
-              kitPrice={kitPrice}
-              upgradesPrice={upgradesPrice}
-              showVAT={showVAT}
-              onVATToggle={setShowVAT}
-              onRequestQuote={handleRequestQuote}
-            />
+            <div className="lg:col-span-1">
+              <PriceSummary 
+                subtotal={calculatePricing.data?.subtotal || 0}
+                vat={calculatePricing.data?.vat || 0}
+                total={calculatePricing.data?.total || 0}
+                showVAT={showVAT}
+                onVATToggle={setShowVAT}
+                onRequestQuote={handleRequestQuote}
+                isCalculating={calculatePricing.isPending}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </main>
       <Footer />
     </div>
