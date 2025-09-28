@@ -1,0 +1,71 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+export default function FAQ() {
+  // todo: remove mock functionality
+  const faqs = [
+    {
+      question: "How long does a van conversion take?",
+      answer: "Most conversions are completed within 2-3 weeks from order confirmation. We'll provide you with a detailed timeline based on your specific requirements and current workload."
+    },
+    {
+      question: "Do you offer finance options?",
+      answer: "Yes, we offer various finance packages including hire purchase, lease purchase, and business loans. Our team can help you find the most suitable option for your business needs."
+    },
+    {
+      question: "What warranty do you provide?",
+      answer: "All our conversions come with a comprehensive 12-month warranty covering workmanship and equipment. Individual components may have extended manufacturer warranties."
+    },
+    {
+      question: "Can I use my existing van?",
+      answer: "Absolutely! We can convert most commercial vans including Ford Transit, Mercedes Sprinter, Volkswagen Crafter, and others. We'll assess your van's suitability during consultation."
+    },
+    {
+      question: "Do you provide training?",
+      answer: "Yes, we include basic equipment training with every conversion. We also offer extended training programs to help you maximize your business potential."
+    },
+    {
+      question: "What ongoing support do you offer?",
+      answer: "We provide ongoing technical support, maintenance services, and can supply spare parts. Our team is always available to help ensure your business runs smoothly."
+    }
+  ];
+
+  return (
+    <section className="py-16">
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-faq-title">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Common questions about our mobile tyre van conversions
+            </p>
+          </div>
+          
+          <Accordion type="single" collapsible className="space-y-4">
+            {faqs.map((faq, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`item-${index}`} 
+                className="border rounded-2xl px-6 hover-elevate"
+                data-testid={`faq-item-${index}`}
+              >
+                <AccordionTrigger className="text-left font-semibold py-6">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-6">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </div>
+    </section>
+  );
+}

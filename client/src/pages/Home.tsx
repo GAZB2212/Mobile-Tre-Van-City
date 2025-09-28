@@ -1,0 +1,27 @@
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import ProcessSteps from "@/components/ProcessSteps";
+import TrustStrip from "@/components/TrustStrip";
+import FeaturedStock from "@/components/FeaturedStock";
+import Testimonials from "@/components/Testimonials";
+import CTASection from "@/components/CTASection";
+import FAQ from "@/components/FAQ";
+import Footer from "@/components/Footer";
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main>
+        <Hero />
+        <TrustStrip />
+        <ProcessSteps />
+        <FeaturedStock />
+        <Testimonials />
+        <FAQ />
+        <CTASection />
+      </main>
+      <Footer />
+    </div>
+  );
+}
