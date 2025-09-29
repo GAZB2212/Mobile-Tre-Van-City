@@ -417,7 +417,16 @@ export class MemStorage implements IStorage {
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const user = this.users.get(id);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('👤 getUser Debug:', {
+        userId: id,
+        found: !!user,
+        isAdmin: user?.isAdmin
+      });
+    }
+    return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -426,6 +435,16 @@ export class MemStorage implements IStorage {
     // Check if user should be admin based on environment variable
     const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
     const shouldBeAdmin = adminUserIds.includes(userData.id);
+    
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔐 upsertUser Debug:', {
+        userId: userData.id,
+        adminUserIds,
+        shouldBeAdmin,
+        existingUser: !!existingUser
+      });
+    }
     
     if (existingUser) {
       const updatedUser: User = {

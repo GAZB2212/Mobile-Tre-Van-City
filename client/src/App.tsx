@@ -7,6 +7,7 @@ import Home from "@/pages/Home";
 import Configurator from "@/pages/Configurator";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminVans from "@/pages/admin/Vans";
+import AdminKits from "@/pages/admin/Kits";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/vans" component={AdminVans} />
+      <Route path="/admin/kits" component={AdminKits} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

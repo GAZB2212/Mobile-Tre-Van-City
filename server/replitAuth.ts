@@ -140,8 +140,21 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
+  
+  // Only log auth checks in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔐 Auth check:', {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!user,
+      userExpiry: user?.expires_at,
+      sessionId: req.sessionID
+    });
+  }
 
   if (!req.isAuthenticated() || !user.expires_at) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('❌ Authentication failed - user not authenticated or no expiry');
+    }
     return res.status(401).json({ message: "Unauthorized" });
   }
 

@@ -96,11 +96,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Kits endpoints
+  // Kits endpoints - public (published only)
   app.get("/api/kits", async (req, res) => {
     try {
-      const kits = await storage.getKits();
-      res.json(kits);
+      const allKits = await storage.getKits();
+      // Filter to only return published kits for public API
+      const publishedKits = allKits.filter(kit => kit.published);
+      res.json(publishedKits);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch kits" });
     }
@@ -109,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/kits/:id", async (req, res) => {
     try {
       const kit = await storage.getKit(req.params.id);
-      if (!kit) {
+      if (!kit || !kit.published) {
         return res.status(404).json({ error: "Kit not found" });
       }
       res.json(kit);
@@ -327,12 +329,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin CRUD endpoints for kits
+  app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const kits = await storage.getKits();
+      res.json(kits);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch kits" });
+    }
+  });
+
   app.post("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🛠️ Kit creation request:', {
+          body: req.body,
+          userId: req.user?.claims?.sub
+        });
+      }
+      
       const kitData = insertKitSchema.parse(req.body);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Kit validation passed:', kitData);
+      }
+      
       const kit = await storage.createKit(kitData);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Kit created:', kit);
+      }
+      
       res.json(kit);
     } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Kit creation failed:', error);
+      }
       res.status(400).json({ error: "Failed to create kit" });
     }
   });
