@@ -1,5 +1,5 @@
 import { 
-  type User, type InsertUser,
+  type User, type InsertUser, type UpsertUser,
   type Van, type InsertVan,
   type Kit, type InsertKit,
   type Upgrade, type InsertUpgrade,
@@ -432,11 +432,13 @@ export class MemStorage implements IStorage {
   async upsertUser(userData: UpsertUser): Promise<User> {
     const existingUser = this.users.get(userData.id);
     
-    // Check if user should be admin based on environment variable OR existing database record
+    // Check if user should be admin based on environment variable, OIDC claims (dev only), OR existing database record
     const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
     const envBasedAdmin = adminUserIds.includes(userData.id);
+    // Only honor OIDC is_admin claims in development/testing - security concern for production
+    const oidcBasedAdmin = (process.env.NODE_ENV === 'development' && userData.isAdmin) || false;
     const dbBasedAdmin = existingUser?.isAdmin || false;
-    const shouldBeAdmin = envBasedAdmin || dbBasedAdmin;
+    const shouldBeAdmin = envBasedAdmin || oidcBasedAdmin || dbBasedAdmin;
     
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
@@ -444,6 +446,7 @@ export class MemStorage implements IStorage {
         userId: userData.id,
         adminUserIds,
         envBasedAdmin,
+        oidcBasedAdmin,
         dbBasedAdmin,
         shouldBeAdmin,
         existingUser: !!existingUser

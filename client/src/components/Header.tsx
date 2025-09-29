@@ -1,10 +1,13 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut, Shield } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -47,6 +50,51 @@ export default function Header() {
             >
               Configure Your Van
             </Button>
+
+            {/* Authentication Section */}
+            {!isLoading && (
+              <div className="hidden md:flex items-center space-x-2">
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4" />
+                      <span className="text-sm">{user?.firstName || user?.email}</span>
+                      {user?.isAdmin && (
+                        <Badge variant="secondary" className="text-xs">
+                          Admin
+                        </Badge>
+                      )}
+                    </div>
+                    {user?.isAdmin && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/admin" data-testid="link-admin">
+                          <Shield className="w-4 h-4 mr-1" />
+                          Admin
+                        </Link>
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.location.href = "/api/logout"}
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="w-4 h-4 mr-1" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = "/api/login"}
+                    data-testid="button-login"
+                  >
+                    <User className="w-4 h-4 mr-1" />
+                    Login
+                  </Button>
+                )}
+              </div>
+            )}
             
             {/* Mobile menu button */}
             <Button
@@ -82,6 +130,55 @@ export default function Header() {
               >
                 Configure Your Van
               </Button>
+
+              {/* Mobile Authentication */}
+              {!isLoading && (
+                <div className="pt-4 border-t">
+                  {isAuthenticated ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <User className="w-4 h-4" />
+                          <span className="text-sm">{user?.firstName || user?.email}</span>
+                          {user?.isAdmin && (
+                            <Badge variant="secondary" className="text-xs">
+                              Admin
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {user?.isAdmin && (
+                        <Button variant="outline" size="sm" className="w-full" asChild>
+                          <Link href="/admin" data-testid="mobile-link-admin">
+                            <Shield className="w-4 h-4 mr-1" />
+                            Admin Panel
+                          </Link>
+                        </Button>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                        onClick={() => window.location.href = "/api/logout"}
+                        data-testid="mobile-button-logout"
+                      >
+                        <LogOut className="w-4 h-4 mr-1" />
+                        Logout
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => window.location.href = "/api/login"}
+                      data-testid="mobile-button-login"
+                    >
+                      <User className="w-4 h-4 mr-1" />
+                      Login
+                    </Button>
+                  )}
+                </div>
+              )}
             </nav>
           </div>
         )}
