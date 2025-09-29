@@ -394,6 +394,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin CRUD endpoints for upgrades
+  app.get("/api/admin/upgrades", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const upgrades = await storage.getUpgrades();
+      res.json(upgrades);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch upgrades" });
+    }
+  });
+
   app.post("/api/admin/upgrades", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const upgradeData = insertUpgradeSchema.parse(req.body);
@@ -426,6 +435,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete upgrade" });
+    }
+  });
+
+  // Testing endpoint to promote users to admin (development only)
+  app.post("/api/test/promote-admin", async (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(404).json({ error: "Endpoint not available in production" });
+    }
+    
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      
+      const user = await storage.promoteToAdmin(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({ success: true, user });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to promote user" });
     }
   });
 

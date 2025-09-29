@@ -432,15 +432,19 @@ export class MemStorage implements IStorage {
   async upsertUser(userData: UpsertUser): Promise<User> {
     const existingUser = this.users.get(userData.id);
     
-    // Check if user should be admin based on environment variable
+    // Check if user should be admin based on environment variable OR existing database record
     const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
-    const shouldBeAdmin = adminUserIds.includes(userData.id);
+    const envBasedAdmin = adminUserIds.includes(userData.id);
+    const dbBasedAdmin = existingUser?.isAdmin || false;
+    const shouldBeAdmin = envBasedAdmin || dbBasedAdmin;
     
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
       console.log('🔐 upsertUser Debug:', {
         userId: userData.id,
         adminUserIds,
+        envBasedAdmin,
+        dbBasedAdmin,
         shouldBeAdmin,
         existingUser: !!existingUser
       });

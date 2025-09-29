@@ -62,6 +62,23 @@ export const kits = pgTable("kits", {
   published: boolean("published").notNull().default(true),
 });
 
+// Upgrade categories enum
+export const upgradeCategories = [
+  "Air System",
+  "Equipment", 
+  "Electrical",
+  "Compressor",
+  "Lighting",
+  "Storage",
+  "Safety",
+  "Business",
+  "Technology",
+  "Comfort",
+  "Branding",
+  "Security",
+  "Power"
+] as const;
+
 export const upgrades = pgTable("upgrades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
