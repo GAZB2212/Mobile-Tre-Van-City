@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import heroVideo from "@assets/VIDEO-2024-07-25-10-47-43_1759232048284.mp4";
 
 export default function Hero() {
   return (
@@ -11,7 +12,7 @@ export default function Hero() {
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
       >
-        <source src="/attached_assets/VIDEO-2024-07-25-10-47-43_1759232048284.mp4" type="video/mp4" />
+        <source src={heroVideo} type="video/mp4" />
       </video>
       
       {/* Dark overlay for text readability */}
