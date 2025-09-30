@@ -10,8 +10,8 @@ import { Car, Fuel, Gauge, Settings, Calendar, ArrowRight, Search } from "lucide
 import type { Van } from "@shared/schema";
 
 export default function Stock() {
-  const [makeFilter, setMakeFilter] = useState<string>("");
-  const [transmissionFilter, setTransmissionFilter] = useState<string>("");
+  const [makeFilter, setMakeFilter] = useState<string>("all");
+  const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
   const [maxPrice, setMaxPrice] = useState<string>("");
 
   const { data: vans = [], isLoading } = useQuery<Van[]>({
@@ -21,8 +21,8 @@ export default function Stock() {
   const uniqueMakes = Array.from(new Set(vans.map(van => van.make))).sort();
 
   const filteredVans = vans.filter(van => {
-    if (makeFilter && van.make !== makeFilter) return false;
-    if (transmissionFilter && van.specs.transmission !== transmissionFilter) return false;
+    if (makeFilter && makeFilter !== "all" && van.make !== makeFilter) return false;
+    if (transmissionFilter && transmissionFilter !== "all" && van.specs.transmission !== transmissionFilter) return false;
     if (maxPrice && van.price > parseInt(maxPrice) * 100) return false;
     return true;
   });
@@ -65,7 +65,7 @@ export default function Stock() {
                   <SelectValue placeholder="All Makes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Makes</SelectItem>
+                  <SelectItem value="all">All Makes</SelectItem>
                   {uniqueMakes.map(make => (
                     <SelectItem key={make} value={make}>{make}</SelectItem>
                   ))}
@@ -80,7 +80,7 @@ export default function Stock() {
                   <SelectValue placeholder="All Transmissions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Transmissions</SelectItem>
+                  <SelectItem value="all">All Transmissions</SelectItem>
                   <SelectItem value="Manual">Manual</SelectItem>
                   <SelectItem value="Automatic">Automatic</SelectItem>
                 </SelectContent>
@@ -103,8 +103,8 @@ export default function Stock() {
                 variant="outline"
                 className="w-full"
                 onClick={() => {
-                  setMakeFilter("");
-                  setTransmissionFilter("");
+                  setMakeFilter("all");
+                  setTransmissionFilter("all");
                   setMaxPrice("");
                 }}
                 data-testid="button-clear-filters"
@@ -137,8 +137,8 @@ export default function Stock() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setMakeFilter("");
-                    setTransmissionFilter("");
+                    setMakeFilter("all");
+                    setTransmissionFilter("all");
                     setMaxPrice("");
                   }}
                   data-testid="button-reset-filters"
