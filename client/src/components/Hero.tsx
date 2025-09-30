@@ -16,7 +16,7 @@ export default function Hero() {
       </video>
       
       {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/60 to-black/50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/80 to-black/75" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
