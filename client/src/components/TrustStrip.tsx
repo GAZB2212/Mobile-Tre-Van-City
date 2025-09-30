@@ -20,23 +20,24 @@ const features = [
 
 export default function TrustStrip() {
   return (
-    <section className="py-16 bg-muted/30">
+    <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 max-w-6xl mx-auto">
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="flex flex-col items-center text-center space-y-3"
+              className="flex flex-col items-center text-center space-y-4"
               data-testid={`feature-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <div className="w-16 h-16 bg-chart-3 rounded-full flex items-center justify-center shadow-lg">
-                <feature.icon className="w-8 h-8 text-black" strokeWidth={2.5} />
+              <div className="relative w-20 h-20 bg-background rounded-full flex items-center justify-center border-2 border-accent/40">
+                <div className="absolute inset-2 bg-accent/10 rounded-full" />
+                <feature.icon className="w-9 h-9 text-accent relative z-10" strokeWidth={2} />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold text-foreground">
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-foreground">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
               </div>
