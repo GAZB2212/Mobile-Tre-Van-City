@@ -49,12 +49,12 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between py-4">
-          <Link href="/" className="flex items-center" data-testid="link-home">
+        <div className="flex items-center justify-between md:justify-between justify-center py-3 md:py-4">
+          <Link href="/" className="flex items-center md:flex-none flex-1 justify-center md:justify-start" data-testid="link-home">
             <img 
               src={logoImage} 
               alt="Mobile Tyre Van City" 
-              className="h-36 w-auto"
+              className="h-16 md:h-36 w-auto"
             />
           </Link>
 
@@ -72,7 +72,7 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 md:flex md:relative absolute right-4">
             <Button 
               variant="default"
               size="lg"
