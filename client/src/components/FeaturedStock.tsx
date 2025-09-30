@@ -68,7 +68,7 @@ export default function FeaturedStock() {
               Ready-to-go mobile tyre vans from our current inventory
             </p>
           </div>
-          <Button variant="outline" className="hidden md:flex border-accent text-accent hover:bg-accent hover:text-white" data-testid="button-view-all-stock">
+          <Button variant="outline" size="lg" className="hidden md:flex border-accent text-accent hover:bg-accent hover:text-white" data-testid="button-view-all-stock">
             View All Stock
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
@@ -81,7 +81,7 @@ export default function FeaturedStock() {
         </div>
         
         <div className="text-center md:hidden">
-          <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-white" data-testid="mobile-button-view-all-stock">
+          <Button variant="outline" size="lg" className="border-accent text-accent hover:bg-accent hover:text-white" data-testid="mobile-button-view-all-stock">
             View All Stock
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>

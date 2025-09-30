@@ -26,7 +26,7 @@ export default function Hero() {
             </h1>
             <Button 
               size="lg" 
-              className="bg-primary text-white hover:bg-primary/90 font-bold text-lg px-10 py-6 h-auto"
+              className="bg-primary text-white hover:bg-primary/90 font-semibold"
               data-testid="button-learn-more"
             >
               Learn More

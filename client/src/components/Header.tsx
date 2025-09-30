@@ -75,6 +75,7 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <Button 
               variant="default"
+              size="lg"
               className="hidden md:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
               data-testid="button-configure"
             >
@@ -136,6 +137,7 @@ export default function Header() {
                 </Link>
               ))}
               <Button 
+                size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold w-full"
                 data-testid="mobile-button-configure"
               >
