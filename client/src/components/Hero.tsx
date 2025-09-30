@@ -1,14 +1,21 @@
 import { Button } from "@/components/ui/button";
-import heroImage from "@assets/generated_images/Mobile_tyre_van_conversion_372a2d42.png";
 
 export default function Hero() {
   return (
-    <section className="relative bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground py-24 overflow-hidden">
-      <div 
-        className="absolute inset-0 bg-cover bg-center opacity-20"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/60" />
+    <section className="relative bg-black text-primary-foreground py-24 overflow-hidden">
+      {/* Video Background */}
+      <video 
+        autoPlay 
+        loop 
+        muted 
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/attached_assets/VIDEO-2024-07-25-10-47-43_1759232048284.mp4" type="video/mp4" />
+      </video>
+      
+      {/* Dark overlay for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/60 to-black/50" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
