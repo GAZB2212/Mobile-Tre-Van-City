@@ -27,41 +27,29 @@ const services = [
 
 export default function ProcessSteps() {
   return (
-    <section className="py-24 bg-muted">
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-extrabold mb-6" data-testid="text-process-title">
-            Van Modification Services
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-6 text-white" data-testid="text-process-title">
+            Modification Your Van
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto" data-testid="text-process-subtitle">
-            Complete solutions for building your dream mobile tyre business
-          </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-          {services.map((service, index) => (
-            <div key={index} className="group text-center space-y-6" data-testid={`card-service-${index}`}>
+        <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
+          {services.slice(0, 3).map((service, index) => (
+            <div key={index} className="text-center space-y-6" data-testid={`card-service-${index}`}>
               <div className="flex justify-center">
-                <div className="w-28 h-28 bg-background rounded-full flex items-center justify-center border-4 border-accent shadow-lg group-hover:scale-110 transition-transform">
-                  <service.icon className="w-14 h-14 text-accent" strokeWidth={2} />
-                </div>
+                <service.icon className="w-16 h-16 text-accent" strokeWidth={1.5} />
               </div>
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-foreground">
-                  {service.title}
-                </h3>
-                <p className="text-muted-foreground leading-relaxed px-2">
-                  {service.description}
-                </p>
-                <Button 
-                  variant="ghost" 
-                  className="text-accent font-semibold"
-                  data-testid={`button-learn-more-${index}`}
-                >
-                  Learn More
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
+              <h3 className="text-2xl font-bold text-white">
+                {service.title}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {service.description}
+              </p>
+              <button className="text-white hover:text-accent transition-colors font-semibold" data-testid={`button-learn-more-${index}`}>
+                Learn More →
+              </button>
             </div>
           ))}
         </div>

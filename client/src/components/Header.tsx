@@ -22,7 +22,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-background">
       {/* Top Utility Bar */}
-      <div className="border-b bg-muted/30">
+      <div className="border-b border-border/20 bg-card">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-10 text-xs">
             <div className="flex items-center gap-6 text-muted-foreground">
@@ -64,7 +64,7 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wide uppercase"
+                className="text-sm font-medium text-foreground hover:text-accent transition-colors tracking-wide uppercase"
                 data-testid={`link-${item.name.toLowerCase()}`}
               >
                 {item.name}
