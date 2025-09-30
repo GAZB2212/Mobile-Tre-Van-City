@@ -35,7 +35,7 @@ export default function FAQ() {
   ];
 
   return (
-    <section className="py-16">
+    <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
@@ -52,10 +52,10 @@ export default function FAQ() {
               <AccordionItem 
                 key={index} 
                 value={`item-${index}`} 
-                className="border rounded-2xl px-6 hover-elevate"
+                className="border border-accent/20 rounded-2xl px-6 hover-elevate"
                 data-testid={`faq-item-${index}`}
               >
-                <AccordionTrigger className="text-left font-semibold py-6">
+                <AccordionTrigger className="text-left font-semibold py-6 hover:no-underline">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground pb-6">

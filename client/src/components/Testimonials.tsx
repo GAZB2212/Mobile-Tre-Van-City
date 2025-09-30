@@ -32,24 +32,24 @@ export default function Testimonials() {
   ];
 
   return (
-    <section className="py-16 bg-muted/30">
+    <section className="py-20 bg-primary text-primary-foreground">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-testimonials-title">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary-foreground" data-testid="text-testimonials-title">
             What Our Customers Say
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
             Join hundreds of successful mobile tyre businesses across the UK
           </p>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial) => (
-            <Card key={testimonial.id} className="hover-elevate" data-testid={`card-testimonial-${testimonial.id}`}>
+            <Card key={testimonial.id} className="hover-elevate bg-card" data-testid={`card-testimonial-${testimonial.id}`}>
               <CardContent className="p-6">
                 <div className="flex items-center mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-chart-3 text-chart-3" />
+                    <Star key={i} className="w-4 h-4 fill-accent text-accent" />
                   ))}
                 </div>
                 
@@ -59,7 +59,7 @@ export default function Testimonials() {
                 
                 <div className="flex items-center">
                   <Avatar className="w-10 h-10 mr-3">
-                    <AvatarFallback className="bg-chart-3 text-black font-semibold">
+                    <AvatarFallback className="bg-accent text-primary font-semibold">
                       {testimonial.initials}
                     </AvatarFallback>
                   </Avatar>

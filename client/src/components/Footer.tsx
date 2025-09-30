@@ -34,8 +34,8 @@ export default function Footer() {
           {/* Company Info */}
           <div className="lg:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-chart-3 rounded-md flex items-center justify-center">
-                <span className="text-black font-bold text-lg">T</span>
+              <div className="w-8 h-8 bg-accent rounded-md flex items-center justify-center">
+                <span className="text-accent-foreground font-bold text-lg">T</span>
               </div>
               <span className="font-bold text-xl">TyreVans</span>
             </div>
@@ -43,9 +43,9 @@ export default function Footer() {
               UK's leading mobile tyre van conversion specialists. Custom-built solutions for your mobile tyre business.
             </p>
             <div className="flex space-x-4">
-              <Facebook className="w-5 h-5 hover:text-chart-3 cursor-pointer transition-colors" data-testid="link-facebook" />
-              <Twitter className="w-5 h-5 hover:text-chart-3 cursor-pointer transition-colors" data-testid="link-twitter" />
-              <Linkedin className="w-5 h-5 hover:text-chart-3 cursor-pointer transition-colors" data-testid="link-linkedin" />
+              <Facebook className="w-5 h-5 hover:text-accent cursor-pointer transition-colors" data-testid="link-facebook" />
+              <Twitter className="w-5 h-5 hover:text-accent cursor-pointer transition-colors" data-testid="link-twitter" />
+              <Linkedin className="w-5 h-5 hover:text-accent cursor-pointer transition-colors" data-testid="link-linkedin" />
             </div>
           </div>
 
@@ -57,7 +57,7 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link 
                     href={link.href}
-                    className="text-primary-foreground/80 hover:text-chart-3 transition-colors"
+                    className="text-primary-foreground/80 hover:text-accent transition-colors"
                     data-testid={`footer-link-${link.name.toLowerCase()}`}
                   >
                     {link.name}
@@ -112,7 +112,7 @@ export default function Footer() {
                 <Link 
                   key={link.name}
                   href={link.href}
-                  className="text-primary-foreground/80 hover:text-chart-3 transition-colors text-sm"
+                  className="text-primary-foreground/80 hover:text-accent transition-colors text-sm"
                   data-testid={`footer-legal-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {link.name}

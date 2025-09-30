@@ -57,18 +57,18 @@ export default function FeaturedStock() {
   ];
 
   return (
-    <section className="py-16">
+    <section className="py-20 bg-primary text-primary-foreground">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-12">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-featured-title">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary-foreground" data-testid="text-featured-title">
               Featured Stock
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-primary-foreground/80">
               Ready-to-go mobile tyre vans from our current inventory
             </p>
           </div>
-          <Button variant="outline" className="hidden md:flex" data-testid="button-view-all-stock">
+          <Button variant="outline" className="hidden md:flex border-accent text-accent hover:bg-accent hover:text-primary" data-testid="button-view-all-stock">
             View All Stock
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
@@ -81,7 +81,7 @@ export default function FeaturedStock() {
         </div>
         
         <div className="text-center md:hidden">
-          <Button variant="outline" data-testid="mobile-button-view-all-stock">
+          <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-primary" data-testid="mobile-button-view-all-stock">
             View All Stock
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
