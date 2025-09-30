@@ -44,7 +44,7 @@ export default function VanDetails() {
             <p className="text-muted-foreground mb-6">
               The van you're looking for doesn't exist or has been sold.
             </p>
-            <Button asChild variant="default" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button asChild variant="default" className="bg-accent border-accent text-accent-foreground">
               <Link href="/stock">Browse All Vans</Link>
             </Button>
           </CardContent>
@@ -93,7 +93,7 @@ export default function VanDetails() {
               <div>
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2" data-testid="text-van-title">
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2" data-testid="text-van-title">
                       {van.year} {van.make} {van.model}
                     </h1>
                     <p className="text-lg text-muted-foreground">{van.title}</p>
@@ -242,7 +242,7 @@ export default function VanDetails() {
                     <Button
                       asChild
                       size="lg"
-                      className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                      className="w-full bg-accent border-accent text-accent-foreground"
                       data-testid="button-enquire"
                     >
                       <Link href="/contact">
@@ -317,13 +317,13 @@ export default function VanDetails() {
       <section className="py-12 bg-card border-t">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
               Interested in a Custom Build?
             </h2>
             <p className="text-muted-foreground mb-6">
               Our configurator lets you design your perfect mobile tyre van with your choice of equipment and upgrades.
             </p>
-            <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-start-configurator">
+            <Button size="lg" asChild className="bg-accent border-accent text-accent-foreground" data-testid="button-start-configurator">
               <Link href="/configurator">
                 Start Configurator
               </Link>

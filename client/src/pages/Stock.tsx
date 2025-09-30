@@ -44,7 +44,7 @@ export default function Stock() {
       <section className="bg-gradient-to-b from-card to-background border-b">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="text-stock-title">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-stock-title">
               Ready-to-Go Mobile Tyre Vans
             </h1>
             <p className="text-xl text-muted-foreground">
@@ -65,7 +65,7 @@ export default function Stock() {
                   <SelectValue placeholder="All Makes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Makes</SelectItem>
+                  <SelectItem value="">All Makes</SelectItem>
                   {uniqueMakes.map(make => (
                     <SelectItem key={make} value={make}>{make}</SelectItem>
                   ))}
@@ -80,7 +80,7 @@ export default function Stock() {
                   <SelectValue placeholder="All Transmissions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Transmissions</SelectItem>
+                  <SelectItem value="">All Transmissions</SelectItem>
                   <SelectItem value="Manual">Manual</SelectItem>
                   <SelectItem value="Automatic">Automatic</SelectItem>
                 </SelectContent>
@@ -150,9 +150,9 @@ export default function Stock() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredVans.map((van) => (
-                <Card key={van.id} className="hover-elevate overflow-hidden" data-testid={`card-van-${van.id}`}>
+                <Card key={van.id} className="overflow-hidden" data-testid={`card-van-${van.id}`}>
                   {/* Van Image */}
-                  <div className="aspect-video bg-muted relative overflow-hidden">
+                  <div className="aspect-video bg-muted relative">
                     {van.heroImage ? (
                       <img
                         src={van.heroImage}
@@ -208,7 +208,7 @@ export default function Stock() {
                   <CardFooter className="pt-0">
                     <Button
                       asChild
-                      className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                      className="w-full bg-accent border-accent text-accent-foreground"
                       data-testid={`button-view-van-${van.id}`}
                     >
                       <Link href={`/stock/${van.slug}`}>
@@ -228,14 +228,14 @@ export default function Stock() {
       <section className="py-16 bg-card border-t">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
               Can't Find What You're Looking For?
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
               We can build a custom mobile tyre van to your exact specifications. Start with our configurator or get in touch with our team.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="default" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-configure-custom">
+              <Button size="lg" variant="default" asChild className="bg-accent border-accent text-accent-foreground" data-testid="button-configure-custom">
                 <Link href="/configurator">
                   Configure Your Van
                 </Link>
