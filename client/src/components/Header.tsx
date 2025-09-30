@@ -22,11 +22,12 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-background border-b shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center space-x-2" data-testid="link-home">
-            <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">T</span>
-            </div>
-            <span className="font-bold text-xl">TyreVans</span>
+          <Link href="/" className="flex items-center" data-testid="link-home">
+            <img 
+              src="/attached_assets/Untitled design-47_1759231860895.png" 
+              alt="Mobile Tyre Van City" 
+              className="h-12 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}
