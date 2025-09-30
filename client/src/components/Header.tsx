@@ -4,7 +4,7 @@ import { Menu, X, User, LogOut, Shield, Phone, Clock } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
-import logoImage from "@assets/IMG_2836 3_1759239230379.jpg";
+import logoImage from "@assets/Untitled design-51_1759240381746.png";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
