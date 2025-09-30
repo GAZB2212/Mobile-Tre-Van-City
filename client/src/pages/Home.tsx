@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import UKManufacturing from "@/components/UKManufacturing";
 import ProcessSteps from "@/components/ProcessSteps";
 import TrustStrip from "@/components/TrustStrip";
 import FeaturedStock from "@/components/FeaturedStock";
@@ -15,6 +16,7 @@ export default function Home() {
       <main>
         <Hero />
         <TrustStrip />
+        <UKManufacturing />
         <ProcessSteps />
         <FeaturedStock />
         <Testimonials />
