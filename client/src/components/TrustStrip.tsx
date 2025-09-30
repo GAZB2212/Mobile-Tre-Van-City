@@ -1,39 +1,44 @@
-import { Badge } from "@/components/ui/badge";
 import { Shield, Truck, MapPin } from "lucide-react";
 
-const badges = [
+const features = [
   {
     icon: Shield,
-    text: "FCA Authorised",
+    title: "FCA Authorised",
     description: "Regulated finance provider"
   },
   {
     icon: Truck,
-    text: "Nationwide Delivery",
+    title: "Nationwide Delivery",
     description: "UK-wide service coverage"
   },
   {
     icon: MapPin,
-    text: "UK-Built",
+    title: "UK-Built",
     description: "Manufactured in Britain"
   }
 ];
 
 export default function TrustStrip() {
   return (
-    <section className="py-12 bg-background border-y">
+    <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-          {badges.map((badge, index) => (
-            <div key={index} className="flex items-center space-x-3" data-testid={`badge-${badge.text.toLowerCase().replace(/\s+/g, '-')}`}>
-              <div className="w-12 h-12 bg-chart-3 rounded-xl flex items-center justify-center">
-                <badge.icon className="w-6 h-6 text-black" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
+          {features.map((feature, index) => (
+            <div 
+              key={index} 
+              className="flex flex-col items-center text-center space-y-3"
+              data-testid={`feature-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <div className="w-16 h-16 bg-chart-3 rounded-full flex items-center justify-center shadow-lg">
+                <feature.icon className="w-8 h-8 text-black" strokeWidth={2.5} />
               </div>
-              <div>
-                <Badge variant="secondary" className="text-sm font-semibold mb-1">
-                  {badge.text}
-                </Badge>
-                <p className="text-xs text-muted-foreground">{badge.description}</p>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-foreground">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {feature.description}
+                </p>
               </div>
             </div>
           ))}
