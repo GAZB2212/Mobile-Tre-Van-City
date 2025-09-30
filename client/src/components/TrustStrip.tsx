@@ -32,9 +32,6 @@ export default function TrustStrip() {
               className="text-center space-y-4"
               data-testid={`feature-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <h2 className="text-7xl md:text-8xl font-bold text-white">
-                {feature.number}
-              </h2>
               <h3 className="text-xl md:text-2xl font-bold text-white">
                 {feature.title}
               </h3>
