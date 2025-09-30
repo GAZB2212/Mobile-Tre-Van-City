@@ -49,12 +49,12 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between py-4">
           <Link href="/" className="flex items-center" data-testid="link-home">
             <img 
               src={logoImage} 
               alt="Mobile Tyre Van City" 
-              className="h-14 w-auto"
+              className="h-36 w-auto"
             />
           </Link>
 
