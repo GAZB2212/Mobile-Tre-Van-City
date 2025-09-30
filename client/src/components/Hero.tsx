@@ -1,11 +1,22 @@
 import { Button } from "@/components/ui/button";
-import heroVideo from "@assets/ZenoVideo 24_1759235382881.mp4";
+import heroVideo from "@assets/ZenoVideo 24_1759239850808.mp4";
 
 export default function Hero() {
   return (
-    <section className="relative bg-accent text-white py-32 overflow-hidden">
-      {/* Red gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent via-accent/90 to-accent/70" />
+    <section className="relative bg-background text-white py-32 overflow-hidden">
+      {/* Video Background */}
+      <video 
+        autoPlay 
+        loop 
+        muted 
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src={heroVideo} type="video/mp4" />
+      </video>
+      
+      {/* Dark overlay for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/60" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
