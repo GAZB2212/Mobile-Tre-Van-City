@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertVanSchema, insertKitSchema, insertUpgradeSchema, insertQuoteSchema, insertLeadSchema } from "@shared/schema";
+import { insertVanSchema, insertKitSchema, insertUpgradeSchema, insertQuoteSchema, insertLeadSchema, insertFinancePlanSchema } from "@shared/schema";
 
 // Admin authorization middleware
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -215,12 +215,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Finance Plans endpoints - public (published only)
+  app.get("/api/finance-plans", async (req, res) => {
+    try {
+      const plans = await storage.getFinancePlans();
+      const publishedPlans = plans.filter(p => p.published);
+      res.json(publishedPlans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch finance plans" });
+    }
+  });
+
+  app.get("/api/finance-plans/:id", async (req, res) => {
+    try {
+      const plan = await storage.getFinancePlan(req.params.id);
+      if (!plan || !plan.published) {
+        return res.status(404).json({ error: "Finance plan not found" });
+      }
+      res.json(plan);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch finance plan" });
+    }
+  });
+
   // Configurator endpoints
   app.get("/api/configurator/data", async (req, res) => {
     try {
-      const [kits, upgrades] = await Promise.all([
+      const [kits, upgrades, financePlans] = await Promise.all([
         storage.getKits(),
-        storage.getUpgrades()
+        storage.getUpgrades(),
+        storage.getFinancePlans()
       ]);
       
       // Group upgrades by category
@@ -234,7 +258,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         kits,
-        upgrades: upgradesByCategory
+        upgrades: upgradesByCategory,
+        financePlans: financePlans.filter(p => p.published)
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch configurator data" });
@@ -435,6 +460,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete upgrade" });
+    }
+  });
+
+  // Admin CRUD endpoints for finance plans
+  app.get("/api/admin/finance-plans", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const plans = await storage.getFinancePlans();
+      res.json(plans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch finance plans" });
+    }
+  });
+
+  app.post("/api/admin/finance-plans", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const planData = insertFinancePlanSchema.parse(req.body);
+      const plan = await storage.createFinancePlan(planData);
+      res.json(plan);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create finance plan" });
+    }
+  });
+
+  app.put("/api/admin/finance-plans/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const planData = insertFinancePlanSchema.partial().parse(req.body);
+      const plan = await storage.updateFinancePlan(req.params.id, planData);
+      if (!plan) {
+        return res.status(404).json({ error: "Finance plan not found" });
+      }
+      res.json(plan);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update finance plan" });
+    }
+  });
+
+  app.delete("/api/admin/finance-plans/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteFinancePlan(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Finance plan not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete finance plan" });
     }
   });
 

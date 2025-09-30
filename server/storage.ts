@@ -4,7 +4,8 @@ import {
   type Kit, type InsertKit,
   type Upgrade, type InsertUpgrade,
   type Quote, type InsertQuote,
-  type Lead, type InsertLead
+  type Lead, type InsertLead,
+  type FinancePlan, type InsertFinancePlan
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -46,6 +47,13 @@ export interface IStorage {
   getLeads(): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   createLead(lead: InsertLead): Promise<Lead>;
+
+  // Finance Plans
+  getFinancePlans(): Promise<FinancePlan[]>;
+  getFinancePlan(id: string): Promise<FinancePlan | undefined>;
+  createFinancePlan(plan: InsertFinancePlan): Promise<FinancePlan>;
+  updateFinancePlan(id: string, plan: Partial<InsertFinancePlan>): Promise<FinancePlan | undefined>;
+  deleteFinancePlan(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -55,6 +63,7 @@ export class MemStorage implements IStorage {
   private upgrades: Map<string, Upgrade>;
   private quotes: Map<string, Quote>;
   private leads: Map<string, Lead>;
+  private financePlans: Map<string, FinancePlan>;
 
   constructor() {
     this.users = new Map();
@@ -63,6 +72,7 @@ export class MemStorage implements IStorage {
     this.upgrades = new Map();
     this.quotes = new Map();
     this.leads = new Map();
+    this.financePlans = new Map();
     this.seedData();
   }
 
@@ -410,9 +420,65 @@ export class MemStorage implements IStorage {
       }
     ];
 
+    const sampleFinancePlans: FinancePlan[] = [
+      {
+        id: "hp-3yr-595",
+        name: "3 Year Hire Purchase - 5.95% APR",
+        type: "HP",
+        termMonths: 36,
+        aprBps: 595, // 5.95% APR
+        depositPercent: 10,
+        balloonPercent: null,
+        notes: "Standard hire purchase agreement with 10% deposit",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "hp-5yr-649",
+        name: "5 Year Hire Purchase - 6.49% APR",
+        type: "HP",
+        termMonths: 60,
+        aprBps: 649, // 6.49% APR
+        depositPercent: 10,
+        balloonPercent: null,
+        notes: "Extended hire purchase agreement with lower monthly payments",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "lease-3yr-balloon",
+        name: "3 Year Lease with Balloon Payment",
+        type: "Lease",
+        termMonths: 36,
+        aprBps: 549, // 5.49% APR
+        depositPercent: 20,
+        balloonPercent: 30,
+        notes: "Lease agreement with 30% balloon payment at end of term",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "hp-4yr-625",
+        name: "4 Year Hire Purchase - 6.25% APR",
+        type: "HP",
+        termMonths: 48,
+        aprBps: 625, // 6.25% APR
+        depositPercent: 15,
+        balloonPercent: null,
+        notes: "Balanced hire purchase option with 15% deposit",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
     sampleKits.forEach(kit => this.kits.set(kit.id, kit));
     sampleVans.forEach(van => this.vans.set(van.id, van));
     sampleUpgrades.forEach(upgrade => this.upgrades.set(upgrade.id, upgrade));
+    sampleFinancePlans.forEach(plan => this.financePlans.set(plan.id, plan));
   }
 
   // Users
@@ -678,6 +744,8 @@ export class MemStorage implements IStorage {
       company: insertQuote.company ?? null,
       vanId: insertQuote.vanId ?? null,
       selectedUpgradeIds: Array.isArray(insertQuote.selectedUpgradeIds) ? insertQuote.selectedUpgradeIds : [],
+      financePlanId: insertQuote.financePlanId ?? null,
+      financeInputs: insertQuote.financeInputs ?? null,
       notes: insertQuote.notes ?? null,
       createdAt: new Date()
     };
@@ -705,6 +773,50 @@ export class MemStorage implements IStorage {
     };
     this.leads.set(id, lead);
     return lead;
+  }
+
+  // Finance Plans
+  async getFinancePlans(): Promise<FinancePlan[]> {
+    return Array.from(this.financePlans.values()).filter(plan => plan.published);
+  }
+
+  async getFinancePlan(id: string): Promise<FinancePlan | undefined> {
+    return this.financePlans.get(id);
+  }
+
+  async createFinancePlan(insertPlan: InsertFinancePlan): Promise<FinancePlan> {
+    const id = randomUUID();
+    const plan: FinancePlan = { 
+      ...insertPlan, 
+      id,
+      balloonPercent: insertPlan.balloonPercent ?? null,
+      notes: insertPlan.notes ?? null,
+      published: insertPlan.published ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.financePlans.set(id, plan);
+    return plan;
+  }
+
+  async updateFinancePlan(id: string, insertPlan: Partial<InsertFinancePlan>): Promise<FinancePlan | undefined> {
+    const existing = this.financePlans.get(id);
+    if (!existing) return undefined;
+    
+    const updated: FinancePlan = { 
+      ...existing, 
+      ...insertPlan,
+      balloonPercent: insertPlan.balloonPercent !== undefined ? insertPlan.balloonPercent : existing.balloonPercent,
+      notes: insertPlan.notes !== undefined ? insertPlan.notes : existing.notes,
+      published: insertPlan.published !== undefined ? insertPlan.published : existing.published,
+      updatedAt: new Date()
+    };
+    this.financePlans.set(id, updated);
+    return updated;
+  }
+
+  async deleteFinancePlan(id: string): Promise<boolean> {
+    return this.financePlans.delete(id);
   }
 }
 

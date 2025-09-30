@@ -99,6 +99,12 @@ export const quotes = pgTable("quotes", {
   vanId: varchar("van_id").references(() => vans.id),
   kitId: varchar("kit_id").notNull().references(() => kits.id),
   selectedUpgradeIds: json("selected_upgrade_ids").$type<string[]>().notNull().default([]),
+  financePlanId: varchar("finance_plan_id").references(() => financePlans.id),
+  financeInputs: json("finance_inputs").$type<{
+    deposit?: number;
+    term?: number;
+    balloon?: number;
+  }>(),
   notes: text("notes"),
   estSubtotal: integer("est_subtotal").notNull(), // in pence
   estVAT: integer("est_vat").notNull(), // in pence
@@ -114,6 +120,20 @@ export const leads = pgTable("leads", {
   source: text("source").notNull(),
   message: text("message"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const financePlans = pgTable("finance_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // "HP" or "Lease"
+  termMonths: integer("term_months").notNull(),
+  aprBps: integer("apr_bps").notNull(), // APR in basis points (e.g., 595 = 5.95%)
+  depositPercent: integer("deposit_percent").notNull(), // Deposit percentage (e.g., 10 = 10%)
+  balloonPercent: integer("balloon_percent"), // Optional balloon payment percentage
+  notes: text("notes"),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Insert schemas
@@ -160,6 +180,12 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   createdAt: true,
 });
 
+export const insertFinancePlanSchema = createInsertSchema(financePlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -179,3 +205,6 @@ export type Quote = typeof quotes.$inferSelect;
 
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
+
+export type InsertFinancePlan = z.infer<typeof insertFinancePlanSchema>;
+export type FinancePlan = typeof financePlans.$inferSelect;
