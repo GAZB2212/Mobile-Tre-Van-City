@@ -4,6 +4,7 @@ import { Menu, X, User, LogOut, Shield } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import logoImage from "@assets/Untitled design-47_1759231860895.png";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center" data-testid="link-home">
             <img 
-              src="/attached_assets/Untitled design-47_1759231860895.png" 
+              src={logoImage} 
               alt="Mobile Tyre Van City" 
               className="h-12 w-auto"
             />
