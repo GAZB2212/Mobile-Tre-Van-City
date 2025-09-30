@@ -1,0 +1,207 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+export interface ConfiguratorState {
+  vanId: string | null;
+  kitId: string | null;
+  upgradeIds: string[];
+  financePlanId: string | null;
+  financeInputs: {
+    deposit?: number;
+    term?: number;
+    balloon?: number;
+  } | null;
+  pricingSnapshot: {
+    subtotal: number;
+    vat: number;
+    total: number;
+  } | null;
+}
+
+interface ConfiguratorContextValue {
+  state: ConfiguratorState;
+  setVan: (vanId: string | null) => void;
+  setKit: (kitId: string | null) => void;
+  setUpgrades: (upgradeIds: string[]) => void;
+  addUpgrade: (upgradeId: string) => void;
+  removeUpgrade: (upgradeId: string) => void;
+  setFinancePlan: (financePlanId: string | null) => void;
+  setFinanceInputs: (inputs: ConfiguratorState['financeInputs']) => void;
+  setPricingSnapshot: (pricing: ConfiguratorState['pricingSnapshot']) => void;
+  clearAll: () => void;
+  resetFromVan: () => void;
+  resetFromKit: () => void;
+  resetFromFinance: () => void;
+}
+
+const STORAGE_KEY = 'configurator:v1';
+
+const defaultState: ConfiguratorState = {
+  vanId: null,
+  kitId: null,
+  upgradeIds: [],
+  financePlanId: null,
+  financeInputs: null,
+  pricingSnapshot: null,
+};
+
+const ConfiguratorContext = createContext<ConfiguratorContextValue | undefined>(undefined);
+
+export function ConfiguratorProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<ConfiguratorState>(() => {
+    // Hydrate from localStorage on mount
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { ...defaultState, ...parsed };
+      }
+    } catch (error) {
+      console.error('Failed to load configurator state:', error);
+    }
+    return defaultState;
+  });
+
+  // Persist to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to save configurator state:', error);
+    }
+  }, [state]);
+
+  const setVan = (vanId: string | null) => {
+    // Clear downstream selections when van changes
+    setState(prev => ({
+      ...prev,
+      vanId,
+      kitId: null,
+      upgradeIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const setKit = (kitId: string | null) => {
+    // Clear downstream selections when kit changes
+    setState(prev => ({
+      ...prev,
+      kitId,
+      upgradeIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const setUpgrades = (upgradeIds: string[]) => {
+    setState(prev => ({ ...prev, upgradeIds }));
+  };
+
+  const addUpgrade = (upgradeId: string) => {
+    setState(prev => {
+      // Prevent duplicates
+      if (prev.upgradeIds.includes(upgradeId)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        upgradeIds: [...prev.upgradeIds, upgradeId]
+      };
+    });
+  };
+
+  const removeUpgrade = (upgradeId: string) => {
+    setState(prev => ({
+      ...prev,
+      upgradeIds: prev.upgradeIds.filter(id => id !== upgradeId)
+    }));
+  };
+
+  const setFinancePlan = (financePlanId: string | null) => {
+    // Clear finance inputs and pricing when plan changes
+    setState(prev => ({
+      ...prev,
+      financePlanId,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const setFinanceInputs = (financeInputs: ConfiguratorState['financeInputs']) => {
+    setState(prev => ({ ...prev, financeInputs }));
+  };
+
+  const setPricingSnapshot = (pricingSnapshot: ConfiguratorState['pricingSnapshot']) => {
+    setState(prev => ({ ...prev, pricingSnapshot }));
+  };
+
+  const clearAll = () => {
+    setState(defaultState);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Failed to clear configurator state:', error);
+    }
+  };
+
+  // Reset later steps when earlier step changes
+  const resetFromVan = () => {
+    setState(prev => ({
+      ...prev,
+      kitId: null,
+      upgradeIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const resetFromKit = () => {
+    setState(prev => ({
+      ...prev,
+      upgradeIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const resetFromFinance = () => {
+    setState(prev => ({
+      ...prev,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const value: ConfiguratorContextValue = {
+    state,
+    setVan,
+    setKit,
+    setUpgrades,
+    addUpgrade,
+    removeUpgrade,
+    setFinancePlan,
+    setFinanceInputs,
+    setPricingSnapshot,
+    clearAll,
+    resetFromVan,
+    resetFromKit,
+    resetFromFinance,
+  };
+
+  return (
+    <ConfiguratorContext.Provider value={value}>
+      {children}
+    </ConfiguratorContext.Provider>
+  );
+}
+
+export function useConfigurator() {
+  const context = useContext(ConfiguratorContext);
+  if (!context) {
+    throw new Error('useConfigurator must be used within ConfiguratorProvider');
+  }
+  return context;
+}
