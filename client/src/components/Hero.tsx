@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import heroVideo from "@assets/VIDEO-2024-07-25-10-47-43_1759232048284.mp4";
+import heroVideo from "@assets/ZenoVideo 24_1759235382881.mp4";
 
 export default function Hero() {
   return (
