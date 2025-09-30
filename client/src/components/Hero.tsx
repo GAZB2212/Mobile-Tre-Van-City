@@ -3,7 +3,7 @@ import heroVideo from "@assets/ZenoVideo 24_1759239850808.mp4";
 
 export default function Hero() {
   return (
-    <section className="relative bg-background text-white py-32 overflow-hidden">
+    <section className="relative bg-background text-white py-40 overflow-hidden">
       {/* Video Background */}
       <video 
         autoPlay 
