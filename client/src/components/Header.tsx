@@ -22,12 +22,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-background border-b shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-28">
           <Link href="/" className="flex items-center" data-testid="link-home">
             <img 
               src={logoImage} 
               alt="Mobile Tyre Van City" 
-              className="h-12 w-auto"
+              className="h-24 w-auto"
             />
           </Link>
 
