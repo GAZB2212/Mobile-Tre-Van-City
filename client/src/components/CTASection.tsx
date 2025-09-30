@@ -4,8 +4,8 @@ import { ArrowRight, Phone } from "lucide-react";
 
 export default function CTASection() {
   return (
-    <section className="py-20 bg-accent relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-accent via-accent/90 to-accent/70" />
+    <section className="py-20 bg-black relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-accent" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
