@@ -2,7 +2,7 @@ import ukFlagImage from "@assets/UNION-FLAG-MAIN-scaled_90a802df-2c99-4be4-b22f-
 
 export default function UKManufacturing() {
   return (
-    <section className="relative py-24 overflow-hidden">
+    <section className="relative py-40 overflow-hidden">
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${ukFlagImage})` }}
