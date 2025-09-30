@@ -38,10 +38,12 @@ Preferred communication style: Simple, everyday language.
 - **Performance**: Optimized images and lazy loading for fast page loads
 
 ### Business Logic
-- **Configurator Flow**: 4-step process (Base Van → Equipment Kit → Upgrades → Quote)
+- **Conversion Funnel**: Customer journey system guiding users through Van → Kit → Finance → Quote
+- **Configurator Flow**: Multi-step wizard with localStorage persistence via ConfiguratorProvider
+- **Finance Plans**: Complete finance options system (Hire Purchase, Lease) with APR calculations
 - **Pricing Engine**: Dynamic calculation system with VAT handling and currency formatting
 - **Lead Generation**: Form capture with email notifications and quote generation
-- **Content Management**: Simple admin interface for managing inventory and leads
+- **Content Management**: Admin interface for managing inventory, finance plans, and leads
 
 ## External Dependencies
 
