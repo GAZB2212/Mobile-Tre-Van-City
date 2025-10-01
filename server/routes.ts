@@ -421,6 +421,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add image to van
+  app.post("/api/admin/vans/:id/images", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { objectPath } = req.body;
+      
+      if (!objectPath || typeof objectPath !== 'string') {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      // Validate objectPath format
+      if (!objectPath.startsWith('/objects/uploads/')) {
+        return res.status(400).json({ error: "Invalid objectPath format" });
+      }
+
+      const van = await storage.getVan(req.params.id);
+      if (!van) {
+        return res.status(404).json({ error: "Van not found" });
+      }
+
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      // Verify file exists and is an image
+      let objectFile;
+      try {
+        objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      } catch (error) {
+        return res.status(404).json({ error: "File not found. Upload may have failed." });
+      }
+      
+      // Verify file metadata
+      const [metadata] = await objectFile.getMetadata();
+      const contentType = metadata.contentType || '';
+      
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+      if (!allowedTypes.includes(contentType.toLowerCase())) {
+        await objectFile.delete();
+        return res.status(400).json({ error: "Invalid file type. Only images are allowed." });
+      }
+
+      // Add image to van images array
+      const existingImages = van.images || [];
+      const updatedImages = [...existingImages, objectPath];
+      
+      const updatedVan = await storage.updateVan(req.params.id, {
+        images: updatedImages,
+        // If no hero image is set, use the first uploaded image
+        ...((!van.heroImage && existingImages.length === 0) ? { heroImage: objectPath } : {})
+      });
+
+      res.json(updatedVan);
+    } catch (error) {
+      console.error("Error adding van image:", error);
+      res.status(500).json({ error: "Failed to add van image" });
+    }
+  });
+
+  // Remove image from van
+  app.delete("/api/admin/vans/:id/images", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { objectPath } = req.body;
+      
+      if (!objectPath) {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      const van = await storage.getVan(req.params.id);
+      if (!van) {
+        return res.status(404).json({ error: "Van not found" });
+      }
+
+      const existingImages = van.images || [];
+      const updatedImages = existingImages.filter(img => img !== objectPath);
+      
+      // If removing the hero image, clear it or set to first remaining image
+      const updatedHeroImage = van.heroImage === objectPath
+        ? (updatedImages.length > 0 ? updatedImages[0] : undefined)
+        : van.heroImage;
+      
+      const updatedVan = await storage.updateVan(req.params.id, {
+        images: updatedImages,
+        heroImage: updatedHeroImage
+      });
+
+      res.json(updatedVan);
+    } catch (error) {
+      console.error("Error removing van image:", error);
+      res.status(500).json({ error: "Failed to remove van image" });
+    }
+  });
+
+  // Set van hero image
+  app.put("/api/admin/vans/:id/hero-image", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { objectPath } = req.body;
+      
+      if (!objectPath) {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      const van = await storage.getVan(req.params.id);
+      if (!van) {
+        return res.status(404).json({ error: "Van not found" });
+      }
+
+      // Verify the image is in the van's images array
+      const existingImages = van.images || [];
+      if (!existingImages.includes(objectPath)) {
+        return res.status(400).json({ error: "Image not found in van's image gallery" });
+      }
+      
+      const updatedVan = await storage.updateVan(req.params.id, {
+        heroImage: objectPath
+      });
+
+      res.json(updatedVan);
+    } catch (error) {
+      console.error("Error setting hero image:", error);
+      res.status(500).json({ error: "Failed to set hero image" });
+    }
+  });
+
   // Admin CRUD endpoints for kits
   app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {
