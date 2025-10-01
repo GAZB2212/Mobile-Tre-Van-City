@@ -22,6 +22,7 @@ export default function AdminVans() {
   const [editingVan, setEditingVan] = useState<Van | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editDialogTab, setEditDialogTab] = useState<string>("details");
 
   // Fetch vans
   const { data: vans = [], isLoading } = useQuery<Van[]>({
@@ -31,15 +32,21 @@ export default function AdminVans() {
   // Create van mutation
   const createVanMutation = useMutation({
     mutationFn: async (vanData: InsertVan) => {
-      await apiRequest('POST', '/api/admin/vans', vanData);
+      const response = await apiRequest('POST', '/api/admin/vans', vanData);
+      return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+    onSuccess: async (createdVan: Van) => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
       setIsCreateDialogOpen(false);
       toast({
         title: "Success",
-        description: "Van created successfully.",
+        description: "Van created successfully. You can now add images.",
       });
+      
+      // Open edit dialog with the newly created van and switch to images tab
+      setEditingVan(createdVan);
+      setEditDialogTab("images");
+      setIsEditDialogOpen(true);
     },
     onError: () => {
       toast({
@@ -460,6 +467,7 @@ export default function AdminVans() {
                       className="flex-1"
                       onClick={() => {
                         setEditingVan(van);
+                        setEditDialogTab("details");
                         setIsEditDialogOpen(true);
                       }}
                       data-testid={`button-edit-van-${van.id}`}
@@ -487,7 +495,13 @@ export default function AdminVans() {
         )}
 
         {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingVan(null);
+            setEditDialogTab("details");
+          }
+        }}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Van</DialogTitle>
@@ -496,7 +510,7 @@ export default function AdminVans() {
               </DialogDescription>
             </DialogHeader>
             {editingVan && (
-              <Tabs defaultValue="details" className="w-full">
+              <Tabs value={editDialogTab} onValueChange={setEditDialogTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
                   <TabsTrigger value="images" data-testid="tab-images">Images</TabsTrigger>
