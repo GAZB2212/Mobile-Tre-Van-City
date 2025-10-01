@@ -1,10 +1,40 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
+import { createUser } from "./auth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Bootstrap admin user on startup
+async function bootstrapAdmin() {
+  const adminUsername = process.env.ADMIN_USERNAME || "admin";
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+  
+  try {
+    // Check if admin user already exists
+    const existingAdmin = await storage.getUserByUsername(adminUsername);
+    if (!existingAdmin) {
+      await createUser({
+        username: adminUsername,
+        password: adminPassword,
+        email: "admin@mtvc.example.com",
+        firstName: "Admin",
+        lastName: "User",
+        isAdmin: true,
+      });
+      log(`✅ Admin user created: ${adminUsername}`);
+      log(`⚠️  Default password: ${adminPassword}`);
+      log(`⚠️  Please change the password after first login!`);
+    } else {
+      log(`✅ Admin user exists: ${adminUsername}`);
+    }
+  } catch (error) {
+    console.error("❌ Failed to bootstrap admin user:", error);
+  }
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +67,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Bootstrap admin user
+  await bootstrapAdmin();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

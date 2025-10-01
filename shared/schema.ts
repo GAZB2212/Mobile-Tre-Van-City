@@ -14,10 +14,12 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  username: varchar("username").notNull().unique(),
+  passwordHash: varchar("password_hash").notNull(),
+  email: varchar("email"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -143,13 +145,18 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
-export const upsertUserSchema = createInsertSchema(users).pick({
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  profileImageUrl: true,
-  isAdmin: true,
+export const loginSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(6),
+});
+
+export const createUserSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(6),
+  email: z.string().email().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  isAdmin: z.boolean().default(false),
 });
 
 export const insertVanSchema = createInsertSchema(vans).omit({
@@ -188,8 +195,9 @@ export const insertFinancePlanSchema = createInsertSchema(financePlans).omit({
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type LoginCredentials = z.infer<typeof loginSchema>;
+export type CreateUser = z.infer<typeof createUserSchema>;
 
 export type InsertVan = z.infer<typeof insertVanSchema>;
 export type Van = typeof vans.$inferSelect;

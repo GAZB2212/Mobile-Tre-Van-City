@@ -1,5 +1,5 @@
 import { 
-  type User, type InsertUser, type UpsertUser,
+  type User, type InsertUser,
   type Van, type InsertVan,
   type Kit, type InsertKit,
   type Upgrade, type InsertUpgrade,
@@ -10,10 +10,9 @@ import {
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  // Users (Replit Auth compatible)
+  // Users
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-  promoteToAdmin(userId: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
   // Vans
@@ -483,86 +482,22 @@ export class MemStorage implements IStorage {
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    const user = this.users.get(id);
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('👤 getUser Debug:', {
-        userId: id,
-        found: !!user,
-        isAdmin: user?.isAdmin
-      });
-    }
-    return user;
+    return this.users.get(id);
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const existingUser = this.users.get(userData.id);
-    
-    // Check if user should be admin based on environment variable, OIDC claims (dev only), OR existing database record
-    const adminUserIds = process.env.ADMIN_USER_IDS?.split(',').map(id => id.trim()) || [];
-    const envBasedAdmin = adminUserIds.includes(userData.id);
-    // Only honor OIDC is_admin claims in development/testing - security concern for production
-    const oidcBasedAdmin = (process.env.NODE_ENV === 'development' && userData.isAdmin) || false;
-    const dbBasedAdmin = existingUser?.isAdmin || false;
-    const shouldBeAdmin = envBasedAdmin || oidcBasedAdmin || dbBasedAdmin;
-    
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 upsertUser Debug:', {
-        userId: userData.id,
-        adminUserIds,
-        envBasedAdmin,
-        oidcBasedAdmin,
-        dbBasedAdmin,
-        shouldBeAdmin,
-        existingUser: !!existingUser
-      });
-    }
-    
-    if (existingUser) {
-      const updatedUser: User = {
-        ...existingUser,
-        ...userData,
-        isAdmin: shouldBeAdmin || existingUser.isAdmin, // Preserve existing admin status or set based on env
-        updatedAt: new Date()
-      };
-      this.users.set(userData.id, updatedUser);
-      return updatedUser;
-    } else {
-      const newUser: User = {
-        ...userData,
-        email: userData.email || null,
-        firstName: userData.firstName || null,
-        lastName: userData.lastName || null,
-        profileImageUrl: userData.profileImageUrl || null,
-        isAdmin: shouldBeAdmin,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      this.users.set(userData.id, newUser);
-      return newUser;
-    }
-  }
-
-  async promoteToAdmin(userId: string): Promise<User | undefined> {
-    const existingUser = this.users.get(userId);
-    if (!existingUser) {
-      return undefined;
-    }
-    
-    const updatedUser: User = {
-      ...existingUser,
-      isAdmin: true,
-      updatedAt: new Date()
-    };
-    this.users.set(userId, updatedUser);
-    return updatedUser;
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
     const user: User = { 
-      ...insertUser, 
+      ...insertUser,
+      email: insertUser.email ?? null,
+      firstName: insertUser.firstName ?? null,
+      lastName: insertUser.lastName ?? null,
+      profileImageUrl: insertUser.profileImageUrl ?? null,
+      isAdmin: insertUser.isAdmin ?? false,
       id,
       createdAt: new Date(),
       updatedAt: new Date()

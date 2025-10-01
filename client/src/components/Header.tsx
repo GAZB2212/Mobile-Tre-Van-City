@@ -1,14 +1,19 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut, Shield, Phone, Clock } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/Untitled design-51_1759240381746.png";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -18,6 +23,33 @@ export default function Header() {
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/auth/logout", {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      setLocation("/");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-background">
@@ -87,24 +119,27 @@ export default function Header() {
               <Button 
                 variant="ghost"
                 size="sm"
-                onClick={() => window.location.href = "/api/login"}
+                asChild
                 data-testid="button-login"
                 className="hidden md:flex"
               >
-                <User className="w-4 h-4 mr-1" />
-                Login
+                <Link href="/login">
+                  <User className="w-4 h-4 mr-1" />
+                  Login
+                </Link>
               </Button>
             )}
             {!isLoading && isAuthenticated && (
               <Button 
                 variant="ghost"
                 size="sm"
-                onClick={() => window.location.href = "/api/logout"}
+                onClick={handleLogout}
+                disabled={logoutMutation.isPending}
                 data-testid="button-logout"
                 className="hidden md:flex"
               >
                 <LogOut className="w-4 h-4 mr-1" />
-                Logout
+                {logoutMutation.isPending ? "Logging out..." : "Logout"}
               </Button>
             )}
             
@@ -161,11 +196,12 @@ export default function Header() {
                         variant="ghost"
                         size="sm"
                         className="w-full"
-                        onClick={() => window.location.href = "/api/logout"}
+                        onClick={handleLogout}
+                        disabled={logoutMutation.isPending}
                         data-testid="mobile-button-logout"
                       >
                         <LogOut className="w-4 h-4 mr-1" />
-                        Logout
+                        {logoutMutation.isPending ? "Logging out..." : "Logout"}
                       </Button>
                     </>
                   ) : (
@@ -173,11 +209,13 @@ export default function Header() {
                       variant="ghost"
                       size="sm"
                       className="w-full"
-                      onClick={() => window.location.href = "/api/login"}
+                      asChild
                       data-testid="mobile-button-login"
                     >
-                      <User className="w-4 h-4 mr-1" />
-                      Login
+                      <Link href="/login">
+                        <User className="w-4 h-4 mr-1" />
+                        Login
+                      </Link>
                     </Button>
                   )}
                 </div>
