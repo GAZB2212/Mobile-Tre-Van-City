@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import GraphicsArtworkApproval from "@/components/GraphicsArtworkApproval";
+import BuildProgressTracker from "@/components/BuildProgressTracker";
 
 export default function ConfigurationDetail() {
   const { id } = useParams();
@@ -340,27 +341,8 @@ export default function ConfigurationDetail() {
               </Card>
             )}
 
-            {/* Build Progress */}
-            {quote.buildStage && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="w-5 h-5" />
-                    Build Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Current Stage</span>
-                      <Badge variant="outline" data-testid="badge-build-stage">
-                        {quote.buildStage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Build Progress Tracker */}
+            <BuildProgressTracker currentStage={quote.buildStage} />
 
             {/* Graphics Artwork Approval */}
             <GraphicsArtworkApproval quote={quote} />
