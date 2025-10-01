@@ -304,6 +304,42 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
+            {/* Customer Logos */}
+            {quote.customerLogoUrls && quote.customerLogoUrls.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Customer Logos & Graphics
+                  </CardTitle>
+                  <CardDescription>
+                    Logos and graphics uploaded by the customer for van wrapping
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {quote.customerLogoUrls.map((logoPath, index) => (
+                      <div 
+                        key={index} 
+                        className="aspect-square bg-muted rounded-md overflow-hidden border"
+                        data-testid={`container-customer-logo-${index}`}
+                      >
+                        <img
+                          src={logoPath}
+                          alt={`Customer logo ${index + 1}`}
+                          className="w-full h-full object-contain p-2"
+                          data-testid={`img-customer-logo-${index}`}
+                          onError={(e) => {
+                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EFailed to load%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quote Notes */}
             {quote.notes && (
               <Card>
