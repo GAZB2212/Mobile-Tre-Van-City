@@ -2,9 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
-import { createUser } from "./auth";
+import { createUser, getSession } from "./auth";
 
 const app = express();
+
+// Session must be first middleware to ensure cookies work properly
+app.set("trust proxy", true);
+app.use(getSession());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

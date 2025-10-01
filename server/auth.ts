@@ -46,17 +46,16 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Always false in development since we're not using HTTPS
-      sameSite: 'lax',
+      secure: true, // Required for HTTPS (Replit uses HTTPS proxy)
+      sameSite: 'none', // Required for secure cookies in dev environment
       maxAge: sessionTtl,
     },
   });
 }
 
 export async function setupAuth(app: Express) {
-  app.set("trust proxy", 1);
-  app.use(getSession());
-
+  // Session middleware is now set up in server/index.ts as the first middleware
+  
   // Login endpoint
   app.post("/api/auth/login", async (req, res) => {
     try {
