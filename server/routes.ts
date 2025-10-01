@@ -3,7 +3,17 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
-import { insertVanSchema, insertKitSchema, insertUpgradeSchema, insertQuoteSchema, insertLeadSchema, insertFinancePlanSchema } from "@shared/schema";
+import { 
+  insertVanSchema, 
+  insertKitSchema, 
+  insertUpgradeSchema, 
+  insertQuoteSchema, 
+  insertLeadSchema, 
+  insertFinancePlanSchema,
+  quoteStatuses,
+  financeStatuses,
+  buildStages
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -146,7 +156,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/quotes/:id", async (req, res) => {
+  // Secure quotes detail endpoint - admin only
+  app.get("/api/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) {
@@ -633,6 +644,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(quotes);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch quotes" });
+    }
+  });
+
+  app.get("/api/admin/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch quote" });
+    }
+  });
+
+  app.patch("/api/admin/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      // Validate and whitelist allowed fields for admin updates
+      const allowedUpdates = z.object({
+        status: z.enum(quoteStatuses).optional(),
+        financeStatus: z.enum(financeStatuses).optional(),
+        buildStage: z.enum(buildStages).nullable().optional(),
+        graphicsArtworkUrl: z.string().url().nullable().optional(),
+        graphicsArtworkNotes: z.string().nullable().optional(),
+      });
+
+      const validatedData = allowedUpdates.parse(req.body);
+      const updated = await storage.updateQuote(req.params.id, validatedData);
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid update data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update quote" });
     }
   });
 

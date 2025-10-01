@@ -18,6 +18,7 @@ import AdminVans from "@/pages/admin/Vans";
 import AdminKits from "@/pages/admin/Kits";
 import AdminUpgrades from "@/pages/admin/Upgrades";
 import AdminQuotes from "@/pages/admin/Quotes";
+import AdminQuoteDetail from "@/pages/admin/QuoteDetail";
 import AdminLeads from "@/pages/admin/Leads";
 import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import BuildSheet from "@/pages/admin/BuildSheet";
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/admin/upgrades" component={AdminUpgrades} />
       <Route path="/admin/finance-plans" component={AdminFinancePlans} />
       <Route path="/admin/quotes" component={AdminQuotes} />
+      <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
       <Route path="/admin/leads" component={AdminLeads} />
       {/* Fallback to 404 */}
