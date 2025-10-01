@@ -672,6 +672,19 @@ export class MemStorage implements IStorage {
         updatedAt: new Date()
       },
       {
+        id: "carpeted-ceiling-mwb-led",
+        name: "Carpeted Ceiling MWB with LED baton lights",
+        category: "comfort",
+        description: "",
+        price: 60000,
+        images: [],
+        parentId: "carpeted-ceiling-parent",
+        variantName: "MWB with LED baton lights",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
         id: "hand-wash-station",
         name: "Hand Wash Station",
         category: "comfort",
