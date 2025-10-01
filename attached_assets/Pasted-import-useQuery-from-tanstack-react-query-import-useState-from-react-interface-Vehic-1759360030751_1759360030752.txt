@@ -1,0 +1,115 @@
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+
+interface Vehicle {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  price: string;
+  monthlyPrice?: string;
+  images?: string[];
+  mainImageIndex?: number;
+  imageUrl?: string;
+  mileage?: number;
+  fuelType: string;
+  transmission: string;
+  bodyType: string;
+}
+
+export function SharedVehicles() {
+  const { data: vehicles, isLoading, error } = useQuery({
+    queryKey: ['/api/external/mobile-tyre-vehicles'],
+    queryFn: async () => {
+      const response = await fetch('https://wirralvans.co.uk/api/external/mobile-tyre-vehicles');
+      if (!response.ok) throw new Error('Failed to fetch vehicles');
+      return response.json() as Promise<Vehicle[]>;
+    },
+    refetchInterval: 300000, // Refresh every 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-gray-600">Loading available vans...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-red-600">Unable to load vehicles</p>
+      </div>
+    );
+  }
+
+  if (!vehicles || vehicles.length === 0) {
+    return null; // Don't show section if no vehicles
+  }
+
+  return (
+    <div className="py-12 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          Commercial Vehicles Available
+        </h2>
+        <p className="text-gray-600 mb-8">
+          Available from Wirral Vans
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {vehicles.map((vehicle) => {
+            const mainImage = vehicle.images?.[vehicle.mainImageIndex || 0] || vehicle.imageUrl;
+            
+            return (
+              <div key={vehicle.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                {mainImage && (
+                  <img
+                    src={mainImage}
+                    alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
+                
+                <div className="p-5">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  </h3>
+                  
+                  <div className="mb-3">
+                    <p className="text-2xl font-bold text-blue-600">
+                      £{parseFloat(vehicle.price).toLocaleString()}
+                    </p>
+                    {vehicle.monthlyPrice && (
+                      <p className="text-sm text-gray-600">
+                        From £{vehicle.monthlyPrice}/month
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 text-sm text-gray-600 mb-4">
+                    <p>{vehicle.fuelType} • {vehicle.transmission}</p>
+                    <p>{vehicle.bodyType}</p>
+                    {vehicle.mileage && vehicle.mileage > 0 && (
+                      <p>{vehicle.mileage.toLocaleString()} miles</p>
+                    )}
+                  </div>
+
+                  <a
+                    href={`https://wirralvans.co.uk/vehicles/${vehicle.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    View Full Details at Wirral Vans
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
