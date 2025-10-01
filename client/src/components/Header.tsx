@@ -124,7 +124,7 @@ export default function Header() {
               >
                 <Link href="/login">
                   <User className="w-4 h-4 mr-1" />
-                  Login
+                  Customer Login
                 </Link>
               </Button>
             )}
@@ -236,7 +236,7 @@ export default function Header() {
                     >
                       <Link href="/login">
                         <User className="w-4 h-4 mr-1" />
-                        Login
+                        Customer Login
                       </Link>
                     </Button>
                   )}

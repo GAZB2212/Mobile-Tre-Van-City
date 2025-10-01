@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin } from "lucide-react";
+import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Shield } from "lucide-react";
 
 export default function Footer() {
   const quickLinks = [
@@ -103,11 +103,11 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-primary-foreground/20 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-primary-foreground/80 text-sm mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-primary-foreground/80 text-sm">
               © 2024 TyreVans. All rights reserved.
             </div>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap justify-center items-center gap-4">
               {legalLinks.map((link) => (
                 <Link 
                   key={link.name}
@@ -118,6 +118,15 @@ export default function Footer() {
                   {link.name}
                 </Link>
               ))}
+              <span className="text-primary-foreground/20">|</span>
+              <Link
+                href="/login"
+                className="text-primary-foreground/80 hover:text-accent transition-colors text-sm flex items-center gap-1"
+                data-testid="footer-admin-login"
+              >
+                <Shield className="w-3 h-3" />
+                Admin Login
+              </Link>
             </div>
           </div>
         </div>
