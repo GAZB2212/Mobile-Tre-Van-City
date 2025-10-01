@@ -456,12 +456,12 @@ export default function AdminVans() {
         </div>
       </div>
 
-      <DialogFooter className="mt-6">
-        <Button type="submit" disabled={isLoading} data-testid="button-save-van">
-          {isLoading ? "Saving..." : van ? "Update Van" : "Create Van"}
-        </Button>
-      </DialogFooter>
-    </form>
+        <DialogFooter className="mt-6">
+          <Button type="submit" disabled={isLoading} data-testid="button-save-van">
+            {isLoading ? "Saving..." : van ? "Update Van" : "Create Van"}
+          </Button>
+        </DialogFooter>
+      </form>
     );
   };
 
