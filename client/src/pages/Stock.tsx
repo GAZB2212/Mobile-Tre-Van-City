@@ -23,7 +23,7 @@ export default function Stock() {
 
   const handleConfigureVan = (vanId: string) => {
     setVan(vanId);
-    setLocation('/configurator');
+    setLocation('/configurator/van');
   };
 
   const uniqueMakes = Array.from(new Set(vans.map(van => van.make))).sort();
@@ -253,7 +253,7 @@ export default function Stock() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="default" asChild className="bg-accent border-accent text-accent-foreground" data-testid="button-configure-custom">
-                <Link href="/configurator">
+                <Link href="/configurator/van">
                   Configure Your Van
                 </Link>
               </Button>

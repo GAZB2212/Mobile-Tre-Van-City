@@ -110,7 +110,7 @@ export default function Header() {
               data-testid="button-configure"
               asChild
             >
-              <Link href="/configurator">Configure Your Van</Link>
+              <Link href="/configurator/van">Configure Your Van</Link>
             </Button>
 
             {/* Authentication Section */}
@@ -190,7 +190,7 @@ export default function Header() {
                 data-testid="mobile-button-configure"
                 asChild
               >
-                <Link href="/configurator">Configure Your Van</Link>
+                <Link href="/configurator/van">Configure Your Van</Link>
               </Button>
 
               {/* Mobile Authentication */}

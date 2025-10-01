@@ -29,7 +29,7 @@ export default function VanDetails() {
   const handleConfigureVan = () => {
     if (van) {
       setVan(van.id);
-      setLocation('/configurator');
+      setLocation('/configurator/van');
     }
   };
 
@@ -333,7 +333,7 @@ export default function VanDetails() {
               Our configurator lets you design your perfect mobile tyre van with your choice of equipment and upgrades.
             </p>
             <Button size="lg" asChild className="bg-accent border-accent text-accent-foreground" data-testid="button-start-configurator">
-              <Link href="/configurator">
+              <Link href="/configurator/van">
                 Start Configurator
               </Link>
             </Button>

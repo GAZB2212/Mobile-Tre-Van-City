@@ -139,7 +139,7 @@ export default function Portal() {
                   Start building your perfect mobile tyre van setup
                 </p>
                 <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-configure-new">
-                  <Link href="/configurator">Configure Your Van</Link>
+                  <Link href="/configurator/van">Configure Your Van</Link>
                 </Button>
               </CardContent>
             </Card>
