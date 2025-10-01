@@ -47,7 +47,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true, // Required for HTTPS (Replit uses HTTPS proxy)
-      sameSite: 'none', // Required for secure cookies in dev environment
+      sameSite: 'lax', // Lax works for same-site requests
       maxAge: sessionTtl,
     },
   });
@@ -99,6 +99,12 @@ export async function setupAuth(app: Express) {
 
         // Return user without password hash
         const { passwordHash, ...userWithoutPassword } = user;
+        
+        // Log response headers to verify Set-Cookie is being sent
+        res.on('finish', () => {
+          console.log('📤 Response headers sent:', res.getHeaders());
+        });
+        
         res.json(userWithoutPassword);
       });
     } catch (error) {
