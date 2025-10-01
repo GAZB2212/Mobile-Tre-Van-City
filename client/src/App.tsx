@@ -8,6 +8,10 @@ import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
 import Configurator from "@/pages/Configurator";
+import SelectVan from "@/pages/configurator/SelectVan";
+import SelectKit from "@/pages/configurator/SelectKit";
+import SelectFinance from "@/pages/configurator/SelectFinance";
+import RequestQuote from "@/pages/configurator/RequestQuote";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminVans from "@/pages/admin/Vans";
 import AdminKits from "@/pages/admin/Kits";
@@ -23,6 +27,11 @@ function Router() {
       <Route path="/stock" component={Stock} />
       <Route path="/stock/:slug" component={VanDetails} />
       <Route path="/configurator" component={Configurator} />
+      {/* Conversion funnel routes */}
+      <Route path="/configurator/van" component={SelectVan} />
+      <Route path="/configurator/kit" component={SelectKit} />
+      <Route path="/configurator/finance" component={SelectFinance} />
+      <Route path="/configurator/quote" component={RequestQuote} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/vans" component={AdminVans} />
