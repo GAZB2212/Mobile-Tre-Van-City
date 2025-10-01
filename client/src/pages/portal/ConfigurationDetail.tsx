@@ -20,6 +20,7 @@ import {
   CreditCard
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
+import GraphicsArtworkApproval from "@/components/GraphicsArtworkApproval";
 
 export default function ConfigurationDetail() {
   const { id } = useParams();
@@ -361,54 +362,8 @@ export default function ConfigurationDetail() {
               </Card>
             )}
 
-            {/* Graphics Artwork */}
-            {(quote.graphicsArtworkUrl || quote.graphicsArtworkNotes) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Graphics Artwork
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {quote.graphicsArtworkUrl && (
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground mb-2">Preview</div>
-                      <img 
-                        src={quote.graphicsArtworkUrl} 
-                        alt="Graphics artwork preview" 
-                        className="w-full rounded-md border"
-                        data-testid="img-artwork-preview"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Approval Status</span>
-                    {quote.graphicsArtworkApproved ? (
-                      <Badge variant="default" data-testid="badge-artwork-approved">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Approved
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" data-testid="badge-artwork-pending">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Awaiting Approval
-                      </Badge>
-                    )}
-                  </div>
-
-                  {quote.graphicsArtworkNotes && (
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground mb-1">Notes</div>
-                      <p className="text-sm whitespace-pre-wrap" data-testid="text-artwork-notes">
-                        {quote.graphicsArtworkNotes}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+            {/* Graphics Artwork Approval */}
+            <GraphicsArtworkApproval quote={quote} />
 
             {/* Finance Plan */}
             {selectedFinancePlan && (

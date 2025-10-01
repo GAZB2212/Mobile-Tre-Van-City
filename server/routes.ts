@@ -595,6 +595,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/portal/quotes/:id/approve-artwork", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.user?.id;
+      const { approved, notes } = req.body;
+      
+      const quote = await storage.getQuote(req.params.id);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Verify the quote belongs to the logged-in user
+      if (quote.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Update artwork approval status
+      const updated = await storage.updateQuote(req.params.id, {
+        graphicsArtworkApproved: approved,
+        graphicsArtworkNotes: notes || quote.graphicsArtworkNotes,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update artwork approval" });
+    }
+  });
+
   // Admin user management endpoints - commented out for now
   // Admin user is created automatically on startup
 
