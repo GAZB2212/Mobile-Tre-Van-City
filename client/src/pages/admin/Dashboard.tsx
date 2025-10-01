@@ -13,7 +13,8 @@ import {
   FileText, 
   Users, 
   Settings,
-  LogOut
+  LogOut,
+  Calculator
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -90,6 +91,13 @@ export default function AdminDashboard() {
       icon: Wrench,
       href: "/admin/upgrades",
       badge: "Options"
+    },
+    {
+      title: "Manage Finance Plans",
+      description: "Configure financing options for customers",
+      icon: Calculator,
+      href: "/admin/finance-plans",
+      badge: "Finance"
     },
     {
       title: "View Quotes",

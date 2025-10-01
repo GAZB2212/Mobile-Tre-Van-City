@@ -18,6 +18,7 @@ import AdminKits from "@/pages/admin/Kits";
 import AdminUpgrades from "@/pages/admin/Upgrades";
 import AdminQuotes from "@/pages/admin/Quotes";
 import AdminLeads from "@/pages/admin/Leads";
+import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/admin/vans" component={AdminVans} />
       <Route path="/admin/kits" component={AdminKits} />
       <Route path="/admin/upgrades" component={AdminUpgrades} />
+      <Route path="/admin/finance-plans" component={AdminFinancePlans} />
       <Route path="/admin/quotes" component={AdminQuotes} />
       <Route path="/admin/leads" component={AdminLeads} />
       {/* Fallback to 404 */}
