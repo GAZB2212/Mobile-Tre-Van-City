@@ -125,6 +125,7 @@ export const quotes = pgTable("quotes", {
   graphicsArtworkUrl: text("graphics_artwork_url"),
   graphicsArtworkApproved: boolean("graphics_artwork_approved").notNull().default(false),
   graphicsArtworkNotes: text("graphics_artwork_notes"),
+  customerLogoUrls: json("customer_logo_urls").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),

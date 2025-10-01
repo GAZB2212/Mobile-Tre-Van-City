@@ -14,7 +14,8 @@ import {
   FileText,
   DollarSign,
   Wrench,
-  Eye
+  Eye,
+  ArrowLeft
 } from "lucide-react";
 import type { Quote } from "@shared/schema";
 
@@ -97,6 +98,18 @@ export default function Portal() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            asChild 
+            className="mb-4"
+            data-testid="button-back-to-website"
+          >
+            <Link href="/">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Website
+            </Link>
+          </Button>
           <h1 className="text-3xl md:text-4xl font-bold mb-2" data-testid="text-portal-title">
             My Portal
           </h1>

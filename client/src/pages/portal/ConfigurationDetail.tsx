@@ -22,6 +22,7 @@ import {
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import GraphicsArtworkApproval from "@/components/GraphicsArtworkApproval";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
+import CustomerLogoUpload from "@/components/CustomerLogoUpload";
 
 export default function ConfigurationDetail() {
   const { id } = useParams();
@@ -346,6 +347,9 @@ export default function ConfigurationDetail() {
 
             {/* Graphics Artwork Approval */}
             <GraphicsArtworkApproval quote={quote} />
+
+            {/* Customer Logo Upload */}
+            <CustomerLogoUpload quote={quote} />
 
             {/* Finance Plan */}
             {selectedFinancePlan && (

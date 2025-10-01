@@ -707,6 +707,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Referenced from blueprint: javascript_object_storage - protected file uploading
+  // The endpoint for serving private objects with ACL checks
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
+    const userId = (req as any).user?.id;
+    const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+    const { ObjectPermission } = await import("./objectAcl");
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error checking object access:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // The endpoint for getting the upload URL for an object entity
+  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+    const { ObjectStorageService } = await import("./objectStorage");
+    const objectStorageService = new ObjectStorageService();
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    res.json({ uploadURL });
+  });
+
+  // Update quote with customer logos after upload
+  app.put("/api/quotes/:id/logos", isAuthenticated, async (req, res) => {
+    try {
+      if (!req.body.logoURL) {
+        return res.status(400).json({ error: "logoURL is required" });
+      }
+
+      const userId = (req as any).user?.id;
+      const quote = await storage.getQuote(req.params.id);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      if (quote.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to update this quote" });
+      }
+
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      // Set ACL policy for the uploaded logo (public visibility so admin can view it)
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.logoURL,
+        {
+          owner: userId || "",
+          visibility: "public", // Public so admin can view uploaded logos
+        },
+      );
+
+      // Add the new logo URL to the customerLogoUrls array
+      const existingLogos = quote.customerLogoUrls || [];
+      const updatedLogos = [...existingLogos, objectPath];
+      
+      const updated = await storage.updateQuote(req.params.id, {
+        customerLogoUrls: updatedLogos,
+      });
+
+      res.status(200).json({
+        objectPath: objectPath,
+        quote: updated,
+      });
+    } catch (error) {
+      console.error("Error setting customer logo:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
