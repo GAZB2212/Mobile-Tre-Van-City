@@ -11,8 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, Car } from "lucide-react";
 import { Link } from "wouter";
+import { VanImageGallery } from "@/components/VanImageGallery";
 import type { Van, InsertVan } from "@shared/schema";
 
 export default function AdminVans() {
@@ -486,19 +488,30 @@ export default function AdminVans() {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Van</DialogTitle>
               <DialogDescription>
-                Update van information and specifications
+                Update van information, specifications, and images
               </DialogDescription>
             </DialogHeader>
             {editingVan && (
-              <VanForm
-                van={editingVan}
-                onSubmit={handleUpdateVan}
-                isLoading={updateVanMutation.isPending}
-              />
+              <Tabs defaultValue="details" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
+                  <TabsTrigger value="images" data-testid="tab-images">Images</TabsTrigger>
+                </TabsList>
+                <TabsContent value="details">
+                  <VanForm
+                    van={editingVan}
+                    onSubmit={handleUpdateVan}
+                    isLoading={updateVanMutation.isPending}
+                  />
+                </TabsContent>
+                <TabsContent value="images">
+                  <VanImageGallery van={editingVan} />
+                </TabsContent>
+              </Tabs>
             )}
           </DialogContent>
         </Dialog>
