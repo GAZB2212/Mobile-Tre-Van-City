@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,10 +21,13 @@ import {
   Truck,
   Wrench,
   DollarSign,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import type { Quote } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 
 const quoteStatuses = ["pending", "approved", "in_progress", "completed", "cancelled"] as const;
 const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
@@ -42,6 +45,7 @@ export default function AdminQuoteDetail() {
   const { id } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const pendingArtworkPathRef = useRef<string | null>(null);
   
   const [status, setStatus] = useState("");
   const [financeStatus, setFinanceStatus] = useState("");
@@ -85,6 +89,33 @@ export default function AdminQuoteDetail() {
       });
     },
   });
+
+  const handleGetArtworkUploadParameters = async (file: { name: string; type: string }) => {
+    const response = await apiRequest("POST", "/api/objects/upload", {
+      filename: file.name,
+      contentType: file.type,
+    });
+    
+    const data = response as unknown as { uploadURL: string; objectPath: string };
+    pendingArtworkPathRef.current = data.objectPath;
+    
+    return {
+      method: "PUT" as const,
+      url: data.uploadURL,
+      objectPath: data.objectPath,
+    };
+  };
+
+  const handleArtworkUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    if (result.successful && result.successful.length > 0 && pendingArtworkPathRef.current) {
+      setArtworkUrl(pendingArtworkPathRef.current);
+      pendingArtworkPathRef.current = null;
+      toast({
+        title: "Upload Complete",
+        description: "Artwork uploaded successfully. Click 'Save Changes' to update the quote.",
+      });
+    }
+  };
 
   if (!user?.isAdmin) {
     return (
@@ -256,33 +287,51 @@ export default function AdminQuoteDetail() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="artwork-url">Artwork URL</Label>
-                  <Input
-                    id="artwork-url"
-                    type="url"
-                    placeholder="https://example.com/artwork.jpg"
-                    value={artworkUrl}
-                    onChange={(e) => setArtworkUrl(e.target.value)}
-                    data-testid="input-artwork-url"
-                  />
+                  <Label>Upload Artwork</Label>
+                  {!artworkUrl ? (
+                    <div className="pt-2">
+                      <ObjectUploader
+                        maxNumberOfFiles={1}
+                        maxFileSize={20 * 1024 * 1024}
+                        allowedFileTypes={['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml']}
+                        onGetUploadParameters={handleGetArtworkUploadParameters}
+                        onComplete={handleArtworkUploadComplete}
+                        buttonClassName="w-full"
+                      >
+                        <div className="flex items-center justify-center gap-2" data-testid="button-upload-artwork">
+                          <Upload className="w-4 h-4" />
+                          <span>Upload Artwork</span>
+                        </div>
+                      </ObjectUploader>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pt-2">
+                      <div className="relative rounded-md border overflow-hidden">
+                        <img
+                          src={artworkUrl}
+                          alt="Artwork preview"
+                          className="w-full"
+                          data-testid="img-artwork-preview"
+                          onError={(e) => {
+                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EFailed to load%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-2 right-2"
+                          onClick={() => setArtworkUrl("")}
+                          data-testid="button-remove-artwork"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    Enter the URL of the uploaded artwork image
+                    Upload artwork for the customer to review (PNG, JPEG, SVG - max 20MB)
                   </p>
                 </div>
-
-                {artworkUrl && (
-                  <div>
-                    <div className="text-sm font-medium mb-2">Preview</div>
-                    <img
-                      src={artworkUrl}
-                      alt="Artwork preview"
-                      className="w-full rounded-md border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </div>
-                )}
 
                 <div>
                   <Label htmlFor="artwork-notes">Notes for Customer</Label>
