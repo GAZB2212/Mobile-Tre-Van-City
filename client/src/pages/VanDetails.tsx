@@ -1,15 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Car, Fuel, Gauge, Settings, Calendar, CheckCircle, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Car, Fuel, Gauge, Settings, Calendar, CheckCircle, Phone, Mail, Wrench } from "lucide-react";
+import { useConfigurator } from "@/lib/ConfiguratorContext";
 import type { Van } from "@shared/schema";
 
 export default function VanDetails() {
   const [, params] = useRoute("/stock/:slug");
   const slug = params?.slug;
+  const [, setLocation] = useLocation();
+  const { setVan } = useConfigurator();
 
   const { data: van, isLoading, error } = useQuery<Van>({
     queryKey: ['/api/vans/slug', slug],
@@ -22,6 +25,13 @@ export default function VanDetails() {
     },
     enabled: !!slug,
   });
+
+  const handleConfigureVan = () => {
+    if (van) {
+      setVan(van.id);
+      setLocation('/configurator/kit');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -240,24 +250,23 @@ export default function VanDetails() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <Button
-                      asChild
                       size="lg"
                       className="w-full bg-accent border-accent text-accent-foreground"
-                      data-testid="button-enquire"
+                      onClick={handleConfigureVan}
+                      data-testid="button-configure-van"
                     >
-                      <Link href="/contact">
-                        Enquire Now
-                      </Link>
+                      <Wrench className="w-4 h-4 mr-2" />
+                      Configure This Van
                     </Button>
                     <Button
                       asChild
                       size="lg"
                       variant="outline"
                       className="w-full"
-                      data-testid="button-configure"
+                      data-testid="button-enquire"
                     >
-                      <Link href="/configurator">
-                        Configure Similar Van
+                      <Link href="/contact">
+                        Enquire Now
                       </Link>
                     </Button>
                   </CardContent>

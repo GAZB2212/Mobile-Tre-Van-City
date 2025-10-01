@@ -1,22 +1,30 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Car, Fuel, Gauge, Settings, Calendar, ArrowRight, Search } from "lucide-react";
+import { Car, Fuel, Gauge, Settings, Calendar, ArrowRight, Search, Wrench } from "lucide-react";
+import { useConfigurator } from "@/lib/ConfiguratorContext";
 import type { Van } from "@shared/schema";
 
 export default function Stock() {
   const [makeFilter, setMakeFilter] = useState<string>("all");
   const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
   const [maxPrice, setMaxPrice] = useState<string>("");
+  const [, setLocation] = useLocation();
+  const { setVan } = useConfigurator();
 
   const { data: vans = [], isLoading } = useQuery<Van[]>({
     queryKey: ['/api/vans'],
   });
+
+  const handleConfigureVan = (vanId: string) => {
+    setVan(vanId);
+    setLocation('/configurator/kit');
+  };
 
   const uniqueMakes = Array.from(new Set(vans.map(van => van.make))).sort();
 
@@ -205,10 +213,19 @@ export default function Stock() {
                     </div>
                   </CardContent>
 
-                  <CardFooter className="pt-0">
+                  <CardFooter className="pt-0 flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleConfigureVan(van.id)}
+                      data-testid={`button-configure-${van.id}`}
+                    >
+                      <Wrench className="w-4 h-4 mr-2" />
+                      Configure
+                    </Button>
                     <Button
                       asChild
-                      className="w-full bg-accent border-accent text-accent-foreground"
+                      className="flex-1 bg-accent border-accent text-accent-foreground"
                       data-testid={`button-view-van-${van.id}`}
                     >
                       <Link href={`/stock/${van.slug}`}>
