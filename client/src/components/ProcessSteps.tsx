@@ -29,8 +29,8 @@ export default function ProcessSteps() {
   return (
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-6 text-white" data-testid="text-process-title">
+        <div className="text-center mb-12 sm:mb-16">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-6 text-foreground" data-testid="text-process-title">
             Modification Your Van
           </h2>
         </div>
@@ -41,15 +41,15 @@ export default function ProcessSteps() {
               <div className="flex justify-center">
                 <service.icon className="w-16 h-16 text-accent" strokeWidth={1.5} />
               </div>
-              <h3 className="text-2xl font-bold text-white">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground">
                 {service.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                 {service.description}
               </p>
-              <button className="text-white hover:text-accent transition-colors font-semibold" data-testid={`button-learn-more-${index}`}>
-                Learn More →
-              </button>
+              <Button variant="link" className="text-foreground hover:text-accent p-0 h-auto" data-testid={`button-learn-more-${index}`}>
+                Learn More <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
             </div>
           ))}
         </div>

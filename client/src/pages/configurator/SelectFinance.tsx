@@ -49,16 +49,16 @@ export default function SelectFinance() {
               Back to Kit Selection
             </Button>
             
-            <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
               Step 3: Finance Options
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Choose a finance plan or pay outright
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+            <div className="xl:col-span-2">
               {isLoading ? (
                 <div className="flex justify-center py-20">
                   <LoadingSpinner size="lg" />
@@ -74,49 +74,49 @@ export default function SelectFinance() {
                     data-testid={`card-finance-plan-${plan.id}`}
                   >
                     <CardHeader>
-                      <div className="flex items-start justify-between mb-2">
-                        <Badge variant={plan.type === 'HP' ? 'default' : 'secondary'} data-testid={`badge-plan-type-${plan.id}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                        <Badge variant={plan.type === 'HP' ? 'default' : 'secondary'} className="text-xs sm:text-sm" data-testid={`badge-plan-type-${plan.id}`}>
                           {plan.type === 'HP' ? 'Hire Purchase' : 'Lease'}
                         </Badge>
-                        <Badge variant="outline" className="flex items-center gap-1" data-testid={`badge-plan-apr-${plan.id}`}>
-                          <Percent className="w-3 h-3" />
-                          {formatAPR(plan.aprBps)} APR
+                        <Badge variant="outline" className="flex items-center gap-1 text-xs sm:text-sm" data-testid={`badge-plan-apr-${plan.id}`}>
+                          <Percent className="w-3 h-3 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{formatAPR(plan.aprBps)} APR</span>
                         </Badge>
                       </div>
-                      <CardTitle className="text-xl" data-testid={`text-plan-name-${plan.id}`}>
+                      <CardTitle className="text-lg sm:text-xl break-words" data-testid={`text-plan-name-${plan.id}`}>
                         {plan.name}
                       </CardTitle>
-                      <CardDescription data-testid={`text-plan-notes-${plan.id}`}>
+                      <CardDescription className="text-sm break-words" data-testid={`text-plan-notes-${plan.id}`}>
                         {plan.notes}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>Term</span>
+                        <div className="flex items-center justify-between gap-4 text-xs sm:text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                            <Calendar className="w-4 h-4 flex-shrink-0" />
+                            <span className="whitespace-nowrap">Term</span>
                           </div>
-                          <span className="font-medium" data-testid={`text-plan-term-${plan.id}`}>
+                          <span className="font-medium whitespace-nowrap" data-testid={`text-plan-term-${plan.id}`}>
                             {plan.termMonths} months
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <TrendingUp className="w-4 h-4" />
-                            <span>Deposit</span>
+                        <div className="flex items-center justify-between gap-4 text-xs sm:text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                            <TrendingUp className="w-4 h-4 flex-shrink-0" />
+                            <span className="whitespace-nowrap">Deposit</span>
                           </div>
-                          <span className="font-medium" data-testid={`text-plan-deposit-${plan.id}`}>
+                          <span className="font-medium whitespace-nowrap" data-testid={`text-plan-deposit-${plan.id}`}>
                             {plan.depositPercent}%
                           </span>
                         </div>
                         {plan.balloonPercent && (
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <TrendingUp className="w-4 h-4" />
-                              <span>Balloon Payment</span>
+                          <div className="flex items-center justify-between gap-4 text-xs sm:text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                              <TrendingUp className="w-4 h-4 flex-shrink-0" />
+                              <span className="whitespace-nowrap">Balloon</span>
                             </div>
-                            <span className="font-medium" data-testid={`text-plan-balloon-${plan.id}`}>
+                            <span className="font-medium whitespace-nowrap" data-testid={`text-plan-balloon-${plan.id}`}>
                               {plan.balloonPercent}%
                             </span>
                           </div>
@@ -151,7 +151,7 @@ export default function SelectFinance() {
               )}
             </div>
 
-            <div className="lg:col-span-1">
+            <div className="xl:col-span-1">
               <ConfiguratorSummary />
             </div>
           </div>
