@@ -53,7 +53,12 @@ export default function Login() {
         title: "Success",
         description: "Logged in successfully",
       });
-      setLocation("/admin");
+      // Redirect based on user role
+      if (data.user?.isAdmin) {
+        setLocation("/admin");
+      } else {
+        setLocation("/portal");
+      }
     },
     onError: (error: any) => {
       toast({
@@ -79,9 +84,9 @@ export default function Login() {
           <div className="flex items-center justify-center mb-4">
             <LogIn className="w-12 h-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl text-center">Admin Login</CardTitle>
+          <CardTitle className="text-2xl text-center">Login</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access the admin panel
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -95,7 +100,7 @@ export default function Login() {
                     <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="admin"
+                        placeholder="username"
                         autoComplete="username"
                         data-testid="input-username"
                         {...field}
@@ -137,12 +142,6 @@ export default function Login() {
             </form>
           </Form>
 
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>Default credentials:</p>
-            <p className="font-mono text-xs mt-1">
-              Username: admin | Password: admin123
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
