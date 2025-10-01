@@ -136,8 +136,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Quotes endpoints
-  app.get("/api/quotes", async (req, res) => {
+  // Quotes endpoints (restricted to admin only for security)
+  app.get("/api/quotes", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quotes = await storage.getQuotes();
       res.json(quotes);
@@ -560,6 +560,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete finance plan" });
+    }
+  });
+
+  // Customer portal endpoints
+  app.get("/api/portal/quotes", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.user?.id;
+      const allQuotes = await storage.getQuotes();
+      const userQuotes = allQuotes.filter(quote => quote.userId === userId);
+      res.json(userQuotes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch your quotes" });
     }
   });
 

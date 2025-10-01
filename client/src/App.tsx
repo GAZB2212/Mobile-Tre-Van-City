@@ -21,6 +21,7 @@ import AdminQuotes from "@/pages/admin/Quotes";
 import AdminLeads from "@/pages/admin/Leads";
 import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import BuildSheet from "@/pages/admin/BuildSheet";
+import Portal from "@/pages/Portal";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,8 @@ function Router() {
       <Route path="/configurator/quote" component={RequestQuote} />
       {/* Auth routes */}
       <Route path="/login" component={Login} />
+      {/* Customer portal routes */}
+      <Route path="/portal" component={Portal} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/vans" component={AdminVans} />
