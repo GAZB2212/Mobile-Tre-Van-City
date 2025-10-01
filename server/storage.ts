@@ -197,13 +197,80 @@ export class MemStorage implements IStorage {
     ];
 
     const sampleUpgrades: Upgrade[] = [
+      // Accessories Parent (for variations)
+      {
+        id: "accessories-parent",
+        name: "Accessories",
+        category: "equipment",
+        description: "Choose your equipment package - Maxi Euro 8 with T5000/T6000 Pro & Mini Spin",
+        price: 114500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "accessories-pack-1",
+        name: "Accessories Pack 1",
+        category: "equipment",
+        description: "Maxi Euro 8 with T5000 Pro & Mini Spin",
+        price: 114500,
+        images: [],
+        parentId: "accessories-parent",
+        variantName: "Pack 1 - Maxi Euro 8 with T5000 Pro & Mini Spin",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "accessories-pack-2",
+        name: "Accessories Pack 2",
+        category: "equipment",
+        description: "Euro 8 with T5000 Pro & Mini Spin",
+        price: 114500,
+        images: [],
+        parentId: "accessories-parent",
+        variantName: "Pack 2 - Euro 8 with T5000 Pro & Mini Spin",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "accessories-pack-3",
+        name: "Accessories Pack 3",
+        category: "equipment",
+        description: "Mini Euro 8 with T5000 Pro & Mini Spin",
+        price: 114500,
+        images: [],
+        parentId: "accessories-parent",
+        variantName: "Pack 3 - Mini Euro 8 with T5000 Pro & Mini Spin",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "accessories-pack-4",
+        name: "Accessories Pack 4",
+        category: "equipment",
+        description: "Maxi Euro 8 with T6000 Pro & Mini Spin",
+        price: 114500,
+        images: [],
+        parentId: "accessories-parent",
+        variantName: "Pack 4 - Maxi Euro 8 with T6000 Pro & Mini Spin",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
       // Air System Upgrades
       {
         id: "mounted-pto-air-system",
         name: "Mounted PTO Air System Upgrade",
         category: "air-systems",
-        description: "MTVC40, 40CFM rotary screw compressor - perfect for mobile tyre fitting vehicles with compact, powerful design",
-        price: 549500, // £5,495.00 in pence
+        description: "Professional air system for mobile tyre fitting vehicles. We compound, powerful design for truly engineered for integrated into commercial vehicles",
+        price: 449500,
         images: [],
         parentId: null,
         variantName: null,
@@ -215,8 +282,8 @@ export class MemStorage implements IStorage {
         id: "compressor-12hp-270l",
         name: "Compressor Upgrade To 12hp 270 Litre Electric Start",
         category: "air-systems",
-        description: "High-capacity 12hp compressor with 270 litre tank and electric start",
-        price: 100000, // £1,000.00 in pence
+        description: "HEAVY DUTY compressor pump only",
+        price: 100000,
         images: [],
         parentId: null,
         variantName: null,
@@ -225,11 +292,11 @@ export class MemStorage implements IStorage {
         updatedAt: new Date()
       },
       {
-        id: "air-reel-9m-fini",
-        name: "Fini 9 meter Air Reel With Built In Compressor",
+        id: "air-reel-fini",
+        name: "Fini 9 motor Air Reel With Built In Compressor",
         category: "air-systems",
-        description: "Professional 9 meter air reel with built-in compressor",
-        price: 24500, // £245.00 in pence
+        description: "",
+        price: 54500,
         images: [],
         parentId: null,
         variantName: null,
@@ -238,11 +305,11 @@ export class MemStorage implements IStorage {
         updatedAt: new Date()
       },
       {
-        id: "compressor-reel-15m",
-        name: "15m Compressor Reel",
+        id: "compressor-reel-16m",
+        name: "16m Compressor Reel",
         category: "air-systems",
-        description: "Keep your air lines neat and tidy with our compressor reel",
-        price: 17500, // £175.00 in pence
+        description: "Keep your air line well and out Kay. With our compressor reel",
+        price: 17500,
         images: [],
         parentId: null,
         variantName: null,
@@ -250,13 +317,14 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Equipment Upgrades
+
+      // Equipment
       {
         id: "super-spin-upgrade",
         name: "Upgrade to Super Spin auto spin wheel balancer",
         category: "equipment",
-        description: "Upgrade your wheel balancer to Super Spin auto spin technology",
-        price: 45000, // £450.00 in pence
+        description: "",
+        price: 45000,
         images: [],
         parentId: null,
         variantName: null,
@@ -264,13 +332,14 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Branding & Wrapping
+
+      // Branding
       {
-        id: "full-bespoke-wrap",
-        name: "Full Bespoke Wrap",
+        id: "full-revalco-wrap",
+        name: "Full Revalco Wrap",
         category: "branding",
-        description: "Give your van kerb appeal with bespoke full van wrap (LWB/MWB available)",
-        price: 320000, // £3,200.00 in pence
+        description: "Give your van kerb appeal by having blowable full van wrap (LWB / MWB available)",
+        price: 320000,
         images: [],
         parentId: null,
         variantName: null,
@@ -282,8 +351,8 @@ export class MemStorage implements IStorage {
         id: "half-wrap",
         name: "Half Wrap",
         category: "branding",
-        description: "Give your van the WOW factor with a half wrap (LWB/MWB available)",
-        price: 180000, // £1,800.00 in pence
+        description: "Give your van the WOW factor with a half wrap",
+        price: 180000,
         images: [],
         parentId: null,
         variantName: null,
@@ -295,8 +364,8 @@ export class MemStorage implements IStorage {
         id: "graphic-pack",
         name: "Graphic Pack",
         category: "branding",
-        description: "Vehicle graphic pack with printed panels on sides and rear, text on doors and rear doors",
-        price: 100000, // £1,000.00 in pence
+        description: "Add vehicle graphic pack (printed places on scores and rear, text on doors and rear sound)",
+        price: 100000,
         images: [],
         parentId: null,
         variantName: null,
@@ -304,13 +373,107 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Security & CCTV
+      {
+        id: "rear-chapter-livery",
+        name: "Rear Chapter & Livery",
+        category: "branding",
+        description: "Make sure you are aware at the back of the road with our fluorescent yellow day chapter & kit",
+        price: 45000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "branded-website",
+        name: "Branded Website",
+        category: "branding",
+        description: "Have your very own branded website. Price is £1050+vat depending on your specification",
+        price: 105000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "full-print-package",
+        name: "Full Print Package",
+        category: "branding",
+        description: "500 Business cards, 250 Leaflets, 5 Social media setup (Max 2 platforms)",
+        price: 55000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "garage-branding",
+        name: "Garage Branding (Member of team will contact you for pricing)",
+        category: "branding",
+        description: "Reactivate branding: Graphic signage, Pivot, A Boards, banners",
+        price: 1,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Van Interior Walls (with variations)
+      {
+        id: "van-interior-walls-parent",
+        name: "Van Interior Walls",
+        category: "comfort",
+        description: "Fold out interior of you van white coating (pay you van",
+        price: 160000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "van-interior-diamond-lwb-standard",
+        name: "Van Interior Walls - Diamond Liner LWB Standard",
+        category: "comfort",
+        description: "Fold out interior of you van white coating (pay you van",
+        price: 160000,
+        images: [],
+        parentId: "van-interior-walls-parent",
+        variantName: "Diamond Liner - LWB Standard",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "van-interior-diamond-lwb-branded",
+        name: "Van Interior Walls - Diamond Liner LWB Branded",
+        category: "comfort",
+        description: "Fold out interior of you van white coating (pay you van",
+        price: 160000,
+        images: [],
+        parentId: "van-interior-walls-parent",
+        variantName: "Diamond Liner - LWB Branded",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Security
       {
         id: "van-cctv-system",
-        name: "Van Online CCTV/DVR System",
+        name: "Van Online CCTV/NVR System",
         category: "security",
-        description: "4-6 camera online/offline CCTV system for extra security and peace of mind",
-        price: 220000, // £2,200.00 in pence
+        description: "Add extra security and peace of mind to your van with our online / offline CCTV system",
+        price: 220000,
         images: [],
         parentId: null,
         variantName: null,
@@ -323,7 +486,7 @@ export class MemStorage implements IStorage {
         name: "Vehicle Immobiliser",
         category: "security",
         description: "Most advanced vehicle immobiliser on the market to protect your business asset",
-        price: 50000, // £500.00 in pence
+        price: 50000,
         images: [],
         parentId: null,
         variantName: null,
@@ -333,10 +496,10 @@ export class MemStorage implements IStorage {
       },
       {
         id: "vehicle-tracker",
-        name: "Vehicle Tracker",
+        name: "Vehicle tracker",
         category: "security",
-        description: "Vehicle tracker with app to track your vehicle",
-        price: 35000, // £350.00 in pence
+        description: "With App to track your vehicle",
+        price: 35000,
         images: [],
         parentId: null,
         variantName: null,
@@ -344,13 +507,12 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Lighting
       {
-        id: "light-pack",
-        name: "Light Pack",
-        category: "lighting",
-        description: "8 LED flashing repeaters, LED light bar to roof & working lights. Optional upgrade to LED scene lights",
-        price: 120000, // £1,200.00 in pence
+        id: "high-security-door-lock",
+        name: "High Security Door Lock",
+        category: "security",
+        description: "Add extra security to your van with our high security locks",
+        price: 19500,
         images: [],
         parentId: null,
         variantName: null,
@@ -358,13 +520,42 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Business Setup
+      {
+        id: "standard-reversing-camera",
+        name: "Standard Reversing Camera Kit",
+        category: "security",
+        description: "Standard reversing camera with 7\" monitor",
+        price: 49500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Business
       {
         id: "business-package",
-        name: "All You Need Business Package",
+        name: "All you need business package",
         category: "business",
-        description: "Website, business cards, leaflets, & social media setup (max 2 platforms)",
-        price: 155000, // £1,550.00 in pence
+        description: "Website, Business cards, Leaflets, & Social media setup (Max 2 platforms)",
+        price: 195000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Lighting Parent (with variations)
+      {
+        id: "light-pack-parent",
+        name: "Light Pack",
+        category: "lighting",
+        description: "8 LED flashing repeaters, LED light bar to roof & working lights. With the optional upgrade you get LED scene lights",
+        price: 120000,
         images: [],
         parentId: null,
         variantName: null,
@@ -373,25 +564,39 @@ export class MemStorage implements IStorage {
         updatedAt: new Date()
       },
       {
-        id: "branded-website",
-        name: "Branded Website",
-        category: "business",
-        description: "Fully branded website for your business (from £1050+VAT depending on specification)",
-        price: 105000, // £1,050.00 in pence
+        id: "light-pack-standard",
+        name: "Standard Light Pack",
+        category: "lighting",
+        description: "8 LED flashing repeaters, LED light bar to roof & working lights",
+        price: 120000,
         images: [],
-        parentId: null,
-        variantName: null,
+        parentId: "light-pack-parent",
+        variantName: "Standard Light Pack",
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Technology & Comfort
+
+      // Technology
       {
         id: "remote-control",
         name: "Remote Control",
         category: "technology",
-        description: "Control all of your van's accessories with wireless remote system",
-        price: 69500, // £695.00 in pence
+        description: "Control all of your vans accessories with our wireless remote system",
+        price: 69500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "monitor-brake-light-camera",
+        name: "7\" Monitor With Brake Light Camera",
+        category: "technology",
+        description: "In cab 'plant' device always recording when driving",
+        price: 49500,
         images: [],
         parentId: null,
         variantName: null,
@@ -403,8 +608,62 @@ export class MemStorage implements IStorage {
         id: "apple-carplay",
         name: "Apple CarPlay",
         category: "technology",
-        description: "Apple CarPlay or Android Auto (vehicle dependent, starting price)",
-        price: 65000, // £650.00 in pence
+        description: "Apple CarPlay or Android Auto (vehicle dependent, starting from £650+vat, a member of our team will confirm that your ice vehicle package right, once order is placed)",
+        price: 65000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "front-facing-dash-camera",
+        name: "Front Facing Dash Camera",
+        category: "technology",
+        description: "In cab 'plant' device always recording when driving",
+        price: 35000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Comfort Parent (Carpeted Ceiling with variations)
+      {
+        id: "carpeted-ceiling-parent",
+        name: "Carpeted Ceiling",
+        category: "comfort",
+        description: "",
+        price: 68500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "carpeted-ceiling-lwb-led",
+        name: "Carpeted Ceiling LWB with LED cabin lights",
+        category: "comfort",
+        description: "",
+        price: 68500,
+        images: [],
+        parentId: "carpeted-ceiling-parent",
+        variantName: "LWB with LED cabin lights",
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "hand-wash-station",
+        name: "Hand Wash Station",
+        category: "comfort",
+        description: "Also a heated drivers seat so you can lie hows, you're warm on cold winter days",
+        price: 39500,
         images: [],
         parentId: null,
         variantName: null,
@@ -416,8 +675,8 @@ export class MemStorage implements IStorage {
         id: "heated-seat",
         name: "Heated Seat",
         category: "comfort",
-        description: "Heated driver's seat to keep warm on cold winter days",
-        price: 55000, // £550.00 in pence
+        description: "",
+        price: 55000,
         images: [],
         parentId: null,
         variantName: null,
@@ -425,13 +684,53 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Storage & Tools
+      {
+        id: "rubber-flooring",
+        name: "Rubber Flooring",
+        category: "comfort",
+        description: "Add our rubber flooring",
+        price: 50000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Storage
+      {
+        id: "tool-chest-155pc",
+        name: "155 Piece Nielsen Tool Chest",
+        category: "storage",
+        description: "",
+        price: 65000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "empty-tool-chest",
+        name: "Empty Tool Chest",
+        category: "storage",
+        description: "",
+        price: 25000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
       {
         id: "tyre-racking",
         name: "Tyre Racking",
         category: "storage",
-        description: "Professional tyre storage racking (tyres not included)",
-        price: 49500, // £495.00 in pence
+        description: "(if you not required)",
+        price: 49500,
         images: [],
         parentId: null,
         variantName: null,
@@ -440,11 +739,11 @@ export class MemStorage implements IStorage {
         updatedAt: new Date()
       },
       {
-        id: "tool-chest-155pc",
-        name: "155 Piece Neilsen Tool Chest",
+        id: "wheel-balancer-cone-holder",
+        name: "Wall mounted wheel balancer cone holder And Weight Piers Holder",
         category: "storage",
-        description: "Complete 155 piece professional tool chest",
-        price: 45000, // £450.00 in pence
+        description: "",
+        price: 17500,
         images: [],
         parentId: null,
         variantName: null,
@@ -452,13 +751,12 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Safety
       {
-        id: "chapter-8-livery",
-        name: "Rear Chapter 8 Livery",
-        category: "safety",
-        description: "Fluorescent and reflective chapter 8 kit for roadside visibility",
-        price: 45000, // £450.00 in pence
+        id: "bott-wall-mounted-boxes",
+        name: "BOTT Wall Mounted Valve And Weight Boxes",
+        category: "storage",
+        description: "",
+        price: 15000,
         images: [],
         parentId: null,
         variantName: null,
@@ -466,13 +764,146 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date()
       },
-      // Power Systems
       {
-        id: "lifepo4-battery-200ah",
-        name: "200ah LiFePO4 Battery Upgrade and Brackets",
+        id: "jack-bases-2",
+        name: "2 Jack Bases",
+        category: "storage",
+        description: "Swivs to stop your trolley jacks rolling around in the van (not boxed)",
+        price: 14500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "wall-mount-gun-socket-holder",
+        name: "Wall Mount Gun And Socket Holder",
+        category: "storage",
+        description: "Wall and sockets as shown not included",
+        price: 3500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "wall-mounts-torque-wrench",
+        name: "4 Wall Mounts To Hold Torque Wrench",
+        category: "storage",
+        description: "Will require care, torque wrench will be crack bar not boxed",
+        price: 5000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Power
+      {
+        id: "lifepo4-battery-300ah",
+        name: "300ah LiFePO4 battery upgrade and brackets",
         category: "power",
-        description: "Upgrade your battery system to 200ah for longer lasting power",
-        price: 30000, // £300.00 in pence
+        description: "",
+        price: 30000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "upgrade-batteries-lifepo4",
+        name: "Upgrade Batteries To LiFePO4",
+        category: "power",
+        description: "Upgrade to lithium battery giving you longer battery life and capacity",
+        price: 17500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "led-strips-battery-box",
+        name: "LED Strips Display Battery Box",
+        category: "power",
+        description: "LED strips to display when voltage/current is going over 200w",
+        price: 5000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+
+      // Tools (Equipment category)
+      {
+        id: "torque-wrench",
+        name: "Torque Wrench",
+        category: "equipment",
+        description: "up to 600nm torque wrench - Please select quantity below",
+        price: 8500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "upgrade-air-jacks",
+        name: "Upgrade 1/4 Tonne Jack Air Jacks",
+        category: "equipment",
+        description: "Upgrade your jacks to 2.5 tonners - Please select quantity below",
+        price: 7500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "tyre-gauge",
+        name: "Tyre Gauge",
+        category: "equipment",
+        description: "Please select Quantity below",
+        price: 4500,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "wheel-nut-sockets-3",
+        name: "Set Of 3 Wheel Nut Sockets",
+        category: "equipment",
+        description: "Please select quantity below",
+        price: 3000,
+        images: [],
+        parentId: null,
+        variantName: null,
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "drive-crack-bar",
+        name: "1/2 Inch Drive Crack Bar",
+        category: "equipment",
+        description: "Please select quantity below",
+        price: 3500,
         images: [],
         parentId: null,
         variantName: null,
