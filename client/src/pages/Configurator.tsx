@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
@@ -91,6 +92,7 @@ export default function Configurator() {
   const [selectedVan, setSelectedVan] = useState<string | null>(null);
   const [selectedKit, setSelectedKit] = useState<string | null>(null);
   const [selectedUpgrades, setSelectedUpgrades] = useState<string[]>([]);
+  const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
   const [showVAT, setShowVAT] = useState(true);
 
   // Load saved configuration from localStorage on mount
@@ -103,6 +105,9 @@ export default function Configurator() {
         if (parsed.selectedKit) setSelectedKit(parsed.selectedKit);
         if (parsed.selectedUpgrades && Array.isArray(parsed.selectedUpgrades)) {
           setSelectedUpgrades(parsed.selectedUpgrades);
+        }
+        if (parsed.upgradeQuantities && typeof parsed.upgradeQuantities === 'object') {
+          setUpgradeQuantities(parsed.upgradeQuantities);
         }
         if (typeof parsed.showVAT === 'boolean') setShowVAT(parsed.showVAT);
         if (typeof parsed.currentStep === 'number' && parsed.currentStep >= 1 && parsed.currentStep <= 4) {
@@ -121,6 +126,7 @@ export default function Configurator() {
       selectedVan,
       selectedKit,
       selectedUpgrades,
+      upgradeQuantities,
       showVAT
     };
     try {
@@ -128,7 +134,7 @@ export default function Configurator() {
     } catch (error) {
       console.warn('Failed to save configurator state to localStorage:', error);
     }
-  }, [currentStep, selectedVan, selectedKit, selectedUpgrades, showVAT]);
+  }, [currentStep, selectedVan, selectedKit, selectedUpgrades, upgradeQuantities, showVAT]);
 
   // Fetch configurator data
   const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
@@ -136,12 +142,12 @@ export default function Configurator() {
   });
 
   // Calculate pricing
-  const calculatePricing = useMutation<PricingData, Error, { vanId?: string; kitId?: string; upgradeIds: string[] }>({
-    mutationFn: async ({ vanId, kitId, upgradeIds }) => {
+  const calculatePricing = useMutation<PricingData, Error, { vanId?: string; kitId?: string; upgradeIds: string[]; upgradeQuantities: Record<string, number> }>({
+    mutationFn: async ({ vanId, kitId, upgradeIds, upgradeQuantities }) => {
       const response = await fetch('/api/configurator/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vanId, kitId, upgradeIds }),
+        body: JSON.stringify({ vanId, kitId, upgradeIds, upgradeQuantities }),
       });
       if (!response.ok) throw new Error('Failed to calculate pricing');
       return response.json();
@@ -155,16 +161,43 @@ export default function Configurator() {
         vanId: selectedVan || undefined,
         kitId: selectedKit,
         upgradeIds: selectedUpgrades,
+        upgradeQuantities,
       });
     }
-  }, [selectedVan, selectedKit, selectedUpgrades]);
+  }, [selectedVan, selectedKit, selectedUpgrades, upgradeQuantities]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
-    setSelectedUpgrades(prev => 
-      prev.includes(upgradeId) 
-        ? prev.filter(id => id !== upgradeId)
-        : [...prev, upgradeId]
-    );
+    setSelectedUpgrades(prev => {
+      const isSelected = prev.includes(upgradeId);
+      if (isSelected) {
+        // Remove from selection and clear quantity
+        setUpgradeQuantities(quantities => {
+          const newQuantities = { ...quantities };
+          delete newQuantities[upgradeId];
+          return newQuantities;
+        });
+        return prev.filter(id => id !== upgradeId);
+      } else {
+        // Add to selection with default quantity of 1
+        setUpgradeQuantities(quantities => ({
+          ...quantities,
+          [upgradeId]: 1
+        }));
+        return [...prev, upgradeId];
+      }
+    });
+  };
+
+  const handleQuantityChange = (upgradeId: string, quantity: number) => {
+    if (quantity < 1) {
+      // If quantity goes below 1, remove the item
+      handleUpgradeToggle(upgradeId);
+    } else {
+      setUpgradeQuantities(prev => ({
+        ...prev,
+        [upgradeId]: quantity
+      }));
+    }
   };
 
   const handleRequestQuote = () => {
@@ -314,35 +347,56 @@ export default function Configurator() {
                           <CardContent>
                             <div className="grid gap-3">
                               {/* Render standalone upgrades with checkbox */}
-                              {standalone.map((upgrade) => (
-                                <div 
-                                  key={upgrade.id}
-                                  className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
-                                >
-                                  <Checkbox
-                                    id={upgrade.id}
-                                    checked={selectedUpgrades.includes(upgrade.id)}
-                                    onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
-                                    data-testid={`checkbox-upgrade-${upgrade.id}`}
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-1">
-                                      <label 
-                                        htmlFor={upgrade.id}
-                                        className="font-medium cursor-pointer leading-tight"
-                                      >
-                                        {upgrade.name}
-                                      </label>
-                                      <Badge variant="secondary" className="ml-2 flex-shrink-0">
-                                        £{(upgrade.price / 100).toLocaleString()}
-                                      </Badge>
+                              {standalone.map((upgrade) => {
+                                const isSelected = selectedUpgrades.includes(upgrade.id);
+                                const quantity = upgradeQuantities[upgrade.id] || 1;
+                                
+                                return (
+                                  <div 
+                                    key={upgrade.id}
+                                    className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
+                                  >
+                                    <Checkbox
+                                      id={upgrade.id}
+                                      checked={isSelected}
+                                      onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                      data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex justify-between items-start mb-1 gap-3">
+                                        <label 
+                                          htmlFor={upgrade.id}
+                                          className="font-medium cursor-pointer leading-tight"
+                                        >
+                                          {upgrade.name}
+                                        </label>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                          {isSelected && (
+                                            <div className="flex items-center gap-1">
+                                              <label className="text-xs text-muted-foreground whitespace-nowrap">Qty:</label>
+                                              <Input
+                                                type="number"
+                                                min="1"
+                                                max="10"
+                                                value={quantity}
+                                                onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value) || 1)}
+                                                className="w-16 h-8 text-center"
+                                                data-testid={`input-quantity-${upgrade.id}`}
+                                              />
+                                            </div>
+                                          )}
+                                          <Badge variant="secondary" className="flex-shrink-0">
+                                            £{((upgrade.price * quantity) / 100).toLocaleString()}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {upgrade.description}
+                                      </p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">
-                                      {upgrade.description}
-                                    </p>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                               
                               {/* Render equipment with variations using dropdown */}
                               {groups.map(({ parent, variants }) => {
@@ -369,13 +423,22 @@ export default function Configurator() {
                                       <Select
                                         value={selectedVariantId || ""}
                                         onValueChange={(value) => {
-                                          // Remove all variants from selection
+                                          // Remove all variants from selection and clear their quantities
                                           const filtered = selectedUpgrades.filter(id => 
                                             !variants.some(v => v.id === id)
                                           );
-                                          // Add the selected variant
+                                          setUpgradeQuantities(quantities => {
+                                            const newQuantities = { ...quantities };
+                                            variants.forEach(v => delete newQuantities[v.id]);
+                                            return newQuantities;
+                                          });
+                                          // Add the selected variant with quantity 1
                                           if (value) {
                                             setSelectedUpgrades([...filtered, value]);
+                                            setUpgradeQuantities(quantities => ({
+                                              ...quantities,
+                                              [value]: 1
+                                            }));
                                           } else {
                                             setSelectedUpgrades(filtered);
                                           }

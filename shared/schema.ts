@@ -102,6 +102,7 @@ export const quotes = pgTable("quotes", {
   vanId: varchar("van_id").references(() => vans.id),
   kitId: varchar("kit_id").notNull().references(() => kits.id),
   selectedUpgradeIds: json("selected_upgrade_ids").$type<string[]>().notNull().default([]),
+  selectedUpgrades: json("selected_upgrades").$type<Record<string, number>>().notNull().default({}),
   financePlanId: varchar("finance_plan_id").references(() => financePlans.id),
   financeInputs: json("finance_inputs").$type<{
     deposit?: number;

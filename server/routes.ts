@@ -310,10 +310,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bodySchema = z.object({
         vanId: z.string().optional(),
         kitId: z.string().optional(),
-        upgradeIds: z.array(z.string()).default([])
+        upgradeIds: z.array(z.string()).default([]),
+        upgradeQuantities: z.record(z.number()).default({})
       });
       
-      const { vanId, kitId, upgradeIds } = bodySchema.parse(req.body);
+      const { vanId, kitId, upgradeIds, upgradeQuantities } = bodySchema.parse(req.body);
       
       let subtotal = 0;
       
@@ -333,11 +334,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Add upgrade prices
+      // Add upgrade prices (with quantities)
       for (const upgradeId of upgradeIds) {
         const upgrade = await storage.getUpgrade(upgradeId);
         if (upgrade) {
-          subtotal += upgrade.price;
+          const quantity = upgradeQuantities[upgradeId] || 1;
+          subtotal += upgrade.price * quantity;
         }
       }
       
