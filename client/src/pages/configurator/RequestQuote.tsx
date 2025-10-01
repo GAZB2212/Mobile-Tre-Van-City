@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, Package, Truck, CreditCard } from "lucide-react";
-import type { Van, Kit, FinancePlan } from "@shared/schema";
+import type { Van, Kit, FinancePlan, Upgrade } from "@shared/schema";
 
 const quoteFormSchema = z.object({
   userName: z.string().min(2, "Name must be at least 2 characters"),
@@ -34,12 +34,12 @@ export default function RequestQuote() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
-  const { data: van } = useQuery<Van>({
+  const { data: van, isLoading: isLoadingVan } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
     enabled: !!state.vanId,
   });
 
-  const { data: kit } = useQuery<Kit>({
+  const { data: kit, isLoading: isLoadingKit } = useQuery<Kit>({
     queryKey: ['/api/kits', state.kitId],
     enabled: !!state.kitId,
   });
@@ -48,6 +48,14 @@ export default function RequestQuote() {
     queryKey: ['/api/finance-plans', state.financePlanId],
     enabled: !!state.financePlanId,
   });
+
+  const { data: upgrades = [], isLoading: isLoadingUpgrades } = useQuery<Upgrade[]>({
+    queryKey: ['/api/upgrades'],
+    select: (data) => data.filter(u => state.upgradeIds.includes(u.id)),
+    enabled: state.upgradeIds.length > 0,
+  });
+
+  const isLoadingData = isLoadingVan || isLoadingKit || (state.upgradeIds.length > 0 && isLoadingUpgrades);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteFormSchema),
@@ -62,10 +70,13 @@ export default function RequestQuote() {
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (formData: QuoteFormData) => {
-      // Calculate pricing
+      // Calculate pricing including upgrades
       let subtotal = 0;
       if (van) subtotal += van.price;
       if (kit) subtotal += kit.price;
+      upgrades.forEach(upgrade => {
+        subtotal += upgrade.price;
+      });
       
       const vat = Math.round(subtotal * 0.2);
       const total = subtotal + vat;
@@ -74,7 +85,7 @@ export default function RequestQuote() {
         ...formData,
         vanId: state.vanId,
         kitId: state.kitId!,
-        selectedUpgradeIds: state.upgradeIds,
+        upgradeIds: state.upgradeIds,
         financePlanId: state.financePlanId,
         financeInputs: state.financeInputs,
         estSubtotal: subtotal,
@@ -118,6 +129,9 @@ export default function RequestQuote() {
     let subtotal = 0;
     if (van) subtotal += van.price;
     if (kit) subtotal += kit.price;
+    upgrades.forEach(upgrade => {
+      subtotal += upgrade.price;
+    });
     
     const vat = Math.round(subtotal * 0.2);
     const total = subtotal + vat;
@@ -295,13 +309,18 @@ export default function RequestQuote() {
                         type="submit" 
                         size="lg" 
                         className="w-full"
-                        disabled={submitQuoteMutation.isPending}
+                        disabled={submitQuoteMutation.isPending || isLoadingData}
                         data-testid="button-submit-quote"
                       >
                         {submitQuoteMutation.isPending ? (
                           <>
                             <LoadingSpinner className="mr-2" />
                             Submitting...
+                          </>
+                        ) : isLoadingData ? (
+                          <>
+                            <LoadingSpinner className="mr-2" />
+                            Loading...
                           </>
                         ) : (
                           'Request Quote'
@@ -346,6 +365,22 @@ export default function RequestQuote() {
                           {formatPrice(kit.price)}
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {upgrades.length > 0 && (
+                    <div className="border-t pt-3 space-y-2">
+                      <p className="font-medium text-sm mb-2">Selected Upgrades</p>
+                      {upgrades.map((upgrade) => (
+                        <div key={upgrade.id} className="flex justify-between text-sm pl-8">
+                          <span className="text-muted-foreground" data-testid={`text-summary-upgrade-${upgrade.id}`}>
+                            {upgrade.name}
+                          </span>
+                          <span className="font-medium" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
+                            {formatPrice(upgrade.price)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   )}
 

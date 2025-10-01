@@ -188,10 +188,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/quotes", async (req, res) => {
     try {
       const validatedData = insertQuoteSchema.parse(req.body);
-      const quote = await storage.createQuote(validatedData);
+      
+      // Fetch all referenced entities to recalculate prices server-side
+      const [van, kit, upgrades] = await Promise.all([
+        validatedData.vanId ? storage.getVan(validatedData.vanId) : Promise.resolve(null),
+        validatedData.kitId ? storage.getKit(validatedData.kitId) : Promise.resolve(null),
+        validatedData.upgradeIds && validatedData.upgradeIds.length > 0
+          ? Promise.all(validatedData.upgradeIds.map(id => storage.getUpgrade(id)))
+          : Promise.resolve([])
+      ]);
+
+      // Validate that all entities exist
+      if (validatedData.vanId && !van) {
+        return res.status(400).json({ error: "Selected van not found" });
+      }
+      if (validatedData.kitId && !kit) {
+        return res.status(400).json({ error: "Selected kit not found" });
+      }
+      if (upgrades.some(u => !u)) {
+        return res.status(400).json({ error: "One or more selected upgrades not found" });
+      }
+
+      // Calculate server-side pricing (all prices in pence)
+      const vanPrice = van?.price || 0;
+      const kitPrice = kit?.price || 0;
+      const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + (upgrade?.price || 0), 0);
+      
+      const subtotal = vanPrice + kitPrice + upgradesTotal;
+      const vatRate = 0.20; // 20% VAT
+      const vat = Math.round(subtotal * vatRate);
+      const total = subtotal + vat;
+
+      // Validate client-submitted prices match server calculation
+      // Allow small tolerance for rounding differences (within 1 pence)
+      const priceTolerance = 1;
+      if (
+        Math.abs(validatedData.estSubtotal - subtotal) > priceTolerance ||
+        Math.abs(validatedData.estVAT - vat) > priceTolerance ||
+        Math.abs(validatedData.estTotal - total) > priceTolerance
+      ) {
+        console.error('Price mismatch:', {
+          submitted: { subtotal: validatedData.estSubtotal, vat: validatedData.estVAT, total: validatedData.estTotal },
+          calculated: { subtotal, vat, total }
+        });
+        return res.status(400).json({ 
+          error: "Price validation failed. Please refresh and try again.",
+          details: {
+            expectedSubtotal: subtotal,
+            expectedVAT: vat,
+            expectedTotal: total
+          }
+        });
+      }
+
+      // Create quote with server-validated prices
+      const quoteData = {
+        ...validatedData,
+        estSubtotal: subtotal,
+        estVAT: vat,
+        estTotal: total,
+      };
+
+      const quote = await storage.createQuote(quoteData);
       res.status(201).json(quote);
     } catch (error) {
-      res.status(400).json({ error: "Invalid quote data" });
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid quote data", details: error.message });
+      }
+      console.error('Quote creation error:', error);
+      res.status(500).json({ error: "Failed to create quote" });
     }
   });
 
