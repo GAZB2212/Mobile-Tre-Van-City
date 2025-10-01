@@ -543,6 +543,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wirral Vans Integration
+  app.post("/api/admin/wirral-vans/test-connection", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const wirralVansApiUrl = process.env.WIRRAL_VANS_API_URL;
+      const apiKey = process.env.WIRRAL_VANS_API_KEY;
+
+      if (!wirralVansApiUrl) {
+        return res.status(400).json({ error: "WIRRAL_VANS_API_URL not configured" });
+      }
+
+      const response = await fetch(`${wirralVansApiUrl}/api/public/vans`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey || ''}`
+        }
+      });
+
+      if (!response.ok) {
+        return res.status(500).json({ error: "Failed to connect to Wirral Vans API" });
+      }
+
+      res.json({ success: true, message: "Connection successful" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to test connection" });
+    }
+  });
+
+  app.get("/api/admin/wirral-vans/available", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const wirralVansApiUrl = process.env.WIRRAL_VANS_API_URL;
+      const apiKey = process.env.WIRRAL_VANS_API_KEY;
+
+      if (!wirralVansApiUrl) {
+        return res.status(400).json({ error: "WIRRAL_VANS_API_URL not configured" });
+      }
+
+      const response = await fetch(`${wirralVansApiUrl}/api/public/vans?exportable=true`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey || ''}`
+        }
+      });
+
+      if (!response.ok) {
+        return res.status(500).json({ error: "Failed to fetch vans from Wirral Vans" });
+      }
+
+      const vans = await response.json();
+      res.json(vans);
+    } catch (error) {
+      console.error("Error fetching Wirral Vans:", error);
+      res.status(500).json({ error: "Failed to fetch vans" });
+    }
+  });
+
+  app.post("/api/admin/wirral-vans/import", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { vanIds } = req.body;
+
+      if (!Array.isArray(vanIds) || vanIds.length === 0) {
+        return res.status(400).json({ error: "vanIds array is required" });
+      }
+
+      const wirralVansApiUrl = process.env.WIRRAL_VANS_API_URL;
+      const apiKey = process.env.WIRRAL_VANS_API_KEY;
+
+      if (!wirralVansApiUrl) {
+        return res.status(400).json({ error: "WIRRAL_VANS_API_URL not configured" });
+      }
+
+      let imported = 0;
+      const errors = [];
+
+      for (const vanId of vanIds) {
+        try {
+          const response = await fetch(`${wirralVansApiUrl}/api/public/vans/${vanId}`, {
+            headers: {
+              'Authorization': `Bearer ${apiKey || ''}`
+            }
+          });
+
+          if (!response.ok) {
+            errors.push(`Failed to fetch van ${vanId}`);
+            continue;
+          }
+
+          const wirralVan = await response.json();
+
+          // Create van in local database
+          const vanData = {
+            slug: wirralVan.slug || `${wirralVan.make}-${wirralVan.model}-${wirralVan.year}`.toLowerCase().replace(/\s+/g, '-'),
+            title: wirralVan.title,
+            make: wirralVan.make,
+            model: wirralVan.model,
+            year: wirralVan.year,
+            mileage: wirralVan.mileage,
+            price: wirralVan.price,
+            vatIncluded: wirralVan.vatIncluded || false,
+            specs: wirralVan.specs,
+            images: wirralVan.images || [],
+            heroImage: wirralVan.heroImage,
+            published: false // Import as unpublished by default
+          };
+
+          await storage.createVan(vanData);
+          imported++;
+        } catch (error) {
+          errors.push(`Failed to import van ${vanId}`);
+        }
+      }
+
+      res.json({ 
+        imported, 
+        total: vanIds.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error("Error importing vans:", error);
+      res.status(500).json({ error: "Failed to import vans" });
+    }
+  });
+
   // Admin CRUD endpoints for kits
   app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {

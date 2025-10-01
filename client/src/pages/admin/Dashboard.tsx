@@ -14,7 +14,8 @@ import {
   Users, 
   Settings,
   LogOut,
-  Calculator
+  Calculator,
+  Download
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -77,6 +78,13 @@ export default function AdminDashboard() {
       icon: Car,
       href: "/admin/vans",
       badge: "Inventory"
+    },
+    {
+      title: "Wirral Vans Import",
+      description: "Import vans from Wirral Vans site",
+      icon: Download,
+      href: "/admin/wirral-vans",
+      badge: "Integration"
     },
     {
       title: "Manage Kits",
