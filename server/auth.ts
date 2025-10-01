@@ -46,8 +46,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true, // Required for HTTPS (Replit uses HTTPS proxy)
-      sameSite: 'lax', // Lax works for same-site requests
+      secure: false, // Disable secure for dev - browser isn't accepting secure cookies
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });
