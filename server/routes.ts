@@ -543,6 +543,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vehicle Registration Lookup (using Autotrader API)
+  app.post("/api/admin/vehicle-lookup", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { registration } = req.body;
+
+      if (!registration) {
+        return res.status(400).json({ error: "Registration number is required" });
+      }
+
+      const apiKey = process.env.AUTOTRADER_API_KEY;
+
+      if (!apiKey) {
+        return res.status(500).json({ error: "AUTOTRADER_API_KEY not configured in secrets" });
+      }
+
+      // Clean registration (remove spaces, uppercase)
+      const cleanReg = registration.replace(/\s+/g, '').toUpperCase();
+
+      // Call Autotrader API
+      const response = await fetch(`https://api.autotrader.co.uk/vehicle-check/vrm/${cleanReg}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return res.status(404).json({ error: "Vehicle not found" });
+        }
+        return res.status(response.status).json({ error: "Failed to lookup vehicle" });
+      }
+
+      const vehicleData = await response.json();
+
+      // Transform API response to our van format
+      const vanData = {
+        registration: cleanReg,
+        make: vehicleData.make || '',
+        model: vehicleData.model || '',
+        year: vehicleData.yearOfManufacture || new Date().getFullYear(),
+        mileage: vehicleData.mileage || 0,
+        specs: {
+          transmission: vehicleData.transmission || 'Manual',
+          fuel: vehicleData.fuelType || 'Diesel',
+          size: vehicleData.bodyType || 'Van',
+          doors: vehicleData.doors || 4,
+          engine: vehicleData.engineSize ? `${vehicleData.engineSize}L` : '',
+        },
+        // Suggest title
+        title: `${vehicleData.yearOfManufacture} ${vehicleData.make} ${vehicleData.model}`,
+      };
+
+      res.json(vanData);
+    } catch (error) {
+      console.error("Error looking up vehicle:", error);
+      res.status(500).json({ error: "Failed to lookup vehicle" });
+    }
+  });
+
   // Wirral Vans Integration
   app.post("/api/admin/wirral-vans/test-connection", isAuthenticated, isAdmin, async (req, res) => {
     try {

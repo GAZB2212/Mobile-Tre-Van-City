@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, Car } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
 import { Link } from "wouter";
 import { VanImageGallery } from "@/components/VanImageGallery";
 import type { Van, InsertVan } from "@shared/schema";
@@ -156,186 +156,289 @@ export default function AdminVans() {
     updateVanMutation.mutate({ id: editingVan.id, data: vanData });
   };
 
-  const VanForm = ({ van, onSubmit, isLoading }: { van?: Van; onSubmit: (formData: FormData) => void; isLoading: boolean }) => (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        onSubmit(formData);
-      }}
-    >
-      <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              defaultValue={van?.title}
-              placeholder="Mobile Tyre Van - Ready to Go"
-              required
-              data-testid="input-van-title"
-            />
-          </div>
-          <div>
-            <Label htmlFor="slug">Slug</Label>
-            <Input
-              id="slug"
-              name="slug"
-              defaultValue={van?.slug}
-              placeholder="ford-transit-custom-2022"
-              required
-              data-testid="input-van-slug"
-            />
-          </div>
-        </div>
+  const VanForm = ({ van, onSubmit, isLoading }: { van?: Van; onSubmit: (formData: FormData) => void; isLoading: boolean }) => {
+    const [registration, setRegistration] = useState('');
+    const [formValues, setFormValues] = useState({
+      title: van?.title || '',
+      slug: van?.slug || '',
+      make: van?.make || '',
+      model: van?.model || '',
+      year: van?.year || '',
+      mileage: van?.mileage || '',
+      price: van ? van.price / 100 : '',
+      transmission: van?.specs.transmission || 'Manual',
+      size: van?.specs.size || 'MWB',
+      fuel: van?.specs.fuel || 'Diesel',
+      doors: van?.specs.doors || '',
+      engine: van?.specs.engine || '',
+    });
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="make">Make</Label>
-            <Input
-              id="make"
-              name="make"
-              defaultValue={van?.make}
-              placeholder="Ford"
-              required
-              data-testid="input-van-make"
-            />
-          </div>
-          <div>
-            <Label htmlFor="model">Model</Label>
-            <Input
-              id="model"
-              name="model"
-              defaultValue={van?.model}
-              placeholder="Transit Custom"
-              required
-              data-testid="input-van-model"
-            />
-          </div>
-          <div>
-            <Label htmlFor="year">Year</Label>
-            <Input
-              id="year"
-              name="year"
-              type="number"
-              defaultValue={van?.year}
-              placeholder="2022"
-              required
-              data-testid="input-van-year"
-            />
-          </div>
-        </div>
+    const lookupMutation = useMutation({
+      mutationFn: async (reg: string) => {
+        const response = await apiRequest('POST', '/api/admin/vehicle-lookup', { registration: reg });
+        return response.json();
+      },
+      onSuccess: (data) => {
+        const slug = `${data.make}-${data.model}-${data.year}`.toLowerCase().replace(/\s+/g, '-');
+        setFormValues({
+          title: data.title,
+          slug: slug,
+          make: data.make,
+          model: data.model,
+          year: data.year,
+          mileage: data.mileage,
+          price: '', // Leave blank for admin to fill
+          transmission: data.specs.transmission,
+          size: data.specs.size,
+          fuel: data.specs.fuel,
+          doors: data.specs.doors || '',
+          engine: data.specs.engine || '',
+        });
+        toast({
+          title: "Vehicle found",
+          description: `Details loaded for ${data.make} ${data.model}`,
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Lookup failed",
+          description: error.message || "Could not find vehicle with that registration",
+          variant: "destructive",
+        });
+      },
+    });
 
-        <div className="grid grid-cols-2 gap-4">
+    const handleLookup = () => {
+      if (registration.trim()) {
+        lookupMutation.mutate(registration);
+      }
+    };
+
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          onSubmit(formData);
+        }}
+      >
+        <div className="grid gap-4">
+          {!van && (
+            <Card className="bg-accent/5">
+              <CardContent className="pt-6">
+                <Label htmlFor="registration">Vehicle Registration Lookup</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    id="registration"
+                    value={registration}
+                    onChange={(e) => setRegistration(e.target.value.toUpperCase())}
+                    placeholder="Enter reg e.g. AB12 CDE"
+                    className="font-mono"
+                    data-testid="input-registration"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleLookup}
+                    disabled={!registration.trim() || lookupMutation.isPending}
+                    data-testid="button-lookup"
+                  >
+                    {lookupMutation.isPending ? (
+                      "Looking up..."
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Lookup
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Enter a UK vehicle registration to auto-fill vehicle details
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formValues.title}
+                onChange={(e) => setFormValues({...formValues, title: e.target.value})}
+                placeholder="Mobile Tyre Van - Ready to Go"
+                required
+                data-testid="input-van-title"
+              />
+            </div>
+            <div>
+              <Label htmlFor="slug">Slug</Label>
+              <Input
+                id="slug"
+                name="slug"
+                value={formValues.slug}
+                onChange={(e) => setFormValues({...formValues, slug: e.target.value})}
+                placeholder="ford-transit-custom-2022"
+                required
+                data-testid="input-van-slug"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="make">Make</Label>
+              <Input
+                id="make"
+                name="make"
+                value={formValues.make}
+                onChange={(e) => setFormValues({...formValues, make: e.target.value})}
+                placeholder="Ford"
+                required
+                data-testid="input-van-make"
+              />
+            </div>
+            <div>
+              <Label htmlFor="model">Model</Label>
+              <Input
+                id="model"
+                name="model"
+                value={formValues.model}
+                onChange={(e) => setFormValues({...formValues, model: e.target.value})}
+                placeholder="Transit Custom"
+                required
+                data-testid="input-van-model"
+              />
+            </div>
+            <div>
+              <Label htmlFor="year">Year</Label>
+              <Input
+                id="year"
+                name="year"
+                type="number"
+                value={formValues.year}
+                onChange={(e) => setFormValues({...formValues, year: e.target.value})}
+                placeholder="2022"
+                required
+                data-testid="input-van-year"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="mileage">Mileage</Label>
+              <Input
+                id="mileage"
+                name="mileage"
+                type="number"
+                value={formValues.mileage}
+                onChange={(e) => setFormValues({...formValues, mileage: e.target.value})}
+                placeholder="15000"
+                required
+                data-testid="input-van-mileage"
+              />
+            </div>
+            <div>
+              <Label htmlFor="price">Price (£)</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                value={formValues.price}
+                onChange={(e) => setFormValues({...formValues, price: e.target.value})}
+                placeholder="45000"
+                required
+                data-testid="input-van-price"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="transmission">Transmission</Label>
+              <Select name="transmission" value={formValues.transmission} onValueChange={(val) => setFormValues({...formValues, transmission: val})}>
+                <SelectTrigger data-testid="select-van-transmission">
+                  <SelectValue placeholder="Select transmission" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Manual">Manual</SelectItem>
+                  <SelectItem value="Automatic">Automatic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="size">Size</Label>
+              <Select name="size" value={formValues.size} onValueChange={(val) => setFormValues({...formValues, size: val})}>
+                <SelectTrigger data-testid="select-van-size">
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SWB">SWB (Short Wheel Base)</SelectItem>
+                  <SelectItem value="MWB">MWB (Medium Wheel Base)</SelectItem>
+                  <SelectItem value="LWB">LWB (Long Wheel Base)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="fuel">Fuel</Label>
+              <Select name="fuel" value={formValues.fuel} onValueChange={(val) => setFormValues({...formValues, fuel: val})}>
+                <SelectTrigger data-testid="select-van-fuel">
+                  <SelectValue placeholder="Select fuel type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Diesel">Diesel</SelectItem>
+                  <SelectItem value="Petrol">Petrol</SelectItem>
+                  <SelectItem value="Electric">Electric</SelectItem>
+                  <SelectItem value="Hybrid">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="doors">Doors (optional)</Label>
+              <Input
+                id="doors"
+                name="doors"
+                type="number"
+                value={formValues.doors}
+                onChange={(e) => setFormValues({...formValues, doors: e.target.value})}
+                placeholder="4"
+                data-testid="input-van-doors"
+              />
+            </div>
+            <div>
+              <Label htmlFor="engine">Engine (optional)</Label>
+              <Input
+                id="engine"
+                name="engine"
+                value={formValues.engine}
+                onChange={(e) => setFormValues({...formValues, engine: e.target.value})}
+                placeholder="2.0L TDCi"
+                data-testid="input-van-engine"
+              />
+            </div>
+          </div>
+
           <div>
-            <Label htmlFor="mileage">Mileage</Label>
+            <Label htmlFor="heroImage">Hero Image URL (optional)</Label>
             <Input
-              id="mileage"
-              name="mileage"
-              type="number"
-              defaultValue={van?.mileage}
-              placeholder="15000"
-              required
-              data-testid="input-van-mileage"
+              id="heroImage"
+              name="heroImage"
+              defaultValue={van?.heroImage || ''}
+              placeholder="https://example.com/image.jpg"
+              data-testid="input-van-hero-image"
             />
           </div>
-          <div>
-            <Label htmlFor="price">Price (£)</Label>
-            <Input
-              id="price"
-              name="price"
-              type="number"
-              defaultValue={van ? van.price / 100 : ''}
-              placeholder="45000"
-              required
-              data-testid="input-van-price"
-            />
-          </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="transmission">Transmission</Label>
-            <Select name="transmission" defaultValue={van?.specs.transmission}>
-              <SelectTrigger data-testid="select-van-transmission">
-                <SelectValue placeholder="Select transmission" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Manual">Manual</SelectItem>
-                <SelectItem value="Automatic">Automatic</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="size">Size</Label>
-            <Select name="size" defaultValue={van?.specs.size}>
-              <SelectTrigger data-testid="select-van-size">
-                <SelectValue placeholder="Select size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SWB">SWB (Short Wheel Base)</SelectItem>
-                <SelectItem value="MWB">MWB (Medium Wheel Base)</SelectItem>
-                <SelectItem value="LWB">LWB (Long Wheel Base)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="fuel">Fuel</Label>
-            <Select name="fuel" defaultValue={van?.specs.fuel}>
-              <SelectTrigger data-testid="select-van-fuel">
-                <SelectValue placeholder="Select fuel type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Diesel">Diesel</SelectItem>
-                <SelectItem value="Petrol">Petrol</SelectItem>
-                <SelectItem value="Electric">Electric</SelectItem>
-                <SelectItem value="Hybrid">Hybrid</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="doors">Doors (optional)</Label>
-            <Input
-              id="doors"
-              name="doors"
-              type="number"
-              defaultValue={van?.specs.doors}
-              placeholder="4"
-              data-testid="input-van-doors"
-            />
-          </div>
-          <div>
-            <Label htmlFor="engine">Engine (optional)</Label>
-            <Input
-              id="engine"
-              name="engine"
-              defaultValue={van?.specs.engine}
-              placeholder="2.0L TDCi"
-              data-testid="input-van-engine"
-            />
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="heroImage">Hero Image URL (optional)</Label>
-          <Input
-            id="heroImage"
-            name="heroImage"
-            defaultValue={van?.heroImage || ''}
-            placeholder="https://example.com/image.jpg"
-            data-testid="input-van-hero-image"
-          />
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="vatIncluded"
-              name="vatIncluded"
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="vatIncluded"
+                name="vatIncluded"
               defaultChecked={van?.vatIncluded}
               data-testid="switch-van-vat-included"
             />
@@ -359,7 +462,8 @@ export default function AdminVans() {
         </Button>
       </DialogFooter>
     </form>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
