@@ -575,6 +575,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/portal/quotes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.user?.id;
+      const quote = await storage.getQuote(req.params.id);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Verify the quote belongs to the logged-in user
+      if (quote.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json(quote);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch quote" });
+    }
+  });
+
   // Admin user management endpoints - commented out for now
   // Admin user is created automatically on startup
 

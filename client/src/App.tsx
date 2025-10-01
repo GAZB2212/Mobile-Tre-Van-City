@@ -22,6 +22,7 @@ import AdminLeads from "@/pages/admin/Leads";
 import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import Portal from "@/pages/Portal";
+import ConfigurationDetail from "@/pages/portal/ConfigurationDetail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/login" component={Login} />
       {/* Customer portal routes */}
       <Route path="/portal" component={Portal} />
+      <Route path="/portal/configuration/:id" component={ConfigurationDetail} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/vans" component={AdminVans} />
