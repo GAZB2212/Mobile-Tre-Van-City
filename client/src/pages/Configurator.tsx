@@ -351,6 +351,7 @@ export default function Configurator() {
                               {standalone.map((upgrade) => {
                                 const isSelected = selectedUpgrades.includes(upgrade.id);
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
+                                const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
                                 
                                 return (
                                   <div 
@@ -363,6 +364,14 @@ export default function Configurator() {
                                       onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
                                       data-testid={`checkbox-upgrade-${upgrade.id}`}
                                     />
+                                    {firstImage && (
+                                      <img 
+                                        src={`/objects${firstImage}`}
+                                        alt={upgrade.name}
+                                        className="w-16 h-16 object-cover rounded flex-shrink-0"
+                                        data-testid={`img-upgrade-${upgrade.id}`}
+                                      />
+                                    )}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex justify-between items-start mb-1 gap-3">
                                         <label 
@@ -405,13 +414,22 @@ export default function Configurator() {
                                   variants.some(v => v.id === id)
                                 );
                                 const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                                const firstImage = parent.images && parent.images.length > 0 ? parent.images[0] : null;
                                 
                                 return (
                                   <div 
                                     key={parent.id}
                                     className="p-3 rounded-lg border space-y-3"
                                   >
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex items-start gap-3">
+                                      {firstImage && (
+                                        <img 
+                                          src={`/objects${firstImage}`}
+                                          alt={parent.name}
+                                          className="w-16 h-16 object-cover rounded flex-shrink-0"
+                                          data-testid={`img-upgrade-parent-${parent.id}`}
+                                        />
+                                      )}
                                       <div className="flex-1">
                                         <h4 className="font-medium leading-tight">{parent.name}</h4>
                                         <p className="text-sm text-muted-foreground mt-1">

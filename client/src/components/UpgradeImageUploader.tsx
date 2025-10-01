@@ -1,0 +1,238 @@
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Upload, X, ImageIcon } from "lucide-react";
+
+interface UpgradeImageUploaderProps {
+  images: string[];
+  onChange: (images: string[]) => void;
+  maxImages?: number;
+  maxFileSize?: number;
+}
+
+export function UpgradeImageUploader({
+  images,
+  onChange,
+  maxImages = 5,
+  maxFileSize = 10485760, // 10MB
+}: UpgradeImageUploaderProps) {
+  const { toast } = useToast();
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      // Request presigned URL
+      const presignedResponse = await apiRequest(
+        "POST",
+        "/api/admin/objects/presigned-url",
+        {
+          filename: file.name,
+          contentType: file.type,
+        }
+      );
+      const { url, objectPath } = await presignedResponse.json();
+
+      // Upload to object storage
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      // Set ACL to public
+      await apiRequest("POST", "/api/admin/objects/set-acl", {
+        objectPath,
+        acl: "public",
+      });
+
+      return objectPath;
+    },
+    onSuccess: (objectPath) => {
+      onChange([...images, objectPath]);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = maxImages - images.length;
+    if (remainingSlots <= 0) {
+      toast({
+        title: "Maximum images reached",
+        description: `You can only upload up to ${maxImages} images`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+
+    for (const file of filesToUpload) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      // Validate file size
+      if (file.size > maxFileSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds ${maxFileSize / 1024 / 1024}MB limit`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      setUploading(true);
+      try {
+        await uploadMutation.mutateAsync(file);
+      } catch (error) {
+        // Error already handled in mutation's onError
+        console.error("Upload failed:", error);
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
+  const handleRemove = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    onChange(newImages);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Upload Area */}
+      <Card
+        className={`border-2 border-dashed transition-colors ${
+          isDragging
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/50"
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="p-6 text-center">
+          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-sm font-medium mb-1">
+            Drag and drop images here, or click to browse
+          </p>
+          <p className="text-xs text-muted-foreground mb-4">
+            PNG, JPG, GIF up to {maxFileSize / 1024 / 1024}MB (max {maxImages}{" "}
+            images)
+          </p>
+          <input
+            type="file"
+            id="upgrade-image-upload"
+            multiple
+            accept="image/*"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
+            disabled={uploading || images.length >= maxImages}
+            data-testid="input-upgrade-images"
+          />
+          <label htmlFor="upgrade-image-upload">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={uploading || images.length >= maxImages}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("upgrade-image-upload")?.click();
+              }}
+              data-testid="button-upload-images"
+            >
+              {uploading ? "Uploading..." : "Select Images"}
+            </Button>
+          </label>
+        </div>
+      </Card>
+
+      {/* Image Previews */}
+      {images.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {images.map((imagePath, index) => (
+            <Card key={index} className="relative group overflow-hidden">
+              <div className="aspect-square relative">
+                <img
+                  src={`/objects${imagePath}`}
+                  alt={`Upgrade image ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  data-testid={`img-upgrade-preview-${index}`}
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleRemove(index)}
+                    data-testid={`button-remove-image-${index}`}
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {images.length === 0 && (
+        <div className="text-center py-4 text-sm text-muted-foreground">
+          <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p>No images uploaded yet</p>
+        </div>
+      )}
+
+      {/* Counter */}
+      <p className="text-xs text-muted-foreground text-center">
+        {images.length} / {maxImages} images uploaded
+      </p>
+    </div>
+  );
+}

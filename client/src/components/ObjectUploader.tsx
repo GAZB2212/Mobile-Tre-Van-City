@@ -53,8 +53,8 @@ export function ObjectUploader({
         shouldUseMultipart: false,
         getUploadParameters: async (file) => {
           const result = await onGetUploadParameters({
-            name: file.name,
-            type: file.type || 'application/octet-stream',
+            name: file.name || 'unnamed',
+            type: file.type ?? 'application/octet-stream',
           });
           return {
             method: result.method,
