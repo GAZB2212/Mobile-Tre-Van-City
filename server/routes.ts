@@ -700,6 +700,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate with schema
       const validatedData = insertVanSchema.parse(vanData);
 
+      // Check for duplicate slug
+      const existingVan = await storage.getVans();
+      const duplicate = existingVan.find(v => v.slug === validatedData.slug);
+      
+      if (duplicate) {
+        return res.status(409).json({ 
+          error: "Duplicate vehicle", 
+          message: "A vehicle with this slug already exists",
+          existingVanId: duplicate.id
+        });
+      }
+
       // Create the van
       const createdVan = await storage.createVan(validatedData);
 
