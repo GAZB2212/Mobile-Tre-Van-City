@@ -10,9 +10,14 @@ import { Button } from "@/components/ui/button";
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
-  onGetUploadParameters: () => Promise<{
+  allowedFileTypes?: string[];
+  onGetUploadParameters: (file: {
+    name: string;
+    type: string;
+  }) => Promise<{
     method: "PUT";
     url: string;
+    objectPath?: string;
   }>;
   onComplete?: (
     result: UploadResult<Record<string, unknown>, Record<string, unknown>>
@@ -28,6 +33,7 @@ interface ObjectUploaderProps {
 export function ObjectUploader({
   maxNumberOfFiles = 1,
   maxFileSize = 10485760, // 10MB default
+  allowedFileTypes,
   onGetUploadParameters,
   onComplete,
   buttonClassName,
@@ -39,12 +45,22 @@ export function ObjectUploader({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
+        allowedFileTypes,
       },
       autoProceed: false,
     })
       .use(AwsS3, {
         shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
+        getUploadParameters: async (file) => {
+          const result = await onGetUploadParameters({
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+          });
+          return {
+            method: result.method,
+            url: result.url,
+          };
+        },
       })
       .on("complete", (result) => {
         onComplete?.(result);

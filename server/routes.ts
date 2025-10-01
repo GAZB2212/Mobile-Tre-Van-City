@@ -736,44 +736,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // The endpoint for getting the upload URL for an object entity
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
-    const { ObjectStorageService } = await import("./objectStorage");
-    const objectStorageService = new ObjectStorageService();
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    res.json({ uploadURL });
+    try {
+      const { filename, contentType } = req.body;
+      
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+      if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
+        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, SVG)" });
+      }
+      
+      // Validate filename
+      if (!filename || filename.trim() === '') {
+        return res.status(400).json({ error: "Filename is required" });
+      }
+      
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(filename);
+      res.json({ uploadURL, objectPath });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
   });
 
   // Update quote with customer logos after upload
   app.put("/api/quotes/:id/logos", isAuthenticated, async (req, res) => {
     try {
-      if (!req.body.logoURL) {
-        return res.status(400).json({ error: "logoURL is required" });
+      const { objectPath } = req.body;
+      
+      if (!objectPath || typeof objectPath !== 'string') {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      // Validate objectPath format
+      if (!objectPath.startsWith('/objects/uploads/')) {
+        return res.status(400).json({ error: "Invalid objectPath format" });
       }
 
       const userId = (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
       const quote = await storage.getQuote(req.params.id);
       
       if (!quote) {
         return res.status(404).json({ error: "Quote not found" });
       }
 
+      // Check ownership
       if (quote.userId !== userId) {
         return res.status(403).json({ error: "Not authorized to update this quote" });
+      }
+
+      // Check max logos limit (5)
+      const existingLogos = quote.customerLogoUrls || [];
+      if (existingLogos.length >= 5) {
+        return res.status(400).json({ error: "Maximum 5 logos allowed per quote" });
       }
 
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       
+      // Get the file entity to verify it exists and check metadata
+      let objectFile;
+      try {
+        objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      } catch (error) {
+        return res.status(404).json({ error: "File not found. Upload may have failed." });
+      }
+      
+      // Verify file metadata (size and content type)
+      const [metadata] = await objectFile.getMetadata();
+      const contentType = metadata.contentType || '';
+      const fileSize = metadata.size || 0;
+      
+      // Validate content type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+      if (!allowedTypes.includes(contentType.toLowerCase())) {
+        // Delete the invalid file
+        await objectFile.delete();
+        return res.status(400).json({ error: "Invalid file type. Only images are allowed." });
+      }
+      
+      // Validate file size (10MB max)
+      if (fileSize > 10485760) {
+        // Delete the oversized file
+        await objectFile.delete();
+        return res.status(400).json({ error: "File too large. Maximum size is 10MB." });
+      }
+      
+      // Check for existing ACL policy
+      const existingAcl = await objectStorageService.getObjectAclPolicy(objectFile);
+      
+      if (existingAcl && existingAcl.owner && existingAcl.owner !== userId.toString()) {
+        // File already has an ACL with a different owner - this is a security violation
+        return res.status(403).json({ error: "Cannot modify file owned by another user" });
+      }
+      
       // Set ACL policy for the uploaded logo (public visibility so admin can view it)
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.logoURL,
-        {
-          owner: userId || "",
+      if (!existingAcl) {
+        await objectStorageService.setObjectAclPolicy(objectFile, {
+          owner: userId.toString(),
           visibility: "public", // Public so admin can view uploaded logos
-        },
-      );
+        });
+      }
 
-      // Add the new logo URL to the customerLogoUrls array
-      const existingLogos = quote.customerLogoUrls || [];
+      // Add the new logo to the customerLogoUrls array
       const updatedLogos = [...existingLogos, objectPath];
       
       const updated = await storage.updateQuote(req.params.id, {
@@ -785,8 +855,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quote: updated,
       });
     } catch (error) {
-      console.error("Error setting customer logo:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("Error adding customer logo:", error);
+      res.status(500).json({ error: "Failed to add logo" });
+    }
+  });
+
+  // Delete a customer logo from a quote
+  app.delete("/api/quotes/:id/logos", isAuthenticated, async (req, res) => {
+    try {
+      const { objectPath } = req.body;
+      
+      if (!objectPath || typeof objectPath !== 'string') {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const quote = await storage.getQuote(req.params.id);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Check ownership
+      if (quote.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized to update this quote" });
+      }
+
+      const existingLogos = quote.customerLogoUrls || [];
+      const updatedLogos = existingLogos.filter(logo => logo !== objectPath);
+      
+      // If no logo was removed, return error
+      if (updatedLogos.length === existingLogos.length) {
+        return res.status(404).json({ error: "Logo not found in quote" });
+      }
+
+      const updated = await storage.updateQuote(req.params.id, {
+        customerLogoUrls: updatedLogos,
+      });
+
+      res.status(200).json({
+        quote: updated,
+      });
+    } catch (error) {
+      console.error("Error deleting customer logo:", error);
+      res.status(500).json({ error: "Failed to delete logo" });
     }
   });
 
