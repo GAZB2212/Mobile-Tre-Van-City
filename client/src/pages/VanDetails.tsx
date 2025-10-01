@@ -29,7 +29,7 @@ export default function VanDetails() {
   const handleConfigureVan = () => {
     if (van) {
       setVan(van.id);
-      setLocation('/configurator/kit');
+      setLocation('/configurator');
     }
   };
 

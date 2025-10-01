@@ -108,8 +108,9 @@ export default function Header() {
               size="lg"
               className="hidden md:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
               data-testid="button-configure"
+              asChild
             >
-              Configure Your Van
+              <Link href="/configurator">Configure Your Van</Link>
             </Button>
 
             {/* Authentication Section */}
@@ -173,8 +174,9 @@ export default function Header() {
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold w-full"
                 data-testid="mobile-button-configure"
+                asChild
               >
-                Configure Your Van
+                <Link href="/configurator">Configure Your Van</Link>
               </Button>
 
               {/* Mobile Authentication */}
