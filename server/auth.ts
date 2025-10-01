@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import createMemoryStore from "memorystore";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
 import { loginSchema } from "@shared/schema";
@@ -31,8 +32,11 @@ export function getSession() {
       tableName: "sessions",
     });
   } else {
-    // Use default memory store for development
-    sessionStore = undefined;
+    // Use memorystore for development (more reliable than default MemoryStore)
+    const MemoryStore = createMemoryStore(session);
+    sessionStore = new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    });
   }
   
   return session({
@@ -42,7 +46,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Always false in development since we're not using HTTPS
       sameSite: 'lax',
       maxAge: sessionTtl,
     },
@@ -83,9 +87,16 @@ export async function setupAuth(app: Express) {
       // Save session explicitly
       req.session.save((err) => {
         if (err) {
-          console.error("Session save error:", err);
+          console.error("❌ Session save error:", err);
           return res.status(500).json({ message: "Could not create session" });
         }
+
+        console.log('✅ Session saved successfully:', {
+          sessionID: req.sessionID,
+          userId: req.session.user?.id,
+          username: req.session.user?.username,
+          cookie: req.session.cookie
+        });
 
         // Return user without password hash
         const { passwordHash, ...userWithoutPassword } = user;
@@ -111,6 +122,14 @@ export async function setupAuth(app: Express) {
 
   // Get current user endpoint
   app.get("/api/auth/user", async (req, res) => {
+    console.log('🔍 Session check on /api/auth/user:', {
+      hasSession: !!req.session,
+      sessionID: req.sessionID,
+      hasUser: !!req.session?.user,
+      user: req.session?.user,
+      cookies: req.headers.cookie
+    });
+    
     if (!req.session.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
