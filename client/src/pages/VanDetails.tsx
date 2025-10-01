@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ export default function VanDetails() {
   const slug = params?.slug;
   const [, setLocation] = useLocation();
   const { setVan } = useConfigurator();
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { data: van, isLoading, error } = useQuery<Van>({
     queryKey: ['/api/vans/slug', slug],
@@ -83,21 +85,54 @@ export default function VanDetails() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Images and Details */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Hero Image */}
+              {/* Main Image */}
               <div className="aspect-video bg-muted rounded-md overflow-hidden">
-                {van.heroImage ? (
-                  <img
-                    src={van.heroImage}
-                    alt={van.title}
-                    className="w-full h-full object-cover"
-                    data-testid="img-van-hero"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Car className="w-32 h-32 text-muted-foreground/30" />
-                  </div>
-                )}
+                {(() => {
+                  const allImages = van.heroImage ? [van.heroImage, ...van.images] : van.images;
+                  const currentImage = allImages[selectedImageIndex];
+                  
+                  return currentImage ? (
+                    <img
+                      src={currentImage}
+                      alt={`${van.title} - Image ${selectedImageIndex + 1}`}
+                      className="w-full h-full object-cover"
+                      data-testid="img-van-main"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Car className="w-32 h-32 text-muted-foreground/30" />
+                    </div>
+                  );
+                })()}
               </div>
+
+              {/* Image Gallery Thumbnails */}
+              {(() => {
+                const allImages = van.heroImage ? [van.heroImage, ...van.images] : van.images;
+                if (allImages.length > 1) {
+                  return (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+                      {allImages.map((image, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedImageIndex(index)}
+                          className={`aspect-video bg-muted rounded-md overflow-hidden hover-elevate transition-all ${
+                            selectedImageIndex === index ? 'ring-2 ring-accent' : ''
+                          }`}
+                          data-testid={`button-thumbnail-${index}`}
+                        >
+                          <img
+                            src={image}
+                            alt={`${van.title} thumbnail ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Van Title and Key Info */}
               <div>
