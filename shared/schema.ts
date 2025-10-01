@@ -79,6 +79,11 @@ export const upgradeCategories = [
   "power"
 ] as const;
 
+// Quote status enums
+export const quoteStatuses = ["pending", "approved", "in_progress", "completed", "cancelled"] as const;
+export const buildStages = ["graphics", "electrical_systems", "accessories", "emergency_lighting", "tyre_equipment", "final_checks", "valet"] as const;
+export const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
+
 export const upgrades = pgTable("upgrades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -95,6 +100,7 @@ export const upgrades = pgTable("upgrades", {
 
 export const quotes = pgTable("quotes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
   userName: text("user_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
@@ -113,8 +119,18 @@ export const quotes = pgTable("quotes", {
   estSubtotal: integer("est_subtotal").notNull(), // in pence
   estVAT: integer("est_vat").notNull(), // in pence
   estTotal: integer("est_total").notNull(), // in pence
+  status: text("status").notNull().default("pending"),
+  buildStage: text("build_stage"),
+  financeStatus: text("finance_status").notNull().default("pending"),
+  graphicsArtworkUrl: text("graphics_artwork_url"),
+  graphicsArtworkApproved: boolean("graphics_artwork_approved").notNull().default(false),
+  graphicsArtworkNotes: text("graphics_artwork_notes"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_quotes_user_id").on(table.userId),
+  index("idx_quotes_status").on(table.status),
+  index("idx_quotes_build_stage").on(table.buildStage),
+]);
 
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -182,6 +198,10 @@ export const insertUpgradeSchema = createInsertSchema(upgrades).omit({
 export const insertQuoteSchema = createInsertSchema(quotes).omit({
   id: true,
   createdAt: true,
+}).extend({
+  status: z.enum(quoteStatuses).optional(),
+  buildStage: z.enum(buildStages).nullable().optional(),
+  financeStatus: z.enum(financeStatuses).optional(),
 });
 
 export const insertLeadSchema = createInsertSchema(leads).omit({
