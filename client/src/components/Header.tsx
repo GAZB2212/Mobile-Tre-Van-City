@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut, Shield, Phone, Clock } from "lucide-react";
+import { Menu, X, User, LogOut, Shield, Phone, Clock, Package } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -128,6 +128,20 @@ export default function Header() {
                 </Link>
               </Button>
             )}
+            {!isLoading && isAuthenticated && !user?.isAdmin && (
+              <Button 
+                variant="ghost"
+                size="sm"
+                asChild
+                data-testid="button-portal"
+                className="hidden md:flex"
+              >
+                <Link href="/portal">
+                  <Package className="w-4 h-4 mr-1" />
+                  My Builds
+                </Link>
+              </Button>
+            )}
             {!isLoading && isAuthenticated && (
               <Button 
                 variant="ghost"
@@ -189,6 +203,14 @@ export default function Header() {
                           <Link href="/admin" data-testid="mobile-link-admin">
                             <Shield className="w-4 h-4 mr-1" />
                             Admin Panel
+                          </Link>
+                        </Button>
+                      )}
+                      {!user?.isAdmin && (
+                        <Button variant="ghost" size="sm" className="w-full mb-2" asChild>
+                          <Link href="/portal" data-testid="mobile-link-portal">
+                            <Package className="w-4 h-4 mr-1" />
+                            My Builds
                           </Link>
                         </Button>
                       )}
