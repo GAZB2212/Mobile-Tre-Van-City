@@ -663,6 +663,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Webhook endpoint for receiving pushed vehicles from Wirral Vans
+  app.post("/api/webhooks/wirral-vans/push-vehicle", async (req, res) => {
+    try {
+      // Validate API key
+      const apiKey = req.headers.authorization?.replace('Bearer ', '');
+      const validApiKey = process.env.WIRRAL_VANS_API_KEY;
+
+      if (!validApiKey) {
+        return res.status(500).json({ error: "Webhook not configured" });
+      }
+
+      if (apiKey !== validApiKey) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Parse and validate vehicle data
+      const vehicleData = req.body;
+
+      // Create the van data object matching our schema
+      const vanData = {
+        slug: vehicleData.slug || `${vehicleData.make}-${vehicleData.model}-${vehicleData.year}`.toLowerCase().replace(/\s+/g, '-'),
+        title: vehicleData.title,
+        make: vehicleData.make,
+        model: vehicleData.model,
+        year: vehicleData.year,
+        mileage: vehicleData.mileage,
+        price: vehicleData.price,
+        vatIncluded: vehicleData.vatIncluded || false,
+        specs: vehicleData.specs,
+        images: vehicleData.images || [],
+        heroImage: vehicleData.heroImage,
+        published: false // Start as unpublished for review
+      };
+
+      // Validate with schema
+      const validatedData = insertVanSchema.parse(vanData);
+
+      // Create the van
+      const createdVan = await storage.createVan(validatedData);
+
+      console.log(`✅ Vehicle pushed from Wirral Vans: ${createdVan.title} (${createdVan.id})`);
+
+      res.json({ 
+        success: true, 
+        vanId: createdVan.id,
+        message: "Vehicle successfully added to inventory"
+      });
+    } catch (error) {
+      console.error("Error processing pushed vehicle:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid vehicle data", 
+          details: error.errors 
+        });
+      }
+      res.status(500).json({ error: "Failed to process vehicle" });
+    }
+  });
+
   // Admin CRUD endpoints for kits
   app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {
