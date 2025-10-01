@@ -3,6 +3,7 @@ import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,8 @@ import {
   Package,
   Wrench,
   StickyNote,
-  PoundSterling
+  PoundSterling,
+  Printer
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -503,6 +505,16 @@ export default function AdminQuotes() {
                         <span>{formatPrice(quote.estTotal)}</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="mt-4 flex justify-end">
+                    <Button variant="outline" asChild data-testid={`button-build-sheet-${quote.id}`}>
+                      <Link href={`/admin/quotes/${quote.id}/build-sheet`}>
+                        <Printer className="w-4 h-4 mr-2" />
+                        View Build Sheet
+                      </Link>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
