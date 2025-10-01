@@ -11,7 +11,68 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Kit, Upgrade } from "@shared/schema";
+
+// Helper to transform upgrades with variations
+interface UpgradeGroup {
+  parent: Upgrade;
+  variants: Upgrade[];
+}
+
+function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; standalone: Upgrade[] } {
+  const groups: UpgradeGroup[] = [];
+  const standalone: Upgrade[] = [];
+  
+  // Track parent IDs and child IDs
+  const parentIds = new Set<string>();
+  const childIds = new Set<string>();
+  
+  // First pass: identify all parent and child relationships
+  upgrades.forEach(upgrade => {
+    if (upgrade.parentId) {
+      childIds.add(upgrade.id);
+      parentIds.add(upgrade.parentId);
+    }
+  });
+  
+  // Build parent-child groups
+  const parentMap = new Map<string, UpgradeGroup>();
+  upgrades.forEach(upgrade => {
+    if (upgrade.parentId) {
+      // This is a child variation
+      let group = parentMap.get(upgrade.parentId);
+      if (!group) {
+        const parent = upgrades.find(u => u.id === upgrade.parentId);
+        if (parent) {
+          group = { parent, variants: [] };
+          parentMap.set(upgrade.parentId, group);
+        }
+      }
+      if (group) {
+        group.variants.push(upgrade);
+      }
+    }
+  });
+  
+  // Collect standalone items (not parents, not children)
+  upgrades.forEach(upgrade => {
+    if (!upgrade.parentId && !parentIds.has(upgrade.id)) {
+      standalone.push(upgrade);
+    }
+  });
+  
+  return {
+    groups: Array.from(parentMap.values()),
+    standalone
+  };
+}
 
 interface ConfiguratorData {
   kits: Kit[];
@@ -240,48 +301,115 @@ export default function Configurator() {
                   </div>
 
                   <div className="space-y-6">
-                    {Object.entries(configuratorData.upgrades).map(([category, upgrades]) => (
-                      <Card key={category}>
-                        <CardHeader>
-                          <CardTitle className="text-lg capitalize">
-                            {category.replace('-', ' ')} Options
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid gap-3">
-                            {upgrades.map((upgrade) => (
-                              <div 
-                                key={upgrade.id}
-                                className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
-                              >
-                                <Checkbox
-                                  id={upgrade.id}
-                                  checked={selectedUpgrades.includes(upgrade.id)}
-                                  onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
-                                  data-testid={`checkbox-upgrade-${upgrade.id}`}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex justify-between items-start mb-1">
-                                    <label 
-                                      htmlFor={upgrade.id}
-                                      className="font-medium cursor-pointer leading-tight"
-                                    >
-                                      {upgrade.name}
-                                    </label>
-                                    <Badge variant="secondary" className="ml-2 flex-shrink-0">
-                                      £{(upgrade.price / 100).toLocaleString()}
-                                    </Badge>
+                    {Object.entries(configuratorData.upgrades).map(([category, upgrades]) => {
+                      const { groups, standalone } = groupUpgradeVariations(upgrades);
+                      
+                      return (
+                        <Card key={category}>
+                          <CardHeader>
+                            <CardTitle className="text-lg capitalize">
+                              {category.replace('-', ' ')} Options
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid gap-3">
+                              {/* Render standalone upgrades with checkbox */}
+                              {standalone.map((upgrade) => (
+                                <div 
+                                  key={upgrade.id}
+                                  className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
+                                >
+                                  <Checkbox
+                                    id={upgrade.id}
+                                    checked={selectedUpgrades.includes(upgrade.id)}
+                                    onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                    data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <label 
+                                        htmlFor={upgrade.id}
+                                        className="font-medium cursor-pointer leading-tight"
+                                      >
+                                        {upgrade.name}
+                                      </label>
+                                      <Badge variant="secondary" className="ml-2 flex-shrink-0">
+                                        £{(upgrade.price / 100).toLocaleString()}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                      {upgrade.description}
+                                    </p>
                                   </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {upgrade.description}
-                                  </p>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                              ))}
+                              
+                              {/* Render equipment with variations using dropdown */}
+                              {groups.map(({ parent, variants }) => {
+                                const selectedVariantId = selectedUpgrades.find(id => 
+                                  variants.some(v => v.id === id)
+                                );
+                                const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                                
+                                return (
+                                  <div 
+                                    key={parent.id}
+                                    className="p-3 rounded-lg border space-y-3"
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex-1">
+                                        <h4 className="font-medium leading-tight">{parent.name}</h4>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                          {parent.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-3 items-center">
+                                      <Select
+                                        value={selectedVariantId || ""}
+                                        onValueChange={(value) => {
+                                          // Remove all variants from selection
+                                          const filtered = selectedUpgrades.filter(id => 
+                                            !variants.some(v => v.id === id)
+                                          );
+                                          // Add the selected variant
+                                          if (value) {
+                                            setSelectedUpgrades([...filtered, value]);
+                                          } else {
+                                            setSelectedUpgrades(filtered);
+                                          }
+                                        }}
+                                      >
+                                        <SelectTrigger 
+                                          className="flex-1"
+                                          data-testid={`select-variant-${parent.id}`}
+                                        >
+                                          <SelectValue placeholder="Select option..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="">None</SelectItem>
+                                          {variants.map((variant) => (
+                                            <SelectItem key={variant.id} value={variant.id}>
+                                              {variant.variantName || variant.name} - £{(variant.price / 100).toLocaleString()}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {selectedVariant && (
+                                        <Badge variant="secondary" className="flex-shrink-0">
+                                          £{(selectedVariant.price / 100).toLocaleString()}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
 
                   <div className="flex gap-4 mt-6">
