@@ -4,7 +4,7 @@ import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
-import { loginSchema } from "@shared/schema";
+import { loginSchema, createUserSchema } from "@shared/schema";
 import type { User } from "@shared/schema";
 
 // Extend Express session to include user
@@ -56,6 +56,59 @@ export function getSession() {
 export async function setupAuth(app: Express) {
   // Session middleware is now set up in server/index.ts as the first middleware
   
+  // Registration endpoint
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const result = createUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid registration data", errors: result.error.errors });
+      }
+
+      const { username, password, email, firstName, lastName } = result.data;
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Create user
+      const user = await createUser({
+        username,
+        password,
+        email,
+        firstName,
+        lastName,
+        isAdmin: false, // Never allow registration as admin
+      });
+
+      // Store user in session (auto-login after registration)
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.isAdmin,
+      };
+
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("❌ Session save error:", err);
+          return res.status(500).json({ message: "Could not create session" });
+        }
+
+        // Return user without password hash
+        const { passwordHash, ...userWithoutPassword } = user;
+        res.status(201).json({
+          ...userWithoutPassword,
+          sessionId: req.sessionID
+        });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Login endpoint
   app.post("/api/auth/login", async (req, res) => {
     try {

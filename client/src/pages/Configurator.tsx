@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import EquipmentGrid from "@/components/EquipmentGrid";
 import PriceSummary from "@/components/PriceSummary";
+import QuoteSubmission from "@/components/QuoteSubmission";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +95,7 @@ export default function Configurator() {
   const [selectedUpgrades, setSelectedUpgrades] = useState<string[]>([]);
   const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
   const [showVAT, setShowVAT] = useState(true);
+  const [showQuoteDialog, setShowQuoteDialog] = useState(false);
 
   // Load saved configuration from localStorage on mount
   useEffect(() => {
@@ -201,8 +203,7 @@ export default function Configurator() {
   };
 
   const handleRequestQuote = () => {
-    console.log('Quote requested for configurator');
-    // todo: implement actual quote request with form submission
+    setShowQuoteDialog(true);
   };
 
   return (
@@ -588,6 +589,18 @@ export default function Configurator() {
         )}
       </main>
       <Footer />
+      
+      <QuoteSubmission
+        open={showQuoteDialog}
+        onClose={() => setShowQuoteDialog(false)}
+        vanId={selectedVan || undefined}
+        kitId={selectedKit || ""}
+        selectedUpgrades={selectedUpgrades}
+        upgradeQuantities={upgradeQuantities}
+        estSubtotal={calculatePricing.data?.subtotal || 0}
+        estVAT={calculatePricing.data?.vat || 0}
+        estTotal={calculatePricing.data?.total || 0}
+      />
     </div>
   );
 }

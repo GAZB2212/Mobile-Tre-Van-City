@@ -163,11 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertQuoteSchema.parse(req.body);
       
       // Fetch all referenced entities to recalculate prices server-side
+      const selectedUpgradeIds = (validatedData.selectedUpgradeIds || []) as string[];
       const [van, kit, upgrades] = await Promise.all([
         validatedData.vanId ? storage.getVan(validatedData.vanId) : Promise.resolve(null),
         validatedData.kitId ? storage.getKit(validatedData.kitId) : Promise.resolve(null),
-        validatedData.upgradeIds && validatedData.upgradeIds.length > 0
-          ? Promise.all(validatedData.upgradeIds.map(id => storage.getUpgrade(id)))
+        selectedUpgradeIds.length > 0
+          ? Promise.all(selectedUpgradeIds.map((id: string) => storage.getUpgrade(id)))
           : Promise.resolve([])
       ]);
 
@@ -178,14 +179,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.kitId && !kit) {
         return res.status(400).json({ error: "Selected kit not found" });
       }
-      if (upgrades.some(u => !u)) {
+      if (upgrades.some((u: any) => !u)) {
         return res.status(400).json({ error: "One or more selected upgrades not found" });
       }
 
-      // Calculate server-side pricing (all prices in pence)
+      // Calculate server-side pricing (all prices in pence) with quantities
       const vanPrice = van?.price || 0;
       const kitPrice = kit?.price || 0;
-      const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + (upgrade?.price || 0), 0);
+      const upgradesTotal = upgrades.reduce((sum: number, upgrade: any) => {
+        const quantity = validatedData.selectedUpgrades?.[upgrade.id] || 1;
+        return sum + (upgrade?.price || 0) * quantity;
+      }, 0);
       
       const subtotal = vanPrice + kitPrice + upgradesTotal;
       const vatRate = 0.20; // 20% VAT
@@ -214,9 +218,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create quote with server-validated prices
+      // Create quote with server-validated prices and user ID if authenticated
       const quoteData = {
         ...validatedData,
+        userId: req.session.user?.id || null,
         estSubtotal: subtotal,
         estVAT: vat,
         estTotal: total,
@@ -408,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (process.env.NODE_ENV === 'development') {
         console.log('🛠️ Kit creation request:', {
           body: req.body,
-          userId: req.user?.claims?.sub
+          userId: req.session.user?.id
         });
       }
       
@@ -558,67 +563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Testing endpoint to promote users to admin (development only)
-  app.post("/api/test/promote-admin", async (req, res) => {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(404).json({ error: "Endpoint not available in production" });
-    }
-    
-    try {
-      const { userId } = req.body;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
-      
-      const user = await storage.promoteToAdmin(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      res.json({ success: true, user });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to promote user" });
-    }
-  });
-
-  // Bootstrap endpoint to promote first admin user (protected by secret)
-  app.post("/api/admin/bootstrap", async (req, res) => {
-    try {
-      const { secret, userId } = req.body;
-      
-      // Check if bootstrap secret matches
-      if (!process.env.ADMIN_BOOTSTRAP_SECRET || secret !== process.env.ADMIN_BOOTSTRAP_SECRET) {
-        return res.status(401).json({ error: "Invalid bootstrap secret" });
-      }
-      
-      if (!userId) {
-        return res.status(400).json({ error: "User ID required" });
-      }
-      
-      // Get the user and promote to admin
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      // Promote user to admin using dedicated method
-      const adminUser = await storage.promoteToAdmin(userId);
-      if (!adminUser) {
-        return res.status(500).json({ error: "Failed to promote user to admin" });
-      }
-      
-      res.json({ 
-        message: "User promoted to admin successfully", 
-        user: { 
-          id: adminUser.id, 
-          email: adminUser.email, 
-          isAdmin: adminUser.isAdmin 
-        } 
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to bootstrap admin user" });
-    }
-  });
+  // Admin user management endpoints - commented out for now
+  // Admin user is created automatically on startup
 
   // Admin endpoints for viewing quotes and leads
   app.get("/api/admin/quotes", isAuthenticated, isAdmin, async (req, res) => {
