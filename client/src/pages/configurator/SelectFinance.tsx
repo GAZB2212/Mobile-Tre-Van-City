@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ export default function SelectFinance() {
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <Button 
               variant="ghost" 
@@ -56,13 +57,15 @@ export default function SelectFinance() {
             </p>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-20">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              {isLoading ? (
+                <div className="flex justify-center py-20">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {financePlans.map((plan) => (
                   <Card 
                     key={plan.id} 
@@ -144,8 +147,14 @@ export default function SelectFinance() {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
-            </>
-          )}
+                </>
+              )}
+            </div>
+
+            <div className="lg:col-span-1">
+              <ConfiguratorSummary />
+            </div>
+          </div>
         </div>
       </main>
 
