@@ -151,16 +151,20 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
           buttonClassName="gap-2"
         >
           <Upload className="w-4 h-4" />
-          {uploadingImage ? "Uploading..." : "Upload Image"}
+          {uploadingImage ? "Uploading..." : "Browse Images"}
         </ObjectUploader>
       </div>
+      
+      <p className="text-sm text-muted-foreground">
+        Click "Browse Images" to select files or drag and drop images here
+      </p>
 
       {images.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
             <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">No images uploaded yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Drag and drop images to upload</p>
+            <p className="text-xs text-muted-foreground mt-1">Click "Browse Images" above to get started</p>
           </CardContent>
         </Card>
       ) : (
