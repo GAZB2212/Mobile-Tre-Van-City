@@ -54,7 +54,7 @@ export default function Login() {
         description: "Logged in successfully",
       });
       // Redirect based on user role
-      if (data.user?.isAdmin) {
+      if (data.isAdmin) {
         setLocation("/admin");
       } else {
         setLocation("/portal");
