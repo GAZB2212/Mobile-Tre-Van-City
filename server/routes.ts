@@ -659,6 +659,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alias for consistency - both paths work
+  app.get("/api/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch quote" });
+    }
+  });
+
   app.patch("/api/admin/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       // Validate and whitelist allowed fields for admin updates
@@ -666,7 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: z.enum(quoteStatuses).optional(),
         financeStatus: z.enum(financeStatuses).optional(),
         buildStage: z.enum(buildStages).nullable().optional(),
-        graphicsArtworkUrl: z.string().url().nullable().optional(),
+        graphicsArtworkUrl: z.string().url().or(z.literal('')).nullable().optional(),
         graphicsArtworkNotes: z.string().nullable().optional(),
       });
 

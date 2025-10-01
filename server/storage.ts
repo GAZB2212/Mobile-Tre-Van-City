@@ -41,6 +41,7 @@ export interface IStorage {
   getQuotes(): Promise<Quote[]>;
   getQuote(id: string): Promise<Quote | undefined>;
   createQuote(quote: InsertQuote): Promise<Quote>;
+  updateQuote(id: string, quote: Partial<Quote>): Promise<Quote | undefined>;
 
   // Leads
   getLeads(): Promise<Lead[]>;
@@ -1212,6 +1213,15 @@ export class MemStorage implements IStorage {
     };
     this.quotes.set(id, quote);
     return quote;
+  }
+
+  async updateQuote(id: string, updates: Partial<Quote>): Promise<Quote | undefined> {
+    const existing = this.quotes.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Quote = { ...existing, ...updates, id, createdAt: existing.createdAt };
+    this.quotes.set(id, updated);
+    return updated;
   }
 
   // Leads
