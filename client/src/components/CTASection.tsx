@@ -9,10 +9,10 @@ export default function CTASection() {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white" data-testid="text-cta-title">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-white" data-testid="text-cta-title">
             Ready to Start Your Mobile Tyre Business?
           </h2>
-          <p className="text-xl mb-10 text-white/90 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 text-white/90 max-w-2xl mx-auto">
             Get a custom quote in minutes. Our team will help you choose the perfect setup for your business needs.
           </p>
           

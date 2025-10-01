@@ -30,14 +30,14 @@ export default function ProcessSteps() {
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-extrabold mb-6 text-white" data-testid="text-process-title">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-6 text-white" data-testid="text-process-title">
             Modification Your Van
           </h2>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 lg:gap-12 max-w-6xl mx-auto">
           {services.slice(0, 3).map((service, index) => (
-            <div key={index} className="text-center space-y-6" data-testid={`card-service-${index}`}>
+            <div key={index} className="text-center space-y-4 sm:space-y-6" data-testid={`card-service-${index}`}>
               <div className="flex justify-center">
                 <service.icon className="w-16 h-16 text-accent" strokeWidth={1.5} />
               </div>

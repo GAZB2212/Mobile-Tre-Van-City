@@ -102,44 +102,44 @@ export default function VanDetails() {
               {/* Van Title and Key Info */}
               <div>
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2" data-testid="text-van-title">
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 break-words" data-testid="text-van-title">
                       {van.year} {van.make} {van.model}
                     </h1>
-                    <p className="text-lg text-muted-foreground">{van.title}</p>
+                    <p className="text-base sm:text-lg text-muted-foreground">{van.title}</p>
                   </div>
                   <Badge className="bg-accent text-accent-foreground text-sm">
                     {van.specs.size}
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-card rounded-md border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-card rounded-md border">
                   <div className="flex items-center gap-3">
-                    <Gauge className="w-5 h-5 text-accent" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Mileage</p>
-                      <p className="font-semibold" data-testid="text-van-mileage">{van.mileage.toLocaleString()} miles</p>
+                    <Gauge className="w-5 h-5 text-accent flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Mileage</p>
+                      <p className="text-sm sm:text-base font-semibold truncate" data-testid="text-van-mileage">{van.mileage.toLocaleString()} miles</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5 text-accent" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Transmission</p>
-                      <p className="font-semibold">{van.specs.transmission}</p>
+                    <Settings className="w-5 h-5 text-accent flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Transmission</p>
+                      <p className="text-sm sm:text-base font-semibold truncate">{van.specs.transmission}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Fuel className="w-5 h-5 text-accent" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Fuel Type</p>
-                      <p className="font-semibold">{van.specs.fuel}</p>
+                    <Fuel className="w-5 h-5 text-accent flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Fuel Type</p>
+                      <p className="text-sm sm:text-base font-semibold truncate">{van.specs.fuel}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-accent" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Year</p>
-                      <p className="font-semibold">{van.year}</p>
+                    <Calendar className="w-5 h-5 text-accent flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Year</p>
+                      <p className="text-sm sm:text-base font-semibold">{van.year}</p>
                     </div>
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export default function VanDetails() {
 
             {/* Right Column - Price and Contact */}
             <div className="lg:col-span-1">
-              <div className="sticky top-4 space-y-4">
+              <div className="lg:sticky lg:top-4 space-y-4">
                 {/* Price Card */}
                 <Card>
                   <CardHeader>
@@ -326,10 +326,10 @@ export default function VanDetails() {
       <section className="py-12 bg-card border-t">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4">
               Interested in a Custom Build?
             </h2>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground mb-6">
               Our configurator lets you design your perfect mobile tyre van with your choice of equipment and upgrades.
             </p>
             <Button size="lg" asChild className="bg-accent border-accent text-accent-foreground" data-testid="button-start-configurator">

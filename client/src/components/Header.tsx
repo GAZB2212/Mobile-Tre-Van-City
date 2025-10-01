@@ -79,17 +79,17 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between md:justify-between justify-center py-3 md:py-4">
-          <Link href="/" className="flex items-center md:flex-none flex-1 justify-center md:justify-start" data-testid="link-home">
+        <div className="flex items-center justify-between py-3 md:py-4">
+          <Link href="/" className="flex items-center" data-testid="link-home">
             <img 
               src={logoImage} 
               alt="Mobile Tyre Van City" 
-              className="h-16 md:h-36 w-auto"
+              className="h-12 sm:h-16 md:h-24 lg:h-36 w-auto"
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -102,11 +102,11 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-4 md:flex md:relative absolute right-4">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <Button 
               variant="default"
               size="lg"
-              className="hidden md:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
+              className="hidden lg:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold whitespace-nowrap"
               data-testid="button-configure"
               asChild
             >
@@ -120,7 +120,7 @@ export default function Header() {
                 size="sm"
                 asChild
                 data-testid="button-login"
-                className="hidden md:flex"
+                className="hidden lg:flex"
               >
                 <Link href="/login">
                   <User className="w-4 h-4 mr-1" />
@@ -134,7 +134,7 @@ export default function Header() {
                 size="sm"
                 asChild
                 data-testid="button-portal"
-                className="hidden md:flex"
+                className="hidden lg:flex"
               >
                 <Link href="/portal">
                   <Package className="w-4 h-4 mr-1" />
@@ -149,7 +149,7 @@ export default function Header() {
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
                 data-testid="button-logout"
-                className="hidden md:flex"
+                className="hidden lg:flex"
               >
                 <LogOut className="w-4 h-4 mr-1" />
                 {logoutMutation.isPending ? "Logging out..." : "Logout"}
@@ -160,24 +160,24 @@ export default function Header() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="lg:hidden flex-shrink-0"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               data-testid="button-menu-toggle"
             >
-              {isMenuOpen ? <X /> : <Menu />}
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t">
-            <nav className="flex flex-col space-y-4">
+          <div className="lg:hidden py-4 border-t">
+            <nav className="flex flex-col space-y-3">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-foreground hover:text-accent transition-colors py-2 font-medium"
                   onClick={() => setIsMenuOpen(false)}
                   data-testid={`mobile-link-${item.name.toLowerCase()}`}
                 >
@@ -186,30 +186,31 @@ export default function Header() {
               ))}
               <Button 
                 size="lg"
-                className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold w-full"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold w-full mt-2"
                 data-testid="mobile-button-configure"
                 asChild
+                onClick={() => setIsMenuOpen(false)}
               >
                 <Link href="/configurator/van">Configure Your Van</Link>
               </Button>
 
               {/* Mobile Authentication */}
               {!isLoading && (
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t space-y-2">
                   {isAuthenticated ? (
                     <>
                       {user?.isAdmin && (
-                        <Button variant="ghost" size="sm" className="w-full mb-2" asChild>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
                           <Link href="/admin" data-testid="mobile-link-admin">
-                            <Shield className="w-4 h-4 mr-1" />
+                            <Shield className="w-4 h-4 mr-2" />
                             Admin Panel
                           </Link>
                         </Button>
                       )}
                       {!user?.isAdmin && (
-                        <Button variant="ghost" size="sm" className="w-full mb-2" asChild>
+                        <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
                           <Link href="/portal" data-testid="mobile-link-portal">
-                            <Package className="w-4 h-4 mr-1" />
+                            <Package className="w-4 h-4 mr-2" />
                             My Builds
                           </Link>
                         </Button>
@@ -217,12 +218,15 @@ export default function Header() {
                       <Button 
                         variant="ghost"
                         size="sm"
-                        className="w-full"
-                        onClick={handleLogout}
+                        className="w-full justify-start"
+                        onClick={() => {
+                          handleLogout();
+                          setIsMenuOpen(false);
+                        }}
                         disabled={logoutMutation.isPending}
                         data-testid="mobile-button-logout"
                       >
-                        <LogOut className="w-4 h-4 mr-1" />
+                        <LogOut className="w-4 h-4 mr-2" />
                         {logoutMutation.isPending ? "Logging out..." : "Logout"}
                       </Button>
                     </>
@@ -230,12 +234,13 @@ export default function Header() {
                     <Button 
                       variant="ghost"
                       size="sm"
-                      className="w-full"
+                      className="w-full justify-start"
                       asChild
                       data-testid="mobile-button-login"
+                      onClick={() => setIsMenuOpen(false)}
                     >
                       <Link href="/login">
-                        <User className="w-4 h-4 mr-1" />
+                        <User className="w-4 h-4 mr-2" />
                         Customer Login
                       </Link>
                     </Button>
