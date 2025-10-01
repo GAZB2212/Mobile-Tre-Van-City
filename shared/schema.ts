@@ -66,19 +66,17 @@ export const kits = pgTable("kits", {
 
 // Upgrade categories enum
 export const upgradeCategories = [
-  "Air System",
-  "Equipment", 
-  "Electrical",
-  "Compressor",
-  "Lighting",
-  "Storage",
-  "Safety",
-  "Business",
-  "Technology",
-  "Comfort",
-  "Branding",
-  "Security",
-  "Power"
+  "air-systems",
+  "equipment", 
+  "branding",
+  "security",
+  "lighting",
+  "business",
+  "technology",
+  "comfort",
+  "storage",
+  "safety",
+  "power"
 ] as const;
 
 export const upgrades = pgTable("upgrades", {
@@ -87,6 +85,9 @@ export const upgrades = pgTable("upgrades", {
   category: text("category").notNull(),
   description: text("description").notNull(),
   price: integer("price").notNull(), // in pence
+  images: json("images").$type<string[]>().notNull().default([]),
+  parentId: varchar("parent_id").references((): any => upgrades.id),
+  variantName: text("variant_name"), // e.g., "Pack 1", "Pack 2", "Standard", "Premium"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),

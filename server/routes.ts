@@ -491,6 +491,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/admin/upgrades/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
+      // Check if this upgrade has child variations
+      const allUpgrades = await storage.getUpgrades();
+      const hasChildren = allUpgrades.some(u => u.parentId === req.params.id);
+      
+      if (hasChildren) {
+        return res.status(400).json({ 
+          error: "Cannot delete equipment that has variations. Delete variations first." 
+        });
+      }
+      
       const success = await storage.deleteUpgrade(req.params.id);
       if (!success) {
         return res.status(404).json({ error: "Upgrade not found" });

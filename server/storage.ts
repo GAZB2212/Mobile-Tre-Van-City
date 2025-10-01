@@ -203,7 +203,10 @@ export class MemStorage implements IStorage {
         name: "Mounted PTO Air System Upgrade",
         category: "air-systems",
         description: "MTVC40, 40CFM rotary screw compressor - perfect for mobile tyre fitting vehicles with compact, powerful design",
-        price: 549500, // £5,495.00
+        price: 549500, // £5,495.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -213,7 +216,10 @@ export class MemStorage implements IStorage {
         name: "Compressor Upgrade To 12hp 270 Litre Electric Start",
         category: "air-systems",
         description: "High-capacity 12hp compressor with 270 litre tank and electric start",
-        price: 100000, // £1,000.00
+        price: 100000, // £1,000.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -223,7 +229,10 @@ export class MemStorage implements IStorage {
         name: "Fini 9 meter Air Reel With Built In Compressor",
         category: "air-systems",
         description: "Professional 9 meter air reel with built-in compressor",
-        price: 24500, // £245.00
+        price: 24500, // £245.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -233,7 +242,10 @@ export class MemStorage implements IStorage {
         name: "15m Compressor Reel",
         category: "air-systems",
         description: "Keep your air lines neat and tidy with our compressor reel",
-        price: 17500, // £175.00
+        price: 17500, // £175.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -244,7 +256,10 @@ export class MemStorage implements IStorage {
         name: "Upgrade to Super Spin auto spin wheel balancer",
         category: "equipment",
         description: "Upgrade your wheel balancer to Super Spin auto spin technology",
-        price: 45000, // £450.00
+        price: 45000, // £450.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -255,7 +270,10 @@ export class MemStorage implements IStorage {
         name: "Full Bespoke Wrap",
         category: "branding",
         description: "Give your van kerb appeal with bespoke full van wrap (LWB/MWB available)",
-        price: 320000, // £3,200.00
+        price: 320000, // £3,200.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -265,7 +283,10 @@ export class MemStorage implements IStorage {
         name: "Half Wrap",
         category: "branding",
         description: "Give your van the WOW factor with a half wrap (LWB/MWB available)",
-        price: 180000, // £1,800.00
+        price: 180000, // £1,800.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -275,7 +296,10 @@ export class MemStorage implements IStorage {
         name: "Graphic Pack",
         category: "branding",
         description: "Vehicle graphic pack with printed panels on sides and rear, text on doors and rear doors",
-        price: 100000, // £1,000.00
+        price: 100000, // £1,000.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -286,7 +310,10 @@ export class MemStorage implements IStorage {
         name: "Van Online CCTV/DVR System",
         category: "security",
         description: "4-6 camera online/offline CCTV system for extra security and peace of mind",
-        price: 220000, // £2,200.00
+        price: 220000, // £2,200.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -296,7 +323,10 @@ export class MemStorage implements IStorage {
         name: "Vehicle Immobiliser",
         category: "security",
         description: "Most advanced vehicle immobiliser on the market to protect your business asset",
-        price: 50000, // £500.00
+        price: 50000, // £500.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -306,7 +336,10 @@ export class MemStorage implements IStorage {
         name: "Vehicle Tracker",
         category: "security",
         description: "Vehicle tracker with app to track your vehicle",
-        price: 35000, // £350.00
+        price: 35000, // £350.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -317,7 +350,10 @@ export class MemStorage implements IStorage {
         name: "Light Pack",
         category: "lighting",
         description: "8 LED flashing repeaters, LED light bar to roof & working lights. Optional upgrade to LED scene lights",
-        price: 120000, // £1,200.00
+        price: 120000, // £1,200.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -328,7 +364,10 @@ export class MemStorage implements IStorage {
         name: "All You Need Business Package",
         category: "business",
         description: "Website, business cards, leaflets, & social media setup (max 2 platforms)",
-        price: 155000, // £1,550.00
+        price: 155000, // £1,550.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -338,7 +377,10 @@ export class MemStorage implements IStorage {
         name: "Branded Website",
         category: "business",
         description: "Fully branded website for your business (from £1050+VAT depending on specification)",
-        price: 105000, // £1,050.00
+        price: 105000, // £1,050.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -349,7 +391,10 @@ export class MemStorage implements IStorage {
         name: "Remote Control",
         category: "technology",
         description: "Control all of your van's accessories with wireless remote system",
-        price: 69500, // £695.00
+        price: 69500, // £695.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -359,7 +404,10 @@ export class MemStorage implements IStorage {
         name: "Apple CarPlay",
         category: "technology",
         description: "Apple CarPlay or Android Auto (vehicle dependent, starting price)",
-        price: 65000, // £650.00
+        price: 65000, // £650.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -369,7 +417,10 @@ export class MemStorage implements IStorage {
         name: "Heated Seat",
         category: "comfort",
         description: "Heated driver's seat to keep warm on cold winter days",
-        price: 55000, // £550.00
+        price: 55000, // £550.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -380,7 +431,10 @@ export class MemStorage implements IStorage {
         name: "Tyre Racking",
         category: "storage",
         description: "Professional tyre storage racking (tyres not included)",
-        price: 49500, // £495.00
+        price: 49500, // £495.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -390,7 +444,10 @@ export class MemStorage implements IStorage {
         name: "155 Piece Neilsen Tool Chest",
         category: "storage",
         description: "Complete 155 piece professional tool chest",
-        price: 45000, // £450.00
+        price: 45000, // £450.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -401,7 +458,10 @@ export class MemStorage implements IStorage {
         name: "Rear Chapter 8 Livery",
         category: "safety",
         description: "Fluorescent and reflective chapter 8 kit for roadside visibility",
-        price: 45000, // £450.00
+        price: 45000, // £450.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -412,7 +472,10 @@ export class MemStorage implements IStorage {
         name: "200ah LiFePO4 Battery Upgrade and Brackets",
         category: "power",
         description: "Upgrade your battery system to 200ah for longer lasting power",
-        price: 30000, // £300.00
+        price: 30000, // £300.00 in pence
+        images: [],
+        parentId: null,
+        variantName: null,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -637,6 +700,9 @@ export class MemStorage implements IStorage {
     const upgrade: Upgrade = { 
       ...insertUpgrade, 
       id,
+      images: Array.isArray(insertUpgrade.images) ? insertUpgrade.images : [],
+      parentId: insertUpgrade.parentId || null,
+      variantName: insertUpgrade.variantName || null,
       published: insertUpgrade.published ?? true,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -652,6 +718,9 @@ export class MemStorage implements IStorage {
     const updated: Upgrade = { 
       ...existing, 
       ...insertUpgrade,
+      images: Array.isArray(insertUpgrade.images) ? insertUpgrade.images : existing.images,
+      parentId: insertUpgrade.parentId !== undefined ? insertUpgrade.parentId : existing.parentId,
+      variantName: insertUpgrade.variantName !== undefined ? insertUpgrade.variantName : existing.variantName,
       updatedAt: new Date()
     };
     this.upgrades.set(id, updated);

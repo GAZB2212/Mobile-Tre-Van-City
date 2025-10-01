@@ -37,9 +37,12 @@ import { useToast } from "@/hooks/use-toast";
 import type { Upgrade } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
 
-// Form validation schema - extend shared schema for price conversion
-const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
+// Form validation schema - extend shared schema for price conversion and images
+const upgradeFormSchema = insertUpgradeSchema.omit({ price: true, images: true }).extend({
   price: z.string().min(1, "Price is required"),
+  images: z.string().optional(), // Comma-separated URLs
+  parentId: z.string().optional().nullable(),
+  variantName: z.string().optional().nullable(),
 });
 
 type UpgradeFormData = z.infer<typeof upgradeFormSchema>;
@@ -59,11 +62,17 @@ interface UpgradeDialogProps {
   upgrade?: Upgrade;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  allUpgrades: Upgrade[]; // For parent equipment dropdown
 }
 
-function UpgradeDialog({ upgrade, open, onOpenChange }: UpgradeDialogProps) {
+function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDialogProps) {
   const { toast } = useToast();
   const isEditing = !!upgrade;
+
+  // Get parent equipment options (exclude current item and its children)
+  const parentOptions = allUpgrades.filter(u => 
+    u.id !== upgrade?.id && u.parentId === null
+  );
 
   const form = useForm<UpgradeFormData>({
     resolver: zodResolver(upgradeFormSchema),
@@ -72,6 +81,9 @@ function UpgradeDialog({ upgrade, open, onOpenChange }: UpgradeDialogProps) {
       category: upgrade?.category || "",
       description: upgrade?.description || "",
       price: upgrade ? penceToPounds(upgrade.price) : "",
+      images: upgrade?.images?.join(", ") || "",
+      parentId: upgrade?.parentId || "",
+      variantName: upgrade?.variantName || "",
       published: upgrade?.published ?? true,
     },
   });
@@ -81,6 +93,9 @@ function UpgradeDialog({ upgrade, open, onOpenChange }: UpgradeDialogProps) {
       const upgradeData = {
         ...data,
         price: poundsToPence(data.price),
+        images: data.images ? data.images.split(",").map(url => url.trim()).filter(url => url) : [],
+        parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
+        variantName: data.variantName && data.variantName !== "" ? data.variantName : null,
       };
       return apiRequest("POST", "/api/admin/upgrades", upgradeData);
     },
@@ -107,6 +122,9 @@ function UpgradeDialog({ upgrade, open, onOpenChange }: UpgradeDialogProps) {
       const upgradeData = {
         ...data,
         price: poundsToPence(data.price),
+        images: data.images ? data.images.split(",").map(url => url.trim()).filter(url => url) : [],
+        parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
+        variantName: data.variantName && data.variantName !== "" ? data.variantName : null,
       };
       return apiRequest("PUT", `/api/admin/upgrades/${upgrade!.id}`, upgradeData);
     },
@@ -224,6 +242,82 @@ function UpgradeDialog({ upgrade, open, onOpenChange }: UpgradeDialogProps) {
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Images (optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter image URLs separated by commas"
+                      className="min-h-[60px]"
+                      data-testid="input-upgrade-images"
+                      {...field}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Separate multiple URLs with commas
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="parentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parent Equipment (for variations)</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value || ""}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-parent-equipment">
+                        <SelectValue placeholder="None - This is a standalone item" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">None - Standalone Item</SelectItem>
+                      {parentOptions.map((parent) => (
+                        <SelectItem key={parent.id} value={parent.id}>
+                          {parent.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Select a parent if this is a variation (e.g., Pack 1, Pack 2)
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="variantName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Variant Name (optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., Pack 1, Standard, Premium"
+                      data-testid="input-variant-name"
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Name for this variation (shown in dropdown to customers)
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -433,6 +527,7 @@ export default function AdminUpgrades() {
             setEditingUpgrade(undefined);
           }
         }}
+        allUpgrades={upgrades}
       />
     </div>
   );
