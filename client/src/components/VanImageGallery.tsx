@@ -20,7 +20,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const addImageMutation = useMutation({
     mutationFn: async (objectPath: string) => {
-      return apiRequest(`/api/admin/vans/${van.id}/images`, 'POST', { objectPath });
+      return apiRequest('POST', `/api/admin/vans/${van.id}/images`, { objectPath });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -42,7 +42,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const removeImageMutation = useMutation({
     mutationFn: async (objectPath: string) => {
-      return apiRequest(`/api/admin/vans/${van.id}/images`, 'DELETE', { objectPath });
+      return apiRequest('DELETE', `/api/admin/vans/${van.id}/images`, { objectPath });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -62,7 +62,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const setHeroImageMutation = useMutation({
     mutationFn: async (objectPath: string) => {
-      return apiRequest(`/api/admin/vans/${van.id}/hero-image`, 'PUT', { objectPath });
+      return apiRequest('PUT', `/api/admin/vans/${van.id}/hero-image`, { objectPath });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -81,7 +81,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const handleGetUploadParameters = async (file: { name: string; type: string }) => {
-    const response = await apiRequest('/api/objects/upload', 'POST', {
+    const response = await apiRequest('POST', '/api/objects/upload', {
       filename: file.name,
       contentType: file.type,
     }) as { uploadURL: string; objectPath: string };

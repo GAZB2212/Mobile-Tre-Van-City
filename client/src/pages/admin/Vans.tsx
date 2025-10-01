@@ -31,7 +31,7 @@ export default function AdminVans() {
   // Create van mutation
   const createVanMutation = useMutation({
     mutationFn: async (vanData: InsertVan) => {
-      await apiRequest('/api/admin/vans', 'POST', vanData);
+      await apiRequest('POST', '/api/admin/vans', vanData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -53,7 +53,7 @@ export default function AdminVans() {
   // Update van mutation
   const updateVanMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<InsertVan> }) => {
-      await apiRequest(`/api/admin/vans/${id}`, 'PUT', data);
+      await apiRequest('PUT', `/api/admin/vans/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -76,7 +76,7 @@ export default function AdminVans() {
   // Delete van mutation
   const deleteVanMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest(`/api/admin/vans/${id}`, 'DELETE');
+      await apiRequest('DELETE', `/api/admin/vans/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
