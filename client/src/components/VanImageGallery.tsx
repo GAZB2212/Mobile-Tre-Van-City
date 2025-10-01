@@ -82,24 +82,36 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const handleGetUploadParameters = async (file: { name: string; type: string }) => {
+    console.log('Getting upload parameters for:', file.name);
     setUploadingImage(true);
-    const response = await apiRequest('POST', '/api/objects/upload', {
-      filename: file.name,
-      contentType: file.type,
-    }) as { uploadURL: string; objectPath: string };
-    
-    // Store the objectPath for when upload completes
-    pendingObjectPath.current = response.objectPath;
-    
-    return {
-      method: 'PUT' as const,
-      url: response.uploadURL,
-      objectPath: response.objectPath,
-    };
+    try {
+      const response = await apiRequest('POST', '/api/objects/upload', {
+        filename: file.name,
+        contentType: file.type,
+      }) as { uploadURL: string; objectPath: string };
+      
+      console.log('Got upload URL and objectPath:', response.objectPath);
+      
+      // Store the objectPath for when upload completes
+      pendingObjectPath.current = response.objectPath;
+      
+      return {
+        method: 'PUT' as const,
+        url: response.uploadURL,
+        objectPath: response.objectPath,
+      };
+    } catch (error) {
+      console.error('Failed to get upload parameters:', error);
+      setUploadingImage(false);
+      throw error;
+    }
   };
 
   const handleUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    console.log('Upload complete:', result);
+    
     if (!result.successful || result.successful.length === 0) {
+      console.error('Upload failed:', result.failed);
       setUploadingImage(false);
       toast({
         title: "Error",
@@ -111,9 +123,11 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     
     // Use the stored objectPath
     if (pendingObjectPath.current) {
+      console.log('Adding image to van with objectPath:', pendingObjectPath.current);
       addImageMutation.mutate(pendingObjectPath.current);
       pendingObjectPath.current = null;
     } else {
+      console.error('No objectPath stored');
       setUploadingImage(false);
       toast({
         title: "Error",
