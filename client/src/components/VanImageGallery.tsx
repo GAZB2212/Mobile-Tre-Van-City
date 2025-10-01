@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ interface VanImageGalleryProps {
 export function VanImageGallery({ van }: VanImageGalleryProps) {
   const { toast } = useToast();
   const [uploadingImage, setUploadingImage] = useState(false);
+  const pendingObjectPath = useRef<string | null>(null);
 
   const addImageMutation = useMutation({
     mutationFn: async (objectPath: string) => {
@@ -81,10 +82,15 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const handleGetUploadParameters = async (file: { name: string; type: string }) => {
+    setUploadingImage(true);
     const response = await apiRequest('POST', '/api/objects/upload', {
       filename: file.name,
       contentType: file.type,
     }) as { uploadURL: string; objectPath: string };
+    
+    // Store the objectPath for when upload completes
+    pendingObjectPath.current = response.objectPath;
+    
     return {
       method: 'PUT' as const,
       url: response.uploadURL,
@@ -94,14 +100,26 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const handleUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
     if (!result.successful || result.successful.length === 0) {
+      setUploadingImage(false);
+      toast({
+        title: "Error",
+        description: "Upload failed. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
     
-    const successful = result.successful[0];
-    if (successful && successful.uploadURL) {
-      const uploadURL = successful.uploadURL as string;
-      const objectPath = uploadURL.split('?')[0].split('.googleapis.com')[1];
-      addImageMutation.mutate(objectPath);
+    // Use the stored objectPath
+    if (pendingObjectPath.current) {
+      addImageMutation.mutate(pendingObjectPath.current);
+      pendingObjectPath.current = null;
+    } else {
+      setUploadingImage(false);
+      toast({
+        title: "Error",
+        description: "Failed to process uploaded image",
+        variant: "destructive",
+      });
     }
   };
 
