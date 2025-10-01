@@ -51,7 +51,6 @@ export default function AdminQuoteDetail() {
   const [financeStatus, setFinanceStatus] = useState("");
   const [buildStage, setBuildStage] = useState("");
   const [artworkUrl, setArtworkUrl] = useState("");
-  const [artworkNotes, setArtworkNotes] = useState("");
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
@@ -65,7 +64,6 @@ export default function AdminQuoteDetail() {
       setFinanceStatus(quote.financeStatus || "pending");
       setBuildStage(quote.buildStage || "");
       setArtworkUrl(quote.graphicsArtworkUrl || "");
-      setArtworkNotes(quote.graphicsArtworkNotes || "");
     }
   }, [quote]);
 
@@ -161,7 +159,6 @@ export default function AdminQuoteDetail() {
       financeStatus,
       buildStage: buildStage || null,
       graphicsArtworkUrl: artworkUrl || null,
-      graphicsArtworkNotes: artworkNotes || null,
     });
   };
 
@@ -331,18 +328,6 @@ export default function AdminQuoteDetail() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Upload artwork for the customer to review (PNG, JPEG, SVG - max 20MB)
                   </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="artwork-notes">Notes for Customer</Label>
-                  <Textarea
-                    id="artwork-notes"
-                    placeholder="Add notes or instructions for the customer..."
-                    value={artworkNotes}
-                    onChange={(e) => setArtworkNotes(e.target.value)}
-                    rows={3}
-                    data-testid="textarea-artwork-notes"
-                  />
                 </div>
 
                 {quote.graphicsArtworkApproved && (
