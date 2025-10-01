@@ -4,6 +4,8 @@ import UKManufacturing from "@/components/UKManufacturing";
 import ProcessSteps from "@/components/ProcessSteps";
 import TrustStrip from "@/components/TrustStrip";
 import FeaturedStock from "@/components/FeaturedStock";
+import PreviouslyBuiltVans from "@/components/PreviouslyBuiltVans";
+import VanDesigns from "@/components/VanDesigns";
 import Testimonials from "@/components/Testimonials";
 import CTASection from "@/components/CTASection";
 import FAQ from "@/components/FAQ";
@@ -19,6 +21,8 @@ export default function Home() {
         <UKManufacturing />
         <ProcessSteps />
         <FeaturedStock />
+        <PreviouslyBuiltVans />
+        <VanDesigns />
         <Testimonials />
         <FAQ />
         <CTASection />

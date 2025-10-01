@@ -146,7 +146,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Quotes endpoints (restricted to admin only for security)
+  // Quotes endpoints
+  // Public endpoint for completed builds showcase (must come before :id route)
+  app.get("/api/quotes/completed", async (req, res) => {
+    try {
+      const allQuotes = await storage.getQuotes();
+      const completedQuotes = allQuotes.filter(q => q.status === "completed");
+      res.json(completedQuotes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch completed builds" });
+    }
+  });
+
+  // Admin only - list all quotes
   app.get("/api/quotes", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quotes = await storage.getQuotes();
@@ -156,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Secure quotes detail endpoint - admin only
+  // Secure quotes detail endpoint - admin only (must come after /completed route)
   app.get("/api/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
