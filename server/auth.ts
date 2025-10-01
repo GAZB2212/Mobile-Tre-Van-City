@@ -80,9 +80,17 @@ export async function setupAuth(app: Express) {
         isAdmin: user.isAdmin,
       };
 
-      // Return user without password hash
-      const { passwordHash, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Could not create session" });
+        }
+
+        // Return user without password hash
+        const { passwordHash, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Internal server error" });
