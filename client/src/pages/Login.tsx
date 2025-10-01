@@ -43,7 +43,11 @@ export default function Login() {
       const res = await apiRequest("POST", "/api/auth/login", credentials);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Store session ID in localStorage as fallback since cookies aren't working
+      if (data.sessionId) {
+        localStorage.setItem('sessionId', data.sessionId);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Success",
