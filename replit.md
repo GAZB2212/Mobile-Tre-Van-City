@@ -70,3 +70,13 @@ Preferred communication style: Simple, everyday language.
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations
 - **Email System**: Infrastructure ready for quote delivery and lead notifications
 - **SEO Optimization**: Meta tags, structured data, and semantic HTML for search visibility
+
+### Vehicle Data Integration
+- **CheckCarDetails API**: Automated vehicle data lookup using UK registration numbers
+  - Makes 3 parallel API calls for comprehensive vehicle information:
+    1. `VehicleData` - Registration data (make, model, year, colour, fuel, engine)
+    2. `VehicleData` - Specifications (body style, transmission, power, dimensions, weights)
+    3. `MotHistoryData` - MOT history with current mileage and test status
+  - Auto-populates van creation form with: make, model, year, mileage (from MOT), transmission, fuel type, engine size, body style
+  - Optimized for cost efficiency by using only essential endpoints
+  - API key stored securely in environment secrets as `AUTOTRADER_API_KEY`
