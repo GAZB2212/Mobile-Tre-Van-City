@@ -565,14 +565,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = 'https://uk1.ukvehicledata.co.uk/api/datapackage';
       
       const [regResponse, specsResponse, motResponse] = await Promise.all([
-        fetch(`${baseUrl}/VehicleData?v=2&api_nullitems=1&auth_apikey=${apiKey}&user_tag=&key_VRM=${cleanReg}`),
-        fetch(`${baseUrl}/VehicleData?v=2&api_nullitems=1&auth_apikey=${apiKey}&user_tag=&key_VRM=${cleanReg}`),
-        fetch(`${baseUrl}/MotHistoryData?v=2&api_nullitems=1&auth_apikey=${apiKey}&user_tag=&key_VRM=${cleanReg}`)
+        fetch(`${baseUrl}/VehicleRegistration?v=2&api_nullitems=1&auth_apikey=${apiKey}&user_tag=&key_VRM=${cleanReg}`),
+        fetch(`${baseUrl}/VehicleSpecs?v=2&api_nullitems=1&auth_apikey=${apiKey}&user_tag=&key_VRM=${cleanReg}`),
+        fetch(`${baseUrl}/MotHistory?v=2&api_nullitems=1&auth_apikey=${apiKey}&user_tag=&key_VRM=${cleanReg}`)
       ]);
 
       // Check if all requests succeeded
       if (!regResponse.ok) {
-        return res.status(regResponse.status).json({ error: "Failed to fetch vehicle registration data" });
+        const errorText = await regResponse.text();
+        console.error(`CheckCarDetails API error (${regResponse.status}):`, errorText);
+        return res.status(regResponse.status).json({ 
+          error: `API request failed: ${regResponse.status} ${regResponse.statusText}`,
+          details: errorText 
+        });
       }
 
       const [regData, specsData, motData] = await Promise.all([
