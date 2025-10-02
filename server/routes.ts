@@ -553,6 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const apiKey = process.env.AUTOTRADER_API_KEY;
+      console.log('API Key check - exists:', !!apiKey, 'length:', apiKey?.length);
 
       if (!apiKey) {
         return res.status(500).json({ error: "API key not configured in secrets" });
@@ -560,6 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Clean registration (remove spaces, uppercase)
       const cleanReg = registration.replace(/\s+/g, '').toUpperCase();
+      console.log('Looking up registration:', cleanReg);
 
       // Make 3 parallel API calls to CheckCarDetails
       const baseUrl = 'https://uk1.ukvehicledata.co.uk/api/datapackage';
