@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Shield } from "lucide-react";
+import logoImage from "@assets/Untitled design-51_1759240381746.png";
 
 export default function Footer() {
   const quickLinks = [
@@ -33,11 +34,12 @@ export default function Footer() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="lg:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-accent rounded-md flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-lg">T</span>
-              </div>
-              <span className="font-bold text-xl">TyreVans</span>
+            <div className="mb-4">
+              <img 
+                src={logoImage} 
+                alt="Mobile Tyre Van City" 
+                className="h-16 w-auto"
+              />
             </div>
             <p className="text-primary-foreground/80 mb-4">
               UK's leading mobile tyre van conversion specialists. Custom-built solutions for your mobile tyre business.
