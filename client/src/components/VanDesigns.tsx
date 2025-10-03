@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,10 +138,12 @@ export default function VanDesigns() {
         </div>
 
         <div className="text-center">
-          <Button size="lg" variant="default" className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-view-gallery">
-            Explore Full Gallery
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          <Link href="/gallery">
+            <Button size="lg" variant="default" className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-view-gallery">
+              Explore Full Gallery
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
