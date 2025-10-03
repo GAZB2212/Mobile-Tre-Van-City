@@ -94,8 +94,9 @@ export default function Footer() {
               <div className="flex items-start space-x-2" data-testid="contact-address">
                 <MapPin className="w-4 h-4 mt-0.5" />
                 <span className="text-primary-foreground/80">
-                  123 Industrial Estate<br />
-                  Manchester, M1 1AA
+                  5-7 Bassendale Road<br />
+                  Bromborough, Wirral<br />
+                  CH62 3QL
                 </span>
               </div>
             </div>

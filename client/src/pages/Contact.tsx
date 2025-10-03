@@ -130,8 +130,11 @@ export default function Contact() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-lg font-semibold">United Kingdom</p>
-                    <p className="text-sm text-muted-foreground mt-1">Serving customers nationwide</p>
+                    <p className="text-lg font-semibold">5-7 Bassendale Road</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Bromborough, Wirral<br />
+                      CH62 3QL
+                    </p>
                   </CardContent>
                 </Card>
 
