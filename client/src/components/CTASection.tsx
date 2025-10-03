@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Phone } from "lucide-react";
+import vanImage from "@assets/IMG_1103_1759503549443.jpg";
 
 export default function CTASection() {
   return (
     <section className="py-20 bg-black relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-accent" />
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${vanImage})` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/70 to-black/60" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
