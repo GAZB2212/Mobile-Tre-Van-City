@@ -17,6 +17,7 @@ export interface IStorage {
 
   // Vans
   getVans(filters?: { make?: string; year?: number; maxPrice?: number; minPrice?: number; transmission?: string; size?: string }): Promise<Van[]>;
+  getVansAdmin(): Promise<Van[]>; // Returns all vans including unpublished for admin
   getVan(id: string): Promise<Van | undefined>;
   getVanBySlug(slug: string): Promise<Van | undefined>;
   createVan(van: InsertVan): Promise<Van>;
@@ -1053,6 +1054,11 @@ export class MemStorage implements IStorage {
     }
     
     return vans;
+  }
+
+  async getVansAdmin(): Promise<Van[]> {
+    // Return all vans including unpublished for admin access
+    return Array.from(this.vans.values());
   }
 
   async getVan(id: string): Promise<Van | undefined> {

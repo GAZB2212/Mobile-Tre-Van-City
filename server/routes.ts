@@ -386,6 +386,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin CRUD endpoints for vans
+  app.get("/api/admin/vans", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const vans = await storage.getVansAdmin();
+      res.json(vans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vans" });
+    }
+  });
+
   app.post("/api/admin/vans", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const vanData = insertVanSchema.parse(req.body);
