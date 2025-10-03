@@ -1,27 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Wrench, Palette, Car, Zap } from "lucide-react";
+import { Car, Package, Sparkles, CreditCard } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 
 const services = [
   {
-    icon: Wrench,
-    title: "Van Modification",
-    description: "Complete mobile tyre van conversions with professional equipment installation and custom racking systems"
-  },
-  {
-    icon: Palette,
-    title: "Van Branding",
-    description: "Professional vehicle wrapping and signage to make your mobile business stand out on the road"
-  },
-  {
     icon: Car,
-    title: "Van Supply",
-    description: "Source and supply the perfect base vehicle for your mobile tyre business from trusted UK dealers"
+    title: "Choose Your Van",
+    description: "Select from our range of quality base vehicles perfectly suited for mobile tyre fitting operations"
   },
   {
-    icon: Zap,
-    title: "Equipment & Upgrades",
-    description: "Premium tyre changing equipment, lighting, CCTV, and security systems for professional operations"
+    icon: Package,
+    title: "Choose Your Kit",
+    description: "Pick the ideal tyre equipment package including changers, balancers, and compressors"
+  },
+  {
+    icon: Sparkles,
+    title: "Choose Your Upgrades",
+    description: "Add optional extras like branding, lighting, security systems, and premium equipment"
+  },
+  {
+    icon: CreditCard,
+    title: "Choose Your Finance",
+    description: "Flexible finance options including hire purchase and leasing to spread the cost"
   }
 ];
 
@@ -31,12 +31,12 @@ export default function ProcessSteps() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-6 text-foreground" data-testid="text-process-title">
-            Modification Your Van
+            Build Your Van
           </h2>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 lg:gap-12 max-w-6xl mx-auto">
-          {services.slice(0, 3).map((service, index) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-12 max-w-7xl mx-auto">
+          {services.map((service, index) => (
             <div key={index} className="text-center space-y-4 sm:space-y-6" data-testid={`card-service-${index}`}>
               <div className="flex justify-center">
                 <service.icon className="w-16 h-16 text-accent" strokeWidth={1.5} />
