@@ -5,6 +5,9 @@ import { Play, Image as ImageIcon, ArrowRight } from "lucide-react";
 import video1 from "@assets/ZenoVideo 20_1759504716286.mp4";
 import video2 from "@assets/ZenoVideo 14_1759504750775.mp4";
 import video3 from "@assets/ZenoVideo 8_1759504750775.mp4";
+import vanImage1 from "@assets/IMG_8800_1759504961672.jpg";
+import vanImage2 from "@assets/IMG_1129_1759504961672.jpg";
+import vanImage3 from "@assets/IMG_7127_1759504961672.jpg";
 
 const designCategories = [
   {
@@ -29,21 +32,24 @@ const designCategories = [
     featured: false,
   },
   {
-    title: "Interior Layout Options",
-    description: "Explore different racking and storage configurations",
+    title: "Professional Branding & Interior Layout",
+    description: "Custom vinyl wrap designs with optimized equipment storage",
     type: "image" as const,
+    imageSrc: vanImage1,
     featured: false,
   },
   {
-    title: "Branding & Livery",
-    description: "Professional vehicle wrapping and signage examples",
+    title: "Premium Equipment Setup",
+    description: "State-of-the-art tyre fitting equipment and professional workspace",
     type: "image" as const,
+    imageSrc: vanImage2,
     featured: false,
   },
   {
-    title: "Equipment Installation",
-    description: "Professional mounting and wiring of tyre equipment",
+    title: "Complete Van Conversion",
+    description: "Finished mobile tyre van with full branding and equipment installation",
     type: "image" as const,
+    imageSrc: vanImage3,
     featured: false,
   },
 ];
@@ -86,6 +92,12 @@ export default function VanDesigns() {
                       e.currentTarget.pause();
                       e.currentTarget.currentTime = 0;
                     }}
+                  />
+                ) : design.type === 'image' && design.imageSrc ? (
+                  <img 
+                    src={design.imageSrc} 
+                    alt={design.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
