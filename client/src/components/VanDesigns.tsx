@@ -8,22 +8,22 @@ import video3 from "@assets/ZenoVideo 8_1759504750775.mp4";
 
 const designCategories = [
   {
-    title: "Professional Van Conversion Showcase",
-    description: "See our expertly crafted mobile tyre van conversions in action",
+    title: "360° Van Design Render",
+    description: "Interactive 360-degree view of our professional mobile tyre van conversions",
     type: "video" as const,
     videoSrc: video1,
     featured: true,
   },
   {
-    title: "Custom Build Features",
-    description: "Detailed walkthrough of premium equipment installations and layouts",
+    title: "360° Van Design Render",
+    description: "Complete rotating view showcasing premium equipment and interior layout",
     type: "video" as const,
     videoSrc: video2,
     featured: false,
   },
   {
-    title: "Complete Van Setup",
-    description: "Full tour of a finished mobile tyre business on wheels",
+    title: "360° Van Design Render",
+    description: "Full 360-degree render of a finished mobile tyre business setup",
     type: "video" as const,
     videoSrc: video3,
     featured: false,
