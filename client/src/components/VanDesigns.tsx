@@ -2,25 +2,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Play, Image as ImageIcon, ArrowRight } from "lucide-react";
+import video1 from "@assets/ZenoVideo 20_1759504716286.mp4";
+import video2 from "@assets/ZenoVideo 14_1759504750775.mp4";
+import video3 from "@assets/ZenoVideo 8_1759504750775.mp4";
 
 const designCategories = [
   {
-    title: "Compact Van Conversions",
-    description: "Efficient layouts for smaller vehicles, maximizing every inch of space",
-    type: "image" as const,
+    title: "Professional Van Conversion Showcase",
+    description: "See our expertly crafted mobile tyre van conversions in action",
+    type: "video" as const,
+    videoSrc: video1,
     featured: true,
   },
   {
-    title: "Large Van Builds",
-    description: "Full-service mobile workshops with comprehensive equipment setups",
-    type: "image" as const,
+    title: "Custom Build Features",
+    description: "Detailed walkthrough of premium equipment installations and layouts",
+    type: "video" as const,
+    videoSrc: video2,
     featured: false,
   },
   {
-    title: "Time-Lapse Build Process",
-    description: "Watch a complete van conversion from start to finish",
+    title: "Complete Van Setup",
+    description: "Full tour of a finished mobile tyre business on wheels",
     type: "video" as const,
-    featured: true,
+    videoSrc: video3,
+    featured: false,
   },
   {
     title: "Interior Layout Options",
@@ -29,14 +35,14 @@ const designCategories = [
     featured: false,
   },
   {
-    title: "Equipment Installation",
-    description: "Professional mounting and wiring of tyre equipment",
-    type: "video" as const,
+    title: "Branding & Livery",
+    description: "Professional vehicle wrapping and signage examples",
+    type: "image" as const,
     featured: false,
   },
   {
-    title: "Branding & Livery",
-    description: "Professional vehicle wrapping and signage examples",
+    title: "Equipment Installation",
+    description: "Professional mounting and wiring of tyre equipment",
     type: "image" as const,
     featured: false,
   },
@@ -68,25 +74,36 @@ export default function VanDesigns() {
               data-testid={`card-design-${index}`}
             >
               <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {design.type === 'video' ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="w-8 h-8 text-accent-foreground ml-1" />
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Video
-                      </Badge>
-                    </div>
-                  ) : (
+                {design.type === 'video' && design.videoSrc ? (
+                  <video 
+                    src={design.videoSrc} 
+                    className="w-full h-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    onMouseEnter={(e) => e.currentTarget.play()}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.pause();
+                      e.currentTarget.currentTime = 0;
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
                       <ImageIcon className="w-16 h-16 text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors" />
                       <Badge variant="secondary" className="text-xs">
                         Gallery
                       </Badge>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+                {design.type === 'video' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors pointer-events-none">
+                    <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Play className="w-8 h-8 text-accent-foreground ml-1" />
+                    </div>
+                  </div>
+                )}
                 {design.featured && (
                   <div className="absolute top-2 right-2">
                     <Badge className="bg-accent text-accent-foreground text-xs">
