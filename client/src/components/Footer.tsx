@@ -85,11 +85,11 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-2" data-testid="contact-phone">
                 <Phone className="w-4 h-4" />
-                <span className="text-primary-foreground/80">0800 123 4567</span>
+                <span className="text-primary-foreground/80">0151 203 8500</span>
               </div>
               <div className="flex items-center space-x-2" data-testid="contact-email">
                 <Mail className="w-4 h-4" />
-                <span className="text-primary-foreground/80">info@tyrevans.co.uk</span>
+                <span className="text-primary-foreground/80">sales@mobiletyrevancity.co.uk</span>
               </div>
               <div className="flex items-start space-x-2" data-testid="contact-address">
                 <MapPin className="w-4 h-4 mt-0.5" />

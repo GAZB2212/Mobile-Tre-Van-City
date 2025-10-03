@@ -100,8 +100,8 @@ export default function Contact() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <a href="tel:08001234567" className="text-lg font-semibold hover:text-accent transition-colors">
-                      0800 123 4567
+                    <a href="tel:01512038500" className="text-lg font-semibold hover:text-accent transition-colors">
+                      0151 203 8500
                     </a>
                     <p className="text-sm text-muted-foreground mt-1">Mon-Fri 8am-6pm</p>
                   </CardContent>
@@ -115,8 +115,8 @@ export default function Contact() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <a href="mailto:info@mobiletyrevano.uk" className="text-lg font-semibold hover:text-accent transition-colors break-all">
-                      info@mobiletyrevano.uk
+                    <a href="mailto:sales@mobiletyrevancity.co.uk" className="text-lg font-semibold hover:text-accent transition-colors break-all">
+                      sales@mobiletyrevancity.co.uk
                     </a>
                     <p className="text-sm text-muted-foreground mt-1">We reply within 24 hours</p>
                   </CardContent>
