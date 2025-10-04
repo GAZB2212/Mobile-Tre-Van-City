@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfiguratorProvider } from "@/lib/ConfiguratorContext";
+import ScrollRestoration from "@/components/ScrollRestoration";
 import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
@@ -76,6 +77,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ConfiguratorProvider>
         <TooltipProvider>
+          <ScrollRestoration />
           <Toaster />
           <Router />
         </TooltipProvider>
