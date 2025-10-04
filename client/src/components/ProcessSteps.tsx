@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Car, Package, Sparkles, CreditCard } from "lucide-react";
 import { ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 
 const services = [
   {
@@ -47,9 +48,11 @@ export default function ProcessSteps() {
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                 {service.description}
               </p>
-              <Button variant="link" className="text-foreground hover:text-accent p-0 h-auto" data-testid={`button-learn-more-${index}`}>
-                Learn More <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
+              <Link href="/how-it-works">
+                <Button variant="link" className="text-foreground hover:text-accent p-0 h-auto" data-testid={`button-learn-more-${index}`}>
+                  Learn More <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
             </div>
           ))}
         </div>
