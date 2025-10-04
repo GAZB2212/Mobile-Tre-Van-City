@@ -53,7 +53,7 @@ export default function FeaturedStock() {
               Featured Stock
             </h2>
             <p className="text-lg text-muted-foreground">
-              Ready-to-go mobile tyre vans from our current inventory
+              Quality base vehicles available for conversion from our current stock
             </p>
           </div>
           <Button variant="outline" size="lg" className="hidden md:flex border-accent text-accent hover:bg-accent hover:text-white" asChild data-testid="button-view-all-stock">
