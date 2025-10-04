@@ -29,9 +29,12 @@ export default function TrustStrip() {
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="text-center space-y-2"
+              className="text-center space-y-3"
               data-testid={`feature-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
             >
+              <div className="flex justify-center mb-2">
+                <feature.icon className="w-12 h-12 text-accent" strokeWidth={1.5} />
+              </div>
               <h3 className="text-lg md:text-xl font-bold text-white">
                 {feature.title}
               </h3>
