@@ -24,9 +24,9 @@ export default function AdminVans() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDialogTab, setEditDialogTab] = useState<string>("details");
 
-  // Fetch vans
+  // Fetch vans (using admin endpoint to see all vans including unpublished)
   const { data: vans = [], isLoading } = useQuery<Van[]>({
-    queryKey: ['/api/vans'],
+    queryKey: ['/api/admin/vans'],
   });
 
   // Create van mutation
@@ -37,7 +37,7 @@ export default function AdminVans() {
     },
     onSuccess: async (createdVan: Van) => {
       console.log('Van created successfully:', createdVan);
-      await queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       setIsCreateDialogOpen(false);
       toast({
         title: "Success",
@@ -67,7 +67,7 @@ export default function AdminVans() {
       await apiRequest('PUT', `/api/admin/vans/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       setIsEditDialogOpen(false);
       setEditingVan(null);
       toast({
@@ -90,7 +90,7 @@ export default function AdminVans() {
       await apiRequest('DELETE', `/api/admin/vans/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       toast({
         title: "Success",
         description: "Van deleted successfully.",
