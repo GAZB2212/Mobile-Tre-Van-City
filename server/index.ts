@@ -72,9 +72,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Bootstrap admin user
-  await bootstrapAdmin();
-  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -105,5 +102,13 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Bootstrap admin user AFTER server is listening
+    // This prevents blocking deployment initialization
+    setImmediate(() => {
+      bootstrapAdmin().catch(err => {
+        console.error("Failed to bootstrap admin:", err);
+      });
+    });
   });
 })();
