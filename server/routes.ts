@@ -622,13 +622,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get mileage from latest MOT
       let currentMileage = 0;
-      if (motData?.MotTests && motData.MotTests.length > 0) {
-        const latestMot = motData.MotTests[0];
-        currentMileage = parseInt(latestMot.OdometerResultValue) || 0;
+      if (motData?.motHistory && motData.motHistory.length > 0) {
+        const latestMot = motData.motHistory[0];
+        currentMileage = parseInt(latestMot.odometerValue) || 0;
       }
 
       // Determine van size from body type
-      const bodyType = specsData?.Description || regData.BodyStyle || '';
+      const bodyType = specsData?.BodyDetails?.WheelBaseType || specsData?.BodyDetails?.BodyStyle || '';
       let vanSize = 'MWB';
       if (bodyType.toLowerCase().includes('short')) vanSize = 'SWB';
       else if (bodyType.toLowerCase().includes('long')) vanSize = 'LWB';
@@ -637,19 +637,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Transform API response to our van format
       const vanData = {
         registration: cleanReg,
-        make: regData.Make || '',
-        model: regData.Model || '',
-        year: parseInt(regData.YearOfManufacture) || new Date().getFullYear(),
+        make: regData.make || '',
+        model: regData.model || '',
+        year: parseInt(regData.yearOfManufacture) || new Date().getFullYear(),
         mileage: currentMileage,
         specs: {
-          transmission: specsData?.Transmission || regData.Transmission || 'Manual',
-          fuel: regData.FuelType || 'Diesel',
+          transmission: specsData?.Transmission?.TransmissionType || 'Manual',
+          fuel: regData.fuelType || 'Diesel',
           size: vanSize,
-          doors: parseInt(regData.NumberOfDoors) || undefined,
-          engine: regData.EngineCapacity ? `${(parseInt(regData.EngineCapacity) / 1000).toFixed(1)}L` : '',
+          doors: specsData?.BodyDetails?.NumberOfDoors || specsData?.DvlaTechnicalDetails?.SeatCountIncludingDriver || undefined,
+          engine: regData.engineCapacity ? `${(regData.engineCapacity / 1000).toFixed(1)}L` : '',
         },
         // Suggest title
-        title: `${regData.YearOfManufacture} ${regData.Make} ${regData.Model}`,
+        title: `${regData.yearOfManufacture} ${regData.make} ${regData.model}`,
       };
 
       console.log('Vehicle lookup success - returning data:', JSON.stringify(vanData, null, 2));
