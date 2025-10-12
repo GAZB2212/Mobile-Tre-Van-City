@@ -185,13 +185,13 @@ export default function AdminVans() {
           slug: slug,
           make: data.make,
           model: data.model,
-          year: data.year,
-          mileage: data.mileage,
+          year: String(data.year),
+          mileage: String(data.mileage),
           price: '', // Leave blank for admin to fill
           transmission: data.specs.transmission,
           size: data.specs.size,
           fuel: data.specs.fuel,
-          doors: data.specs.doors || '',
+          doors: data.specs.doors ? String(data.specs.doors) : '',
           engine: data.specs.engine || '',
         });
         toast({
