@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
 import { Link } from "wouter";
 import { VanImageGallery } from "@/components/VanImageGallery";
+import { ImageUpload } from "@/components/ImageUpload";
 import type { Van, InsertVan } from "@shared/schema";
 
 export default function AdminVans() {
@@ -106,6 +107,9 @@ export default function AdminVans() {
   });
 
   const handleCreateVan = (formData: FormData) => {
+    const imagesJson = formData.get('images') as string;
+    const images = imagesJson ? JSON.parse(imagesJson) : [];
+    
     const vanData: InsertVan = {
       slug: formData.get('slug') as string,
       title: formData.get('title') as string,
@@ -122,7 +126,7 @@ export default function AdminVans() {
         doors: parseInt(formData.get('doors') as string) || undefined,
         engine: formData.get('engine') as string || undefined,
       },
-      images: [],
+      images: images,
       heroImage: formData.get('heroImage') as string || undefined,
       published: formData.get('published') === 'true',
     };
@@ -132,6 +136,9 @@ export default function AdminVans() {
 
   const handleUpdateVan = (formData: FormData) => {
     if (!editingVan) return;
+
+    const imagesJson = formData.get('images') as string;
+    const images = imagesJson ? JSON.parse(imagesJson) : [];
 
     const vanData: Partial<InsertVan> = {
       slug: formData.get('slug') as string,
@@ -149,6 +156,7 @@ export default function AdminVans() {
         doors: parseInt(formData.get('doors') as string) || undefined,
         engine: formData.get('engine') as string || undefined,
       },
+      images: images,
       heroImage: formData.get('heroImage') as string || undefined,
       published: formData.get('published') === 'true',
     };
@@ -158,6 +166,7 @@ export default function AdminVans() {
 
   const VanForm = ({ van, onSubmit, isLoading }: { van?: Van; onSubmit: (formData: FormData) => void; isLoading: boolean }) => {
     const [registration, setRegistration] = useState('');
+    const [uploadedImages, setUploadedImages] = useState<string[]>(van?.images || []);
     const [formValues, setFormValues] = useState({
       title: van?.title || '',
       slug: van?.slug || '',
@@ -424,14 +433,17 @@ export default function AdminVans() {
           </div>
 
           <div>
-            <Label htmlFor="heroImage">Hero Image URL (optional)</Label>
-            <Input
-              id="heroImage"
-              name="heroImage"
-              defaultValue={van?.heroImage || ''}
-              placeholder="https://example.com/image.jpg"
-              data-testid="input-van-hero-image"
+            <Label>Van Images</Label>
+            <p className="text-sm text-muted-foreground mb-2">
+              Upload images of the van. The first image will be used as the hero image.
+            </p>
+            <ImageUpload
+              onImagesUploaded={(urls) => setUploadedImages(urls)}
+              maxFiles={10}
+              existingImages={uploadedImages}
             />
+            <input type="hidden" name="images" value={JSON.stringify(uploadedImages)} />
+            <input type="hidden" name="heroImage" value={uploadedImages[0] || ''} />
           </div>
 
           <div className="flex items-center space-x-4">
