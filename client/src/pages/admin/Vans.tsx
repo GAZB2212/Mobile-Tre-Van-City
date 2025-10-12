@@ -119,7 +119,7 @@ export default function AdminVans() {
       year: parseInt(formData.get('year') as string),
       mileage: parseInt(formData.get('mileage') as string),
       price: parseInt(formData.get('price') as string) * 100, // Convert to pence
-      vatIncluded: formData.get('vatIncluded') === 'true',
+      vatIncluded: formData.get('vatIncluded') === 'on',
       specs: {
         transmission: formData.get('transmission') as string,
         size: formData.get('size') as string,
@@ -129,7 +129,7 @@ export default function AdminVans() {
       },
       images: images,
       heroImage: formData.get('heroImage') as string || undefined,
-      published: formData.get('published') === 'true',
+      published: formData.get('published') === 'on',
     };
 
     createVanMutation.mutate(vanData);
@@ -149,7 +149,7 @@ export default function AdminVans() {
       year: parseInt(formData.get('year') as string),
       mileage: parseInt(formData.get('mileage') as string),
       price: parseInt(formData.get('price') as string) * 100, // Convert to pence
-      vatIncluded: formData.get('vatIncluded') === 'true',
+      vatIncluded: formData.get('vatIncluded') === 'on',
       specs: {
         transmission: formData.get('transmission') as string,
         size: formData.get('size') as string,
@@ -159,7 +159,7 @@ export default function AdminVans() {
       },
       images: images,
       heroImage: formData.get('heroImage') as string || undefined,
-      published: formData.get('published') === 'true',
+      published: formData.get('published') === 'on',
     };
 
     updateVanMutation.mutate({ id: editingVan.id, data: vanData });
