@@ -188,8 +188,9 @@ export default function AdminVans() {
         return response.json();
       },
       onSuccess: (data) => {
+        console.log('Vehicle lookup data received:', data);
         const slug = `${data.make}-${data.model}-${data.year}`.toLowerCase().replace(/\s+/g, '-');
-        setFormValues({
+        const newFormValues = {
           title: data.title,
           slug: slug,
           make: data.make,
@@ -202,7 +203,9 @@ export default function AdminVans() {
           fuel: data.specs.fuel,
           doors: data.specs.doors ? String(data.specs.doors) : '',
           engine: data.specs.engine || '',
-        });
+        };
+        console.log('Setting form values to:', newFormValues);
+        setFormValues(newFormValues);
         toast({
           title: "Vehicle found",
           description: `Details loaded for ${data.make} ${data.model}`,
