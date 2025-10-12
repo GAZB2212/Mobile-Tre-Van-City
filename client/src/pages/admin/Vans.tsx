@@ -196,8 +196,8 @@ export default function AdminVans() {
           make: data.make,
           model: data.model,
           year: String(data.year),
-          mileage: String(data.mileage),
-          price: '', // Leave blank for admin to fill
+          mileage: formValues.mileage, // Keep existing mileage (manual entry only)
+          price: formValues.price, // Keep existing price
           transmission: data.specs.transmission,
           size: data.specs.size,
           fuel: data.specs.fuel,

@@ -620,13 +620,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Vehicle not found" });
       }
 
-      // Get mileage from latest MOT
-      let currentMileage = 0;
-      if (motData?.motHistory && motData.motHistory.length > 0) {
-        const latestMot = motData.motHistory[0];
-        currentMileage = parseInt(latestMot.odometerValue) || 0;
-      }
-
       // Determine van size from body type
       const bodyType = specsData?.BodyDetails?.WheelBaseType || specsData?.BodyDetails?.BodyStyle || '';
       let vanSize = 'MWB';
@@ -640,7 +633,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         make: regData.make || '',
         model: regData.model || '',
         year: parseInt(regData.yearOfManufacture) || new Date().getFullYear(),
-        mileage: currentMileage,
         specs: {
           transmission: specsData?.Transmission?.TransmissionType || 'Manual',
           fuel: regData.fuelType || 'Diesel',
