@@ -196,8 +196,8 @@ export default function AdminVans() {
           make: data.make,
           model: data.model,
           year: String(data.year),
-          mileage: formValues.mileage, // Keep existing mileage (manual entry only)
-          price: formValues.price, // Keep existing price
+          mileage: '', // Keep blank for manual entry
+          price: '', // Keep blank for manual entry
           transmission: data.specs.transmission,
           size: data.specs.size,
           fuel: data.specs.fuel,
@@ -205,7 +205,17 @@ export default function AdminVans() {
           engine: data.specs.engine || '',
         };
         console.log('Setting form values to:', newFormValues);
-        setFormValues(newFormValues);
+        setFormValues(prev => {
+          console.log('Previous form values:', prev);
+          console.log('New form values:', newFormValues);
+          return newFormValues;
+        });
+        
+        // Verify state was set
+        setTimeout(() => {
+          console.log('Form values after setState (should be updated):', formValues);
+        }, 100);
+        
         toast({
           title: "Vehicle found",
           description: `Details loaded for ${data.make} ${data.model}`,
