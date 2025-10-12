@@ -317,7 +317,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           <Switch
             id="published"
             name="published"
-            defaultChecked={van?.published !== false}
+            defaultChecked={van ? van.published !== false : true}
             data-testid="switch-van-published"
           />
           <Label htmlFor="published">Published</Label>
