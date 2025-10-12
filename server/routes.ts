@@ -647,6 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: `${regData.YearOfManufacture} ${regData.Make} ${regData.Model}`,
       };
 
+      console.log('Vehicle lookup success - returning data:', JSON.stringify(vanData, null, 2));
       res.json(vanData);
     } catch (error) {
       console.error("Error looking up vehicle:", error);
