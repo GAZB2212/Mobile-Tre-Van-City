@@ -1297,4 +1297,190 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+import { db } from "./db";
+import * as schema from "@shared/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
+
+export class DbStorage implements IStorage {
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.users).where(eq(schema.users.username, username));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(schema.users).values(insertUser).returning();
+    return result[0];
+  }
+
+  // Vans
+  async getVans(filters?: { make?: string; year?: number; maxPrice?: number; minPrice?: number; transmission?: string; size?: string }): Promise<Van[]> {
+    let query = db.select().from(schema.vans).where(eq(schema.vans.published, true));
+    
+    if (filters) {
+      const conditions = [];
+      if (filters.make) conditions.push(eq(schema.vans.make, filters.make));
+      if (filters.year) conditions.push(eq(schema.vans.year, filters.year));
+      if (filters.minPrice) conditions.push(gte(schema.vans.price, filters.minPrice));
+      if (filters.maxPrice) conditions.push(lte(schema.vans.price, filters.maxPrice));
+      
+      if (conditions.length > 0) {
+        query = db.select().from(schema.vans).where(and(eq(schema.vans.published, true), ...conditions));
+      }
+    }
+    
+    return await query;
+  }
+
+  async getVansAdmin(): Promise<Van[]> {
+    return await db.select().from(schema.vans);
+  }
+
+  async getVan(id: string): Promise<Van | undefined> {
+    const result = await db.select().from(schema.vans).where(eq(schema.vans.id, id));
+    return result[0];
+  }
+
+  async getVanBySlug(slug: string): Promise<Van | undefined> {
+    const result = await db.select().from(schema.vans).where(eq(schema.vans.slug, slug));
+    return result[0];
+  }
+
+  async createVan(insertVan: InsertVan): Promise<Van> {
+    const result = await db.insert(schema.vans).values(insertVan).returning();
+    return result[0];
+  }
+
+  async updateVan(id: string, insertVan: Partial<InsertVan>): Promise<Van | undefined> {
+    const result = await db.update(schema.vans).set(insertVan).where(eq(schema.vans.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteVan(id: string): Promise<boolean> {
+    const result = await db.delete(schema.vans).where(eq(schema.vans.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Kits
+  async getKits(): Promise<Kit[]> {
+    return await db.select().from(schema.kits).where(eq(schema.kits.published, true));
+  }
+
+  async getKit(id: string): Promise<Kit | undefined> {
+    const result = await db.select().from(schema.kits).where(eq(schema.kits.id, id));
+    return result[0];
+  }
+
+  async createKit(insertKit: InsertKit): Promise<Kit> {
+    const result = await db.insert(schema.kits).values(insertKit).returning();
+    return result[0];
+  }
+
+  async updateKit(id: string, insertKit: Partial<InsertKit>): Promise<Kit | undefined> {
+    const result = await db.update(schema.kits).set(insertKit).where(eq(schema.kits.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteKit(id: string): Promise<boolean> {
+    const result = await db.delete(schema.kits).where(eq(schema.kits.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Upgrades
+  async getUpgrades(category?: string): Promise<Upgrade[]> {
+    if (category) {
+      return await db.select().from(schema.upgrades).where(
+        and(eq(schema.upgrades.published, true), eq(schema.upgrades.category, category))
+      );
+    }
+    return await db.select().from(schema.upgrades).where(eq(schema.upgrades.published, true));
+  }
+
+  async getUpgrade(id: string): Promise<Upgrade | undefined> {
+    const result = await db.select().from(schema.upgrades).where(eq(schema.upgrades.id, id));
+    return result[0];
+  }
+
+  async createUpgrade(insertUpgrade: InsertUpgrade): Promise<Upgrade> {
+    const result = await db.insert(schema.upgrades).values(insertUpgrade).returning();
+    return result[0];
+  }
+
+  async updateUpgrade(id: string, insertUpgrade: Partial<InsertUpgrade>): Promise<Upgrade | undefined> {
+    const result = await db.update(schema.upgrades).set(insertUpgrade).where(eq(schema.upgrades.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteUpgrade(id: string): Promise<boolean> {
+    const result = await db.delete(schema.upgrades).where(eq(schema.upgrades.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Quotes
+  async getQuotes(): Promise<Quote[]> {
+    return await db.select().from(schema.quotes);
+  }
+
+  async getQuote(id: string): Promise<Quote | undefined> {
+    const result = await db.select().from(schema.quotes).where(eq(schema.quotes.id, id));
+    return result[0];
+  }
+
+  async createQuote(insertQuote: InsertQuote): Promise<Quote> {
+    const result = await db.insert(schema.quotes).values(insertQuote).returning();
+    return result[0];
+  }
+
+  async updateQuote(id: string, updateQuote: Partial<Quote>): Promise<Quote | undefined> {
+    const result = await db.update(schema.quotes).set(updateQuote).where(eq(schema.quotes.id, id)).returning();
+    return result[0];
+  }
+
+  // Leads
+  async getLeads(): Promise<Lead[]> {
+    return await db.select().from(schema.leads);
+  }
+
+  async getLead(id: string): Promise<Lead | undefined> {
+    const result = await db.select().from(schema.leads).where(eq(schema.leads.id, id));
+    return result[0];
+  }
+
+  async createLead(insertLead: InsertLead): Promise<Lead> {
+    const result = await db.insert(schema.leads).values(insertLead).returning();
+    return result[0];
+  }
+
+  // Finance Plans
+  async getFinancePlans(): Promise<FinancePlan[]> {
+    return await db.select().from(schema.financePlans).where(eq(schema.financePlans.published, true));
+  }
+
+  async getFinancePlan(id: string): Promise<FinancePlan | undefined> {
+    const result = await db.select().from(schema.financePlans).where(eq(schema.financePlans.id, id));
+    return result[0];
+  }
+
+  async createFinancePlan(insertPlan: InsertFinancePlan): Promise<FinancePlan> {
+    const result = await db.insert(schema.financePlans).values(insertPlan).returning();
+    return result[0];
+  }
+
+  async updateFinancePlan(id: string, insertPlan: Partial<InsertFinancePlan>): Promise<FinancePlan | undefined> {
+    const result = await db.update(schema.financePlans).set(insertPlan).where(eq(schema.financePlans.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteFinancePlan(id: string): Promise<boolean> {
+    const result = await db.delete(schema.financePlans).where(eq(schema.financePlans.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+}
+
+export const storage = new DbStorage();
