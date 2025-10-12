@@ -182,57 +182,41 @@ export default function AdminVans() {
       engine: van?.specs.engine || '',
     });
 
-    const lookupMutation = useMutation({
-      mutationFn: async (reg: string) => {
-        const response = await apiRequest('POST', '/api/admin/vehicle-lookup', { registration: reg });
-        return response.json();
-      },
-      onSuccess: (data) => {
-        console.log('Vehicle lookup data received:', data);
+    const handleLookup = async () => {
+      if (!registration.trim()) return;
+      
+      try {
+        const response = await apiRequest('POST', '/api/admin/vehicle-lookup', { registration });
+        const data = await response.json();
+        
         const slug = `${data.make}-${data.model}-${data.year}`.toLowerCase().replace(/\s+/g, '-');
-        const newFormValues = {
+        
+        // Update form using functional setState to ensure proper update
+        setFormValues({
           title: data.title,
           slug: slug,
           make: data.make,
           model: data.model,
           year: String(data.year),
-          mileage: '', // Keep blank for manual entry
-          price: '', // Keep blank for manual entry
+          mileage: '', // Manual entry
+          price: '', // Manual entry
           transmission: data.specs.transmission,
           size: data.specs.size,
           fuel: data.specs.fuel,
           doors: data.specs.doors ? String(data.specs.doors) : '',
           engine: data.specs.engine || '',
-        };
-        console.log('Setting form values to:', newFormValues);
-        setFormValues(prev => {
-          console.log('Previous form values:', prev);
-          console.log('New form values:', newFormValues);
-          return newFormValues;
         });
-        
-        // Verify state was set
-        setTimeout(() => {
-          console.log('Form values after setState (should be updated):', formValues);
-        }, 100);
         
         toast({
           title: "Vehicle found",
           description: `Details loaded for ${data.make} ${data.model}`,
         });
-      },
-      onError: (error: any) => {
+      } catch (error) {
         toast({
           title: "Lookup failed",
-          description: error.message || "Could not find vehicle with that registration",
+          description: "Could not find vehicle with that registration",
           variant: "destructive",
         });
-      },
-    });
-
-    const handleLookup = () => {
-      if (registration.trim()) {
-        lookupMutation.mutate(registration);
       }
     };
 
@@ -261,17 +245,11 @@ export default function AdminVans() {
                   <Button
                     type="button"
                     onClick={handleLookup}
-                    disabled={!registration.trim() || lookupMutation.isPending}
+                    disabled={!registration.trim()}
                     data-testid="button-lookup"
                   >
-                    {lookupMutation.isPending ? (
-                      "Looking up..."
-                    ) : (
-                      <>
-                        <Search className="w-4 h-4 mr-2" />
-                        Lookup
-                      </>
-                    )}
+                    <Search className="w-4 h-4 mr-2" />
+                    Lookup
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
