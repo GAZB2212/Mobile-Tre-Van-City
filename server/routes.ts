@@ -611,6 +611,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const specsData = responses[1].status === 'fulfilled' ? responses[1].value?.data : null;
       const motData = responses[2].status === 'fulfilled' ? responses[2].value?.data : null;
 
+      console.log('Raw API responses:');
+      console.log('Registration data:', JSON.stringify(regData, null, 2));
+      console.log('Specs data:', JSON.stringify(specsData, null, 2));
+      console.log('MOT data:', JSON.stringify(motData, null, 2));
+
       if (!regData) {
         return res.status(404).json({ error: "Vehicle not found" });
       }
