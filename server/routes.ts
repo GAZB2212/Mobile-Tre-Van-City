@@ -552,7 +552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vehicle Registration Lookup (using Vehicle Data Global API)
+  // Vehicle Registration Lookup (using CheckCarDetails API)
   app.post("/api/admin/vehicle-lookup", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { registration } = req.body;
@@ -571,51 +571,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cleanReg = registration.replace(/\s+/g, '').toUpperCase();
       console.log('Looking up registration:', cleanReg);
 
-      // Use Vehicle Data Global API
-      const apiUrl = `https://uk.api.vehicledataglobal.com/r2/lookup?apiKey=${apiKey}&packageName=SpecAndOptionsDetails&searchTerm=${cleanReg}`;
-      
-      const response = await fetch(apiUrl);
+      // Call 3 CheckCarDetails endpoints in parallel
+      const endpoints = [
+        {
+          name: 'vehicleregistration',
+          url: `https://api.checkcardetails.co.uk/vehicledata/vehicleregistration?apikey=${apiKey}&vrm=${cleanReg}`
+        },
+        {
+          name: 'vehiclespecs',
+          url: `https://api.checkcardetails.co.uk/vehicledata/vehiclespecs?apikey=${apiKey}&vrm=${cleanReg}`
+        },
+        {
+          name: 'mot',
+          url: `https://api.checkcardetails.co.uk/vehicledata/mot?apikey=${apiKey}&vrm=${cleanReg}`
+        }
+      ];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Vehicle Data API error (${response.status}):`, errorText);
-        return res.status(response.status).json({ 
-          error: `API request failed: ${response.status} ${response.statusText}`,
-          details: errorText 
-        });
+      const responses = await Promise.allSettled(
+        endpoints.map(async endpoint => {
+          const response = await fetch(endpoint.url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'MTVC-API/1.0',
+              'Accept': '*/*'
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            return { endpoint: endpoint.name, data, status: response.status };
+          }
+          throw new Error(`${endpoint.name} failed: ${response.status}`);
+        })
+      );
+
+      // Extract successful responses
+      const regData = responses[0].status === 'fulfilled' ? responses[0].value?.data : null;
+      const specsData = responses[1].status === 'fulfilled' ? responses[1].value?.data : null;
+      const motData = responses[2].status === 'fulfilled' ? responses[2].value?.data : null;
+
+      if (!regData) {
+        return res.status(404).json({ error: "Vehicle not found" });
       }
 
-      const data = await response.json();
-
-      // Check response status
-      if (!data.responseInformation?.isSuccessStatusCode) {
-        return res.status(404).json({ 
-          error: data.responseInformation?.statusMessage || "Vehicle not found" 
-        });
+      // Get mileage from latest MOT
+      let currentMileage = 0;
+      if (motData?.MotTests && motData.MotTests.length > 0) {
+        const latestMot = motData.MotTests[0];
+        currentMileage = parseInt(latestMot.OdometerResultValue) || 0;
       }
 
-      const vehicleData = data.results?.specAndOptionsDetails;
-
-      if (!vehicleData) {
-        return res.status(404).json({ error: "Vehicle data not available" });
-      }
+      // Determine van size from body type
+      const bodyType = specsData?.Description || regData.BodyStyle || '';
+      let vanSize = 'MWB';
+      if (bodyType.toLowerCase().includes('short')) vanSize = 'SWB';
+      else if (bodyType.toLowerCase().includes('long')) vanSize = 'LWB';
+      else if (bodyType.toLowerCase().includes('medium')) vanSize = 'MWB';
 
       // Transform API response to our van format
       const vanData = {
         registration: cleanReg,
-        make: vehicleData.make || '',
-        model: vehicleData.model || '',
-        year: parseInt(vehicleData.yearOfManufacture) || new Date().getFullYear(),
-        mileage: 0, // Not available in this package
+        make: regData.Make || '',
+        model: regData.Model || '',
+        year: parseInt(regData.YearOfManufacture) || new Date().getFullYear(),
+        mileage: currentMileage,
         specs: {
-          transmission: 'Manual', // Not available in this package
-          fuel: 'Diesel', // Default for vans
-          size: 'MWB', // Default
-          doors: undefined,
-          engine: '',
+          transmission: specsData?.Transmission || regData.Transmission || 'Manual',
+          fuel: regData.FuelType || 'Diesel',
+          size: vanSize,
+          doors: parseInt(regData.NumberOfDoors) || undefined,
+          engine: regData.EngineCapacity ? `${(parseInt(regData.EngineCapacity) / 1000).toFixed(1)}L` : '',
         },
         // Suggest title
-        title: `${vehicleData.yearOfManufacture} ${vehicleData.make} ${vehicleData.model}`,
+        title: `${regData.YearOfManufacture} ${regData.Make} ${regData.Model}`,
       };
 
       res.json(vanData);
