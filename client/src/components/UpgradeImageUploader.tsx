@@ -198,7 +198,7 @@ export function UpgradeImageUploader({
             <Card key={index} className="relative group overflow-hidden">
               <div className="aspect-square relative">
                 <img
-                  src={`/objects${imagePath}`}
+                  src={imagePath}
                   alt={`Upgrade image ${index + 1}`}
                   className="w-full h-full object-cover"
                   data-testid={`img-upgrade-preview-${index}`}
