@@ -85,6 +85,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
   const isEditing = !!upgrade;
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<VariantOption[]>([]);
+  const [cachedPrice, setCachedPrice] = useState<string>("");
 
   // Get variants for this upgrade (children)
   const upgradeVariants = allUpgrades.filter(u => u.parentId === upgrade?.id);
@@ -111,12 +112,17 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
 
   // Reset form when dialog opens
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Clear cached price when dialog closes
+      setCachedPrice("");
+      return;
+    }
     
     if (upgrade) {
       const children = allUpgrades.filter(u => u.parentId === upgrade.id);
       const hasChildren = children.length > 0;
       setHasVariants(hasChildren);
+      setCachedPrice(""); // Clear cache for fresh edit
       
       // Load existing variants
       if (hasChildren) {
@@ -143,6 +149,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
     } else {
       setHasVariants(false);
       setVariants([]);
+      setCachedPrice("");
       form.reset({
         name: "",
         category: "",
@@ -299,6 +306,38 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
   });
 
   const onSubmit = (data: UpgradeFormData) => {
+    // Validate variants if hasVariants is enabled
+    if (hasVariants) {
+      if (variants.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please add at least one variant option",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const invalidVariants = variants.filter(v => !v.name.trim() || !v.price || parseFloat(v.price) <= 0);
+      if (invalidVariants.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: "All variants must have a name and a price greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (!upgrade?.parentId) {
+      // Validate price for single upgrades (not child variants)
+      if (!data.price || parseFloat(data.price) <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Price is required and must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     if (isEditing) {
       updateMutation.mutate(data);
     } else {
@@ -390,7 +429,31 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                 </div>
                 <Switch
                   checked={hasVariants}
-                  onCheckedChange={setHasVariants}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      // When enabling variants, cache the current price and clear it
+                      const currentPrice = form.getValues("price");
+                      if (currentPrice) {
+                        setCachedPrice(currentPrice);
+                      }
+                      form.setValue("price", "");
+                      if (variants.length === 0) {
+                        setVariants([{ name: "", price: "" }]);
+                      }
+                    } else {
+                      // When disabling variants, restore cached price or require new entry
+                      if (cachedPrice) {
+                        form.setValue("price", cachedPrice);
+                      } else if (upgrade && upgrade.price > 0) {
+                        form.setValue("price", penceToPounds(upgrade.price));
+                      } else {
+                        // Require user to enter a price
+                        form.setValue("price", "");
+                      }
+                      setVariants([]);
+                    }
+                    setHasVariants(checked);
+                  }}
                   data-testid="switch-has-variants"
                 />
               </div>
@@ -425,47 +488,66 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               <div className="space-y-3 rounded-lg border p-4">
                 <h3 className="font-medium">Variants</h3>
                 <p className="text-sm text-muted-foreground">
-                  Add different options for this equipment (e.g., LWB, MWB)
+                  Add different options for this equipment (e.g., LWB, MWB). At least one variant is required.
                 </p>
                 
-                {variants.map((variant, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder="Variant name (e.g., LWB)"
-                      value={variant.name}
-                      onChange={(e) => {
-                        const newVariants = [...variants];
-                        newVariants[index].name = e.target.value;
-                        setVariants(newVariants);
-                      }}
-                      data-testid={`input-variant-name-${index}`}
-                    />
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Price (£)"
-                      value={variant.price}
-                      onChange={(e) => {
-                        const newVariants = [...variants];
-                        newVariants[index].price = e.target.value;
-                        setVariants(newVariants);
-                      }}
-                      data-testid={`input-variant-price-${index}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        setVariants(variants.filter((_, i) => i !== index));
-                      }}
-                      data-testid={`button-remove-variant-${index}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                {variants.length === 0 && (
+                  <p className="text-sm text-destructive">
+                    Please add at least one variant option
+                  </p>
+                )}
+                
+                {variants.map((variant, index) => {
+                  const hasError = !variant.name.trim() || !variant.price || parseFloat(variant.price) <= 0;
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Variant name (e.g., LWB)"
+                          value={variant.name}
+                          onChange={(e) => {
+                            const newVariants = [...variants];
+                            newVariants[index].name = e.target.value;
+                            setVariants(newVariants);
+                          }}
+                          className={!variant.name.trim() ? "border-destructive" : ""}
+                          data-testid={`input-variant-name-${index}`}
+                        />
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="Price (£)"
+                          value={variant.price}
+                          onChange={(e) => {
+                            const newVariants = [...variants];
+                            newVariants[index].price = e.target.value;
+                            setVariants(newVariants);
+                          }}
+                          className={(!variant.price || parseFloat(variant.price) <= 0) ? "border-destructive" : ""}
+                          data-testid={`input-variant-price-${index}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setVariants(variants.filter((_, i) => i !== index));
+                          }}
+                          data-testid={`button-remove-variant-${index}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {hasError && (
+                        <p className="text-xs text-destructive">
+                          Both name and price are required
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
                 
                 <Button
                   type="button"

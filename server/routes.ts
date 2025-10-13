@@ -921,9 +921,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/upgrades", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const upgradeData = insertUpgradeSchema.parse(req.body);
+      
+      // Validate pricing: parent upgrades (no parentId) must have price > 0 OR have children
+      if (!upgradeData.parentId && upgradeData.price === 0) {
+        // Check if this will have variant children by checking if it's referenced as a parent
+        // For creation, we can't check existing children, so we must enforce price > 0
+        // OR this validation happens after variants are created
+        // For now, we'll allow 0 price only if this is explicitly a variant parent
+        // The frontend should handle this, but we add a warning
+        console.warn(`Creating upgrade ${upgradeData.name} with price 0 - assuming it will have variants`);
+      }
+      
+      // Validate variant children must have price > 0
+      if (upgradeData.parentId && upgradeData.price <= 0) {
+        return res.status(400).json({ 
+          error: "Variant upgrades must have a price greater than 0" 
+        });
+      }
+      
       const upgrade = await storage.createUpgrade(upgradeData);
       res.json(upgrade);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid upgrade data", details: error.errors });
+      }
       res.status(400).json({ error: "Failed to create upgrade" });
     }
   });
@@ -931,12 +952,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/upgrades/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const upgradeData = insertUpgradeSchema.partial().parse(req.body);
+      
+      // Validate variant children must have price > 0 if price is being updated
+      if (upgradeData.parentId && upgradeData.price !== undefined && upgradeData.price <= 0) {
+        return res.status(400).json({ 
+          error: "Variant upgrades must have a price greater than 0" 
+        });
+      }
+      
       const upgrade = await storage.updateUpgrade(req.params.id, upgradeData);
       if (!upgrade) {
         return res.status(404).json({ error: "Upgrade not found" });
       }
       res.json(upgrade);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid upgrade data", details: error.errors });
+      }
       res.status(400).json({ error: "Failed to update upgrade" });
     }
   });
