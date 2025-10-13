@@ -12,6 +12,8 @@ import type { Van } from "@shared/schema";
 
 export default function Stock() {
   const [makeFilter, setMakeFilter] = useState<string>("all");
+  const [modelFilter, setModelFilter] = useState<string>("all");
+  const [yearFilter, setYearFilter] = useState<string>("all");
   const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
   const [maxPrice, setMaxPrice] = useState<string>("");
   const [, setLocation] = useLocation();
@@ -27,9 +29,13 @@ export default function Stock() {
   };
 
   const uniqueMakes = Array.from(new Set(vans.map(van => van.make))).sort();
+  const uniqueModels = Array.from(new Set(vans.map(van => van.model))).sort();
+  const uniqueYears = Array.from(new Set(vans.map(van => van.year))).sort((a, b) => b - a);
 
   const filteredVans = vans.filter(van => {
     if (makeFilter && makeFilter !== "all" && van.make !== makeFilter) return false;
+    if (modelFilter && modelFilter !== "all" && van.model !== modelFilter) return false;
+    if (yearFilter && yearFilter !== "all" && van.year.toString() !== yearFilter) return false;
     if (transmissionFilter && transmissionFilter !== "all" && van.specs.transmission !== transmissionFilter) return false;
     if (maxPrice && van.price > parseInt(maxPrice) * 100) return false;
     return true;
@@ -65,7 +71,7 @@ export default function Stock() {
       {/* Filters */}
       <section className="border-b bg-card/50">
         <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-2 block">Make</label>
               <Select value={makeFilter} onValueChange={setMakeFilter}>
@@ -76,6 +82,36 @@ export default function Stock() {
                   <SelectItem value="all">All Makes</SelectItem>
                   {uniqueMakes.map(make => (
                     <SelectItem key={make} value={make}>{make}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Model</label>
+              <Select value={modelFilter} onValueChange={setModelFilter}>
+                <SelectTrigger data-testid="select-model-filter">
+                  <SelectValue placeholder="All Models" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Models</SelectItem>
+                  {uniqueModels.map(model => (
+                    <SelectItem key={model} value={model}>{model}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">Year</label>
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger data-testid="select-year-filter">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {uniqueYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -112,6 +148,8 @@ export default function Stock() {
                 className="w-full"
                 onClick={() => {
                   setMakeFilter("all");
+                  setModelFilter("all");
+                  setYearFilter("all");
                   setTransmissionFilter("all");
                   setMaxPrice("");
                 }}
@@ -146,6 +184,8 @@ export default function Stock() {
                   variant="outline"
                   onClick={() => {
                     setMakeFilter("all");
+                    setModelFilter("all");
+                    setYearFilter("all");
                     setTransmissionFilter("all");
                     setMaxPrice("");
                   }}
