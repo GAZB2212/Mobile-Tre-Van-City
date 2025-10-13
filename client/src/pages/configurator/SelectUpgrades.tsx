@@ -158,7 +158,12 @@ export default function SelectUpgrades() {
     }
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, upgradeName?: string) => {
+    // Show "POA" for Garage Branding
+    if (upgradeName?.toLowerCase().includes('garage branding')) {
+      return 'POA';
+    }
+    
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP',
@@ -253,7 +258,7 @@ export default function SelectUpgrades() {
                                           </div>
                                         )}
                                         <Badge variant="secondary" className="flex-shrink-0">
-                                          {formatPrice(upgrade.price * (upgrade.allowQuantity && isSelected ? quantity : 1))}
+                                          {formatPrice(upgrade.price * (upgrade.allowQuantity && isSelected ? quantity : 1), upgrade.name)}
                                         </Badge>
                                       </div>
                                     </div>
@@ -304,7 +309,7 @@ export default function SelectUpgrades() {
                                       </label>
                                       {selectedVariant && (
                                         <Badge variant="secondary" className="flex-shrink-0">
-                                          {formatPrice(selectedVariant.price)}
+                                          {formatPrice(selectedVariant.price, parent.name)}
                                         </Badge>
                                       )}
                                     </div>
@@ -328,7 +333,7 @@ export default function SelectUpgrades() {
                                         <SelectContent>
                                           {variants.map((variant) => (
                                             <SelectItem key={variant.id} value={variant.id}>
-                                              {variant.variantName || variant.name} - {formatPrice(variant.price)}
+                                              {variant.variantName || variant.name} - {formatPrice(variant.price, parent.name)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
