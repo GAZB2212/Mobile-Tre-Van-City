@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -92,7 +93,7 @@ export default function SelectUpgrades() {
   };
 
   const handleQuantityChange = (upgradeId: string, quantity: number) => {
-    setUpgradeQuantities(prev => ({
+    setUpgradeQuantities((prev: Record<string, number>) => ({
       ...prev,
       [upgradeId]: quantity
     }));
@@ -112,7 +113,7 @@ export default function SelectUpgrades() {
 
     // Add the new variant
     if (variantId) {
-      setUpgrade(variantId);
+      addUpgrade(variantId);
     }
   };
 
