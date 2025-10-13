@@ -38,7 +38,7 @@ import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
@@ -687,6 +687,42 @@ export default function AdminUpgrades() {
     },
   });
 
+  const updateSortOrderMutation = useMutation({
+    mutationFn: async ({ id, sortOrder }: { id: string; sortOrder: number }) => {
+      return apiRequest("PATCH", `/api/admin/upgrades/${id}/sort-order`, { sortOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update sort order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMoveUp = (upgrade: Upgrade, categoryUpgrades: Upgrade[]) => {
+    const currentIndex = categoryUpgrades.findIndex(u => u.id === upgrade.id);
+    if (currentIndex > 0) {
+      const prevUpgrade = categoryUpgrades[currentIndex - 1];
+      // Swap sort orders
+      updateSortOrderMutation.mutate({ id: upgrade.id, sortOrder: prevUpgrade.sortOrder });
+      updateSortOrderMutation.mutate({ id: prevUpgrade.id, sortOrder: upgrade.sortOrder });
+    }
+  };
+
+  const handleMoveDown = (upgrade: Upgrade, categoryUpgrades: Upgrade[]) => {
+    const currentIndex = categoryUpgrades.findIndex(u => u.id === upgrade.id);
+    if (currentIndex < categoryUpgrades.length - 1) {
+      const nextUpgrade = categoryUpgrades[currentIndex + 1];
+      // Swap sort orders
+      updateSortOrderMutation.mutate({ id: upgrade.id, sortOrder: nextUpgrade.sortOrder });
+      updateSortOrderMutation.mutate({ id: nextUpgrade.id, sortOrder: upgrade.sortOrder });
+    }
+  };
+
   const handleEdit = (upgrade: Upgrade) => {
     setEditingUpgrade(upgrade);
     setDialogOpen(true);
@@ -711,7 +747,7 @@ export default function AdminUpgrades() {
     );
   }
 
-  // Group upgrades by category
+  // Group upgrades by category and sort by sortOrder
   const upgradesByCategory = upgrades.reduce((acc, upgrade) => {
     if (!acc[upgrade.category]) {
       acc[upgrade.category] = [];
@@ -719,6 +755,11 @@ export default function AdminUpgrades() {
     acc[upgrade.category].push(upgrade);
     return acc;
   }, {} as Record<string, Upgrade[]>);
+
+  // Sort each category by sortOrder
+  Object.keys(upgradesByCategory).forEach(category => {
+    upgradesByCategory[category].sort((a, b) => a.sortOrder - b.sortOrder);
+  });
 
   // Get all categories (from schema) to show empty categories too
   const allCategories = [...upgradeCategories];
@@ -811,6 +852,24 @@ export default function AdminUpgrades() {
                                   £{penceToPounds(upgrade.price)}
                                 </span>
                                 <div className="flex space-x-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleMoveUp(upgrade, categoryUpgrades)}
+                                    disabled={categoryUpgrades.findIndex(u => u.id === upgrade.id) === 0}
+                                    data-testid={`button-move-up-${upgrade.id}`}
+                                  >
+                                    <ArrowUp className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleMoveDown(upgrade, categoryUpgrades)}
+                                    disabled={categoryUpgrades.findIndex(u => u.id === upgrade.id) === categoryUpgrades.length - 1}
+                                    data-testid={`button-move-down-${upgrade.id}`}
+                                  >
+                                    <ArrowDown className="h-3 w-3" />
+                                  </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
