@@ -238,7 +238,7 @@ export default function SelectUpgrades() {
                                         {upgrade.name}
                                       </label>
                                       <div className="flex items-center gap-2 flex-shrink-0">
-                                        {isSelected && (
+                                        {isSelected && upgrade.allowQuantity && (
                                           <div className="flex items-center gap-1">
                                             <label className="text-xs text-muted-foreground whitespace-nowrap">Qty:</label>
                                             <Input
@@ -253,7 +253,7 @@ export default function SelectUpgrades() {
                                           </div>
                                         )}
                                         <Badge variant="secondary" className="flex-shrink-0">
-                                          {formatPrice(upgrade.price * quantity)}
+                                          {formatPrice(upgrade.price * (upgrade.allowQuantity && isSelected ? quantity : 1))}
                                         </Badge>
                                       </div>
                                     </div>

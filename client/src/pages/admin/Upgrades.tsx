@@ -51,6 +51,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   parentId: z.string().optional().nullable(),
   variantName: z.string().optional().nullable(),
   hasVariants: z.boolean().optional(),
+  allowQuantity: z.boolean().optional(),
 });
 
 type UpgradeFormData = z.infer<typeof upgradeFormSchema>;
@@ -107,6 +108,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       variantName: "",
       published: true,
       hasVariants: false,
+      allowQuantity: false,
     },
   });
 
@@ -145,6 +147,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         variantName: upgrade.variantName || "",
         published: upgrade.published,
         hasVariants: hasChildren,
+        allowQuantity: upgrade.allowQuantity || false,
       });
     } else {
       setHasVariants(false);
@@ -599,6 +602,28 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-upgrade-published"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="allowQuantity"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Allow Quantity Selection</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Let customers choose quantity for this upgrade
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-allow-quantity"
                     />
                   </FormControl>
                 </FormItem>
