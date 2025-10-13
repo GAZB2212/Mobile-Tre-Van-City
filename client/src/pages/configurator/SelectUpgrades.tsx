@@ -242,11 +242,13 @@ export default function SelectUpgrades() {
                                     id={`variant-group-${parent.id}`}
                                     checked={isSelected}
                                     onCheckedChange={(checked) => {
-                                      if (!checked) {
+                                      if (checked && variants.length > 0) {
+                                        // When checking, select the first variant automatically
+                                        handleVariantSelect(parent.id, variants[0].id);
+                                      } else {
                                         // Uncheck - remove any selected variant
                                         handleVariantSelect(parent.id, null);
                                       }
-                                      // When checking, the dropdown will handle the selection
                                     }}
                                     data-testid={`checkbox-variant-${parent.id}`}
                                   />
