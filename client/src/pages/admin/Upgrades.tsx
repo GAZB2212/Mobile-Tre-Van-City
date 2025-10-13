@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Upgrade } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
+import { useEffect } from "react";
 
 // Form validation schema - extend shared schema for price conversion
 const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
@@ -83,16 +84,43 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
   const form = useForm<UpgradeFormData>({
     resolver: zodResolver(upgradeFormSchema),
     defaultValues: {
-      name: upgrade?.name || "",
-      category: upgrade?.category || "",
-      description: upgrade?.description || "",
-      price: upgrade ? penceToPounds(upgrade.price) : "",
-      images: upgrade?.images || [],
-      parentId: upgrade?.parentId || "",
-      variantName: upgrade?.variantName || "",
-      published: upgrade?.published ?? true,
+      name: "",
+      category: "",
+      description: "",
+      price: "",
+      images: [],
+      parentId: "",
+      variantName: "",
+      published: true,
     },
   });
+
+  // Reset form when upgrade changes (for editing)
+  useEffect(() => {
+    if (upgrade) {
+      form.reset({
+        name: upgrade.name,
+        category: upgrade.category,
+        description: upgrade.description,
+        price: penceToPounds(upgrade.price),
+        images: upgrade.images,
+        parentId: upgrade.parentId || "",
+        variantName: upgrade.variantName || "",
+        published: upgrade.published,
+      });
+    } else {
+      form.reset({
+        name: "",
+        category: "",
+        description: "",
+        price: "",
+        images: [],
+        parentId: "",
+        variantName: "",
+        published: true,
+      });
+    }
+  }, [upgrade, form]);
 
   const createMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
