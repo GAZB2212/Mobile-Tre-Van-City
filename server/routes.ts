@@ -995,6 +995,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update upgrade sort order
+  app.patch("/api/admin/upgrades/:id/sort-order", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { sortOrder } = req.body;
+      
+      if (typeof sortOrder !== 'number') {
+        return res.status(400).json({ error: "sortOrder must be a number" });
+      }
+      
+      const upgrade = await storage.updateUpgrade(req.params.id, { sortOrder });
+      if (!upgrade) {
+        return res.status(404).json({ error: "Upgrade not found" });
+      }
+      res.json(upgrade);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update sort order" });
+    }
+  });
+
   // Admin CRUD endpoints for finance plans
   app.get("/api/admin/finance-plans", isAuthenticated, isAdmin, async (req, res) => {
     try {
