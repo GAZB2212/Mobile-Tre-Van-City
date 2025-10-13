@@ -350,7 +350,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Upgrade" : "Create New Upgrade"}
@@ -358,7 +358,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto flex-1 pr-2">
             <FormField
               control={form.control}
               name="name"
