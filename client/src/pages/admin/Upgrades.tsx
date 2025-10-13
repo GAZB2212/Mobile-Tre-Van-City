@@ -7,6 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -423,6 +429,18 @@ export default function AdminUpgrades() {
     );
   }
 
+  // Group upgrades by category
+  const upgradesByCategory = upgrades.reduce((acc, upgrade) => {
+    if (!acc[upgrade.category]) {
+      acc[upgrade.category] = [];
+    }
+    acc[upgrade.category].push(upgrade);
+    return acc;
+  }, {} as Record<string, Upgrade[]>);
+
+  // Get all categories (from schema) to show empty categories too
+  const allCategories = [...upgradeCategories];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -440,66 +458,7 @@ export default function AdminUpgrades() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {upgrades.map((upgrade: Upgrade) => (
-          <Card key={upgrade.id} className="hover-elevate">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div className="space-y-1">
-                <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
-                  {upgrade.name}
-                </CardTitle>
-                <Badge variant="secondary" data-testid={`text-upgrade-category-${upgrade.id}`}>
-                  {upgrade.category}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-1">
-                {upgrade.published ? (
-                  <Badge variant="default" data-testid={`badge-upgrade-published-${upgrade.id}`}>
-                    Published
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" data-testid={`badge-upgrade-draft-${upgrade.id}`}>
-                    Draft
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground" data-testid={`text-upgrade-description-${upgrade.id}`}>
-                  {upgrade.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold" data-testid={`text-upgrade-price-${upgrade.id}`}>
-                    £{penceToPounds(upgrade.price)}
-                  </span>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(upgrade)}
-                      data-testid={`button-edit-upgrade-${upgrade.id}`}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(upgrade.id)}
-                      disabled={deleteMutation.isPending}
-                      data-testid={`button-delete-upgrade-${upgrade.id}`}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {upgrades.length === 0 && (
+      {upgrades.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
@@ -513,6 +472,93 @@ export default function AdminUpgrades() {
             </Button>
           </CardContent>
         </Card>
+      ) : (
+        <Accordion type="multiple" defaultValue={allCategories} className="space-y-4">
+          {allCategories.map((category) => {
+            const categoryUpgrades = upgradesByCategory[category] || [];
+            
+            return (
+              <AccordionItem key={category} value={category} className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-semibold capitalize">
+                      {category.replace('-', ' ')}
+                    </h2>
+                    <Badge variant="secondary">{categoryUpgrades.length}</Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {categoryUpgrades.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      No upgrades in this category yet
+                    </p>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
+                      {categoryUpgrades.map((upgrade: Upgrade) => (
+                        <Card key={upgrade.id} className="hover-elevate">
+                          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
+                                {upgrade.name}
+                              </CardTitle>
+                              {upgrade.variantName && (
+                                <Badge variant="outline" className="text-xs">
+                                  {upgrade.variantName}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center flex-shrink-0">
+                              {upgrade.published ? (
+                                <Badge variant="default" data-testid={`badge-upgrade-published-${upgrade.id}`}>
+                                  Published
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" data-testid={`badge-upgrade-draft-${upgrade.id}`}>
+                                  Draft
+                                </Badge>
+                              )}
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-upgrade-description-${upgrade.id}`}>
+                                {upgrade.description}
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xl font-bold" data-testid={`text-upgrade-price-${upgrade.id}`}>
+                                  £{penceToPounds(upgrade.price)}
+                                </span>
+                                <div className="flex space-x-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEdit(upgrade)}
+                                    data-testid={`button-edit-upgrade-${upgrade.id}`}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDelete(upgrade.id)}
+                                    disabled={deleteMutation.isPending}
+                                    data-testid={`button-delete-upgrade-${upgrade.id}`}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       )}
 
       <UpgradeDialog
