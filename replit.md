@@ -65,6 +65,11 @@ Preferred communication style: Simple, everyday language.
 ### Image Assets
 - Generated placeholder images stored in `attached_assets/generated_images/` for van stock and equipment displays
 - Responsive image handling with proper aspect ratios for mobile optimization
+- **Object Storage Integration**: Admin image uploads via presigned URLs with ACL management
+  - `/api/admin/objects/presigned-url` - Generate presigned upload URLs for admin uploads
+  - `/api/admin/objects/set-acl` - Set ACL policy (public/private) on uploaded objects
+  - Supports PNG, JPEG, GIF, WebP, and SVG image formats
+  - Images stored in Google Cloud Storage with automatic ACL management
 
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations

@@ -1226,6 +1226,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint for getting presigned URL for object upload
+  app.post("/api/admin/objects/presigned-url", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { filename, contentType } = req.body;
+      
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
+      if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
+        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, GIF, WebP, SVG)" });
+      }
+      
+      // Validate filename
+      if (!filename || filename.trim() === '') {
+        return res.status(400).json({ error: "Filename is required" });
+      }
+      
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(filename);
+      res.json({ url: uploadURL, objectPath });
+    } catch (error) {
+      console.error("Error generating presigned URL:", error);
+      res.status(500).json({ error: "Failed to generate presigned URL" });
+    }
+  });
+
+  // Admin endpoint for setting ACL policy on uploaded objects
+  app.post("/api/admin/objects/set-acl", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { objectPath, acl } = req.body;
+      
+      if (!objectPath || typeof objectPath !== 'string') {
+        return res.status(400).json({ error: "Object path is required" });
+      }
+      
+      if (!acl || !['public', 'private'].includes(acl)) {
+        return res.status(400).json({ error: "ACL must be 'public' or 'private'" });
+      }
+      
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      
+      const aclPolicy = {
+        owner: (req as any).user?.id || "",
+        visibility: acl as 'public' | 'private',
+      };
+      
+      const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(objectPath, aclPolicy);
+      res.json({ objectPath: normalizedPath });
+    } catch (error) {
+      console.error("Error setting ACL:", error);
+      res.status(500).json({ error: "Failed to set ACL policy" });
+    }
+  });
+
   // Update quote with customer logos after upload
   app.put("/api/quotes/:id/logos", isAuthenticated, async (req, res) => {
     try {
