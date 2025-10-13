@@ -279,8 +279,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                 <FormItem>
                   <FormLabel>Parent Equipment (for variations)</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ""}
+                    onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                    value={field.value || "none"}
                   >
                     <FormControl>
                       <SelectTrigger data-testid="select-parent-equipment">
@@ -288,7 +288,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None - Standalone Item</SelectItem>
+                      <SelectItem value="none">None - Standalone Item</SelectItem>
                       {parentOptions.map((parent) => (
                         <SelectItem key={parent.id} value={parent.id}>
                           {parent.name}
