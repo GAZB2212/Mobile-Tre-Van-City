@@ -208,7 +208,18 @@ export default function SelectUpgrades() {
               ) : configuratorData ? (
                 <div className="space-y-6">
                   {Object.entries(configuratorData.upgrades).map(([category, upgrades]) => {
-                    const { groups, standalone } = groupUpgradeVariations(upgrades);
+                    // Sort upgrades by sortOrder before grouping
+                    const sortedUpgrades = [...upgrades].sort((a, b) => a.sortOrder - b.sortOrder);
+                    const { groups, standalone } = groupUpgradeVariations(sortedUpgrades);
+                    
+                    // Sort groups by parent sortOrder
+                    groups.sort((a, b) => a.parent.sortOrder - b.parent.sortOrder);
+                    
+                    // Combine and render in order: groups and standalone items mixed by sortOrder
+                    const allItems = [
+                      ...groups.map(g => ({ type: 'group' as const, sortOrder: g.parent.sortOrder, data: g })),
+                      ...standalone.map(u => ({ type: 'standalone' as const, sortOrder: u.sortOrder, data: u }))
+                    ].sort((a, b) => a.sortOrder - b.sortOrder);
                     
                     return (
                       <Card key={category}>
@@ -219,129 +230,131 @@ export default function SelectUpgrades() {
                         </CardHeader>
                         <CardContent>
                           <div className="grid gap-3">
-                            {standalone.map((upgrade) => {
-                              const isSelected = state.upgradeIds.includes(upgrade.id);
-                              const quantity = upgradeQuantities[upgrade.id] || 1;
-                              
-                              return (
-                                <div 
-                                  key={upgrade.id}
-                                  className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
-                                >
-                                  <Checkbox
-                                    id={upgrade.id}
-                                    checked={isSelected}
-                                    onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
-                                    data-testid={`checkbox-upgrade-${upgrade.id}`}
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-1 gap-3">
-                                      <label 
-                                        htmlFor={upgrade.id}
-                                        className="font-medium cursor-pointer leading-tight"
-                                      >
-                                        {upgrade.name}
-                                      </label>
-                                      <div className="flex items-center gap-2 flex-shrink-0">
-                                        {isSelected && upgrade.allowQuantity && (
-                                          <div className="flex items-center gap-1">
-                                            <label className="text-xs text-muted-foreground whitespace-nowrap">Qty:</label>
-                                            <Input
-                                              type="number"
-                                              min="1"
-                                              max="10"
-                                              value={quantity}
-                                              onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value) || 1)}
-                                              className="w-16 h-8 text-center"
-                                              data-testid={`input-quantity-${upgrade.id}`}
-                                            />
-                                          </div>
-                                        )}
-                                        <Badge variant="secondary" className="flex-shrink-0">
-                                          {formatPrice(upgrade.price * (upgrade.allowQuantity && isSelected ? quantity : 1), upgrade.name)}
-                                        </Badge>
+                            {allItems.map((item) => {
+                              if (item.type === 'standalone') {
+                                const upgrade = item.data;
+                                const isSelected = state.upgradeIds.includes(upgrade.id);
+                                const quantity = upgradeQuantities[upgrade.id] || 1;
+                                
+                                return (
+                                  <div 
+                                    key={upgrade.id}
+                                    className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
+                                  >
+                                    <Checkbox
+                                      id={upgrade.id}
+                                      checked={isSelected}
+                                      onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                      data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex justify-between items-start mb-1 gap-3">
+                                        <label 
+                                          htmlFor={upgrade.id}
+                                          className="font-medium cursor-pointer leading-tight"
+                                        >
+                                          {upgrade.name}
+                                        </label>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                          {isSelected && upgrade.allowQuantity && (
+                                            <div className="flex items-center gap-1">
+                                              <label className="text-xs text-muted-foreground whitespace-nowrap">Qty:</label>
+                                              <Input
+                                                type="number"
+                                                min="1"
+                                                max="10"
+                                                value={quantity}
+                                                onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value) || 1)}
+                                                className="w-16 h-8 text-center"
+                                                data-testid={`input-quantity-${upgrade.id}`}
+                                              />
+                                            </div>
+                                          )}
+                                          <Badge variant="secondary" className="flex-shrink-0">
+                                            {formatPrice(upgrade.price * (upgrade.allowQuantity && isSelected ? quantity : 1), upgrade.name)}
+                                          </Badge>
+                                        </div>
                                       </div>
-                                    </div>
-                                    {upgrade.description && (
-                                      <p className="text-sm text-muted-foreground">
-                                        {upgrade.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            
-                            {groups.map(({ parent, variants }) => {
-                              const selectedVariantId = state.upgradeIds.find(id => 
-                                variants.some(v => v.id === id)
-                              );
-                              const selectedVariant = variants.find(v => v.id === selectedVariantId);
-                              const isSelected = !!selectedVariantId;
-                              
-                              return (
-                                <div 
-                                  key={parent.id}
-                                  className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
-                                >
-                                  <Checkbox
-                                    id={`variant-group-${parent.id}`}
-                                    checked={isSelected}
-                                    onCheckedChange={(checked) => {
-                                      if (checked && variants.length > 0) {
-                                        // When checking, select the first variant automatically
-                                        // The handleVariantSelect will handle removing other branding options
-                                        handleVariantSelect(parent.id, variants[0].id);
-                                      } else {
-                                        // Uncheck - remove any selected variant
-                                        handleVariantSelect(parent.id, null);
-                                      }
-                                    }}
-                                    data-testid={`checkbox-variant-${parent.id}`}
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-1 gap-3">
-                                      <label 
-                                        htmlFor={`variant-group-${parent.id}`}
-                                        className="font-medium cursor-pointer leading-tight"
-                                      >
-                                        {parent.name}
-                                      </label>
-                                      {selectedVariant && (
-                                        <Badge variant="secondary" className="flex-shrink-0">
-                                          {formatPrice(selectedVariant.price, parent.name)}
-                                        </Badge>
+                                      {upgrade.description && (
+                                        <p className="text-sm text-muted-foreground">
+                                          {upgrade.description}
+                                        </p>
                                       )}
                                     </div>
-                                    {parent.description && (
-                                      <p className="text-sm text-muted-foreground mb-3">
-                                        {parent.description}
-                                      </p>
-                                    )}
-                                    {isSelected && (
-                                      <Select
-                                        value={selectedVariantId || ""}
-                                        onValueChange={(value) => {
-                                          if (value) {
-                                            handleVariantSelect(parent.id, value);
-                                          }
-                                        }}
-                                      >
-                                        <SelectTrigger data-testid={`select-variant-${parent.id}`}>
-                                          <SelectValue placeholder="Select option..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {variants.map((variant) => (
-                                            <SelectItem key={variant.id} value={variant.id}>
-                                              {variant.variantName || variant.name} - {formatPrice(variant.price, parent.name)}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    )}
                                   </div>
-                                </div>
-                              );
+                                );
+                              } else {
+                                const { parent, variants } = item.data;
+                                const selectedVariantId = state.upgradeIds.find(id => 
+                                  variants.some(v => v.id === id)
+                                );
+                                const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                                const isSelected = !!selectedVariantId;
+                                
+                                return (
+                                  <div 
+                                    key={parent.id}
+                                    className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
+                                  >
+                                    <Checkbox
+                                      id={`variant-group-${parent.id}`}
+                                      checked={isSelected}
+                                      onCheckedChange={(checked) => {
+                                        if (checked && variants.length > 0) {
+                                          // When checking, select the first variant automatically
+                                          // The handleVariantSelect will handle removing other branding options
+                                          handleVariantSelect(parent.id, variants[0].id);
+                                        } else {
+                                          // Uncheck - remove any selected variant
+                                          handleVariantSelect(parent.id, null);
+                                        }
+                                      }}
+                                      data-testid={`checkbox-variant-${parent.id}`}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex justify-between items-start mb-1 gap-3">
+                                        <label 
+                                          htmlFor={`variant-group-${parent.id}`}
+                                          className="font-medium cursor-pointer leading-tight"
+                                        >
+                                          {parent.name}
+                                        </label>
+                                        {selectedVariant && (
+                                          <Badge variant="secondary" className="flex-shrink-0">
+                                            {formatPrice(selectedVariant.price, parent.name)}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {parent.description && (
+                                        <p className="text-sm text-muted-foreground mb-3">
+                                          {parent.description}
+                                        </p>
+                                      )}
+                                      {isSelected && (
+                                        <Select
+                                          value={selectedVariantId || ""}
+                                          onValueChange={(value) => {
+                                            if (value) {
+                                              handleVariantSelect(parent.id, value);
+                                            }
+                                          }}
+                                        >
+                                          <SelectTrigger data-testid={`select-variant-${parent.id}`}>
+                                            <SelectValue placeholder="Select option..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {variants.map((variant) => (
+                                              <SelectItem key={variant.id} value={variant.id}>
+                                                {variant.variantName || variant.name} - {formatPrice(variant.price, parent.name)}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
                             })}
                           </div>
                         </CardContent>
