@@ -2,9 +2,12 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Settings, Calendar, Gauge, Fuel } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { useConfigurator } from "@/lib/ConfiguratorContext";
 
 interface StockCardProps {
   id: string;
+  slug: string;
   title: string;
   make: string;
   model: string;
@@ -22,6 +25,7 @@ interface StockCardProps {
 
 export default function StockCard({ 
   id, 
+  slug,
   title, 
   make, 
   model, 
@@ -32,6 +36,8 @@ export default function StockCard({
   imageUrl, 
   specs 
 }: StockCardProps) {
+  const [, setLocation] = useLocation();
+  const { setVan } = useConfigurator();
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -95,11 +101,21 @@ export default function StockCard({
       </CardContent>
       
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1" data-testid={`button-view-${id}`}>
-          <Eye className="w-4 h-4 mr-2" />
-          View
+        <Button variant="outline" size="sm" className="flex-1" asChild data-testid={`button-view-${id}`}>
+          <Link href={`/stock/${slug}`}>
+            <Eye className="w-4 h-4 mr-2" />
+            View
+          </Link>
         </Button>
-        <Button size="sm" className="flex-1 bg-chart-3 hover:bg-chart-3/90 text-black" data-testid={`button-configure-${id}`}>
+        <Button 
+          size="sm" 
+          className="flex-1 bg-chart-3 hover:bg-chart-3/90 text-black" 
+          data-testid={`button-configure-${id}`}
+          onClick={() => {
+            setVan(id);
+            setLocation('/configurator/van');
+          }}
+        >
           <Settings className="w-4 h-4 mr-2" />
           Configure
         </Button>

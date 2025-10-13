@@ -17,6 +17,7 @@ export default function FeaturedStock() {
     .slice(0, 3)
     .map(van => ({
       id: van.id,
+      slug: van.slug,
       title: van.title,
       make: van.make,
       model: van.model,
