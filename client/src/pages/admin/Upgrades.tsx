@@ -47,12 +47,20 @@ import { useEffect } from "react";
 
 // Form validation schema - extend shared schema for price conversion
 const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
-  price: z.string().min(1, "Price is required"),
+  price: z.string().optional(),
   parentId: z.string().optional().nullable(),
   variantName: z.string().optional().nullable(),
+  hasVariants: z.boolean().optional(),
 });
 
 type UpgradeFormData = z.infer<typeof upgradeFormSchema>;
+
+// Variant type for UI management
+type VariantOption = {
+  id?: string;
+  name: string;
+  price: string;
+};
 
 // Helper function to convert pounds to pence
 const poundsToPence = (pounds: string): number => {
@@ -75,7 +83,12 @@ interface UpgradeDialogProps {
 function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDialogProps) {
   const { toast } = useToast();
   const isEditing = !!upgrade;
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variants, setVariants] = useState<VariantOption[]>([]);
 
+  // Get variants for this upgrade (children)
+  const upgradeVariants = allUpgrades.filter(u => u.parentId === upgrade?.id);
+  
   // Get parent equipment options (exclude current item and its children)
   const parentOptions = allUpgrades.filter(u => 
     u.id !== upgrade?.id && u.parentId === null
@@ -92,23 +105,44 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       parentId: "",
       variantName: "",
       published: true,
+      hasVariants: false,
     },
   });
 
-  // Reset form when upgrade changes (for editing)
+  // Reset form when dialog opens
   useEffect(() => {
+    if (!open) return;
+    
     if (upgrade) {
+      const children = allUpgrades.filter(u => u.parentId === upgrade.id);
+      const hasChildren = children.length > 0;
+      setHasVariants(hasChildren);
+      
+      // Load existing variants
+      if (hasChildren) {
+        setVariants(children.map(v => ({
+          id: v.id,
+          name: v.variantName || "",
+          price: penceToPounds(v.price),
+        })));
+      } else {
+        setVariants([]);
+      }
+      
       form.reset({
         name: upgrade.name,
         category: upgrade.category,
         description: upgrade.description,
-        price: penceToPounds(upgrade.price),
+        price: hasChildren ? "" : penceToPounds(upgrade.price),
         images: upgrade.images,
         parentId: upgrade.parentId || "",
         variantName: upgrade.variantName || "",
         published: upgrade.published,
+        hasVariants: hasChildren,
       });
     } else {
+      setHasVariants(false);
+      setVariants([]);
       form.reset({
         name: "",
         category: "",
@@ -118,19 +152,51 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         parentId: "",
         variantName: "",
         published: true,
+        hasVariants: false,
       });
     }
-  }, [upgrade, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const createMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
-      const upgradeData = {
-        ...data,
-        price: poundsToPence(data.price),
-        parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
-        variantName: data.variantName && data.variantName !== "" ? data.variantName : null,
-      };
-      return apiRequest("POST", "/api/admin/upgrades", upgradeData);
+      // If this has variants, create parent with no price
+      if (hasVariants && variants.length > 0) {
+        const parentData = {
+          ...data,
+          price: 0,
+          parentId: null,
+          variantName: null,
+        };
+        const parentResult: any = await apiRequest("POST", "/api/admin/upgrades", parentData);
+        
+        // Create each variant as a child
+        await Promise.all(
+          variants.map(variant =>
+            apiRequest("POST", "/api/admin/upgrades", {
+              name: data.name,
+              category: data.category,
+              description: data.description,
+              images: data.images,
+              price: poundsToPence(variant.price),
+              parentId: parentResult.id,
+              variantName: variant.name,
+              published: data.published,
+            })
+          )
+        );
+        
+        return parentResult;
+      } else {
+        // Regular single upgrade
+        const upgradeData = {
+          ...data,
+          price: data.price ? poundsToPence(data.price) : 0,
+          parentId: null,
+          variantName: null,
+        };
+        return apiRequest("POST", "/api/admin/upgrades", upgradeData);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] });
@@ -140,6 +206,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       });
       onOpenChange(false);
       form.reset();
+      setVariants([]);
+      setHasVariants(false);
     },
     onError: () => {
       toast({
@@ -152,13 +220,66 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
 
   const updateMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
-      const upgradeData = {
-        ...data,
-        price: poundsToPence(data.price),
-        parentId: data.parentId && data.parentId !== "" ? data.parentId : null,
-        variantName: data.variantName && data.variantName !== "" ? data.variantName : null,
-      };
-      return apiRequest("PUT", `/api/admin/upgrades/${upgrade!.id}`, upgradeData);
+      if (hasVariants && variants.length > 0) {
+        // Update parent with no price
+        const parentData = {
+          ...data,
+          price: 0,
+          parentId: null,
+          variantName: null,
+        };
+        const parentResult = await apiRequest("PUT", `/api/admin/upgrades/${upgrade!.id}`, parentData);
+        
+        // Delete removed variants
+        const existingVariantIds = upgradeVariants.map(v => v.id);
+        const keptVariantIds = variants.filter(v => v.id).map(v => v.id);
+        const toDelete = existingVariantIds.filter(id => !keptVariantIds.includes(id));
+        
+        await Promise.all(toDelete.map(id => 
+          apiRequest("DELETE", `/api/admin/upgrades/${id}`)
+        ));
+        
+        // Update or create variants
+        await Promise.all(
+          variants.map(variant => {
+            const variantData = {
+              name: data.name,
+              category: data.category,
+              description: data.description,
+              images: data.images,
+              price: poundsToPence(variant.price),
+              parentId: upgrade!.id,
+              variantName: variant.name,
+              published: data.published,
+            };
+            
+            if (variant.id) {
+              // Update existing variant
+              return apiRequest("PUT", `/api/admin/upgrades/${variant.id}`, variantData);
+            } else {
+              // Create new variant
+              return apiRequest("POST", "/api/admin/upgrades", variantData);
+            }
+          })
+        );
+        
+        return parentResult;
+      } else {
+        // Regular single upgrade - delete any existing variants if switching from variants to single
+        if (upgradeVariants.length > 0) {
+          await Promise.all(
+            upgradeVariants.map(v => apiRequest("DELETE", `/api/admin/upgrades/${v.id}`))
+          );
+        }
+        
+        const upgradeData = {
+          ...data,
+          price: data.price ? poundsToPence(data.price) : 0,
+          parentId: null,
+          variantName: null,
+        };
+        return apiRequest("PUT", `/api/admin/upgrades/${upgrade!.id}`, upgradeData);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] });
@@ -258,26 +379,106 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price (£)</FormLabel>
-                  <FormControl>
+            {/* Only show variant toggle if this is not already a variant */}
+            {!upgrade?.parentId && (
+              <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium">Has Variants</label>
+                  <p className="text-sm text-muted-foreground">
+                    This equipment has multiple options (e.g., LWB/MWB)
+                  </p>
+                </div>
+                <Switch
+                  checked={hasVariants}
+                  onCheckedChange={setHasVariants}
+                  data-testid="switch-has-variants"
+                />
+              </div>
+            )}
+
+            {/* Show price only if not a variant item and doesn't have variants */}
+            {!upgrade?.parentId && !hasVariants && (
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (£)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        data-testid="input-upgrade-price"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Variant management section */}
+            {hasVariants && !upgrade?.parentId && (
+              <div className="space-y-3 rounded-lg border p-4">
+                <h3 className="font-medium">Variants</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add different options for this equipment (e.g., LWB, MWB)
+                </p>
+                
+                {variants.map((variant, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      placeholder="Variant name (e.g., LWB)"
+                      value={variant.name}
+                      onChange={(e) => {
+                        const newVariants = [...variants];
+                        newVariants[index].name = e.target.value;
+                        setVariants(newVariants);
+                      }}
+                      data-testid={`input-variant-name-${index}`}
+                    />
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
-                      placeholder="0.00"
-                      data-testid="input-upgrade-price"
-                      {...field}
+                      placeholder="Price (£)"
+                      value={variant.price}
+                      onChange={(e) => {
+                        const newVariants = [...variants];
+                        newVariants[index].price = e.target.value;
+                        setVariants(newVariants);
+                      }}
+                      data-testid={`input-variant-price-${index}`}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setVariants(variants.filter((_, i) => i !== index));
+                      }}
+                      data-testid={`button-remove-variant-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVariants([...variants, { name: "", price: "" }])}
+                  data-testid="button-add-variant"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Variant
+                </Button>
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -294,60 +495,6 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     Upload product images to help customers see what they're purchasing
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="parentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Parent Equipment (for variations)</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
-                    value={field.value || "none"}
-                  >
-                    <FormControl>
-                      <SelectTrigger data-testid="select-parent-equipment">
-                        <SelectValue placeholder="None - This is a standalone item" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">None - Standalone Item</SelectItem>
-                      {parentOptions.map((parent) => (
-                        <SelectItem key={parent.id} value={parent.id}>
-                          {parent.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Select a parent if this is a variation (e.g., Pack 1, Pack 2)
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="variantName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Variant Name (optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Pack 1, Standard, Premium"
-                      data-testid="input-variant-name"
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    Name for this variation (shown in dropdown to customers)
                   </p>
                   <FormMessage />
                 </FormItem>
