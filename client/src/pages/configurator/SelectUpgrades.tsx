@@ -84,10 +84,36 @@ export default function SelectUpgrades() {
     queryKey: ['/api/configurator/data'],
   });
 
+  // Define mutually exclusive upgrade names (branding options)
+  const brandingOptions = ['Graphic Pack', 'Full Wrap', 'Half Wrap'];
+  
+  const isBrandingOption = (upgradeName: string) => {
+    return brandingOptions.some(option => upgradeName.toLowerCase().includes(option.toLowerCase()));
+  };
+
   const handleUpgradeToggle = (upgradeId: string) => {
+    const upgrade = configuratorData?.upgrades 
+      ? Object.values(configuratorData.upgrades).flat().find(u => u.id === upgradeId)
+      : null;
+    
     if (state.upgradeIds.includes(upgradeId)) {
       removeUpgrade(upgradeId);
     } else {
+      // If this is a branding option, remove any other branding options first
+      if (upgrade && isBrandingOption(upgrade.name)) {
+        const allUpgrades = configuratorData?.upgrades 
+          ? Object.values(configuratorData.upgrades).flat()
+          : [];
+        
+        // Find and remove any other selected branding options
+        state.upgradeIds.forEach(selectedId => {
+          const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
+          if (selectedUpgrade && isBrandingOption(selectedUpgrade.name) && selectedId !== upgradeId) {
+            removeUpgrade(selectedId);
+          }
+        });
+      }
+      
       addUpgrade(upgradeId);
     }
   };
@@ -100,10 +126,12 @@ export default function SelectUpgrades() {
   };
 
   const handleVariantSelect = (parentId: string, variantId: string | null) => {
-    // Remove any previously selected variant from this parent
-    const allVariants = configuratorData?.upgrades 
-      ? Object.values(configuratorData.upgrades).flat().filter(u => u.parentId === parentId)
+    const allUpgrades = configuratorData?.upgrades 
+      ? Object.values(configuratorData.upgrades).flat()
       : [];
+    
+    // Remove any previously selected variant from this parent
+    const allVariants = allUpgrades.filter(u => u.parentId === parentId);
     
     allVariants.forEach(v => {
       if (state.upgradeIds.includes(v.id)) {
@@ -113,6 +141,19 @@ export default function SelectUpgrades() {
 
     // Add the new variant
     if (variantId) {
+      const selectedVariant = allUpgrades.find(u => u.id === variantId);
+      const parent = allUpgrades.find(u => u.id === parentId);
+      
+      // If this is a branding option, remove any other branding options first
+      if (parent && isBrandingOption(parent.name)) {
+        state.upgradeIds.forEach(selectedId => {
+          const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
+          if (selectedUpgrade && isBrandingOption(selectedUpgrade.name)) {
+            removeUpgrade(selectedId);
+          }
+        });
+      }
+      
       addUpgrade(variantId);
     }
   };
@@ -244,6 +285,7 @@ export default function SelectUpgrades() {
                                     onCheckedChange={(checked) => {
                                       if (checked && variants.length > 0) {
                                         // When checking, select the first variant automatically
+                                        // The handleVariantSelect will handle removing other branding options
                                         handleVariantSelect(parent.id, variants[0].id);
                                       } else {
                                         // Uncheck - remove any selected variant
