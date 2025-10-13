@@ -112,7 +112,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
     },
   });
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens or upgrade changes
   useEffect(() => {
     if (!open) {
       // Clear cached price when dialog closes
@@ -120,6 +120,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       return;
     }
     
+    // Only reset if we're opening the dialog for the first time or switching upgrades
+    // Don't reset when allUpgrades refreshes (e.g., after image upload)
     if (upgrade) {
       const children = allUpgrades.filter(u => u.parentId === upgrade.id);
       const hasChildren = children.length > 0;
@@ -163,10 +165,12 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         variantName: "",
         published: true,
         hasVariants: false,
+        allowQuantity: false,
       });
     }
+    // Only run when dialog opens/closes or upgrade ID changes, not on every allUpgrades change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, upgrade?.id]);
 
   const createMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
