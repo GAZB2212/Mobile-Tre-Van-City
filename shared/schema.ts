@@ -94,6 +94,7 @@ export const upgrades = pgTable("upgrades", {
   parentId: varchar("parent_id").references((): any => upgrades.id),
   variantName: text("variant_name"), // e.g., "Pack 1", "Pack 2", "Standard", "Premium"
   allowQuantity: boolean("allow_quantity").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),
