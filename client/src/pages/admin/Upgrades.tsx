@@ -38,12 +38,29 @@ import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import { useEffect } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Form validation schema - extend shared schema for price conversion
 const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
@@ -73,6 +90,100 @@ const poundsToPence = (pounds: string): number => {
 const penceToPounds = (pence: number): string => {
   return (pence / 100).toFixed(2);
 };
+
+// Sortable Card Component
+interface SortableUpgradeCardProps {
+  upgrade: Upgrade;
+  onEdit: (upgrade: Upgrade) => void;
+  onDelete: (id: string) => void;
+  isDeleting: boolean;
+}
+
+function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting }: SortableUpgradeCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: upgrade.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="hover-elevate">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+            data-testid={`handle-drag-${upgrade.id}`}
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="space-y-1 min-w-0 flex-1">
+            <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
+              {upgrade.name}
+            </CardTitle>
+            {upgrade.variantName && (
+              <Badge variant="outline" className="text-xs">
+                {upgrade.variantName}
+              </Badge>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center flex-shrink-0">
+          {upgrade.published ? (
+            <Badge variant="default" data-testid={`badge-upgrade-published-${upgrade.id}`}>
+              Published
+            </Badge>
+          ) : (
+            <Badge variant="secondary" data-testid={`badge-upgrade-draft-${upgrade.id}`}>
+              Draft
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-upgrade-description-${upgrade.id}`}>
+            {upgrade.description}
+          </p>
+          <div className="flex items-center justify-between">
+            <span className="text-xl font-bold" data-testid={`text-upgrade-price-${upgrade.id}`}>
+              £{penceToPounds(upgrade.price)}
+            </span>
+            <div className="flex space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onEdit(upgrade)}
+                data-testid={`button-edit-upgrade-${upgrade.id}`}
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onDelete(upgrade.id)}
+                disabled={isDeleting}
+                data-testid={`button-delete-upgrade-${upgrade.id}`}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface UpgradeDialogProps {
   upgrade?: Upgrade;
@@ -707,23 +818,26 @@ export default function AdminUpgrades() {
     },
   });
 
-  const handleMoveUp = (upgrade: Upgrade, categoryUpgrades: Upgrade[]) => {
-    const currentIndex = categoryUpgrades.findIndex(u => u.id === upgrade.id);
-    if (currentIndex > 0) {
-      const prevUpgrade = categoryUpgrades[currentIndex - 1];
-      // Swap sort orders
-      updateSortOrderMutation.mutate({ id: upgrade.id, sortOrder: prevUpgrade.sortOrder });
-      updateSortOrderMutation.mutate({ id: prevUpgrade.id, sortOrder: upgrade.sortOrder });
-    }
-  };
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  const handleMoveDown = (upgrade: Upgrade, categoryUpgrades: Upgrade[]) => {
-    const currentIndex = categoryUpgrades.findIndex(u => u.id === upgrade.id);
-    if (currentIndex < categoryUpgrades.length - 1) {
-      const nextUpgrade = categoryUpgrades[currentIndex + 1];
-      // Swap sort orders
-      updateSortOrderMutation.mutate({ id: upgrade.id, sortOrder: nextUpgrade.sortOrder });
-      updateSortOrderMutation.mutate({ id: nextUpgrade.id, sortOrder: upgrade.sortOrder });
+  const handleDragEnd = (event: DragEndEvent, categoryUpgrades: Upgrade[]) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = categoryUpgrades.findIndex((u) => u.id === active.id);
+      const newIndex = categoryUpgrades.findIndex((u) => u.id === over.id);
+      
+      const reorderedUpgrades = arrayMove(categoryUpgrades, oldIndex, newIndex);
+      
+      // Update sort orders for all items in the new order
+      reorderedUpgrades.forEach((upgrade, index) => {
+        updateSortOrderMutation.mutate({ id: upgrade.id, sortOrder: index });
+      });
     }
   };
 
@@ -820,84 +934,28 @@ export default function AdminUpgrades() {
                       No upgrades in this category yet
                     </p>
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
-                      {categoryUpgrades.map((upgrade: Upgrade) => (
-                        <Card key={upgrade.id} className="hover-elevate">
-                          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
-                                {upgrade.name}
-                              </CardTitle>
-                              {upgrade.variantName && (
-                                <Badge variant="outline" className="text-xs">
-                                  {upgrade.variantName}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center flex-shrink-0">
-                              {upgrade.published ? (
-                                <Badge variant="default" data-testid={`badge-upgrade-published-${upgrade.id}`}>
-                                  Published
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" data-testid={`badge-upgrade-draft-${upgrade.id}`}>
-                                  Draft
-                                </Badge>
-                              )}
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-upgrade-description-${upgrade.id}`}>
-                                {upgrade.description}
-                              </p>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xl font-bold" data-testid={`text-upgrade-price-${upgrade.id}`}>
-                                  £{penceToPounds(upgrade.price)}
-                                </span>
-                                <div className="flex space-x-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleMoveUp(upgrade, categoryUpgrades)}
-                                    disabled={categoryUpgrades.findIndex(u => u.id === upgrade.id) === 0}
-                                    data-testid={`button-move-up-${upgrade.id}`}
-                                  >
-                                    <ArrowUp className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleMoveDown(upgrade, categoryUpgrades)}
-                                    disabled={categoryUpgrades.findIndex(u => u.id === upgrade.id) === categoryUpgrades.length - 1}
-                                    data-testid={`button-move-down-${upgrade.id}`}
-                                  >
-                                    <ArrowDown className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEdit(upgrade)}
-                                    data-testid={`button-edit-upgrade-${upgrade.id}`}
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleDelete(upgrade.id)}
-                                    disabled={deleteMutation.isPending}
-                                    data-testid={`button-delete-upgrade-${upgrade.id}`}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={(event) => handleDragEnd(event, categoryUpgrades)}
+                    >
+                      <SortableContext
+                        items={categoryUpgrades.map(u => u.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
+                          {categoryUpgrades.map((upgrade: Upgrade) => (
+                            <SortableUpgradeCard
+                              key={upgrade.id}
+                              upgrade={upgrade}
+                              onEdit={handleEdit}
+                              onDelete={handleDelete}
+                              isDeleting={deleteMutation.isPending}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   )}
                 </AccordionContent>
               </AccordionItem>
