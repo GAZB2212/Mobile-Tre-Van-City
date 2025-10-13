@@ -231,40 +231,57 @@ export default function SelectUpgrades() {
                                 variants.some(v => v.id === id)
                               );
                               const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                              const isSelected = !!selectedVariantId;
                               
                               return (
                                 <div 
                                   key={parent.id}
-                                  className="p-3 rounded-lg border space-y-3"
+                                  className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
                                 >
-                                  <div className="flex items-start gap-3">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex justify-between items-start mb-1 gap-3">
-                                        <h4 className="font-medium leading-tight">
-                                          {parent.name}
-                                        </h4>
-                                        {selectedVariant && (
-                                          <Badge variant="secondary">
-                                            {formatPrice(selectedVariant.price)}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      {parent.description && (
-                                        <p className="text-sm text-muted-foreground mb-3">
-                                          {parent.description}
-                                        </p>
+                                  <Checkbox
+                                    id={`variant-group-${parent.id}`}
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) => {
+                                      if (!checked) {
+                                        // Uncheck - remove any selected variant
+                                        handleVariantSelect(parent.id, null);
+                                      }
+                                      // When checking, the dropdown will handle the selection
+                                    }}
+                                    data-testid={`checkbox-variant-${parent.id}`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-1 gap-3">
+                                      <label 
+                                        htmlFor={`variant-group-${parent.id}`}
+                                        className="font-medium cursor-pointer leading-tight"
+                                      >
+                                        {parent.name}
+                                      </label>
+                                      {selectedVariant && (
+                                        <Badge variant="secondary" className="flex-shrink-0">
+                                          {formatPrice(selectedVariant.price)}
+                                        </Badge>
                                       )}
+                                    </div>
+                                    {parent.description && (
+                                      <p className="text-sm text-muted-foreground mb-3">
+                                        {parent.description}
+                                      </p>
+                                    )}
+                                    {isSelected && (
                                       <Select
-                                        value={selectedVariantId || "none"}
-                                        onValueChange={(value) => 
-                                          handleVariantSelect(parent.id, value === "none" ? null : value)
-                                        }
+                                        value={selectedVariantId || ""}
+                                        onValueChange={(value) => {
+                                          if (value) {
+                                            handleVariantSelect(parent.id, value);
+                                          }
+                                        }}
                                       >
                                         <SelectTrigger data-testid={`select-variant-${parent.id}`}>
                                           <SelectValue placeholder="Select option..." />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="none">None</SelectItem>
                                           {variants.map((variant) => (
                                             <SelectItem key={variant.id} value={variant.id}>
                                               {variant.variantName || variant.name} - {formatPrice(variant.price)}
@@ -272,7 +289,7 @@ export default function SelectUpgrades() {
                                           ))}
                                         </SelectContent>
                                       </Select>
-                                    </div>
+                                    )}
                                   </div>
                                 </div>
                               );
