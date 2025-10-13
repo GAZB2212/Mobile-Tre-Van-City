@@ -21,7 +21,7 @@ export default function SelectKit() {
 
   const handleSelectKit = (kitId: string) => {
     setKit(kitId);
-    setLocation('/configurator/finance');
+    setLocation('/configurator/upgrades');
   };
 
   const formatPrice = (price: number) => {

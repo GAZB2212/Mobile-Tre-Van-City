@@ -1,0 +1,317 @@
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { useConfigurator } from "@/lib/ConfiguratorContext";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ArrowRight, ArrowLeft } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Upgrade } from "@shared/schema";
+
+interface ConfiguratorData {
+  kits: any[];
+  upgrades: Record<string, Upgrade[]>;
+  financePlans: any[];
+}
+
+interface UpgradeGroup {
+  parent: Upgrade;
+  variants: Upgrade[];
+}
+
+function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; standalone: Upgrade[] } {
+  const groups: UpgradeGroup[] = [];
+  const standalone: Upgrade[] = [];
+  
+  const parentIds = new Set<string>();
+  const childIds = new Set<string>();
+  
+  upgrades.forEach(upgrade => {
+    if (upgrade.parentId) {
+      childIds.add(upgrade.id);
+      parentIds.add(upgrade.parentId);
+    }
+  });
+  
+  const parentMap = new Map<string, UpgradeGroup>();
+  upgrades.forEach(upgrade => {
+    if (upgrade.parentId) {
+      let group = parentMap.get(upgrade.parentId);
+      if (!group) {
+        const parent = upgrades.find(u => u.id === upgrade.parentId);
+        if (parent) {
+          group = { parent, variants: [] };
+          parentMap.set(upgrade.parentId, group);
+        }
+      }
+      if (group) {
+        group.variants.push(upgrade);
+      }
+    }
+  });
+  
+  upgrades.forEach(upgrade => {
+    if (!upgrade.parentId && !parentIds.has(upgrade.id)) {
+      standalone.push(upgrade);
+    }
+  });
+  
+  return {
+    groups: Array.from(parentMap.values()),
+    standalone
+  };
+}
+
+export default function SelectUpgrades() {
+  const [, setLocation] = useLocation();
+  const { state, addUpgrade, removeUpgrade } = useConfigurator();
+  const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
+
+  const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
+    queryKey: ['/api/configurator/data'],
+  });
+
+  const handleUpgradeToggle = (upgradeId: string) => {
+    if (state.upgradeIds.includes(upgradeId)) {
+      removeUpgrade(upgradeId);
+    } else {
+      addUpgrade(upgradeId);
+    }
+  };
+
+  const handleQuantityChange = (upgradeId: string, quantity: number) => {
+    setUpgradeQuantities(prev => ({
+      ...prev,
+      [upgradeId]: quantity
+    }));
+  };
+
+  const handleVariantSelect = (parentId: string, variantId: string | null) => {
+    // Remove any previously selected variant from this parent
+    const allVariants = configuratorData?.upgrades 
+      ? Object.values(configuratorData.upgrades).flat().filter(u => u.parentId === parentId)
+      : [];
+    
+    allVariants.forEach(v => {
+      if (state.upgradeIds.includes(v.id)) {
+        removeUpgrade(v.id);
+      }
+    });
+
+    // Add the new variant
+    if (variantId) {
+      setUpgrade(variantId);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 0,
+    }).format(price / 100);
+  };
+
+  const handleContinue = () => {
+    setLocation('/configurator/finance');
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <Button 
+              variant="ghost" 
+              onClick={() => setLocation('/configurator/kit')}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Kit Selection
+            </Button>
+            
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
+              Step 3: Add Upgrades & Extras
+            </h1>
+            <p className="text-muted-foreground">
+              Enhance your van with additional features and equipment upgrades
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+            <div className="xl:col-span-2">
+              {isLoading ? (
+                <div className="flex justify-center py-20">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : configuratorData ? (
+                <div className="space-y-6">
+                  {Object.entries(configuratorData.upgrades).map(([category, upgrades]) => {
+                    const { groups, standalone } = groupUpgradeVariations(upgrades);
+                    
+                    return (
+                      <Card key={category}>
+                        <CardHeader>
+                          <CardTitle className="text-lg capitalize">
+                            {category.replace('-', ' ')} Options
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-3">
+                            {standalone.map((upgrade) => {
+                              const isSelected = state.upgradeIds.includes(upgrade.id);
+                              const quantity = upgradeQuantities[upgrade.id] || 1;
+                              
+                              return (
+                                <div 
+                                  key={upgrade.id}
+                                  className="flex items-start space-x-3 p-3 rounded-lg border hover-elevate"
+                                >
+                                  <Checkbox
+                                    id={upgrade.id}
+                                    checked={isSelected}
+                                    onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                    data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-1 gap-3">
+                                      <label 
+                                        htmlFor={upgrade.id}
+                                        className="font-medium cursor-pointer leading-tight"
+                                      >
+                                        {upgrade.name}
+                                      </label>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        {isSelected && (
+                                          <div className="flex items-center gap-1">
+                                            <label className="text-xs text-muted-foreground whitespace-nowrap">Qty:</label>
+                                            <Input
+                                              type="number"
+                                              min="1"
+                                              max="10"
+                                              value={quantity}
+                                              onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value) || 1)}
+                                              className="w-16 h-8 text-center"
+                                              data-testid={`input-quantity-${upgrade.id}`}
+                                            />
+                                          </div>
+                                        )}
+                                        <Badge variant="secondary" className="flex-shrink-0">
+                                          {formatPrice(upgrade.price * quantity)}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                    {upgrade.description && (
+                                      <p className="text-sm text-muted-foreground">
+                                        {upgrade.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            
+                            {groups.map(({ parent, variants }) => {
+                              const selectedVariantId = state.upgradeIds.find(id => 
+                                variants.some(v => v.id === id)
+                              );
+                              const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                              
+                              return (
+                                <div 
+                                  key={parent.id}
+                                  className="p-3 rounded-lg border space-y-3"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex justify-between items-start mb-1 gap-3">
+                                        <h4 className="font-medium leading-tight">
+                                          {parent.name}
+                                        </h4>
+                                        {selectedVariant && (
+                                          <Badge variant="secondary">
+                                            {formatPrice(selectedVariant.price)}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {parent.description && (
+                                        <p className="text-sm text-muted-foreground mb-3">
+                                          {parent.description}
+                                        </p>
+                                      )}
+                                      <Select
+                                        value={selectedVariantId || "none"}
+                                        onValueChange={(value) => 
+                                          handleVariantSelect(parent.id, value === "none" ? null : value)
+                                        }
+                                      >
+                                        <SelectTrigger data-testid={`select-variant-${parent.id}`}>
+                                          <SelectValue placeholder="Select option..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">None</SelectItem>
+                                          {variants.map((variant) => (
+                                            <SelectItem key={variant.id} value={variant.id}>
+                                              {variant.variantName || variant.name} - {formatPrice(variant.price)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+
+                  <div className="flex justify-between items-center pt-6">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setLocation('/configurator/kit')}
+                      data-testid="button-back-bottom"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleContinue}
+                      className="bg-accent text-accent-foreground"
+                      data-testid="button-continue"
+                    >
+                      Continue to Finance
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="xl:col-span-1">
+              <ConfiguratorSummary />
+            </div>
+          </div>
+        </div>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+}
