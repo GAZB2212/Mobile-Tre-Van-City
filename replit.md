@@ -27,7 +27,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Design
 - **Van Management**: Complete CRUD for vehicle inventory with specifications, pricing, and image handling
-- **Equipment Configuration**: Kits and upgrades system for modular tyre equipment packages
+- **Equipment Configuration**: Kits and upgrades system for modular tyre equipment packages with custom sort ordering
 - **Lead Capture**: Quote and lead tracking system for business conversion
 - **User Management**: Basic authentication system for admin functionality
 
@@ -44,6 +44,11 @@ Preferred communication style: Simple, everyday language.
 - **Pricing Engine**: Dynamic calculation system with VAT handling and currency formatting
 - **Lead Generation**: Form capture with email notifications and quote generation
 - **Content Management**: Admin interface for managing inventory, finance plans, and leads
+- **Equipment Ordering**: Drag-free reordering system using up/down arrows to control equipment display order within categories
+  - Each upgrade has a `sortOrder` field (integer, default 0) for position control
+  - Admin can reorder items within their category using arrow buttons
+  - Sort order is preserved across both standalone items and grouped items with variants
+  - Configurator displays equipment in admin-defined order via `/api/admin/upgrades/:id/sort-order` endpoint
 
 ## External Dependencies
 
