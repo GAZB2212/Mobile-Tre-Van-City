@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfiguratorProvider } from "@/lib/ConfiguratorContext";
 import ScrollRestoration from "@/components/ScrollRestoration";
-import LoadingScreen from "@/components/LoadingScreen";
 import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
@@ -86,7 +85,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ConfiguratorProvider>
         <TooltipProvider>
-          <LoadingScreen />
           <ScrollRestoration />
           <Toaster />
           <Router />
