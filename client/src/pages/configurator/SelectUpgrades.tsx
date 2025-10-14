@@ -240,49 +240,12 @@ export default function SelectUpgrades() {
                       ...standalone.map(u => ({ type: 'standalone' as const, sortOrder: u.sortOrder, data: u }))
                     ].sort((a, b) => a.sortOrder - b.sortOrder);
                     
-                    // Calculate minimum price for the category
-                    const allPrices: number[] = [];
-                    let hasPOA = false;
-                    
-                    standalone.forEach(upgrade => {
-                      const lowerName = upgrade.name.toLowerCase();
-                      if (lowerName.includes('garage branding') || lowerName.includes('carplay')) {
-                        hasPOA = true;
-                      } else {
-                        allPrices.push(upgrade.price);
-                      }
-                    });
-                    
-                    groups.forEach(group => {
-                      const lowerName = group.parent.name.toLowerCase();
-                      if (lowerName.includes('garage branding') || lowerName.includes('carplay')) {
-                        hasPOA = true;
-                      } else {
-                        group.variants.forEach(variant => {
-                          allPrices.push(variant.price);
-                        });
-                      }
-                    });
-                    
-                    const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
-                    
                     return (
                       <Card key={category}>
                         <CardHeader>
-                          <div className="flex justify-between items-center gap-4">
-                            <CardTitle className="text-lg capitalize">
-                              {category.replace('-', ' ')} Options
-                            </CardTitle>
-                            {(minPrice !== null || hasPOA) && (
-                              <Badge variant="secondary" className="text-sm">
-                                From {minPrice !== null ? new Intl.NumberFormat('en-GB', {
-                                  style: 'currency',
-                                  currency: 'GBP',
-                                  minimumFractionDigits: 0,
-                                }).format(minPrice / 100) : 'POA'}
-                              </Badge>
-                            )}
-                          </div>
+                          <CardTitle className="text-lg capitalize">
+                            {category.replace('-', ' ')} Options
+                          </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="grid gap-3">
@@ -370,6 +333,9 @@ export default function SelectUpgrades() {
                                 const selectedVariant = variants.find(v => v.id === selectedVariantId);
                                 const isSelected = !!selectedVariantId;
                                 
+                                // Calculate minimum price from variants
+                                const minVariantPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : null;
+                                
                                 // Determine which images to show: variant images if available, otherwise parent images
                                 const displayImages = selectedVariant?.images && selectedVariant.images.length > 0 
                                   ? selectedVariant.images 
@@ -404,9 +370,13 @@ export default function SelectUpgrades() {
                                           >
                                             {parent.name}
                                           </label>
-                                          {selectedVariant && (
+                                          {selectedVariant ? (
                                             <Badge variant="secondary" className="flex-shrink-0">
                                               {formatPrice(selectedVariant.price, parent.name)}
+                                            </Badge>
+                                          ) : minVariantPrice !== null && (
+                                            <Badge variant="secondary" className="flex-shrink-0">
+                                              From {formatPrice(minVariantPrice, parent.name)}
                                             </Badge>
                                           )}
                                         </div>
