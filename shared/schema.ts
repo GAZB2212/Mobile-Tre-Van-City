@@ -111,6 +111,7 @@ export const quotes = pgTable("quotes", {
   kitId: varchar("kit_id").notNull().references(() => kits.id),
   selectedUpgradeIds: json("selected_upgrade_ids").$type<string[]>().notNull().default([]),
   selectedUpgrades: json("selected_upgrades").$type<Record<string, number>>().notNull().default({}),
+  trainingOptionIds: json("training_option_ids").$type<string[]>().notNull().default([]),
   financePlanId: varchar("finance_plan_id").references(() => financePlans.id),
   financeInputs: json("finance_inputs").$type<{
     deposit?: number;
@@ -154,6 +155,17 @@ export const financePlans = pgTable("finance_plans", {
   depositPercent: integer("deposit_percent").notNull(), // Deposit percentage (e.g., 10 = 10%)
   balloonPercent: integer("balloon_percent"), // Optional balloon payment percentage
   notes: text("notes"),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const trainingOptions = pgTable("training_options", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  includes: json("includes").$type<string[]>().notNull().default([]),
+  price: integer("price").notNull(), // in pence
   published: boolean("published").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -218,6 +230,12 @@ export const insertFinancePlanSchema = createInsertSchema(financePlans).omit({
   updatedAt: true,
 });
 
+export const insertTrainingOptionSchema = createInsertSchema(trainingOptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -241,3 +259,6 @@ export type Lead = typeof leads.$inferSelect;
 
 export type InsertFinancePlan = z.infer<typeof insertFinancePlanSchema>;
 export type FinancePlan = typeof financePlans.$inferSelect;
+
+export type InsertTrainingOption = z.infer<typeof insertTrainingOptionSchema>;
+export type TrainingOption = typeof trainingOptions.$inferSelect;
