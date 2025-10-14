@@ -42,10 +42,10 @@ export default function EarningsPotential() {
               Business Opportunity
             </Badge>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4" data-testid="text-earnings-title">
-              Turn Your Van Into a Profitable Business
+              Start Your Profitable Mobile Tyre Business
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              We don't just sell vans - we deliver complete, turnkey mobile tyre businesses ready to generate revenue from day one
+              We sell complete, fully-equipped mobile tyre vans ready to generate revenue from day one. Start earning immediately with a turnkey business solution.
             </p>
           </div>
 
