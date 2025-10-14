@@ -32,6 +32,22 @@ interface UpgradeGroup {
   variants: Upgrade[];
 }
 
+// Define preferred category order
+const CATEGORY_ORDER = [
+  'air-system',
+  'branding',
+  'lighting',
+  'comfort',
+  'power',
+  'technology',
+  'security'
+];
+
+function getCategoryOrder(category: string): number {
+  const index = CATEGORY_ORDER.indexOf(category);
+  return index === -1 ? 999 : index; // Unknown categories go to the end
+}
+
 function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; standalone: Upgrade[] } {
   const groups: UpgradeGroup[] = [];
   const standalone: Upgrade[] = [];
@@ -208,7 +224,9 @@ export default function SelectUpgrades() {
                 </div>
               ) : configuratorData ? (
                 <div className="space-y-6">
-                  {Object.entries(configuratorData.upgrades).map(([category, upgrades]) => {
+                  {Object.entries(configuratorData.upgrades)
+                    .sort(([categoryA], [categoryB]) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB))
+                    .map(([category, upgrades]) => {
                     // Sort upgrades by sortOrder before grouping
                     const sortedUpgrades = [...upgrades].sort((a, b) => a.sortOrder - b.sortOrder);
                     const { groups, standalone } = groupUpgradeVariations(sortedUpgrades);
