@@ -6,8 +6,8 @@ export default function YouTubeSection() {
   // Featured YouTube videos - you can update these video IDs
   const videos = [
     {
-      id: "dQw4w9WgXcQ", // Replace with your actual YouTube video ID
-      title: "Complete Tyre Van Build",
+      id: "BhjfWStuTGQ",
+      title: "Mobile Tyre Van Build",
     },
     {
       id: "dQw4w9WgXcQ", // Replace with your actual YouTube video ID
