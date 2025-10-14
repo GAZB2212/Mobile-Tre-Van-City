@@ -58,7 +58,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -941,7 +941,7 @@ export default function AdminUpgrades() {
                     >
                       <SortableContext
                         items={categoryUpgrades.map(u => u.id)}
-                        strategy={verticalListSortingStrategy}
+                        strategy={rectSortingStrategy}
                       >
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
                           {categoryUpgrades.map((upgrade: Upgrade) => (
