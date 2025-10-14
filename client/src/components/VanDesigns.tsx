@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Image as ImageIcon, ArrowRight } from "lucide-react";
+import video1 from "@assets/ZenoVideo 20_1759504716286.mp4";
 import video2 from "@assets/ZenoVideo 14_1759504750775.mp4";
 import video3 from "@assets/ZenoVideo 8_1759504750775.mp4";
 import vanImage1 from "@assets/IMG_8800_1759504961672.jpg";
@@ -13,8 +14,8 @@ const designCategories = [
   {
     title: "360° Van Design Render",
     description: "Interactive 360-degree view of our professional mobile tyre van conversions",
-    type: "youtube" as const,
-    youtubeId: "WvzIc724GFk",
+    type: "video" as const,
+    videoSrc: video1,
     featured: true,
   },
   {
@@ -80,15 +81,7 @@ export default function VanDesigns() {
               data-testid={`card-design-${index}`}
             >
               <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
-                {design.type === 'youtube' && design.youtubeId ? (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${design.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${design.youtubeId}`}
-                    title={design.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
-                ) : design.type === 'video' && design.videoSrc ? (
+                {design.type === 'video' && design.videoSrc ? (
                   <video 
                     src={design.videoSrc} 
                     className="w-full h-full object-cover"

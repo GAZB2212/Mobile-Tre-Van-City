@@ -6,7 +6,7 @@ export default function YouTubeSection() {
   // Featured YouTube videos
   const videos = [
     {
-      id: "BhjfWStuTGQ",
+      id: "WvzIc724GFk",
       title: "Mobile Tyre Van Build",
     },
     {
