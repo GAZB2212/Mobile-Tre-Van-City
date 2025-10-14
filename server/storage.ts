@@ -5,7 +5,8 @@ import {
   type Upgrade, type InsertUpgrade,
   type Quote, type InsertQuote,
   type Lead, type InsertLead,
-  type FinancePlan, type InsertFinancePlan
+  type FinancePlan, type InsertFinancePlan,
+  type TrainingOption, type InsertTrainingOption
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -55,6 +56,13 @@ export interface IStorage {
   createFinancePlan(plan: InsertFinancePlan): Promise<FinancePlan>;
   updateFinancePlan(id: string, plan: Partial<InsertFinancePlan>): Promise<FinancePlan | undefined>;
   deleteFinancePlan(id: string): Promise<boolean>;
+
+  // Training Options
+  getTrainingOptions(): Promise<TrainingOption[]>;
+  getTrainingOption(id: string): Promise<TrainingOption | undefined>;
+  createTrainingOption(option: InsertTrainingOption): Promise<TrainingOption>;
+  updateTrainingOption(id: string, option: Partial<InsertTrainingOption>): Promise<TrainingOption | undefined>;
+  deleteTrainingOption(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -65,6 +73,7 @@ export class MemStorage implements IStorage {
   private quotes: Map<string, Quote>;
   private leads: Map<string, Lead>;
   private financePlans: Map<string, FinancePlan>;
+  private trainingOptions: Map<string, TrainingOption>;
 
   constructor() {
     this.users = new Map();
@@ -74,6 +83,7 @@ export class MemStorage implements IStorage {
     this.quotes = new Map();
     this.leads = new Map();
     this.financePlans = new Map();
+    this.trainingOptions = new Map();
     this.seedData();
   }
 
@@ -1000,6 +1010,61 @@ export class MemStorage implements IStorage {
     sampleVans.forEach(van => this.vans.set(van.id, van));
     sampleUpgrades.forEach(upgrade => this.upgrades.set(upgrade.id, upgrade));
     sampleFinancePlans.forEach(plan => this.financePlans.set(plan.id, plan));
+
+    // Training Options
+    const sampleTrainingOptions: TrainingOption[] = [
+      {
+        id: "react-training",
+        name: "REACT Training",
+        description: "Recovery Equipment And Carriageway Training - Legal requirement for motorway operations",
+        includes: [
+          "Highway Code Compliance (2 hours)",
+          "Vehicle Positioning (3 hours)",
+          "Risk Assessment (2 hours)",
+          "Emergency Procedures (2 hours)",
+          "Equipment Safety (1.5 hours)",
+          "Practical Assessment (3 hours)"
+        ],
+        price: 49500, // £495.00 in pence
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "tyre-fitting-training",
+        name: "Tyre Fitting Training",
+        description: "Professional mobile tyre fitting and service expertise",
+        includes: [
+          "Tyre Technology & Construction (2 hours)",
+          "Mobile Fitting Techniques (4 hours)",
+          "Wheel Balancing (2 hours)",
+          "Puncture Repair (1.5 hours)",
+          "TPMS Systems (2 hours)",
+          "Customer Service (1.5 hours)"
+        ],
+        price: 39500, // £395.00 in pence
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: "complete-training-package",
+        name: "Complete Training Package",
+        description: "Both REACT and Tyre Fitting training - Best value for complete certification",
+        includes: [
+          "All REACT Training Modules",
+          "All Tyre Fitting Training Modules",
+          "Full Certification for both programmes",
+          "Ongoing support and refresher access"
+        ],
+        price: 79500, // £795.00 in pence (£100 saving)
+        published: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    sampleTrainingOptions.forEach(option => this.trainingOptions.set(option.id, option));
   }
 
   // Users
@@ -1295,6 +1360,43 @@ export class MemStorage implements IStorage {
   async deleteFinancePlan(id: string): Promise<boolean> {
     return this.financePlans.delete(id);
   }
+
+  // Training Options
+  async getTrainingOptions(): Promise<TrainingOption[]> {
+    return Array.from(this.trainingOptions.values()).filter(option => option.published);
+  }
+
+  async getTrainingOption(id: string): Promise<TrainingOption | undefined> {
+    return this.trainingOptions.get(id);
+  }
+
+  async createTrainingOption(option: InsertTrainingOption): Promise<TrainingOption> {
+    const newOption: TrainingOption = {
+      id: randomUUID(),
+      ...option,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.trainingOptions.set(newOption.id, newOption);
+    return newOption;
+  }
+
+  async updateTrainingOption(id: string, option: Partial<InsertTrainingOption>): Promise<TrainingOption | undefined> {
+    const existing = this.trainingOptions.get(id);
+    if (!existing) return undefined;
+
+    const updated: TrainingOption = {
+      ...existing,
+      ...option,
+      updatedAt: new Date()
+    };
+    this.trainingOptions.set(id, updated);
+    return updated;
+  }
+
+  async deleteTrainingOption(id: string): Promise<boolean> {
+    return this.trainingOptions.delete(id);
+  }
 }
 
 // Database Storage Implementation
@@ -1479,6 +1581,34 @@ export class DbStorage implements IStorage {
 
   async deleteFinancePlan(id: string): Promise<boolean> {
     const result = await db.delete(schema.financePlans).where(eq(schema.financePlans.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Training Options
+  async getTrainingOptions(): Promise<TrainingOption[]> {
+    return db.select().from(schema.trainingOptions).where(eq(schema.trainingOptions.published, true));
+  }
+
+  async getTrainingOption(id: string): Promise<TrainingOption | undefined> {
+    const results = await db.select().from(schema.trainingOptions).where(eq(schema.trainingOptions.id, id));
+    return results[0];
+  }
+
+  async createTrainingOption(option: InsertTrainingOption): Promise<TrainingOption> {
+    const results = await db.insert(schema.trainingOptions).values(option).returning();
+    return results[0];
+  }
+
+  async updateTrainingOption(id: string, option: Partial<InsertTrainingOption>): Promise<TrainingOption | undefined> {
+    const results = await db.update(schema.trainingOptions)
+      .set({ ...option, updatedAt: new Date() })
+      .where(eq(schema.trainingOptions.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteTrainingOption(id: string): Promise<boolean> {
+    const result = await db.delete(schema.trainingOptions).where(eq(schema.trainingOptions.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 }

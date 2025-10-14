@@ -304,13 +304,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Training Options endpoints - public (published only)
+  app.get("/api/training-options", async (req, res) => {
+    try {
+      const options = await storage.getTrainingOptions();
+      res.json(options);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch training options" });
+    }
+  });
+
+  app.get("/api/training-options/:id", async (req, res) => {
+    try {
+      const option = await storage.getTrainingOption(req.params.id);
+      if (!option || !option.published) {
+        return res.status(404).json({ error: "Training option not found" });
+      }
+      res.json(option);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch training option" });
+    }
+  });
+
   // Configurator endpoints
   app.get("/api/configurator/data", async (req, res) => {
     try {
-      const [kits, upgrades, financePlans] = await Promise.all([
+      const [kits, upgrades, financePlans, trainingOptions] = await Promise.all([
         storage.getKits(),
         storage.getUpgrades(),
-        storage.getFinancePlans()
+        storage.getFinancePlans(),
+        storage.getTrainingOptions()
       ]);
       
       // Group upgrades by category
@@ -325,7 +348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         kits,
         upgrades: upgradesByCategory,
-        financePlans: financePlans.filter(p => p.published)
+        financePlans: financePlans.filter(p => p.published),
+        trainingOptions: trainingOptions.filter(o => o.published)
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch configurator data" });
@@ -339,10 +363,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         vanId: z.string().optional(),
         kitId: z.string().optional(),
         upgradeIds: z.array(z.string()).default([]),
-        upgradeQuantities: z.record(z.number()).default({})
+        upgradeQuantities: z.record(z.number()).default({}),
+        trainingOptionIds: z.array(z.string()).default([])
       });
       
-      const { vanId, kitId, upgradeIds, upgradeQuantities } = bodySchema.parse(req.body);
+      const { vanId, kitId, upgradeIds, upgradeQuantities, trainingOptionIds } = bodySchema.parse(req.body);
       
       let subtotal = 0;
       
@@ -368,6 +393,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (upgrade) {
           const quantity = upgradeQuantities[upgradeId] || 1;
           subtotal += upgrade.price * quantity;
+        }
+      }
+      
+      // Add training option prices
+      for (const trainingOptionId of trainingOptionIds) {
+        const trainingOption = await storage.getTrainingOption(trainingOptionId);
+        if (trainingOption) {
+          subtotal += trainingOption.price;
         }
       }
       
