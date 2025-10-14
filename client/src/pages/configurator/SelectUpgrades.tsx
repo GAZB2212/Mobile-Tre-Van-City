@@ -159,8 +159,9 @@ export default function SelectUpgrades() {
   };
 
   const formatPrice = (price: number, upgradeName?: string) => {
-    // Show "POA" for Garage Branding
-    if (upgradeName?.toLowerCase().includes('garage branding')) {
+    // Show "POA" for Garage Branding and Apple CarPlay
+    const lowerName = upgradeName?.toLowerCase() || '';
+    if (lowerName.includes('garage branding') || lowerName.includes('carplay')) {
       return 'POA';
     }
     
