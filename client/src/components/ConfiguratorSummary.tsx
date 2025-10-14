@@ -7,7 +7,11 @@ import { Car, Package, Wrench, GraduationCap } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
 const formatPrice = (pence: number): string => {
-  return `£${(pence / 100).toFixed(2)}`;
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    minimumFractionDigits: 0,
+  }).format(pence / 100);
 };
 
 export function ConfiguratorSummary() {

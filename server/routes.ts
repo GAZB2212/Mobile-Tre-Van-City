@@ -1092,6 +1092,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin CRUD endpoints for training options
+  app.get("/api/admin/training-options", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const options = await storage.getTrainingOptions();
+      res.json(options);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch training options" });
+    }
+  });
+
+  app.post("/api/admin/training-options", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const optionData = insertTrainingOptionSchema.parse(req.body);
+      const option = await storage.createTrainingOption(optionData);
+      res.json(option);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create training option" });
+    }
+  });
+
+  app.put("/api/admin/training-options/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const optionData = insertTrainingOptionSchema.partial().parse(req.body);
+      const option = await storage.updateTrainingOption(req.params.id, optionData);
+      if (!option) {
+        return res.status(404).json({ error: "Training option not found" });
+      }
+      res.json(option);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update training option" });
+    }
+  });
+
+  app.delete("/api/admin/training-options/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteTrainingOption(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Training option not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete training option" });
+    }
+  });
+
   // Customer portal endpoints
   app.get("/api/portal/quotes", isAuthenticated, async (req, res) => {
     try {

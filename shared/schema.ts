@@ -164,6 +164,8 @@ export const trainingOptions = pgTable("training_options", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description").notNull(),
+  type: text("type").notNull(), // e.g., "REACT", "Tyre Fitting"
+  durationDays: integer("duration_days").notNull(), // Duration in days
   includes: json("includes").$type<string[]>().notNull().default([]),
   price: integer("price").notNull(), // in pence
   published: boolean("published").notNull().default(true),

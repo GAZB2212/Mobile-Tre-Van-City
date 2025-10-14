@@ -41,7 +41,11 @@ export default function SelectTraining() {
   };
 
   const formatPrice = (price: number) => {
-    return `£${price.toLocaleString()}`;
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 0,
+    }).format(price / 100);
   };
 
   return (
