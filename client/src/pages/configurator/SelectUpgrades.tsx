@@ -36,6 +36,8 @@ interface UpgradeGroup {
 const CATEGORY_ORDER = [
   'air-systems',
   'air-system',
+  'equipment',
+  'equipment-options',
   'branding',
   'lighting',
   'comfort',
