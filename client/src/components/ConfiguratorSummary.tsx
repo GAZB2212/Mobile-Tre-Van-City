@@ -3,8 +3,8 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Car, Package, Wrench } from "lucide-react";
-import type { Van, Kit, Upgrade } from "@shared/schema";
+import { Car, Package, Wrench, GraduationCap } from "lucide-react";
+import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
 const formatPrice = (pence: number): string => {
   return `£${(pence / 100).toFixed(2)}`;
@@ -29,15 +29,22 @@ export function ConfiguratorSummary() {
     enabled: state.upgradeIds.length > 0,
   });
 
+  const { data: trainingOptions = [] } = useQuery<TrainingOption[]>({
+    queryKey: ['/api/training-options'],
+    select: (data) => data.filter(t => state.trainingOptionIds.includes(t.id)),
+    enabled: state.trainingOptionIds.length > 0,
+  });
+
   const vanPrice = van?.price || 0;
   const kitPrice = kit?.price || 0;
   const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
+  const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
   
-  const subtotal = vanPrice + kitPrice + upgradesTotal;
+  const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
   const vat = Math.round(subtotal * 0.2);
   const total = subtotal + vat;
 
-  const hasItems = vanPrice > 0 || kitPrice > 0 || upgradesTotal > 0;
+  const hasItems = vanPrice > 0 || kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0;
 
   return (
     <Card className="xl:sticky xl:top-4">
@@ -97,6 +104,29 @@ export function ConfiguratorSummary() {
                       </span>
                       <span className="font-medium whitespace-nowrap" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
                         {formatPrice(upgrade.price)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {trainingOptions.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-accent" />
+                  <p className="text-sm font-medium">
+                    Training ({trainingOptions.length})
+                  </p>
+                </div>
+                <div className="pl-6 space-y-1">
+                  {trainingOptions.map((option) => (
+                    <div key={option.id} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground truncate pr-2" data-testid={`text-summary-training-name-${option.id}`}>
+                        {option.name}
+                      </span>
+                      <span className="font-medium whitespace-nowrap" data-testid={`text-summary-training-price-${option.id}`}>
+                        {formatPrice(option.price)}
                       </span>
                     </div>
                   ))}

@@ -18,6 +18,7 @@ import Configurator from "@/pages/Configurator";
 import SelectVan from "@/pages/configurator/SelectVan";
 import SelectKit from "@/pages/configurator/SelectKit";
 import SelectUpgrades from "@/pages/configurator/SelectUpgrades";
+import SelectTraining from "@/pages/configurator/SelectTraining";
 import SelectFinance from "@/pages/configurator/SelectFinance";
 import RequestQuote from "@/pages/configurator/RequestQuote";
 import Login from "@/pages/Login";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/configurator/van" component={SelectVan} />
       <Route path="/configurator/kit" component={SelectKit} />
       <Route path="/configurator/upgrades" component={SelectUpgrades} />
+      <Route path="/configurator/training" component={SelectTraining} />
       <Route path="/configurator/finance" component={SelectFinance} />
       <Route path="/configurator/quote" component={RequestQuote} />
       {/* Auth routes */}

@@ -192,7 +192,7 @@ export default function SelectUpgrades() {
   };
 
   const handleContinue = () => {
-    setLocation('/configurator/finance');
+    setLocation('/configurator/training');
   };
 
   return (
@@ -460,7 +460,7 @@ export default function SelectUpgrades() {
                       className="bg-accent text-accent-foreground"
                       data-testid="button-continue"
                     >
-                      Continue to Finance
+                      Continue to Training
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>

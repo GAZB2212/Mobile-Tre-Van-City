@@ -4,6 +4,7 @@ export interface ConfiguratorState {
   vanId: string | null;
   kitId: string | null;
   upgradeIds: string[];
+  trainingOptionIds: string[];
   financePlanId: string | null;
   financeInputs: {
     deposit?: number;
@@ -24,12 +25,16 @@ interface ConfiguratorContextValue {
   setUpgrades: (upgradeIds: string[]) => void;
   addUpgrade: (upgradeId: string) => void;
   removeUpgrade: (upgradeId: string) => void;
+  setTrainingOptions: (trainingOptionIds: string[]) => void;
+  addTrainingOption: (trainingOptionId: string) => void;
+  removeTrainingOption: (trainingOptionId: string) => void;
   setFinancePlan: (financePlanId: string | null) => void;
   setFinanceInputs: (inputs: ConfiguratorState['financeInputs']) => void;
   setPricingSnapshot: (pricing: ConfiguratorState['pricingSnapshot']) => void;
   clearAll: () => void;
   resetFromVan: () => void;
   resetFromKit: () => void;
+  resetFromUpgrades: () => void;
   resetFromFinance: () => void;
 }
 
@@ -39,6 +44,7 @@ const defaultState: ConfiguratorState = {
   vanId: null,
   kitId: null,
   upgradeIds: [],
+  trainingOptionIds: [],
   financePlanId: null,
   financeInputs: null,
   pricingSnapshot: null,
@@ -77,6 +83,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       vanId,
       kitId: null,
       upgradeIds: [],
+      trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
       pricingSnapshot: null,
@@ -89,6 +96,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       ...prev,
       kitId,
       upgradeIds: [],
+      trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
       pricingSnapshot: null,
@@ -116,6 +124,30 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       upgradeIds: prev.upgradeIds.filter(id => id !== upgradeId)
+    }));
+  };
+
+  const setTrainingOptions = (trainingOptionIds: string[]) => {
+    setState(prev => ({ ...prev, trainingOptionIds }));
+  };
+
+  const addTrainingOption = (trainingOptionId: string) => {
+    setState(prev => {
+      // Prevent duplicates
+      if (prev.trainingOptionIds.includes(trainingOptionId)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        trainingOptionIds: [...prev.trainingOptionIds, trainingOptionId]
+      };
+    });
+  };
+
+  const removeTrainingOption = (trainingOptionId: string) => {
+    setState(prev => ({
+      ...prev,
+      trainingOptionIds: prev.trainingOptionIds.filter(id => id !== trainingOptionId)
     }));
   };
 
@@ -152,6 +184,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       ...prev,
       kitId: null,
       upgradeIds: [],
+      trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
       pricingSnapshot: null,
@@ -162,6 +195,17 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       upgradeIds: [],
+      trainingOptionIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const resetFromUpgrades = () => {
+    setState(prev => ({
+      ...prev,
+      trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
       pricingSnapshot: null,
@@ -182,12 +226,16 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setUpgrades,
     addUpgrade,
     removeUpgrade,
+    setTrainingOptions,
+    addTrainingOption,
+    removeTrainingOption,
     setFinancePlan,
     setFinanceInputs,
     setPricingSnapshot,
     clearAll,
     resetFromVan,
     resetFromKit,
+    resetFromUpgrades,
     resetFromFinance,
   };
 
