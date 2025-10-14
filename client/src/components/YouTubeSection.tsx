@@ -10,7 +10,7 @@ export default function YouTubeSection() {
       title: "Mobile Tyre Van Build",
     },
     {
-      id: "dQw4w9WgXcQ", // Replace with your actual YouTube video ID
+      id: "eIIBJPSylaI",
       title: "Van Interior Installation",
     },
     {
