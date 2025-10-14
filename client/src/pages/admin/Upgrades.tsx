@@ -78,6 +78,7 @@ type VariantOption = {
   id?: string;
   name: string;
   price: string;
+  description: string;
 };
 
 // Helper function to convert pounds to pence
@@ -253,6 +254,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
           id: v.id,
           name: v.variantName || "",
           price: penceToPounds(v.price),
+          description: v.description || "",
         })));
       } else {
         setVariants([]);
@@ -309,7 +311,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
             apiRequest("POST", "/api/admin/upgrades", {
               name: data.name,
               category: data.category,
-              description: data.description,
+              description: variant.description || data.description,
               images: data.images,
               price: poundsToPence(variant.price),
               parentId: parentResult.id,
@@ -378,7 +380,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
             const variantData = {
               name: data.name,
               category: data.category,
-              description: data.description,
+              description: variant.description || data.description,
               images: data.images,
               price: poundsToPence(variant.price),
               parentId: upgrade!.id,
@@ -564,7 +566,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       }
                       form.setValue("price", "");
                       if (variants.length === 0) {
-                        setVariants([{ name: "", price: "" }]);
+                        setVariants([{ name: "", price: "", description: "" }]);
                       }
                     } else {
                       // When disabling variants, restore cached price or require new entry
@@ -627,7 +629,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   const hasError = !variant.name.trim() || !variant.price || parseFloat(variant.price) <= 0;
                   
                   return (
-                    <div key={index} className="space-y-2">
+                    <div key={index} className="space-y-2 p-3 rounded-lg border">
                       <div className="flex gap-2">
                         <Input
                           placeholder="Variant name (e.g., LWB)"
@@ -666,6 +668,17 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+                      <Textarea
+                        placeholder="Variant description (optional - defaults to parent description)"
+                        value={variant.description}
+                        onChange={(e) => {
+                          const newVariants = [...variants];
+                          newVariants[index].description = e.target.value;
+                          setVariants(newVariants);
+                        }}
+                        className="min-h-[80px]"
+                        data-testid={`input-variant-description-${index}`}
+                      />
                       {hasError && (
                         <p className="text-xs text-destructive">
                           Both name and price are required
@@ -679,7 +692,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setVariants([...variants, { name: "", price: "" }])}
+                  onClick={() => setVariants([...variants, { name: "", price: "", description: "" }])}
                   data-testid="button-add-variant"
                 >
                   <Plus className="h-4 w-4 mr-2" />
