@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, DollarSign, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { TrendingUp, PoundSterling, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function EarningsPotential() {
@@ -9,7 +9,7 @@ export default function EarningsPotential() {
 
   const benefits = [
     {
-      icon: DollarSign,
+      icon: PoundSterling,
       title: "Up to £800 Per Day",
       description: "Our busiest customers report daily earnings of up to £800 during peak periods",
     },
