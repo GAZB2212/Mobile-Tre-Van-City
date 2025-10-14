@@ -7,6 +7,7 @@ import FeaturedStock from "@/components/FeaturedStock";
 import PreviouslyBuiltVans from "@/components/PreviouslyBuiltVans";
 import VanDesigns from "@/components/VanDesigns";
 import Testimonials from "@/components/Testimonials";
+import YouTubeSection from "@/components/YouTubeSection";
 import CTASection from "@/components/CTASection";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
@@ -24,6 +25,7 @@ export default function Home() {
         <PreviouslyBuiltVans />
         <VanDesigns />
         <Testimonials />
+        <YouTubeSection />
         <FAQ />
         <CTASection />
       </main>
