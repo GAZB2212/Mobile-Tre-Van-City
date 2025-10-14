@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, Package, Truck, CreditCard } from "lucide-react";
-import type { Van, Kit, FinancePlan, Upgrade } from "@shared/schema";
+import type { Van, Kit, FinancePlan, Upgrade, TrainingOption } from "@shared/schema";
 
 const quoteFormSchema = z.object({
   userName: z.string().min(2, "Name must be at least 2 characters"),
@@ -55,7 +55,13 @@ export default function RequestQuote() {
     enabled: state.upgradeIds.length > 0,
   });
 
-  const isLoadingData = isLoadingVan || isLoadingKit || (state.upgradeIds.length > 0 && isLoadingUpgrades);
+  const { data: trainingOptions = [], isLoading: isLoadingTraining } = useQuery<TrainingOption[]>({
+    queryKey: ['/api/training-options'],
+    select: (data) => data.filter(t => state.trainingOptionIds.includes(t.id)),
+    enabled: state.trainingOptionIds.length > 0,
+  });
+
+  const isLoadingData = isLoadingVan || isLoadingKit || (state.upgradeIds.length > 0 && isLoadingUpgrades) || (state.trainingOptionIds.length > 0 && isLoadingTraining);
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteFormSchema),
@@ -70,12 +76,15 @@ export default function RequestQuote() {
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (formData: QuoteFormData) => {
-      // Calculate pricing including upgrades
+      // Calculate pricing including upgrades and training
       let subtotal = 0;
       if (van) subtotal += van.price;
       if (kit) subtotal += kit.price;
       upgrades.forEach(upgrade => {
         subtotal += upgrade.price;
+      });
+      trainingOptions.forEach(option => {
+        subtotal += option.price;
       });
       
       const vat = Math.round(subtotal * 0.2);
@@ -86,6 +95,7 @@ export default function RequestQuote() {
         vanId: state.vanId,
         kitId: state.kitId!,
         upgradeIds: state.upgradeIds,
+        trainingOptionIds: state.trainingOptionIds,
         financePlanId: state.financePlanId,
         financeInputs: state.financeInputs,
         estSubtotal: subtotal,
@@ -131,6 +141,9 @@ export default function RequestQuote() {
     if (kit) subtotal += kit.price;
     upgrades.forEach(upgrade => {
       subtotal += upgrade.price;
+    });
+    trainingOptions.forEach(option => {
+      subtotal += option.price;
     });
     
     const vat = Math.round(subtotal * 0.2);
