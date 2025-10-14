@@ -34,6 +34,7 @@ interface UpgradeGroup {
 
 // Define preferred category order
 const CATEGORY_ORDER = [
+  'air-systems',
   'air-system',
   'branding',
   'lighting',
