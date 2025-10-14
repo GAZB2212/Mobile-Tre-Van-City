@@ -20,6 +20,7 @@ export default function Header() {
     { name: "Stock", href: "/stock" },
     { name: "Finance", href: "/finance" },
     { name: "Gallery", href: "/gallery" },
+    { name: "Training", href: "/training" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];

@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import UKManufacturing from "@/components/UKManufacturing";
 import ProcessSteps from "@/components/ProcessSteps";
 import EarningsPotential from "@/components/EarningsPotential";
+import TrainingSection from "@/components/TrainingSection";
 import TrustStrip from "@/components/TrustStrip";
 import FeaturedStock from "@/components/FeaturedStock";
 import PreviouslyBuiltVans from "@/components/PreviouslyBuiltVans";
@@ -23,6 +24,7 @@ export default function Home() {
         <UKManufacturing />
         <ProcessSteps />
         <EarningsPotential />
+        <TrainingSection />
         <FeaturedStock />
         <PreviouslyBuiltVans />
         <VanDesigns />

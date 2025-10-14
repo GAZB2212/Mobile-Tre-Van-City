@@ -80,6 +80,12 @@ Preferred communication style: Simple, everyday language.
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations
 - **Email System**: Infrastructure ready for quote delivery and lead notifications
 - **SEO Optimization**: Meta tags, structured data, and semantic HTML for search visibility
+- **REACT Training Programme**: Comprehensive in-house training for motorway operations
+  - Full training page (`/training`) covering REACT (Recovery Equipment And Carriageway Training) certification
+  - Training section on home page highlighting the included professional certification
+  - Legal requirement for UK motorway operations and roadside recovery work
+  - 6 training modules covering highway code, vehicle positioning, risk assessment, emergency procedures, equipment safety, and practical assessment
+  - Included with every van purchase for full compliance and operator confidence
 
 ### Vehicle Data Integration
 - **CheckCarDetails API**: Automated vehicle data lookup using UK registration numbers

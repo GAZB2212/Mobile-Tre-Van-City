@@ -13,6 +13,7 @@ import Gallery from "@/pages/Gallery";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import HowItWorks from "@/pages/HowItWorks";
+import Training from "@/pages/Training";
 import Configurator from "@/pages/Configurator";
 import SelectVan from "@/pages/configurator/SelectVan";
 import SelectKit from "@/pages/configurator/SelectKit";
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/how-it-works" component={HowItWorks} />
+      <Route path="/training" component={Training} />
       <Route path="/configurator" component={Configurator} />
       {/* Conversion funnel routes */}
       <Route path="/configurator/van" component={SelectVan} />
