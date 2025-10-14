@@ -97,9 +97,10 @@ interface SortableUpgradeCardProps {
   onEdit: (upgrade: Upgrade) => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
+  hasVariants?: boolean;
 }
 
-function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting }: SortableUpgradeCardProps) {
+function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariants }: SortableUpgradeCardProps) {
   const {
     attributes,
     listeners,
@@ -128,14 +129,21 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting }: Sortable
             <GripVertical className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="space-y-1 min-w-0 flex-1">
-            <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
-              {upgrade.name}
-            </CardTitle>
-            {upgrade.variantName && (
-              <Badge variant="outline" className="text-xs">
-                {upgrade.variantName}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
+                {upgrade.name}
+              </CardTitle>
+              {upgrade.variantName && (
+                <Badge variant="outline" className="text-xs">
+                  {upgrade.variantName}
+                </Badge>
+              )}
+              {hasVariants && (
+                <Badge variant="secondary" className="text-xs">
+                  Has Variants
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center flex-shrink-0">
@@ -793,10 +801,11 @@ export default function AdminUpgrades() {
         description: "Upgrade deleted successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || error?.error || "Failed to delete upgrade";
       toast({
         title: "Error",
-        description: "Failed to delete upgrade",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -944,15 +953,19 @@ export default function AdminUpgrades() {
                         strategy={rectSortingStrategy}
                       >
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
-                          {categoryUpgrades.map((upgrade: Upgrade) => (
-                            <SortableUpgradeCard
-                              key={upgrade.id}
-                              upgrade={upgrade}
-                              onEdit={handleEdit}
-                              onDelete={handleDelete}
-                              isDeleting={deleteMutation.isPending}
-                            />
-                          ))}
+                          {categoryUpgrades.map((upgrade: Upgrade) => {
+                            const hasVariants = upgrades.some(u => u.parentId === upgrade.id);
+                            return (
+                              <SortableUpgradeCard
+                                key={upgrade.id}
+                                upgrade={upgrade}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                isDeleting={deleteMutation.isPending}
+                                hasVariants={hasVariants}
+                              />
+                            );
+                          })}
                         </div>
                       </SortableContext>
                     </DndContext>
