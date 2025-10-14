@@ -79,6 +79,7 @@ type VariantOption = {
   name: string;
   price: string;
   description: string;
+  images: string[];
 };
 
 // Helper function to convert pounds to pence
@@ -255,6 +256,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
           name: v.variantName || "",
           price: penceToPounds(v.price),
           description: v.description || "",
+          images: v.images || [],
         })));
       } else {
         setVariants([]);
@@ -312,7 +314,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               name: data.name,
               category: data.category,
               description: variant.description || data.description,
-              images: data.images,
+              images: variant.images.length > 0 ? variant.images : [],
               price: poundsToPence(variant.price),
               parentId: parentResult.id,
               variantName: variant.name,
@@ -381,7 +383,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               name: data.name,
               category: data.category,
               description: variant.description || data.description,
-              images: data.images,
+              images: variant.images.length > 0 ? variant.images : [],
               price: poundsToPence(variant.price),
               parentId: upgrade!.id,
               variantName: variant.name,
@@ -566,7 +568,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       }
                       form.setValue("price", "");
                       if (variants.length === 0) {
-                        setVariants([{ name: "", price: "", description: "" }]);
+                        setVariants([{ name: "", price: "", description: "", images: [] }]);
                       }
                     } else {
                       // When disabling variants, restore cached price or require new entry
@@ -629,8 +631,24 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   const hasError = !variant.name.trim() || !variant.price || parseFloat(variant.price) <= 0;
                   
                   return (
-                    <div key={index} className="space-y-2 p-3 rounded-lg border">
-                      <div className="flex gap-2">
+                    <div key={index} className="space-y-3 p-4 rounded-lg border">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Variant {index + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setVariants(variants.filter((_, i) => i !== index));
+                          }}
+                          data-testid={`button-remove-variant-${index}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
                         <Input
                           placeholder="Variant name (e.g., LWB)"
                           value={variant.name}
@@ -656,18 +674,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                           className={(!variant.price || parseFloat(variant.price) <= 0) ? "border-destructive" : ""}
                           data-testid={`input-variant-price-${index}`}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            setVariants(variants.filter((_, i) => i !== index));
-                          }}
-                          data-testid={`button-remove-variant-${index}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
+                      
                       <Textarea
                         placeholder="Variant description (optional - defaults to parent description)"
                         value={variant.description}
@@ -679,6 +687,23 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                         className="min-h-[80px]"
                         data-testid={`input-variant-description-${index}`}
                       />
+                      
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Variant Images</label>
+                        <UpgradeImageUploader
+                          images={variant.images}
+                          onChange={(images: string[]) => {
+                            const newVariants = [...variants];
+                            newVariants[index].images = images;
+                            setVariants(newVariants);
+                          }}
+                          maxImages={5}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Upload images for this variant (optional - defaults to parent images)
+                        </p>
+                      </div>
+                      
                       {hasError && (
                         <p className="text-xs text-destructive">
                           Both name and price are required
@@ -692,7 +717,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setVariants([...variants, { name: "", price: "", description: "" }])}
+                  onClick={() => setVariants([...variants, { name: "", price: "", description: "", images: [] }])}
                   data-testid="button-add-variant"
                 >
                   <Plus className="h-4 w-4 mr-2" />
