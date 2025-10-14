@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, ShieldCheck, Award, Clock } from "lucide-react";
+import { GraduationCap, ShieldCheck, Award, Wrench } from "lucide-react";
 import { Link } from "wouter";
 
 export default function TrainingSection() {
@@ -9,12 +9,12 @@ export default function TrainingSection() {
     {
       icon: ShieldCheck,
       title: "REACT Certified",
-      description: "Essential for motorway operation and legal compliance",
+      description: "Legal requirement for motorway operations and roadside recovery",
     },
     {
-      icon: Clock,
-      title: "Flexible Scheduling",
-      description: "Training sessions arranged to suit your business needs",
+      icon: Wrench,
+      title: "Tyre Fitting Training",
+      description: "Professional mobile tyre fitting and TPMS expertise",
     },
     {
       icon: Award,
@@ -32,10 +32,10 @@ export default function TrainingSection() {
             Professional Training Included
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-training-title">
-            In-House REACT Training
+            Complete Training Programme
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="text-training-description">
-            Every mobile tyre van purchase includes comprehensive REACT training - a legal requirement for motorway operations and roadside recovery work
+            Every mobile tyre van purchase includes comprehensive REACT motorway certification and professional tyre fitting training - everything you need to start earning from day one
           </p>
         </div>
 
