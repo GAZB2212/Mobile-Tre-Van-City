@@ -15,7 +15,8 @@ import {
   Settings,
   LogOut,
   Calculator,
-  Download
+  Download,
+  GraduationCap
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -106,6 +107,13 @@ export default function AdminDashboard() {
       icon: Calculator,
       href: "/admin/finance-plans",
       badge: "Finance"
+    },
+    {
+      title: "Manage Training Options",
+      description: "Configure training programmes for configurator",
+      icon: GraduationCap,
+      href: "/admin/training-options",
+      badge: "Training"
     },
     {
       title: "View Quotes",

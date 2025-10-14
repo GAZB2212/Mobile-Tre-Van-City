@@ -31,6 +31,7 @@ import AdminQuotes from "@/pages/admin/Quotes";
 import AdminQuoteDetail from "@/pages/admin/QuoteDetail";
 import AdminLeads from "@/pages/admin/Leads";
 import AdminFinancePlans from "@/pages/admin/FinancePlans";
+import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import WirralVansSync from "@/pages/admin/WirralVansSync";
 import Portal from "@/pages/Portal";
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/admin/kits" component={AdminKits} />
       <Route path="/admin/upgrades" component={AdminUpgrades} />
       <Route path="/admin/finance-plans" component={AdminFinancePlans} />
+      <Route path="/admin/training-options" component={AdminTrainingOptions} />
       <Route path="/admin/quotes" component={AdminQuotes} />
       <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
