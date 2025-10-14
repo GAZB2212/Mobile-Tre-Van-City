@@ -41,25 +41,17 @@ export default function YouTubeSection() {
             {videos.map((video, index) => (
               <Card 
                 key={index} 
-                className="overflow-hidden hover-elevate cursor-pointer group"
-                onClick={() => window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank')}
+                className="overflow-hidden"
                 data-testid={`card-youtube-video-${index}`}
               >
-                <div className="relative aspect-video bg-muted">
-                  <img
-                    src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
-                    alt={video.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // Fallback to default quality thumbnail if max res doesn't exist
-                      e.currentTarget.src = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
-                    }}
+                <div className="relative aspect-video bg-black">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${video.id}?autoplay=1&mute=1&loop=1&playlist=${video.id}`}
+                    title={video.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
                   />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Youtube className="w-8 h-8 text-accent-foreground" />
-                    </div>
-                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold">{video.title}</h3>
