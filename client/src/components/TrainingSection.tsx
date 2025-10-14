@@ -29,13 +29,13 @@ export default function TrainingSection() {
         <div className="text-center mb-12">
           <Badge variant="outline" className="mb-4" data-testid="badge-training">
             <GraduationCap className="w-4 h-4 mr-2" />
-            Professional Training Included
+            Optional Professional Training
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-training-title">
-            Complete Training Programme
+            Complete Training Programme Available
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="text-training-description">
-            Every mobile tyre van purchase includes comprehensive REACT motorway certification and professional tyre fitting training - everything you need to start earning from day one
+            Add comprehensive REACT motorway certification and professional tyre fitting training to your order - everything you need to start earning from day one
           </p>
         </div>
 
