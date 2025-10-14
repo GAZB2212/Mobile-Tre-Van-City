@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Play, Image as ImageIcon, ArrowRight } from "lucide-react";
+import { Image as ImageIcon, ArrowRight } from "lucide-react";
 import video1 from "@assets/ZenoVideo 20_1759504716286.mp4";
 import video2 from "@assets/ZenoVideo 14_1759504750775.mp4";
 import video3 from "@assets/ZenoVideo 8_1759504750775.mp4";
@@ -85,14 +85,10 @@ export default function VanDesigns() {
                   <video 
                     src={design.videoSrc} 
                     className="w-full h-full object-cover"
+                    autoPlay
                     muted
                     loop
                     playsInline
-                    onMouseEnter={(e) => e.currentTarget.play()}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.pause();
-                      e.currentTarget.currentTime = 0;
-                    }}
                   />
                 ) : design.type === 'image' && design.imageSrc ? (
                   <img 
@@ -107,13 +103,6 @@ export default function VanDesigns() {
                       <Badge variant="secondary" className="text-xs">
                         Gallery
                       </Badge>
-                    </div>
-                  </div>
-                )}
-                {design.type === 'video' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors pointer-events-none">
-                    <div className="w-16 h-16 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Play className="w-8 h-8 text-accent-foreground ml-1" />
                     </div>
                   </div>
                 )}
