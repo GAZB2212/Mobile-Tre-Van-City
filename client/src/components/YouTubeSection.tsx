@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Youtube } from "lucide-react";
 
 export default function YouTubeSection() {
-  // Featured YouTube videos - you can update these video IDs
+  // Featured YouTube videos
   const videos = [
     {
       id: "BhjfWStuTGQ",
@@ -14,7 +14,7 @@ export default function YouTubeSection() {
       title: "Van Interior Installation",
     },
     {
-      id: "dQw4w9WgXcQ", // Replace with your actual YouTube video ID
+      id: "ZK4KIOkK1jI",
       title: "Mobile Tyre Van Tour",
     },
   ];
