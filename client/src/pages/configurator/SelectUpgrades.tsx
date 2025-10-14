@@ -240,12 +240,49 @@ export default function SelectUpgrades() {
                       ...standalone.map(u => ({ type: 'standalone' as const, sortOrder: u.sortOrder, data: u }))
                     ].sort((a, b) => a.sortOrder - b.sortOrder);
                     
+                    // Calculate minimum price for the category
+                    const allPrices: number[] = [];
+                    let hasPOA = false;
+                    
+                    standalone.forEach(upgrade => {
+                      const lowerName = upgrade.name.toLowerCase();
+                      if (lowerName.includes('garage branding') || lowerName.includes('carplay')) {
+                        hasPOA = true;
+                      } else {
+                        allPrices.push(upgrade.price);
+                      }
+                    });
+                    
+                    groups.forEach(group => {
+                      const lowerName = group.parent.name.toLowerCase();
+                      if (lowerName.includes('garage branding') || lowerName.includes('carplay')) {
+                        hasPOA = true;
+                      } else {
+                        group.variants.forEach(variant => {
+                          allPrices.push(variant.price);
+                        });
+                      }
+                    });
+                    
+                    const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
+                    
                     return (
                       <Card key={category}>
                         <CardHeader>
-                          <CardTitle className="text-lg capitalize">
-                            {category.replace('-', ' ')} Options
-                          </CardTitle>
+                          <div className="flex justify-between items-center gap-4">
+                            <CardTitle className="text-lg capitalize">
+                              {category.replace('-', ' ')} Options
+                            </CardTitle>
+                            {(minPrice !== null || hasPOA) && (
+                              <Badge variant="secondary" className="text-sm">
+                                From {minPrice !== null ? new Intl.NumberFormat('en-GB', {
+                                  style: 'currency',
+                                  currency: 'GBP',
+                                  minimumFractionDigits: 0,
+                                }).format(minPrice / 100) : 'POA'}
+                              </Badge>
+                            )}
+                          </div>
                         </CardHeader>
                         <CardContent>
                           <div className="grid gap-3">
