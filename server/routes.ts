@@ -1390,8 +1390,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Referenced from blueprint: javascript_object_storage - protected file uploading
-  // The endpoint for serving private objects with ACL checks
-  app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
+  // The endpoint for serving objects with ACL checks (public and private)
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    // Get userId if user is authenticated (undefined for public access)
     const userId = (req as any).user?.id;
     const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
     const { ObjectPermission } = await import("./objectAcl");
