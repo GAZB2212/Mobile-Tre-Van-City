@@ -10,6 +10,7 @@ import {
   insertQuoteSchema, 
   insertLeadSchema, 
   insertFinancePlanSchema,
+  insertTrainingOptionSchema,
   quoteStatuses,
   financeStatuses,
   buildStages
@@ -1361,10 +1362,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .slice(0, 5)
             .map(q => ({
               id: q.id,
-              customerName: q.customerName,
-              customerEmail: q.customerEmail,
+              customerName: q.userName,
+              customerEmail: q.email,
               status: q.status,
-              totalPrice: q.totalPrice,
+              totalPrice: q.estTotal,
               createdAt: q.createdAt
             })),
           leads: leads
@@ -1378,7 +1379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: l.id,
               name: l.name,
               email: l.email,
-              subject: l.subject,
+              message: l.message,
               createdAt: l.createdAt
             }))
         }
@@ -1559,14 +1560,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate file size (10MB max)
-      if (fileSize > 10485760) {
+      if (Number(fileSize) > 10485760) {
         // Delete the oversized file
         await objectFile.delete();
         return res.status(400).json({ error: "File too large. Maximum size is 10MB." });
       }
       
       // Check for existing ACL policy
-      const existingAcl = await objectStorageService.getObjectAclPolicy(objectFile);
+      const { getObjectAclPolicy, setObjectAclPolicy } = await import("./objectAcl");
+      const existingAcl = await getObjectAclPolicy(objectFile);
       
       if (existingAcl && existingAcl.owner && existingAcl.owner !== userId.toString()) {
         // File already has an ACL with a different owner - this is a security violation
@@ -1575,7 +1577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set ACL policy for the uploaded logo (public visibility so admin can view it)
       if (!existingAcl) {
-        await objectStorageService.setObjectAclPolicy(objectFile, {
+        await setObjectAclPolicy(objectFile, {
           owner: userId.toString(),
           visibility: "public", // Public so admin can view uploaded logos
         });
