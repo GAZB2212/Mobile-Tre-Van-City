@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Car, Fuel, Gauge, Settings, Calendar, CheckCircle, Phone, Mail, Wrench } from "lucide-react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
+import SEO, { createProductStructuredData, createBreadcrumbStructuredData } from "@/components/SEO";
 import type { Van } from "@shared/schema";
 
 export default function VanDetails() {
@@ -65,8 +66,31 @@ export default function VanDetails() {
     );
   }
 
+  const breadcrumbs = createBreadcrumbStructuredData([
+    { name: 'Home', url: '/' },
+    { name: 'Stock', url: '/stock' },
+    { name: van.title, url: `/stock/${van.slug}` }
+  ]);
+
+  const productData = createProductStructuredData({
+    id: van.id,
+    make: van.make,
+    model: van.model,
+    year: van.year,
+    price: van.price,
+    image: van.heroImage || van.images[0]
+  });
+
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title={`${van.title} - Mobile Tyre Van Conversion`}
+        description={`${van.year} ${van.make} ${van.model} mobile tyre van conversion. Fully equipped for mobile tyre fitting business. ${van.mileage ? `${van.mileage.toLocaleString()} miles.` : ''} Finance available.`}
+        canonical={`/stock/${van.slug}`}
+        ogType="product"
+        ogImage={van.heroImage || van.images[0]}
+        structuredData={[breadcrumbs, productData]}
+      />
       {/* Header */}
       <section className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">

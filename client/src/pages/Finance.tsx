@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,11 @@ export default function Finance() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Van Finance Options - Flexible Payment Plans"
+        description="Spread the cost of your mobile tyre van with our competitive finance packages. FCA authorised. Hire purchase and lease options available with affordable monthly payments."
+        canonical="/finance"
+      />
       <Header />
 
       {/* Hero Section */}

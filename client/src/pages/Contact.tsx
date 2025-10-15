@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,11 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Contact Us - Get In Touch"
+        description="Have questions about our mobile tyre van conversions? Contact us for expert advice on van conversions, equipment packages, training, and finance options. We're here to help you get started."
+        canonical="/contact"
+      />
       <Header />
 
       {/* Hero Section */}

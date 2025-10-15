@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,11 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="About Us - UK Mobile Tyre Van Conversion Specialists"
+        description="Passionate about helping entrepreneurs start mobile tyre fitting businesses. Quality craftsmanship, industry expertise, and full support for your success. UK manufactured conversions."
+        canonical="/about"
+      />
       <Header />
 
       {/* Hero Section */}

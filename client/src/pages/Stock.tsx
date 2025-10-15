@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Car, Fuel, Gauge, Settings, Calendar, ArrowRight, Search, Wrench } from "lucide-react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
+import SEO from "@/components/SEO";
 import type { Van } from "@shared/schema";
 
 export default function Stock() {
@@ -54,6 +55,11 @@ export default function Stock() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Mobile Tyre Van Stock - Ready to Go Conversions"
+        description="Browse our selection of professionally converted mobile tyre vans. All vehicles are fully equipped with tyre fitting equipment and ready for business. Finance options available."
+        canonical="/stock"
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-card to-background border-b">
         <div className="container mx-auto px-4 py-16">

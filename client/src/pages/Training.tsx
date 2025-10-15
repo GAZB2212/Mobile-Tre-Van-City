@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import SEO from "@/components/SEO";
 import { 
   GraduationCap, 
   ShieldCheck, 
@@ -100,6 +101,11 @@ export default function Training() {
 
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Training Programme - REACT & Tyre Fitting Certification"
+        description="Comprehensive in-house training covering REACT motorway certification and professional tyre fitting. Full legal compliance, professional certification, and ongoing support included with every van."
+        canonical="/training"
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-background py-16 px-4">
         <div className="container mx-auto max-w-7xl">

@@ -13,10 +13,17 @@ import YouTubeSection from "@/components/YouTubeSection";
 import CTASection from "@/components/CTASection";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
+import SEO, { organizationStructuredData } from "@/components/SEO";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Premium Mobile Tyre Van Conversions UK"
+        description="Build your mobile tyre fitting business with our professional van conversions. Complete tyre equipment packages, REACT training included, finance options available. UK manufactured quality."
+        canonical="/"
+        structuredData={organizationStructuredData}
+      />
       <Header />
       <main>
         <Hero />

@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,11 @@ const galleryItems = [
 export default function Gallery() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Gallery - Van Conversion Portfolio"
+        description="Explore our collection of completed mobile tyre van conversions, interior layouts, equipment installations, and professional branding designs. See our quality craftsmanship."
+        canonical="/gallery"
+      />
       <Header />
 
       {/* Hero Section */}

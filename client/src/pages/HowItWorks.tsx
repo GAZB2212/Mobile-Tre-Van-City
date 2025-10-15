@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Car, Package, Sparkles, CreditCard, Check, Wrench, Palette, Users } from "lucide-react";
 import { Link } from "wouter";
@@ -76,6 +77,11 @@ const qualityPoints = [
 export default function HowItWorks() {
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="How It Works - Van Conversion Process"
+        description="Build your perfect mobile tyre van in 4 simple steps: Choose your van, select your equipment kit, add custom upgrades, and arrange flexible finance. Full build service with in-house team."
+        canonical="/how-it-works"
+      />
       <Header />
       
       <main>
