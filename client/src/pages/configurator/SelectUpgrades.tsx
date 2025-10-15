@@ -261,15 +261,31 @@ export default function SelectUpgrades() {
                                 return (
                                   <div 
                                     key={upgrade.id}
-                                    className="space-y-3 p-3 rounded-lg border hover-elevate"
+                                    className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex items-start space-x-3">
+                                    <div className="flex items-start gap-3">
+                                      {/* Image thumbnail on the left */}
+                                      {upgrade.images && upgrade.images.length > 0 && (
+                                        <div className="flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border">
+                                          <img
+                                            src={upgrade.images[0]}
+                                            alt={upgrade.name}
+                                            className="w-full h-full object-cover"
+                                            data-testid={`img-upgrade-${upgrade.id}-0`}
+                                          />
+                                        </div>
+                                      )}
+                                      
+                                      {/* Checkbox */}
                                       <Checkbox
                                         id={upgrade.id}
                                         checked={isSelected}
                                         onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
                                         data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                        className="mt-1"
                                       />
+                                      
+                                      {/* Content on the right */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1 gap-3">
                                           <label 
@@ -305,27 +321,6 @@ export default function SelectUpgrades() {
                                         )}
                                       </div>
                                     </div>
-                                    
-                                    {/* Display upgrade images */}
-                                    {upgrade.images && upgrade.images.length > 0 && (
-                                      <div className="flex gap-2 overflow-x-auto">
-                                        {upgrade.images.slice(0, 3).map((image, idx) => (
-                                          <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden border">
-                                            <img
-                                              src={image}
-                                              alt={`${upgrade.name} image ${idx + 1}`}
-                                              className="w-full h-full object-cover"
-                                              data-testid={`img-upgrade-${upgrade.id}-${idx}`}
-                                            />
-                                          </div>
-                                        ))}
-                                        {upgrade.images.length > 3 && (
-                                          <div className="flex-shrink-0 w-24 h-24 rounded-md border flex items-center justify-center bg-muted">
-                                            <span className="text-xs text-muted-foreground">+{upgrade.images.length - 3}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                 );
                               } else {
@@ -350,9 +345,22 @@ export default function SelectUpgrades() {
                                 return (
                                   <div 
                                     key={parent.id}
-                                    className="space-y-3 p-3 rounded-lg border hover-elevate"
+                                    className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex items-start space-x-3">
+                                    <div className="flex items-start gap-3">
+                                      {/* Image thumbnail on the left */}
+                                      {displayImages && displayImages.length > 0 && (
+                                        <div className="flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border">
+                                          <img
+                                            src={displayImages[0]}
+                                            alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
+                                            className="w-full h-full object-cover"
+                                            data-testid={`img-variant-${parent.id}-0`}
+                                          />
+                                        </div>
+                                      )}
+                                      
+                                      {/* Checkbox */}
                                       <Checkbox
                                         id={`variant-group-${parent.id}`}
                                         checked={isSelected}
@@ -367,7 +375,10 @@ export default function SelectUpgrades() {
                                           }
                                         }}
                                         data-testid={`checkbox-variant-${parent.id}`}
+                                        className="mt-1"
                                       />
+                                      
+                                      {/* Content on the right */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1 gap-3">
                                           <label 
@@ -418,27 +429,6 @@ export default function SelectUpgrades() {
                                         )}
                                       </div>
                                     </div>
-                                    
-                                    {/* Display variant or parent images */}
-                                    {displayImages && displayImages.length > 0 && (
-                                      <div className="flex gap-2 overflow-x-auto">
-                                        {displayImages.slice(0, 3).map((image, idx) => (
-                                          <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden border">
-                                            <img
-                                              src={image}
-                                              alt={selectedVariant ? `${selectedVariant.variantName} image ${idx + 1}` : `${parent.name} image ${idx + 1}`}
-                                              className="w-full h-full object-cover"
-                                              data-testid={`img-variant-${parent.id}-${idx}`}
-                                            />
-                                          </div>
-                                        ))}
-                                        {displayImages.length > 3 && (
-                                          <div className="flex-shrink-0 w-24 h-24 rounded-md border flex items-center justify-center bg-muted">
-                                            <span className="text-xs text-muted-foreground">+{displayImages.length - 3}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                 );
                               }
