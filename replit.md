@@ -79,7 +79,16 @@ Preferred communication style: Simple, everyday language.
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations
 - **Email System**: Infrastructure ready for quote delivery and lead notifications
-- **SEO Optimization**: Meta tags, structured data, and semantic HTML for search visibility
+- **SEO Optimization**: Comprehensive search engine optimization system
+  - Dynamic meta tags (title, description) unique to each page
+  - Open Graph tags for social media sharing (Facebook, Twitter, LinkedIn)
+  - JSON-LD structured data for rich search results (Organization, Product, BreadcrumbList schemas)
+  - Automatic script cleanup preventing stale schema across route changes
+  - Canonical URLs for duplicate content management
+  - Sitemap.xml for search engine crawling (`/sitemap.xml`)
+  - Robots.txt for crawler directives (`/robots.txt`)
+  - Product structured data on van detail pages with pricing and availability
+  - SEO component at `client/src/components/SEO.tsx` used across all public pages
 - **Complete Training Programme**: Comprehensive in-house training for motorway operations and tyre fitting
   - Full training page (`/training`) covering both REACT and tyre fitting certifications
   - REACT Training: Legal requirement for UK motorway operations (6 modules: highway code, vehicle positioning, risk assessment, emergency procedures, equipment safety, practical assessment)

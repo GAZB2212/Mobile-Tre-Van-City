@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Disallow admin areas
+Disallow: /admin
+Disallow: /api/admin
+
+# Allow crawling of public API endpoints
+Allow: /api/vans
+Allow: /api/kits
+Allow: /api/configurator
+
+# Sitemap location
+Sitemap: https://tyrevancity.com/sitemap.xml

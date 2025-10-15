@@ -67,14 +67,19 @@ export default function SEO({
     }
     linkCanonical.setAttribute('href', canonicalUrl);
 
+    let script = document.querySelector('script[type="application/ld+json"]');
+    
     if (structuredData) {
-      let script = document.querySelector('script[type="application/ld+json"]');
       if (!script) {
         script = document.createElement('script');
         script.setAttribute('type', 'application/ld+json');
         document.head.appendChild(script);
       }
       script.textContent = JSON.stringify(structuredData);
+    } else {
+      if (script) {
+        script.remove();
+      }
     }
   }, [fullTitle, description, canonicalUrl, ogType, ogImage, noindex, structuredData]);
 
