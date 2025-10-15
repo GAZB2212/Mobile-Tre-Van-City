@@ -295,6 +295,42 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, upgrade?.id]);
 
+  // Sync variants when allUpgrades changes (e.g., after image upload) but keep local edits
+  useEffect(() => {
+    if (!open || !upgrade || !hasVariants) return;
+    
+    const children = allUpgrades.filter(u => u.parentId === upgrade.id);
+    if (children.length === 0) return;
+    
+    // Only update variants if there are actual changes from the server
+    // This prevents losing local edits while keeping image uploads in sync
+    setVariants(prevVariants => {
+      // If no local variants yet, use server data
+      if (prevVariants.length === 0) {
+        return children.map(v => ({
+          id: v.id,
+          name: v.variantName || "",
+          price: penceToPounds(v.price),
+          description: v.description || "",
+          images: v.images || [],
+        }));
+      }
+      
+      // Update existing variants with fresh images from server
+      return prevVariants.map(localVariant => {
+        const serverVariant = children.find(c => c.id === localVariant.id);
+        if (serverVariant) {
+          // Keep local edits but use server images if they've been updated
+          return {
+            ...localVariant,
+            images: serverVariant.images || [],
+          };
+        }
+        return localVariant;
+      });
+    });
+  }, [open, upgrade, hasVariants, allUpgrades]);
+
   const createMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
       // If this has variants, create parent with no price
