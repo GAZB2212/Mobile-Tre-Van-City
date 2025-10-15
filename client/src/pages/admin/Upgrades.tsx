@@ -295,41 +295,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, upgrade?.id]);
 
-  // Sync variants when allUpgrades changes (e.g., after image upload) but keep local edits
-  useEffect(() => {
-    if (!open || !upgrade || !hasVariants) return;
-    
-    const children = allUpgrades.filter(u => u.parentId === upgrade.id);
-    if (children.length === 0) return;
-    
-    // Only update variants if there are actual changes from the server
-    // This prevents losing local edits while keeping image uploads in sync
-    setVariants(prevVariants => {
-      // If no local variants yet, use server data
-      if (prevVariants.length === 0) {
-        return children.map(v => ({
-          id: v.id,
-          name: v.variantName || "",
-          price: penceToPounds(v.price),
-          description: v.description || "",
-          images: v.images || [],
-        }));
-      }
-      
-      // Update existing variants with fresh images from server
-      return prevVariants.map(localVariant => {
-        const serverVariant = children.find(c => c.id === localVariant.id);
-        if (serverVariant) {
-          // Keep local edits but use server images if they've been updated
-          return {
-            ...localVariant,
-            images: serverVariant.images || [],
-          };
-        }
-        return localVariant;
-      });
-    });
-  }, [open, upgrade, hasVariants, allUpgrades]);
+  // DON'T auto-sync variants - keep local edits until user saves
+  // This prevents variants from being lost when images are uploaded
 
   const createMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
@@ -403,14 +370,31 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         };
         const parentResult = await apiRequest("PUT", `/api/admin/upgrades/${upgrade!.id}`, parentData);
         
-        // Delete removed variants
+        // Delete removed variants (only those that user explicitly removed)
         const existingVariantIds = upgradeVariants.map(v => v.id);
-        const keptVariantIds = variants.filter(v => v.id).map(v => v.id);
+        const keptVariantIds = variants.filter(v => v.id).map(v => v.id!).filter(Boolean);
         const toDelete = existingVariantIds.filter(id => !keptVariantIds.includes(id));
         
-        await Promise.all(toDelete.map(id => 
-          apiRequest("DELETE", `/api/admin/upgrades/${id}`)
-        ));
+        console.log('Variant deletion check:', { 
+          existingVariantIds, 
+          keptVariantIds, 
+          toDelete,
+          variantsState: variants 
+        });
+        
+        // Safety check: only delete if we have the same or more local variants than server variants
+        // This prevents accidental deletion if state gets out of sync
+        if (variants.length >= upgradeVariants.length && toDelete.length > 0) {
+          await Promise.all(toDelete.map(id => 
+            apiRequest("DELETE", `/api/admin/upgrades/${id}`)
+          ));
+        } else if (toDelete.length > 0) {
+          console.warn('Skipping variant deletion - state mismatch detected', {
+            localCount: variants.length,
+            serverCount: upgradeVariants.length,
+            toDelete
+          });
+        }
         
         // Update or create variants
         await Promise.all(
