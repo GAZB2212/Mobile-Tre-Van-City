@@ -32,6 +32,7 @@ import AdminQuoteDetail from "@/pages/admin/QuoteDetail";
 import AdminLeads from "@/pages/admin/Leads";
 import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
+import AdminAnalytics from "@/pages/admin/Analytics";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import WirralVansSync from "@/pages/admin/WirralVansSync";
 import Portal from "@/pages/Portal";
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/portal/configuration/:id" component={ConfigurationDetail} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/analytics" component={AdminAnalytics} />
       <Route path="/admin/vans" component={AdminVans} />
       <Route path="/admin/kits" component={AdminKits} />
       <Route path="/admin/upgrades" component={AdminUpgrades} />

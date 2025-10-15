@@ -17,8 +17,6 @@ import {
   Activity,
   Calendar
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
-
 interface AnalyticsData {
   overview: {
     totalQuotes: number;
@@ -69,6 +67,10 @@ export default function AdminAnalytics() {
     queryKey: ["/api/admin/analytics"],
     enabled: !!user?.isAdmin,
   });
+
+  const formatPrice = (pence: number): string => {
+    return `£${(pence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -314,7 +316,7 @@ export default function AdminAnalytics() {
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-sm font-medium" data-testid={`text-quote-price-${index}`}>
-                          {formatCurrency(quote.totalPrice)}
+                          {formatPrice(quote.totalPrice)}
                         </span>
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Calendar className="w-3 h-3" />

@@ -16,7 +16,8 @@ import {
   LogOut,
   Calculator,
   Download,
-  GraduationCap
+  GraduationCap,
+  BarChart3
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -73,6 +74,13 @@ export default function AdminDashboard() {
   }
 
   const adminItems = [
+    {
+      title: "Analytics Dashboard",
+      description: "Track site performance and customer activity",
+      icon: BarChart3,
+      href: "/admin/analytics",
+      badge: "Analytics"
+    },
     {
       title: "Manage Vans",
       description: "Add, edit, and manage van inventory",
