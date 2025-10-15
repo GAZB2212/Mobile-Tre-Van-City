@@ -698,6 +698,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                             setVariants(newVariants);
                           }}
                           maxImages={5}
+                          uploaderId={`variant-image-upload-${variant.id || index}`}
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           Upload images for this variant (optional - defaults to parent images)

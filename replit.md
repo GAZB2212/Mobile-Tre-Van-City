@@ -75,6 +75,13 @@ Preferred communication style: Simple, everyday language.
   - `/api/admin/objects/set-acl` - Set ACL policy (public/private) on uploaded objects
   - Supports PNG, JPEG, GIF, WebP, and SVG image formats
   - Images stored in Google Cloud Storage with automatic ACL management
+  - Public images (equipment, vans) accessible without authentication for public pages
+- **Image Gallery System**: Interactive image viewer for equipment and upgrades
+  - All upgrade images clickable to expand and view larger in modal gallery
+  - Carousel navigation for multiple images per item
+  - Hover indicator shows "+X more" for multiple images or "View" for single images
+  - Works for both standalone upgrades and variant groups
+  - Unique uploader IDs ensure correct file picker opens for each variant
 
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations

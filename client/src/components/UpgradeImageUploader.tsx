@@ -11,6 +11,7 @@ interface UpgradeImageUploaderProps {
   onChange: (images: string[]) => void;
   maxImages?: number;
   maxFileSize?: number;
+  uploaderId?: string;
 }
 
 export function UpgradeImageUploader({
@@ -18,6 +19,7 @@ export function UpgradeImageUploader({
   onChange,
   maxImages = 5,
   maxFileSize = 10485760, // 10MB
+  uploaderId = "upgrade-image-upload",
 }: UpgradeImageUploaderProps) {
   const { toast } = useToast();
   const [isDragging, setIsDragging] = useState(false);
@@ -166,7 +168,7 @@ export function UpgradeImageUploader({
           </p>
           <input
             type="file"
-            id="upgrade-image-upload"
+            id={uploaderId}
             multiple
             accept="image/*"
             onChange={(e) => handleFileSelect(e.target.files)}
@@ -174,14 +176,14 @@ export function UpgradeImageUploader({
             disabled={uploading || images.length >= maxImages}
             data-testid="input-upgrade-images"
           />
-          <label htmlFor="upgrade-image-upload">
+          <label htmlFor={uploaderId}>
             <Button
               type="button"
               variant="outline"
               disabled={uploading || images.length >= maxImages}
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById("upgrade-image-upload")?.click();
+                document.getElementById(uploaderId)?.click();
               }}
               data-testid="button-upload-images"
             >
