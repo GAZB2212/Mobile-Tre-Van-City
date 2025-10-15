@@ -295,8 +295,45 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, upgrade?.id]);
 
-  // DON'T auto-sync variants - keep local edits until user saves
-  // This prevents variants from being lost when images are uploaded
+  // Sync newly created variant IDs and images from server, but keep local edits
+  useEffect(() => {
+    if (!open || !upgrade || !hasVariants) return;
+    
+    const children = allUpgrades.filter(u => u.parentId === upgrade.id);
+    if (children.length === 0) return;
+    
+    setVariants(prevVariants => {
+      // If server has more variants than local (new ones were created), reload all from server
+      if (children.length > prevVariants.length) {
+        return children.map(v => ({
+          id: v.id,
+          name: v.variantName || "",
+          price: penceToPounds(v.price),
+          description: v.description || "",
+          images: v.images || [],
+        }));
+      }
+      
+      // If local variants have no IDs but server has same count, sync IDs
+      if (prevVariants.some(v => !v.id) && children.length === prevVariants.length) {
+        return prevVariants.map((localVar, index) => ({
+          ...localVar,
+          id: children[index]?.id || localVar.id,
+        }));
+      }
+      
+      // Otherwise, just sync images for existing variants (keep local edits to name/price/description)
+      return prevVariants.map(localVar => {
+        if (localVar.id) {
+          const serverVar = children.find(c => c.id === localVar.id);
+          if (serverVar && serverVar.images) {
+            return { ...localVar, images: serverVar.images };
+          }
+        }
+        return localVar;
+      });
+    });
+  }, [open, upgrade, hasVariants, allUpgrades]);
 
   const createMutation = useMutation({
     mutationFn: async (data: UpgradeFormData) => {
