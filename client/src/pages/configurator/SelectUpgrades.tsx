@@ -335,12 +335,10 @@ export default function SelectUpgrades() {
                                 const minVariantPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : null;
                                 
                                 // Determine which images to show
-                                // Priority: selected variant images > first variant images (preview) > parent images
-                                const displayImages = selectedVariant?.images && selectedVariant.images.length > 0 
+                                // Show parent image initially, then selected variant image once chosen
+                                const displayImages = (isSelected && selectedVariant?.images && selectedVariant.images.length > 0)
                                   ? selectedVariant.images 
-                                  : (!isSelected && variants[0]?.images && variants[0].images.length > 0)
-                                    ? variants[0].images
-                                    : parent.images;
+                                  : parent.images;
                                 
                                 return (
                                   <div 
