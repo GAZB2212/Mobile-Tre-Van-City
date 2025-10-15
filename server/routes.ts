@@ -1270,6 +1270,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics endpoint
+  app.get("/api/admin/analytics", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const [quotes, leads, vans] = await Promise.all([
+        storage.getQuotes(),
+        storage.getLeads(),
+        storage.getVans()
+      ]);
+
+      // Calculate metrics
+      const totalQuotes = quotes.length;
+      const totalLeads = leads.length;
+      const totalVans = vans.length;
+      const publishedVans = vans.filter(v => v.published).length;
+
+      // Quote status breakdown
+      const quotesByStatus = quotes.reduce((acc, quote) => {
+        acc[quote.status] = (acc[quote.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Recent activity (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentQuotes = quotes.filter(q => 
+        q.createdAt && new Date(q.createdAt) > sevenDaysAgo
+      ).length;
+      
+      const recentLeads = leads.filter(l => 
+        l.createdAt && new Date(l.createdAt) > sevenDaysAgo
+      ).length;
+
+      // Most popular vans (by quote selections)
+      const vanPopularity = quotes.reduce((acc, quote) => {
+        if (quote.vanId) {
+          acc[quote.vanId] = (acc[quote.vanId] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const popularVans = Object.entries(vanPopularity)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([vanId, count]) => {
+          const van = vans.find(v => v.id === vanId);
+          return {
+            vanId,
+            title: van?.title || 'Unknown',
+            count
+          };
+        });
+
+      // Most popular kits
+      const kitPopularity = quotes.reduce((acc, quote) => {
+        if (quote.kitId) {
+          acc[quote.kitId] = (acc[quote.kitId] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const popularKits = Object.entries(kitPopularity)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([kitId, count]) => ({
+          kitId,
+          count
+        }));
+
+      res.json({
+        overview: {
+          totalQuotes,
+          totalLeads,
+          totalVans,
+          publishedVans,
+          recentQuotes,
+          recentLeads
+        },
+        quotesByStatus,
+        popularVans,
+        popularKits,
+        recentActivity: {
+          quotes: quotes
+            .sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return dateB - dateA;
+            })
+            .slice(0, 5)
+            .map(q => ({
+              id: q.id,
+              customerName: q.customerName,
+              customerEmail: q.customerEmail,
+              status: q.status,
+              totalPrice: q.totalPrice,
+              createdAt: q.createdAt
+            })),
+          leads: leads
+            .sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return dateB - dateA;
+            })
+            .slice(0, 5)
+            .map(l => ({
+              id: l.id,
+              name: l.name,
+              email: l.email,
+              subject: l.subject,
+              createdAt: l.createdAt
+            }))
+        }
+      });
+    } catch (error) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
   // Referenced from blueprint: javascript_object_storage - protected file uploading
   // The endpoint for serving private objects with ACL checks
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req, res) => {
