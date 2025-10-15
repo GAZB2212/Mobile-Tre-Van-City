@@ -307,7 +307,7 @@ export default function SelectUpgrades() {
                                     </div>
                                     
                                     {/* Display upgrade images */}
-                                    {isSelected && upgrade.images && upgrade.images.length > 0 && (
+                                    {upgrade.images && upgrade.images.length > 0 && (
                                       <div className="flex gap-2 overflow-x-auto">
                                         {upgrade.images.slice(0, 3).map((image, idx) => (
                                           <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden border">
@@ -339,10 +339,13 @@ export default function SelectUpgrades() {
                                 // Calculate minimum price from variants
                                 const minVariantPrice = variants.length > 0 ? Math.min(...variants.map(v => v.price)) : null;
                                 
-                                // Determine which images to show: variant images if available, otherwise parent images
+                                // Determine which images to show
+                                // Priority: selected variant images > first variant images (preview) > parent images
                                 const displayImages = selectedVariant?.images && selectedVariant.images.length > 0 
                                   ? selectedVariant.images 
-                                  : parent.images;
+                                  : (!isSelected && variants[0]?.images && variants[0].images.length > 0)
+                                    ? variants[0].images
+                                    : parent.images;
                                 
                                 return (
                                   <div 
@@ -417,7 +420,7 @@ export default function SelectUpgrades() {
                                     </div>
                                     
                                     {/* Display variant or parent images */}
-                                    {isSelected && displayImages && displayImages.length > 0 && (
+                                    {displayImages && displayImages.length > 0 && (
                                       <div className="flex gap-2 overflow-x-auto">
                                         {displayImages.slice(0, 3).map((image, idx) => (
                                           <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-md overflow-hidden border">
