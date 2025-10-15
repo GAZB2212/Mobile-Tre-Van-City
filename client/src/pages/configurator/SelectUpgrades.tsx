@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ImageGallery, ImageThumbnail } from "@/components/ImageGallery";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import {
   Select,
@@ -98,6 +99,9 @@ export default function SelectUpgrades() {
   const [, setLocation] = useLocation();
   const { state, addUpgrade, removeUpgrade } = useConfigurator();
   const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryTitle, setGalleryTitle] = useState("");
 
   const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
     queryKey: ['/api/configurator/data'],
@@ -195,6 +199,12 @@ export default function SelectUpgrades() {
     setLocation('/configurator/training');
   };
 
+  const openGallery = (images: string[], title: string) => {
+    setGalleryImages(images);
+    setGalleryTitle(title);
+    setGalleryOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -265,16 +275,12 @@ export default function SelectUpgrades() {
                                   >
                                     <div className="flex items-start gap-3">
                                       {/* Image thumbnail on the left */}
-                                      {upgrade.images && upgrade.images.length > 0 && (
-                                        <div className="flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border">
-                                          <img
-                                            src={upgrade.images[0]}
-                                            alt={upgrade.name}
-                                            className="w-full h-full object-cover"
-                                            data-testid={`img-upgrade-${upgrade.id}-0`}
-                                          />
-                                        </div>
-                                      )}
+                                      <ImageThumbnail
+                                        images={upgrade.images || []}
+                                        alt={upgrade.name}
+                                        onOpenGallery={() => openGallery(upgrade.images || [], upgrade.name)}
+                                        testId={`img-upgrade-${upgrade.id}`}
+                                      />
                                       
                                       {/* Checkbox */}
                                       <Checkbox
@@ -347,16 +353,15 @@ export default function SelectUpgrades() {
                                   >
                                     <div className="flex items-start gap-3">
                                       {/* Image thumbnail on the left */}
-                                      {displayImages && displayImages.length > 0 && (
-                                        <div className="flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border">
-                                          <img
-                                            src={displayImages[0]}
-                                            alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
-                                            className="w-full h-full object-cover"
-                                            data-testid={`img-variant-${parent.id}-0`}
-                                          />
-                                        </div>
-                                      )}
+                                      <ImageThumbnail
+                                        images={displayImages || []}
+                                        alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
+                                        onOpenGallery={() => openGallery(
+                                          displayImages || [], 
+                                          selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name
+                                        )}
+                                        testId={`img-variant-${parent.id}`}
+                                      />
                                       
                                       {/* Checkbox */}
                                       <Checkbox
@@ -467,6 +472,13 @@ export default function SelectUpgrades() {
       </main>
       
       <Footer />
+      
+      <ImageGallery
+        images={galleryImages}
+        title={galleryTitle}
+        open={galleryOpen}
+        onOpenChange={setGalleryOpen}
+      />
     </div>
   );
 }
