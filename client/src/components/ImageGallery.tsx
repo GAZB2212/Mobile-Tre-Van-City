@@ -70,10 +70,8 @@ export function ImageThumbnail({ images, alt, onOpenGallery, testId }: ImageThum
     <div 
       className="relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border cursor-pointer group"
       onClick={(e) => {
-        if (images.length > 1) {
-          e.stopPropagation();
-          onOpenGallery();
-        }
+        e.stopPropagation();
+        onOpenGallery();
       }}
       data-testid={testId}
     >
@@ -84,13 +82,11 @@ export function ImageThumbnail({ images, alt, onOpenGallery, testId }: ImageThum
         data-testid={`${testId}-img`}
       />
       
-      {images.length > 1 && (
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="text-white text-xs font-medium">
-            +{images.length - 1} more
-          </div>
+      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+        <div className="text-white text-xs font-medium">
+          {images.length > 1 ? `+${images.length - 1} more` : 'View'}
         </div>
-      )}
+      </div>
     </div>
   );
 }
