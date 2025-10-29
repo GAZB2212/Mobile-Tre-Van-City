@@ -36,10 +36,10 @@ export function UpgradeImageUploader({
           contentType: file.type,
         }
       );
-      const { url, objectPath } = await presignedResponse.json();
+      const { uploadURL, objectPath } = await presignedResponse.json();
 
       // Upload to object storage
-      const uploadResponse = await fetch(url, {
+      const uploadResponse = await fetch(uploadURL, {
         method: "PUT",
         body: file,
         headers: {
