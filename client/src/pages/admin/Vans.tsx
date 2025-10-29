@@ -43,16 +43,8 @@ export default function AdminVans() {
       setIsCreateDialogOpen(false);
       toast({
         title: "Success",
-        description: "Van created successfully. Opening image uploader...",
+        description: "Van created successfully with all images!",
       });
-      
-      // Small delay to ensure dialog transition is smooth
-      setTimeout(() => {
-        console.log('Opening edit dialog with Images tab');
-        setEditingVan(createdVan);
-        setEditDialogTab("images");
-        setIsEditDialogOpen(true);
-      }, 100);
     },
     onError: () => {
       toast({
