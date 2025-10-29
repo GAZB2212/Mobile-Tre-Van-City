@@ -194,6 +194,42 @@ export class ObjectStorageService {
     return { uploadURL, publicURL };
   }
 
+  // Upload file buffer directly to public storage (backend proxy - no CORS)
+  async uploadFileToPublicStorage(
+    fileBuffer: Buffer,
+    filename: string,
+    contentType: string
+  ): Promise<string> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+
+    // Use the first public path
+    const publicPath = publicPaths[0];
+    
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/van-images/${objectId}-${safeFilename}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Upload directly from backend
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(fileBuffer, {
+      contentType,
+      metadata: {
+        contentType,
+      },
+      public: true, // Make it public immediately
+    });
+    
+    // Return the public URL
+    return `https://storage.googleapis.com/${bucketName}/${objectName}`;
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {

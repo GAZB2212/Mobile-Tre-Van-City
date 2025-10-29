@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,36 +20,29 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      // Step 1: Get presigned upload URL
-      const uploadResponse = await apiRequest(
-        "POST",
-        `/api/admin/vans/${van.id}/upload-image`,
-        {
-          filename: file.name,
-          contentType: file.type,
-        }
-      );
-      const { uploadURL, publicURL } = await uploadResponse.json();
-
-      // Step 2: Upload file to cloud storage
-      const putResponse = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
-
-      if (!putResponse.ok) {
-        throw new Error("Failed to upload file to storage");
+      const sessionId = localStorage.getItem('sessionId');
+      
+      if (!sessionId) {
+        throw new Error("Not authenticated");
       }
 
-      // Step 3: Save public URL to van record
-      await apiRequest("POST", `/api/admin/vans/${van.id}/images`, {
-        imageUrl: publicURL,
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`/api/admin/vans/${van.id}/upload-image`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: formData,
       });
 
-      return publicURL;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -70,7 +63,26 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const removeImageMutation = useMutation({
     mutationFn: async (imageUrl: string) => {
-      return apiRequest('DELETE', `/api/admin/vans/${van.id}/images`, { objectPath: imageUrl });
+      const sessionId = localStorage.getItem('sessionId');
+      
+      if (!sessionId) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`/api/admin/vans/${van.id}/images`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ objectPath: imageUrl }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to remove image");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -91,7 +103,26 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const setHeroImageMutation = useMutation({
     mutationFn: async (imageUrl: string) => {
-      return apiRequest('PUT', `/api/admin/vans/${van.id}/hero-image`, { objectPath: imageUrl });
+      const sessionId = localStorage.getItem('sessionId');
+      
+      if (!sessionId) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`/api/admin/vans/${van.id}/hero-image`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ objectPath: imageUrl }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to set hero image");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -112,7 +143,26 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const reorderImagesMutation = useMutation({
     mutationFn: async (newOrder: string[]) => {
-      return apiRequest('PUT', `/api/admin/vans/${van.id}/images/reorder`, { images: newOrder });
+      const sessionId = localStorage.getItem('sessionId');
+      
+      if (!sessionId) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`/api/admin/vans/${van.id}/images/reorder`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ images: newOrder }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reorder images");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });

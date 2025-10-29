@@ -1462,38 +1462,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin endpoint for van image upload - simplified public upload
+  // Admin endpoint for van image upload - BACKEND PROXY (no CORS issues)
   app.post("/api/admin/vans/:id/upload-image", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const { filename, contentType } = req.body;
-      
-      // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
-      if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
-        return res.status(400).json({ error: "Only images are allowed" });
-      }
-      
-      if (!filename || filename.trim() === '') {
-        return res.status(400).json({ error: "Filename is required" });
+    const multer = await import("multer");
+    const upload = multer.default({ storage: multer.memoryStorage() });
+    
+    upload.single("file")(req, res, async (err: any) => {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(400).json({ error: "File upload failed" });
       }
 
-      // Verify van exists
-      const van = await storage.getVan(req.params.id);
-      if (!van) {
-        return res.status(404).json({ error: "Van not found" });
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file provided" });
+        }
+
+        // Validate file type
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(req.file.mimetype.toLowerCase())) {
+          return res.status(400).json({ error: "Only images are allowed" });
+        }
+
+        // Verify van exists
+        const van = await storage.getVan(req.params.id);
+        if (!van) {
+          return res.status(404).json({ error: "Van not found" });
+        }
+        
+        const { ObjectStorageService } = await import("./objectStorage");
+        const objectStorageService = new ObjectStorageService();
+        
+        // Upload file to public storage
+        const publicURL = await objectStorageService.uploadFileToPublicStorage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        
+        // Save to van record
+        const existingImages = van.images || [];
+        const updatedImages = [...existingImages, publicURL];
+        
+        const updatedVan = await storage.updateVan(req.params.id, {
+          images: updatedImages,
+          // If no hero image is set, use the first uploaded image
+          ...((!van.heroImage && existingImages.length === 0) ? { heroImage: publicURL } : {})
+        });
+
+        res.json({ publicURL, van: updatedVan });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        res.status(500).json({ error: "Failed to upload image" });
       }
-      
-      const { ObjectStorageService } = await import("./objectStorage");
-      const objectStorageService = new ObjectStorageService();
-      
-      // Get upload URL for PUBLIC path (no ACL needed)
-      const { uploadURL, publicURL } = await objectStorageService.getPublicObjectUploadURL(filename);
-      
-      res.json({ uploadURL, publicURL });
-    } catch (error) {
-      console.error("Error generating upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
-    }
+    });
   });
 
   // Admin endpoint for setting ACL policy on uploaded objects
