@@ -21,46 +21,59 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       console.log('🚀 uploadMutation starting for file:', file.name);
+      console.log('🔑 localStorage sessionId:', localStorage.getItem('sessionId') ? 'EXISTS' : 'MISSING');
       
       // Request presigned URL
       console.log('📝 Requesting presigned URL...');
-      const presignedResponse = await apiRequest(
-        "POST",
-        "/api/admin/objects/presigned-url",
-        {
-          filename: file.name,
-          contentType: file.type,
+      try {
+        const presignedResponse = await apiRequest(
+          "POST",
+          "/api/admin/objects/presigned-url",
+          {
+            filename: file.name,
+            contentType: file.type,
+          }
+        );
+        console.log('✅ Got presigned response:', presignedResponse.status);
+        const { uploadURL, objectPath } = await presignedResponse.json();
+        console.log('📦 Extracted uploadURL and objectPath:', { uploadURL: uploadURL?.substring(0, 50), objectPath });
+
+        // Upload to object storage
+        console.log('⬆️ Uploading file to object storage...');
+        const uploadResponse = await fetch(uploadURL, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "Content-Type": file.type,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          console.error('❌ Upload to storage failed:', uploadResponse.status, uploadResponse.statusText);
+          throw new Error("Failed to upload file");
         }
-      );
-      console.log('✅ Got presigned response:', presignedResponse.status);
-      const { uploadURL, objectPath } = await presignedResponse.json();
-      console.log('📦 Extracted uploadURL and objectPath:', { uploadURL: uploadURL?.substring(0, 50), objectPath });
+        console.log('✅ File uploaded to storage');
 
-      // Upload to object storage
-      const uploadResponse = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
+        // Set ACL to public
+        console.log('🔓 Setting ACL to public...');
+        await apiRequest("POST", "/api/admin/objects/set-acl", {
+          objectPath,
+          acl: "public",
+        });
+        console.log('✅ ACL set');
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
+        // Add image to van
+        console.log('📸 Adding image to van...');
+        await apiRequest("POST", `/api/admin/vans/${van.id}/images`, {
+          objectPath,
+        });
+        console.log('✅ Image added to van');
+
+        return objectPath;
+      } catch (error) {
+        console.error('💥 Error in upload mutation:', error);
+        throw error;
       }
-
-      // Set ACL to public
-      await apiRequest("POST", "/api/admin/objects/set-acl", {
-        objectPath,
-        acl: "public",
-      });
-
-      // Add image to van
-      await apiRequest("POST", `/api/admin/vans/${van.id}/images`, {
-        objectPath,
-      });
-
-      return objectPath;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
