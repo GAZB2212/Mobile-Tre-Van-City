@@ -111,6 +111,12 @@ export default function AdminVans() {
     // Get files from the component state (passed as parameter)
     const files = selectedFiles;
     
+    // Debug: Log FormData contents
+    console.log("📝 FormData entries:");
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value);
+    }
+    
     const sessionId = localStorage.getItem('sessionId');
     if (!sessionId) {
       toast({
