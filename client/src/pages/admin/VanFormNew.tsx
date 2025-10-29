@@ -312,7 +312,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
             }}
           />
           {selectedImages.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="mt-4 grid grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 border rounded">
               {selectedImages.map((preview, index) => (
                 <div key={index} className="relative aspect-video">
                   <img

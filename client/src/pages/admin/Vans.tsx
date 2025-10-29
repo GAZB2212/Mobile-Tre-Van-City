@@ -249,14 +249,16 @@ export default function AdminVans() {
                   Add Van
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Van</DialogTitle>
                   <DialogDescription>
                     Add a new van to your inventory
                   </DialogDescription>
                 </DialogHeader>
-                <VanFormNew onSubmit={handleCreateVan} isLoading={createVanMutation.isPending} />
+                <div className="max-h-[70vh] overflow-y-auto pr-2">
+                  <VanFormNew onSubmit={handleCreateVan} isLoading={createVanMutation.isPending} />
+                </div>
               </DialogContent>
             </Dialog>
           </div>
