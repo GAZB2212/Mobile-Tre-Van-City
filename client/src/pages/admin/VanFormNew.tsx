@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
-import { ImageUpload } from "@/components/ImageUpload";
 import { apiRequest } from "@/lib/queryClient";
 import type { Van } from "@shared/schema";
 
@@ -21,7 +20,6 @@ interface VanFormProps {
 export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const { toast } = useToast();
   const [registration, setRegistration] = useState('');
-  const [uploadedImages, setUploadedImages] = useState<string[]>(van?.images || []);
   const [isLookingUp, setIsLookingUp] = useState(false);
 
   // Refs for direct DOM manipulation
@@ -275,19 +273,15 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </div>
         </div>
 
-        <div>
-          <Label>Van Images</Label>
-          <p className="text-sm text-muted-foreground mb-2">
-            Upload images of the van. The first image will be used as the hero image.
-          </p>
-          <ImageUpload
-            onImagesUploaded={(urls) => setUploadedImages(urls)}
-            maxFiles={10}
-            existingImages={uploadedImages}
-          />
-          <input type="hidden" name="images" value={JSON.stringify(uploadedImages)} />
-          <input type="hidden" name="heroImage" value={uploadedImages[0] || ''} />
-        </div>
+        {!van && (
+          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+            <CardContent className="pt-6">
+              <p className="text-sm text-blue-900 dark:text-blue-100">
+                <strong>Note:</strong> Create the van first, then click "Edit" to add images in the Images tab.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex items-center space-x-4">
           <div className="flex-1">

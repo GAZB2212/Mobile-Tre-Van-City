@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
 import { Link } from "wouter";
 import { VanImages } from "@/components/VanImages";
-import { ImageUpload } from "@/components/ImageUpload";
 import { VanFormNew } from "./VanFormNew";
 import type { Van, InsertVan } from "@shared/schema";
 
@@ -108,9 +107,6 @@ export default function AdminVans() {
   });
 
   const handleCreateVan = (formData: FormData) => {
-    const imagesJson = formData.get('images') as string;
-    const images = imagesJson ? JSON.parse(imagesJson) : [];
-    
     const vanData: InsertVan = {
       slug: formData.get('slug') as string,
       title: formData.get('title') as string,
@@ -120,6 +116,7 @@ export default function AdminVans() {
       mileage: parseInt(formData.get('mileage') as string),
       price: parseInt(formData.get('price') as string) * 100, // Convert to pence
       vatIncluded: formData.get('vatIncluded') === 'on',
+      description: formData.get('description') as string,
       specs: {
         transmission: formData.get('transmission') as string,
         size: formData.get('size') as string,
@@ -127,8 +124,8 @@ export default function AdminVans() {
         doors: parseInt(formData.get('doors') as string) || undefined,
         engine: formData.get('engine') as string || undefined,
       },
-      images: images,
-      heroImage: formData.get('heroImage') as string || undefined,
+      images: [],
+      heroImage: undefined,
       published: formData.get('published') === 'on',
     };
 
