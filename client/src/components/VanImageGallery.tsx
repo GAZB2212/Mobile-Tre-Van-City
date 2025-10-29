@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Star, ArrowUp, ArrowDown, Upload, X } from "lucide-react";
+import { Upload, X, Star, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import type { Van } from "@shared/schema";
 
 interface VanImageGalleryProps {
@@ -16,29 +16,61 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
 
-  const addImagesMutation = useMutation({
-    mutationFn: async (objectPaths: string[]) => {
-      // Add all images sequentially
-      for (const objectPath of objectPaths) {
-        await apiRequest('POST', `/api/admin/vans/${van.id}/images`, { objectPath });
+  const images = van.images || [];
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      // Request presigned URL
+      const presignedResponse = await apiRequest(
+        "POST",
+        "/api/admin/objects/presigned-url",
+        {
+          filename: file.name,
+          contentType: file.type,
+        }
+      );
+      const { url, objectPath } = await presignedResponse.json();
+
+      // Upload to object storage
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
       }
+
+      // Set ACL to public
+      await apiRequest("POST", "/api/admin/objects/set-acl", {
+        objectPath,
+        acl: "public",
+      });
+
+      // Add image to van
+      await apiRequest("POST", `/api/admin/vans/${van.id}/images`, {
+        objectPath,
+      });
+
+      return objectPath;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       toast({
         title: "Success",
-        description: "Images added to van gallery",
+        description: "Image uploaded successfully",
       });
-      setUploading(false);
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: "Failed to add images to van",
+        title: "Upload failed",
+        description: error.message,
         variant: "destructive",
       });
-      setUploading(false);
     },
   });
 
@@ -48,6 +80,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       toast({
         title: "Success",
         description: "Image removed from gallery",
@@ -68,6 +101,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       toast({
         title: "Success",
         description: "Hero image updated",
@@ -88,6 +122,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       toast({
         title: "Success",
         description: "Images reordered",
@@ -102,6 +137,43 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     },
   });
 
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const filesToUpload = Array.from(files);
+
+    for (const file of filesToUpload) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      // Validate file size (10MB max)
+      if (file.size > 10485760) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 10MB limit`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      setUploading(true);
+      try {
+        await uploadMutation.mutateAsync(file);
+      } catch (error) {
+        console.error("Upload failed:", error);
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
   const moveImage = (index: number, direction: 'up' | 'down') => {
     const newImages = [...images];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -112,94 +184,50 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     reorderImagesMutation.mutate(newImages);
   };
 
-  const uploadToObjectStorage = async (file: File): Promise<string> => {
-    // Get presigned URL using apiRequest (handles auth properly)
-    const presignedResponse = await apiRequest('POST', '/api/admin/objects/presigned-url', {
-      filename: file.name,
-      contentType: file.type,
-    });
-    const { url, objectPath } = await presignedResponse.json();
-
-    // Upload file directly to cloud storage
-    const uploadResponse = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload file');
-    }
-
-    // Set ACL using apiRequest (handles auth properly)
-    await apiRequest('POST', '/api/admin/objects/set-acl', {
-      objectPath,
-      acl: 'public',
-    });
-
-    return objectPath;
-  };
-
-  const handleFiles = async (files: FileList) => {
-    setUploading(true);
-    const uploadPromises = Array.from(files).map(file => uploadToObjectStorage(file));
-
-    try {
-      const objectPaths = await Promise.all(uploadPromises);
-      addImagesMutation.mutate(objectPaths);
-    } catch (error) {
-      toast({
-        title: 'Upload failed',
-        description: 'Failed to upload images. Please try again.',
-        variant: 'destructive',
-      });
-      setUploading(false);
-    }
-  };
-
-  const images = van.images || [];
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Van Images</h3>
-        <div>
+      {/* Upload Area */}
+      <Card className="border-2 border-dashed">
+        <div className="p-6 text-center">
+          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-sm font-medium mb-1">
+            Click to browse or drag and drop van images
+          </p>
+          <p className="text-xs text-muted-foreground mb-4">
+            PNG, JPG, GIF up to 10MB
+          </p>
           <input
             type="file"
             id="van-image-upload"
-            className="hidden"
-            accept="image/*"
             multiple
-            onChange={(e) => {
-              if (e.target.files && e.target.files.length > 0) {
-                handleFiles(e.target.files);
-              }
-            }}
+            accept="image/*"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
             disabled={uploading}
+            data-testid="input-van-images"
           />
-          <Button
-            onClick={() => document.getElementById('van-image-upload')?.click()}
-            disabled={uploading}
-            data-testid="button-upload-images"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {uploading ? 'Uploading...' : 'Upload Images'}
-          </Button>
+          <label htmlFor="van-image-upload">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={uploading}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("van-image-upload")?.click();
+              }}
+              data-testid="button-upload-images"
+            >
+              {uploading ? "Uploading..." : "Select Images"}
+            </Button>
+          </label>
         </div>
-      </div>
-      
-      <p className="text-sm text-muted-foreground">
-        Click "Upload Images" to select files
-      </p>
+      </Card>
 
+      {/* Image Gallery */}
       {images.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground">No images uploaded yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Click "Browse Images" above to get started</p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-8 text-sm text-muted-foreground">
+          <p>No images uploaded yet</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {images.map((imagePath, index) => (
@@ -210,6 +238,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
                   alt={`Van image ${index + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
+                  data-testid={`img-van-preview-${index}`}
                 />
                 {van.heroImage === imagePath && (
                   <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">
