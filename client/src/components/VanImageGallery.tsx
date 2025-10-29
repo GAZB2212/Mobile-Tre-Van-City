@@ -120,7 +120,8 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
         contentType: file.type,
       });
       
-      const { uploadURL, objectPath } = response as unknown as { uploadURL: string; objectPath: string };
+      const data = await response.json();
+      const { uploadURL, objectPath } = data as { uploadURL: string; objectPath: string };
       
       console.log('Got upload URL and objectPath:', objectPath);
       
