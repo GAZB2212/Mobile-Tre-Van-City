@@ -105,9 +105,9 @@ export default function AdminVans() {
     
     // Debug: Log FormData contents
     console.log("📝 FormData entries:");
-    for (const [key, value] of formData.entries()) {
+    Array.from(formData.entries()).forEach(([key, value]) => {
       console.log(`  ${key}:`, value);
-    }
+    });
     
     const sessionId = localStorage.getItem('sessionId');
     if (!sessionId) {
