@@ -16,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { ArrowRight, Car, Fuel, Gauge, Settings, Info } from "lucide-react";
 import type { Van } from "@shared/schema";
 
@@ -140,7 +147,7 @@ export default function SelectVan() {
                             </div>
 
                             {/* More Info Button */}
-                            {(van.images && van.images.length > 0) || van.description ? (
+                            {(van.heroImage || (van.images && van.images.length > 0) || van.description) ? (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -206,27 +213,47 @@ export default function SelectVan() {
               </DialogHeader>
 
               <div className="space-y-6">
-                {/* Image Gallery */}
-                {modalVan.images && modalVan.images.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-lg">Images</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {modalVan.images.map((img, idx) => (
-                        <div 
-                          key={idx} 
-                          className="relative aspect-video overflow-hidden rounded-md border"
-                          data-testid={`modal-img-${modalVan.id}-${idx}`}
-                        >
-                          <img 
-                            src={img} 
-                            alt={`${modalVan.make} ${modalVan.model} - Image ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
+                {/* Image Carousel */}
+                {(() => {
+                  // Combine heroImage and images array
+                  const allImages = [];
+                  if (modalVan.heroImage) allImages.push(modalVan.heroImage);
+                  if (modalVan.images && modalVan.images.length > 0) {
+                    allImages.push(...modalVan.images.filter(img => img !== modalVan.heroImage));
+                  }
+                  
+                  return allImages.length > 0 ? (
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-lg">Images ({allImages.length})</h3>
+                      <Carousel className="w-full" data-testid={`modal-carousel-${modalVan.id}`}>
+                        <CarouselContent>
+                          {allImages.map((img, idx) => (
+                            <CarouselItem key={idx}>
+                              <div className="relative aspect-video overflow-hidden rounded-md border bg-muted">
+                                <img 
+                                  src={img} 
+                                  alt={`${modalVan.make} ${modalVan.model} - Image ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  data-testid={`modal-carousel-img-${modalVan.id}-${idx}`}
+                                  onError={(e) => {
+                                    console.error(`Failed to load image: ${img}`);
+                                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage unavailable%3C/text%3E%3C/svg%3E';
+                                  }}
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        {allImages.length > 1 && (
+                          <>
+                            <CarouselPrevious className="left-2" data-testid={`modal-carousel-prev-${modalVan.id}`} />
+                            <CarouselNext className="right-2" data-testid={`modal-carousel-next-${modalVan.id}`} />
+                          </>
+                        )}
+                      </Carousel>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
 
                 {/* Full Specifications */}
                 <div className="space-y-3">
