@@ -16,6 +16,7 @@ import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
 import { Link } from "wouter";
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
+import { VanWizard } from "@/components/VanWizard";
 import type { Van, InsertVan } from "@shared/schema";
 
 export default function AdminVans() {
@@ -247,16 +248,8 @@ export default function AdminVans() {
                   Add Van
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create New Van</DialogTitle>
-                  <DialogDescription>
-                    Add a new van to your inventory
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="max-h-[70vh] overflow-y-auto pr-2">
-                  <VanFormNew onSubmit={handleCreateVan} isLoading={createVanMutation.isPending} />
-                </div>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <VanWizard onComplete={handleCreateVan} isLoading={createVanMutation.isPending} />
               </DialogContent>
             </Dialog>
           </div>
