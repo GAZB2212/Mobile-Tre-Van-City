@@ -26,7 +26,7 @@ export default function Stock() {
 
   const handleConfigureVan = (vanId: string) => {
     setVan(vanId);
-    setLocation('/configurator/van');
+    setLocation('/configurator/kit');
   };
 
   const uniqueMakes = Array.from(new Set(vans.map(van => van.make))).sort();
