@@ -179,7 +179,7 @@ export default function AdminVans() {
                 'Authorization': `Bearer ${sessionId}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ url: data.url, acl: 'public' }),
+              body: JSON.stringify({ objectPath: data.url, acl: 'public' }),
             });
           } catch (error) {
             console.error('Failed to set ACL:', error);
