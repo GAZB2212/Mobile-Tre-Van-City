@@ -9,13 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowRight, Car, Fuel, Gauge, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowRight, Car, Fuel, Gauge, Settings, Info } from "lucide-react";
 import type { Van } from "@shared/schema";
 
 export default function SelectVan() {
   const [, setLocation] = useLocation();
   const { state, setVan } = useConfigurator();
-  const [expandedVan, setExpandedVan] = useState<string | null>(null);
+  const [modalVan, setModalVan] = useState<Van | null>(null);
 
   const { data: vans = [], isLoading } = useQuery<Van[]>({
     queryKey: ['/api/vans'],
@@ -31,9 +38,9 @@ export default function SelectVan() {
     setLocation('/configurator/kit');
   };
 
-  const toggleExpanded = (vanId: string, e: React.MouseEvent) => {
+  const openModal = (van: Van, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
-    setExpandedVan(expandedVan === vanId ? null : vanId);
+    setModalVan(van);
   };
 
   const formatPrice = (price: number) => {
@@ -69,7 +76,6 @@ export default function SelectVan() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {vans.map((van) => {
-                      const isExpanded = expandedVan === van.id;
                       const firstImage = van.heroImage || van.images?.[0];
                       
                       return (
@@ -133,67 +139,18 @@ export default function SelectVan() {
                               </div>
                             </div>
 
-                            {/* More Info Expandable Section */}
+                            {/* More Info Button */}
                             {(van.images && van.images.length > 0) || van.description ? (
-                              <>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  className="w-full mt-4"
-                                  onClick={(e) => toggleExpanded(van.id, e)}
-                                  data-testid={`button-more-info-${van.id}`}
-                                >
-                                  More Info
-                                  {isExpanded ? (
-                                    <ChevronUp className="w-4 h-4 ml-2" />
-                                  ) : (
-                                    <ChevronDown className="w-4 h-4 ml-2" />
-                                  )}
-                                </Button>
-
-                                {isExpanded && (
-                                  <div 
-                                    className="mt-4 space-y-4 border-t pt-4"
-                                    onClick={(e) => e.stopPropagation()}
-                                    data-testid={`expanded-info-${van.id}`}
-                                  >
-                                    {/* All Images Gallery */}
-                                    {van.images && van.images.length > 1 && (
-                                      <div className="space-y-2">
-                                        <h4 className="font-semibold text-sm">All Images</h4>
-                                        <div className="grid grid-cols-2 gap-2">
-                                          {van.images.map((img, idx) => (
-                                            <div 
-                                              key={idx} 
-                                              className="relative aspect-video overflow-hidden rounded-md border"
-                                              data-testid={`img-gallery-${van.id}-${idx}`}
-                                            >
-                                              <img 
-                                                src={img} 
-                                                alt={`${van.make} ${van.model} - Image ${idx + 1}`}
-                                                className="w-full h-full object-cover"
-                                              />
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Description */}
-                                    {van.description && (
-                                      <div className="space-y-2">
-                                        <h4 className="font-semibold text-sm">Description</h4>
-                                        <p 
-                                          className="text-sm text-muted-foreground whitespace-pre-wrap"
-                                          data-testid={`text-van-description-${van.id}`}
-                                        >
-                                          {van.description}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full mt-4"
+                                onClick={(e) => openModal(van, e)}
+                                data-testid={`button-more-info-${van.id}`}
+                              >
+                                <Info className="w-4 h-4 mr-2" />
+                                More Info
+                              </Button>
                             ) : null}
                             
                             <Button 
@@ -233,6 +190,138 @@ export default function SelectVan() {
       </main>
 
       <Footer />
+
+      {/* Van Details Modal */}
+      <Dialog open={!!modalVan} onOpenChange={(open) => !open && setModalVan(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {modalVan && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl" data-testid={`modal-van-title-${modalVan.id}`}>
+                  {modalVan.make} {modalVan.model}
+                </DialogTitle>
+                <DialogDescription data-testid={`modal-van-subtitle-${modalVan.id}`}>
+                  {modalVan.year} • {formatPrice(modalVan.price)}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Image Gallery */}
+                {modalVan.images && modalVan.images.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Images</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {modalVan.images.map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          className="relative aspect-video overflow-hidden rounded-md border"
+                          data-testid={`modal-img-${modalVan.id}-${idx}`}
+                        >
+                          <img 
+                            src={img} 
+                            alt={`${modalVan.make} ${modalVan.model} - Image ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Full Specifications */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Specifications</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Gauge className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Mileage:</span>
+                        <span className="font-medium" data-testid={`modal-mileage-${modalVan.id}`}>
+                          {modalVan.mileage.toLocaleString()} miles
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Settings className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Transmission:</span>
+                        <span className="font-medium" data-testid={`modal-transmission-${modalVan.id}`}>
+                          {modalVan.specs.transmission}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Fuel className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Fuel:</span>
+                        <span className="font-medium" data-testid={`modal-fuel-${modalVan.id}`}>
+                          {modalVan.specs.fuel}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Car className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Size:</span>
+                        <span className="font-medium" data-testid={`modal-size-${modalVan.id}`}>
+                          {modalVan.specs.size}
+                        </span>
+                      </div>
+                      {modalVan.specs.engine && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Engine:</span>
+                          <span className="font-medium" data-testid={`modal-engine-${modalVan.id}`}>
+                            {modalVan.specs.engine}
+                          </span>
+                        </div>
+                      )}
+                      {modalVan.specs.doors && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Doors:</span>
+                          <span className="font-medium" data-testid={`modal-doors-${modalVan.id}`}>
+                            {modalVan.specs.doors}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {modalVan.description && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Description</h3>
+                    <p 
+                      className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed"
+                      data-testid={`modal-description-${modalVan.id}`}
+                    >
+                      {modalVan.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Button */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      handleSelectVan(modalVan.id);
+                      setModalVan(null);
+                    }}
+                    data-testid={`modal-button-select-${modalVan.id}`}
+                  >
+                    Select This Van
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setModalVan(null)}
+                    data-testid={`modal-button-close-${modalVan.id}`}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
