@@ -181,6 +181,15 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
         <p className="text-sm text-muted-foreground">{vehicleData?.title}</p>
       </div>
 
+      {/* Hidden fields - MUST be outside tabs so they're always included in FormData */}
+      <input type="hidden" name="make" value={vehicleData?.make || ""} />
+      <input type="hidden" name="model" value={vehicleData?.model || ""} />
+      <input type="hidden" name="year" value={vehicleData?.year || ""} />
+      <input type="hidden" name="transmission" value={vehicleData?.transmission || "Manual"} />
+      <input type="hidden" name="fuel" value={vehicleData?.fuel || "Diesel"} />
+      <input type="hidden" name="size" value={vehicleData?.body || "MWB"} />
+      <input type="hidden" name="engine" value={vehicleData?.engine || ""} />
+
       <Tabs defaultValue="pricing" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
@@ -190,13 +199,6 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
         </TabsList>
 
         <TabsContent value="pricing" className="space-y-4 pt-4">
-          <input type="hidden" name="make" value={vehicleData?.make || ""} />
-          <input type="hidden" name="model" value={vehicleData?.model || ""} />
-          <input type="hidden" name="year" value={vehicleData?.year || ""} />
-          <input type="hidden" name="transmission" value={vehicleData?.transmission || "Manual"} />
-          <input type="hidden" name="fuel" value={vehicleData?.fuel || "Diesel"} />
-          <input type="hidden" name="size" value={vehicleData?.body || "MWB"} />
-          <input type="hidden" name="engine" value={vehicleData?.engine || ""} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
