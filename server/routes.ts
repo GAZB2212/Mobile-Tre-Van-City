@@ -586,6 +586,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reorder van images
+  app.put("/api/admin/vans/:id/images/reorder", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { images } = req.body;
+      
+      if (!Array.isArray(images)) {
+        return res.status(400).json({ error: "images array is required" });
+      }
+
+      const van = await storage.getVan(req.params.id);
+      if (!van) {
+        return res.status(404).json({ error: "Van not found" });
+      }
+
+      // Verify all images in the new order are from the van's existing images
+      const existingImages = van.images || [];
+      const allValid = images.every(img => existingImages.includes(img));
+      
+      if (!allValid || images.length !== existingImages.length) {
+        return res.status(400).json({ error: "Invalid image order - images don't match van's gallery" });
+      }
+      
+      const updatedVan = await storage.updateVan(req.params.id, {
+        images: images
+      });
+
+      res.json(updatedVan);
+    } catch (error) {
+      console.error("Error reordering images:", error);
+      res.status(500).json({ error: "Failed to reorder images" });
+    }
+  });
+
   // Vehicle Registration Lookup (using CheckCarDetails API)
   app.post("/api/admin/vehicle-lookup", isAuthenticated, isAdmin, async (req, res) => {
     try {

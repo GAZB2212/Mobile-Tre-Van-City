@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { Upload, Trash2, Star } from "lucide-react";
+import { Upload, Trash2, Star, ArrowUp, ArrowDown } from "lucide-react";
 import type { Van } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -81,6 +81,36 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     },
   });
 
+  const reorderImagesMutation = useMutation({
+    mutationFn: async (newOrder: string[]) => {
+      return apiRequest('PUT', `/api/admin/vans/${van.id}/images/reorder`, { images: newOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      toast({
+        title: "Success",
+        description: "Images reordered",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to reorder images",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const moveImage = (index: number, direction: 'up' | 'down') => {
+    const newImages = [...images];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (newIndex < 0 || newIndex >= newImages.length) return;
+    
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    reorderImagesMutation.mutate(newImages);
+  };
+
   const handleGetUploadParameters = async (file: { name: string; type: string }) => {
     console.log('Getting upload parameters for:', file.name);
     setUploadingImage(true);
@@ -88,17 +118,19 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       const response = await apiRequest('POST', '/api/objects/upload', {
         filename: file.name,
         contentType: file.type,
-      }) as { uploadURL: string; objectPath: string };
+      });
       
-      console.log('Got upload URL and objectPath:', response.objectPath);
+      const { uploadURL, objectPath } = response as unknown as { uploadURL: string; objectPath: string };
+      
+      console.log('Got upload URL and objectPath:', objectPath);
       
       // Store the objectPath for when upload completes
-      pendingObjectPath.current = response.objectPath;
+      pendingObjectPath.current = objectPath;
       
       return {
         method: 'PUT' as const,
-        url: response.uploadURL,
-        objectPath: response.objectPath,
+        url: uploadURL,
+        objectPath: objectPath,
       };
     } catch (error) {
       console.error('Failed to get upload parameters:', error);
@@ -185,7 +217,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
                   </Badge>
                 )}
               </div>
-              <CardContent className="p-2">
+              <CardContent className="p-2 space-y-1">
                 <div className="flex gap-1">
                   {van.heroImage !== imagePath && (
                     <Button
@@ -212,6 +244,28 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
                     data-testid={`button-delete-image-${index}`}
                   >
                     <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-xs"
+                    onClick={() => moveImage(index, 'up')}
+                    disabled={index === 0 || reorderImagesMutation.isPending}
+                    data-testid={`button-move-up-${index}`}
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-xs"
+                    onClick={() => moveImage(index, 'down')}
+                    disabled={index === images.length - 1 || reorderImagesMutation.isPending}
+                    data-testid={`button-move-down-${index}`}
+                  >
+                    <ArrowDown className="w-3 h-3" />
                   </Button>
                 </div>
               </CardContent>
