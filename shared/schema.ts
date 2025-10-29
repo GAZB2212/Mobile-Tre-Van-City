@@ -47,6 +47,7 @@ export const vans = pgTable("vans", {
   }>().notNull(),
   images: json("images").$type<string[]>().notNull().default([]),
   heroImage: text("hero_image"),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),

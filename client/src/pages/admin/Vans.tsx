@@ -192,6 +192,7 @@ export default function AdminVans() {
       },
       images: imageUrls,
       heroImage: imageUrls[0] || undefined,
+      description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
     };
 
@@ -222,6 +223,7 @@ export default function AdminVans() {
       },
       images: images,
       heroImage: formData.get('heroImage') as string || undefined,
+      description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
     };
 
