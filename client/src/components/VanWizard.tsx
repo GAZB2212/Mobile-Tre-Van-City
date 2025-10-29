@@ -38,6 +38,8 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
   const [slug, setSlug] = useState("");
   const [price, setPrice] = useState("");
   const [mileage, setMileage] = useState("");
+  const [published, setPublished] = useState(true); // Default to published
+  const [vatIncluded, setVatIncluded] = useState(false);
 
   const handleLookup = async () => {
     if (!registration.trim()) return;
@@ -206,6 +208,8 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="price" value={price} />
       <input type="hidden" name="mileage" value={mileage} />
+      <input type="hidden" name="published" value={published ? "on" : ""} />
+      <input type="hidden" name="vatIncluded" value={vatIncluded ? "on" : ""} />
 
       <Tabs defaultValue="pricing" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -347,23 +351,24 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
             <div className="flex items-center space-x-2 pt-6">
               <input
                 type="checkbox"
-                id="vatIncluded"
-                name="vatIncluded"
+                id="vatIncluded-visible"
+                checked={vatIncluded}
+                onChange={(e) => setVatIncluded(e.target.checked)}
                 className="w-4 h-4"
               />
-              <Label htmlFor="vatIncluded">Price includes VAT</Label>
+              <Label htmlFor="vatIncluded-visible">Price includes VAT</Label>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
-              id="published"
-              name="published"
-              defaultChecked
+              id="published-visible"
+              checked={published}
+              onChange={(e) => setPublished(e.target.checked)}
               className="w-4 h-4"
             />
-            <Label htmlFor="published">Publish immediately</Label>
+            <Label htmlFor="published-visible">Publish immediately</Label>
           </div>
         </TabsContent>
       </Tabs>
