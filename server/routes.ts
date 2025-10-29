@@ -435,6 +435,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const van = await storage.createVan(vanData);
       res.json(van);
     } catch (error) {
+      console.error("Van creation error:", error);
+      if (error instanceof z.ZodError) {
+        console.error("Validation errors:", error.errors);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
       res.status(400).json({ error: "Failed to create van" });
     }
   });
