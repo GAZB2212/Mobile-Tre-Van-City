@@ -33,7 +33,6 @@ import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
 import AdminAnalytics from "@/pages/admin/Analytics";
 import BuildSheet from "@/pages/admin/BuildSheet";
-import WirralVansSync from "@/pages/admin/WirralVansSync";
 import Portal from "@/pages/Portal";
 import ConfigurationDetail from "@/pages/portal/ConfigurationDetail";
 import NotFound from "@/pages/not-found";
@@ -81,7 +80,6 @@ function Router() {
       <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
       <Route path="/admin/leads" component={AdminLeads} />
-      <Route path="/admin/wirral-vans" component={WirralVansSync} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
