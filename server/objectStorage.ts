@@ -223,9 +223,10 @@ export class ObjectStorageService {
       metadata: {
         contentType,
       },
-      // Don't set public: true here - the bucket has public access prevention
-      // Files in the public/ directory are accessible via the public path
     });
+    
+    // Make the file publicly accessible immediately
+    await file.makePublic();
     
     // Return the public URL
     return `https://storage.googleapis.com/${bucketName}/${objectName}`;

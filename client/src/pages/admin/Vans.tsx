@@ -170,20 +170,7 @@ export default function AdminVans() {
           
           const data = await response.json();
           imageUrls.push(data.url);
-          
-          // Set ACL to public so image can be displayed
-          try {
-            await fetch(`/api/admin/objects/set-acl`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${sessionId}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ objectPath: data.url, acl: 'public' }),
-            });
-          } catch (error) {
-            console.error('Failed to set ACL:', error);
-          }
+          // File is automatically made public during upload - no ACL step needed
         }
       } catch (error) {
         toast({
