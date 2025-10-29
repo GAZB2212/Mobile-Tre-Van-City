@@ -209,26 +209,39 @@ export async function setupAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  console.log('🔐 isAuthenticated check - URL:', req.url);
+  console.log('🔐 Session ID:', req.sessionID);
+  console.log('🔐 Session user BEFORE:', req.session.user);
+  console.log('🔐 Cookies:', req.headers.cookie);
+  
   // Try to get session ID from Authorization header as fallback when cookies don't work
   const sessionIdFromHeader = req.headers.authorization?.replace('Bearer ', '');
   
   // If no session user but we have a session ID from header, try to load the session
   if (!req.session.user && sessionIdFromHeader) {
+    console.log('🔐 Loading session from Authorization header:', sessionIdFromHeader);
     // Manually load session from store using the session ID from Authorization header
     const sessionStore = req.sessionStore;
     await new Promise<void>((resolve) => {
       sessionStore.get(sessionIdFromHeader, (err, sessionData) => {
         if (!err && sessionData?.user) {
+          console.log('🔐 Loaded session data from store:', sessionData.user);
           req.session.user = sessionData.user;
+        } else {
+          console.log('🔐 Failed to load session:', err);
         }
         resolve();
       });
     });
   }
   
+  console.log('🔐 Session user AFTER:', req.session.user);
+  
   if (!req.session.user) {
+    console.error('❌ isAuthenticated FAILED - no session user');
     return res.status(401).json({ message: "Unauthorized" });
   }
+  console.log('✅ isAuthenticated SUCCESS');
   next();
 };
 
