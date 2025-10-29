@@ -1,14 +1,12 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ObjectUploader } from "@/components/ObjectUploader";
-import { Upload, Trash2, Star, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Star, ArrowUp, ArrowDown, Upload, X } from "lucide-react";
 import type { Van } from "@shared/schema";
-import type { UploadResult } from "@uppy/core";
 
 interface VanImageGalleryProps {
   van: Van;
@@ -16,28 +14,31 @@ interface VanImageGalleryProps {
 
 export function VanImageGallery({ van }: VanImageGalleryProps) {
   const { toast } = useToast();
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const pendingObjectPath = useRef<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const addImageMutation = useMutation({
-    mutationFn: async (objectPath: string) => {
-      return apiRequest('POST', `/api/admin/vans/${van.id}/images`, { objectPath });
+  const addImagesMutation = useMutation({
+    mutationFn: async (objectPaths: string[]) => {
+      // Add all images sequentially
+      for (const objectPath of objectPaths) {
+        await apiRequest('POST', `/api/admin/vans/${van.id}/images`, { objectPath });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       toast({
         title: "Success",
-        description: "Image added to van gallery",
+        description: "Images added to van gallery",
       });
-      setUploadingImage(false);
+      setUploading(false);
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to add image to van",
+        description: "Failed to add images to van",
         variant: "destructive",
       });
-      setUploadingImage(false);
+      setUploading(false);
     },
   });
 
@@ -111,62 +112,60 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     reorderImagesMutation.mutate(newImages);
   };
 
-  const handleGetUploadParameters = async (file: { name: string; type: string }) => {
-    console.log('Getting upload parameters for:', file.name);
-    setUploadingImage(true);
-    try {
-      const response = await apiRequest('POST', '/api/admin/objects/presigned-url', {
+  const uploadToObjectStorage = async (file: File): Promise<string> => {
+    const response = await fetch('/api/admin/objects/presigned-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
         filename: file.name,
         contentType: file.type,
-      });
-      
-      const data = await response.json();
-      const { uploadURL, objectPath } = data as { uploadURL: string; objectPath: string };
-      
-      console.log('Got upload URL and objectPath:', objectPath);
-      
-      // Store the objectPath for when upload completes
-      pendingObjectPath.current = objectPath;
-      
-      return {
-        method: 'PUT' as const,
-        url: uploadURL,
-        objectPath: objectPath,
-      };
-    } catch (error) {
-      console.error('Failed to get upload parameters:', error);
-      setUploadingImage(false);
-      throw error;
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get upload URL');
     }
+
+    const { uploadURL, objectPath } = await response.json();
+
+    const uploadResponse = await fetch(uploadURL, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload file');
+    }
+
+    await fetch('/api/admin/objects/set-acl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        objectPath,
+        acl: 'public-read',
+      }),
+    });
+
+    return objectPath;
   };
 
-  const handleUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    console.log('Upload complete:', result);
-    
-    if (!result.successful || result.successful.length === 0) {
-      console.error('Upload failed:', result.failed);
-      setUploadingImage(false);
+  const handleFiles = async (files: FileList) => {
+    setUploading(true);
+    const uploadPromises = Array.from(files).map(file => uploadToObjectStorage(file));
+
+    try {
+      const objectPaths = await Promise.all(uploadPromises);
+      addImagesMutation.mutate(objectPaths);
+    } catch (error) {
       toast({
-        title: "Error",
-        description: "Upload failed. Please try again.",
-        variant: "destructive",
+        title: 'Upload failed',
+        description: 'Failed to upload images. Please try again.',
+        variant: 'destructive',
       });
-      return;
-    }
-    
-    // Use the stored objectPath
-    if (pendingObjectPath.current) {
-      console.log('Adding image to van with objectPath:', pendingObjectPath.current);
-      addImageMutation.mutate(pendingObjectPath.current);
-      pendingObjectPath.current = null;
-    } else {
-      console.error('No objectPath stored');
-      setUploadingImage(false);
-      toast({
-        title: "Error",
-        description: "Failed to process uploaded image",
-        variant: "destructive",
-      });
+      setUploading(false);
     }
   };
 
@@ -176,20 +175,33 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Van Images</h3>
-        <ObjectUploader
-          maxNumberOfFiles={1}
-          maxFileSize={5242880}
-          onGetUploadParameters={handleGetUploadParameters}
-          onComplete={handleUploadComplete}
-          buttonClassName="gap-2"
-        >
-          <Upload className="w-4 h-4" />
-          {uploadingImage ? "Uploading..." : "Browse Images"}
-        </ObjectUploader>
+        <div>
+          <input
+            type="file"
+            id="van-image-upload"
+            className="hidden"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                handleFiles(e.target.files);
+              }
+            }}
+            disabled={uploading}
+          />
+          <Button
+            onClick={() => document.getElementById('van-image-upload')?.click()}
+            disabled={uploading}
+            data-testid="button-upload-images"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {uploading ? 'Uploading...' : 'Upload Images'}
+          </Button>
+        </div>
       </div>
       
       <p className="text-sm text-muted-foreground">
-        Click "Browse Images" to select files or drag and drop images here
+        Click "Upload Images" to select files
       </p>
 
       {images.length === 0 ? (
