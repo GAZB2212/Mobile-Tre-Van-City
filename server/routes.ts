@@ -1496,7 +1496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
       const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(filename);
-      res.json({ url: uploadURL, objectPath });
+      res.json({ uploadURL, objectPath });
     } catch (error) {
       console.error("Error generating presigned URL:", error);
       res.status(500).json({ error: "Failed to generate presigned URL" });
