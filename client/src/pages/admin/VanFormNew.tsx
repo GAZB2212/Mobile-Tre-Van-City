@@ -21,6 +21,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const { toast } = useToast();
   const [registration, setRegistration] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   // Refs for direct DOM manipulation
   const titleRef = useRef<HTMLInputElement>(null);
@@ -284,7 +285,37 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
             accept="image/*"
             multiple
             className="cursor-pointer"
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                const previews: string[] = [];
+                for (let i = 0; i < files.length; i++) {
+                  previews.push(URL.createObjectURL(files[i]));
+                }
+                setSelectedImages(previews);
+              } else {
+                setSelectedImages([]);
+              }
+            }}
           />
+          {selectedImages.length > 0 && (
+            <div className="mt-4 grid grid-cols-3 gap-4">
+              {selectedImages.map((preview, index) => (
+                <div key={index} className="relative aspect-video">
+                  <img
+                    src={preview}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-full object-cover rounded border"
+                  />
+                  {index === 0 && (
+                    <div className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-bold">
+                      Hero
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-4">
