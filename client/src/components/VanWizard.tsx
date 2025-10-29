@@ -32,6 +32,12 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
   const [vehicleData, setVehicleData] = useState<VehicleData | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  
+  // Track editable form values
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [price, setPrice] = useState("");
+  const [mileage, setMileage] = useState("");
 
   const handleLookup = async () => {
     if (!registration.trim()) return;
@@ -68,6 +74,13 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
   };
 
   const handleConfirm = () => {
+    // Initialize form values from vehicle data
+    if (vehicleData) {
+      setTitle(vehicleData.title);
+      setSlug(vehicleData.title.toLowerCase().replace(/\s+/g, "-"));
+      setMileage(vehicleData.mileage?.toString() || "");
+      setPrice(""); // User must enter price
+    }
     setStep("setup");
   };
 
@@ -189,6 +202,10 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
       <input type="hidden" name="fuel" value={vehicleData?.fuel || "Diesel"} />
       <input type="hidden" name="size" value={vehicleData?.body || "MWB"} />
       <input type="hidden" name="engine" value={vehicleData?.engine || ""} />
+      <input type="hidden" name="title" value={title} />
+      <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="price" value={price} />
+      <input type="hidden" name="mileage" value={mileage} />
 
       <Tabs defaultValue="pricing" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -202,33 +219,41 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="title">Vehicle Title</Label>
-              <Input id="title" name="title" defaultValue={vehicleData?.title} required />
+              <Label htmlFor="title-visible">Vehicle Title</Label>
+              <Input 
+                id="title-visible" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
             <div>
-              <Label htmlFor="slug">URL Slug</Label>
+              <Label htmlFor="slug-visible">URL Slug</Label>
               <Input
-                id="slug"
-                name="slug"
-                defaultValue={vehicleData?.title.toLowerCase().replace(/\s+/g, "-")}
-                required
+                id="slug-visible"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="price">Selling Price (£)</Label>
-              <Input id="price" name="price" type="number" placeholder="25000" required />
+              <Label htmlFor="price-visible">Selling Price (£)</Label>
+              <Input 
+                id="price-visible" 
+                type="number" 
+                placeholder="25000"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
             </div>
             <div>
-              <Label htmlFor="mileage">Mileage</Label>
+              <Label htmlFor="mileage-visible">Mileage</Label>
               <Input
-                id="mileage"
-                name="mileage"
+                id="mileage-visible"
                 type="number"
-                defaultValue={vehicleData?.mileage}
-                required
+                value={mileage}
+                onChange={(e) => setMileage(e.target.value)}
               />
             </div>
           </div>
