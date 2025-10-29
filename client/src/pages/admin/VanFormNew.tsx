@@ -277,7 +277,12 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
         <div>
           <Label htmlFor="van-create-images">Van Images (optional)</Label>
           <p className="text-sm text-muted-foreground mb-2">
-            Select images to upload. First image will be the hero image.
+            Select up to 10 images. First image will be the hero image.
+            {selectedImages.length > 0 && (
+              <span className="font-medium text-foreground ml-2">
+                ({selectedImages.length} selected)
+              </span>
+            )}
           </p>
           <Input
             id="van-create-images"
@@ -289,17 +294,25 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
               const files = e.target.files;
               if (files && files.length > 0) {
                 const previews: string[] = [];
-                for (let i = 0; i < files.length; i++) {
+                const maxFiles = Math.min(files.length, 10);
+                for (let i = 0; i < maxFiles; i++) {
                   previews.push(URL.createObjectURL(files[i]));
                 }
                 setSelectedImages(previews);
+                if (files.length > 10) {
+                  toast({
+                    title: "Too many files",
+                    description: "Only the first 10 images will be uploaded",
+                    variant: "destructive",
+                  });
+                }
               } else {
                 setSelectedImages([]);
               }
             }}
           />
           {selectedImages.length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-4">
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
               {selectedImages.map((preview, index) => (
                 <div key={index} className="relative aspect-video">
                   <img
@@ -308,10 +321,13 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
                     className="w-full h-full object-cover rounded border"
                   />
                   {index === 0 && (
-                    <div className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-bold">
+                    <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded text-xs font-bold">
                       Hero
                     </div>
                   )}
+                  <div className="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-xs">
+                    {index + 1}
+                  </div>
                 </div>
               ))}
             </div>

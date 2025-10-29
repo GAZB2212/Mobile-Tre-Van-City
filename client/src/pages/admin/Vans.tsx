@@ -121,11 +121,17 @@ export default function AdminVans() {
       return;
     }
 
-    // Upload images first if any
+    // Upload images first if any (max 10)
     let imageUrls: string[] = [];
     if (files && files.length > 0) {
+      const maxFiles = Math.min(files.length, 10);
       try {
-        for (let i = 0; i < files.length; i++) {
+        toast({
+          title: "Uploading images...",
+          description: `Uploading ${maxFiles} image(s)`,
+        });
+
+        for (let i = 0; i < maxFiles; i++) {
           const formData = new FormData();
           formData.append('file', files[i]);
 
