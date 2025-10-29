@@ -197,6 +197,7 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
       </div>
 
       {/* Hidden fields - MUST be outside tabs so they're always included in FormData */}
+      <input type="hidden" name="registration" value={registration} />
       <input type="hidden" name="make" value={vehicleData?.make || ""} />
       <input type="hidden" name="model" value={vehicleData?.model || ""} />
       <input type="hidden" name="year" value={vehicleData?.year || ""} />
