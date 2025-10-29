@@ -20,7 +20,10 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log('🚀 uploadMutation starting for file:', file.name);
+      
       // Request presigned URL
+      console.log('📝 Requesting presigned URL...');
       const presignedResponse = await apiRequest(
         "POST",
         "/api/admin/objects/presigned-url",
@@ -29,7 +32,9 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
           contentType: file.type,
         }
       );
+      console.log('✅ Got presigned response:', presignedResponse.status);
       const { uploadURL, objectPath } = await presignedResponse.json();
+      console.log('📦 Extracted uploadURL and objectPath:', { uploadURL: uploadURL?.substring(0, 50), objectPath });
 
       // Upload to object storage
       const uploadResponse = await fetch(uploadURL, {
@@ -66,6 +71,12 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       });
     },
     onError: (error: Error) => {
+      console.error('❌ Upload mutation error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       toast({
         title: "Upload failed",
         description: error.message,
