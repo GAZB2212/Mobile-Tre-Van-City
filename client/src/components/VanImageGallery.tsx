@@ -138,11 +138,13 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const handleFileSelect = async (files: FileList | null) => {
+    console.log('🖼️ VanImageGallery handleFileSelect called with files:', files?.length || 0);
     if (!files || files.length === 0) return;
 
     const filesToUpload = Array.from(files);
 
     for (const file of filesToUpload) {
+      console.log('📄 Processing file:', file.name, file.type, file.size);
       // Validate file type
       if (!file.type.startsWith("image/")) {
         toast({
@@ -164,6 +166,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       }
 
       setUploading(true);
+      console.log('⬆️ Starting upload mutation for:', file.name);
       try {
         await uploadMutation.mutateAsync(file);
       } catch (error) {
