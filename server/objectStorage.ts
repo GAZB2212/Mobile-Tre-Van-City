@@ -223,7 +223,8 @@ export class ObjectStorageService {
       metadata: {
         contentType,
       },
-      public: true, // Make it public immediately
+      // Don't set public: true here - the bucket has public access prevention
+      // Files in the public/ directory are accessible via the public path
     });
     
     // Return the public URL
