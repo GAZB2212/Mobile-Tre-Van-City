@@ -164,6 +164,36 @@ export class ObjectStorageService {
     return { uploadURL, objectPath };
   }
 
+  // Gets the upload URL for a PUBLIC object (no ACL needed)
+  async getPublicObjectUploadURL(filename: string): Promise<{ uploadURL: string; publicURL: string }> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+
+    // Use the first public path
+    const publicPath = publicPaths[0];
+    
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/van-images/${objectId}-${safeFilename}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Sign URL for PUT method with TTL
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    
+    // Return the upload URL and the public URL that can be used directly
+    const publicURL = `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    
+    return { uploadURL, publicURL };
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {

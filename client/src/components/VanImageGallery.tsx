@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, Star, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { Upload, Star, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import type { Van } from "@shared/schema";
 
 interface VanImageGalleryProps {
@@ -20,60 +20,36 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      console.log('🚀 uploadMutation starting for file:', file.name);
-      console.log('🔑 localStorage sessionId:', localStorage.getItem('sessionId') ? 'EXISTS' : 'MISSING');
-      
-      // Request presigned URL
-      console.log('📝 Requesting presigned URL...');
-      try {
-        const presignedResponse = await apiRequest(
-          "POST",
-          "/api/admin/objects/presigned-url",
-          {
-            filename: file.name,
-            contentType: file.type,
-          }
-        );
-        console.log('✅ Got presigned response:', presignedResponse.status);
-        const { uploadURL, objectPath } = await presignedResponse.json();
-        console.log('📦 Extracted uploadURL and objectPath:', { uploadURL: uploadURL?.substring(0, 50), objectPath });
-
-        // Upload to object storage
-        console.log('⬆️ Uploading file to object storage...');
-        const uploadResponse = await fetch(uploadURL, {
-          method: "PUT",
-          body: file,
-          headers: {
-            "Content-Type": file.type,
-          },
-        });
-
-        if (!uploadResponse.ok) {
-          console.error('❌ Upload to storage failed:', uploadResponse.status, uploadResponse.statusText);
-          throw new Error("Failed to upload file");
+      // Step 1: Get presigned upload URL
+      const uploadResponse = await apiRequest(
+        "POST",
+        `/api/admin/vans/${van.id}/upload-image`,
+        {
+          filename: file.name,
+          contentType: file.type,
         }
-        console.log('✅ File uploaded to storage');
+      );
+      const { uploadURL, publicURL } = await uploadResponse.json();
 
-        // Set ACL to public
-        console.log('🔓 Setting ACL to public...');
-        await apiRequest("POST", "/api/admin/objects/set-acl", {
-          objectPath,
-          acl: "public",
-        });
-        console.log('✅ ACL set');
+      // Step 2: Upload file to cloud storage
+      const putResponse = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
 
-        // Add image to van
-        console.log('📸 Adding image to van...');
-        await apiRequest("POST", `/api/admin/vans/${van.id}/images`, {
-          objectPath,
-        });
-        console.log('✅ Image added to van');
-
-        return objectPath;
-      } catch (error) {
-        console.error('💥 Error in upload mutation:', error);
-        throw error;
+      if (!putResponse.ok) {
+        throw new Error("Failed to upload file to storage");
       }
+
+      // Step 3: Save public URL to van record
+      await apiRequest("POST", `/api/admin/vans/${van.id}/images`, {
+        imageUrl: publicURL,
+      });
+
+      return publicURL;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -84,12 +60,6 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       });
     },
     onError: (error: Error) => {
-      console.error('❌ Upload mutation error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
       toast({
         title: "Upload failed",
         description: error.message,
@@ -99,8 +69,8 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const removeImageMutation = useMutation({
-    mutationFn: async (objectPath: string) => {
-      return apiRequest('DELETE', `/api/admin/vans/${van.id}/images`, { objectPath });
+    mutationFn: async (imageUrl: string) => {
+      return apiRequest('DELETE', `/api/admin/vans/${van.id}/images`, { objectPath: imageUrl });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -120,8 +90,8 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const setHeroImageMutation = useMutation({
-    mutationFn: async (objectPath: string) => {
-      return apiRequest('PUT', `/api/admin/vans/${van.id}/hero-image`, { objectPath });
+    mutationFn: async (imageUrl: string) => {
+      return apiRequest('PUT', `/api/admin/vans/${van.id}/hero-image`, { objectPath: imageUrl });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vans'] });
@@ -162,13 +132,11 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   });
 
   const handleFileSelect = async (files: FileList | null) => {
-    console.log('🖼️ VanImageGallery handleFileSelect called with files:', files?.length || 0);
     if (!files || files.length === 0) return;
 
     const filesToUpload = Array.from(files);
 
     for (const file of filesToUpload) {
-      console.log('📄 Processing file:', file.name, file.type, file.size);
       // Validate file type
       if (!file.type.startsWith("image/")) {
         toast({
@@ -190,7 +158,6 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       }
 
       setUploading(true);
-      console.log('⬆️ Starting upload mutation for:', file.name);
       try {
         await uploadMutation.mutateAsync(file);
       } catch (error) {

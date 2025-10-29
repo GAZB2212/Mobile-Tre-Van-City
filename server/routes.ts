@@ -464,18 +464,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add image to van
+  // Add image to van - NEW SIMPLIFIED VERSION
   app.post("/api/admin/vans/:id/images", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const { objectPath } = req.body;
+      const { imageUrl } = req.body;
       
-      if (!objectPath || typeof objectPath !== 'string') {
-        return res.status(400).json({ error: "objectPath is required" });
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return res.status(400).json({ error: "imageUrl is required" });
       }
 
-      // Validate objectPath format
-      if (!objectPath.startsWith('/objects/uploads/')) {
-        return res.status(400).json({ error: "Invalid objectPath format" });
+      // Validate URL format
+      if (!imageUrl.startsWith('https://storage.googleapis.com/')) {
+        return res.status(400).json({ error: "Invalid image URL format" });
       }
 
       const van = await storage.getVan(req.params.id);
@@ -483,35 +483,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Van not found" });
       }
 
-      const { ObjectStorageService } = await import("./objectStorage");
-      const objectStorageService = new ObjectStorageService();
-      
-      // Verify file exists and is an image
-      let objectFile;
-      try {
-        objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-      } catch (error) {
-        return res.status(404).json({ error: "File not found. Upload may have failed." });
-      }
-      
-      // Verify file metadata
-      const [metadata] = await objectFile.getMetadata();
-      const contentType = metadata.contentType || '';
-      
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
-      if (!allowedTypes.includes(contentType.toLowerCase())) {
-        await objectFile.delete();
-        return res.status(400).json({ error: "Invalid file type. Only images are allowed." });
-      }
-
-      // Add image to van images array
+      // Add image URL to van images array
       const existingImages = van.images || [];
-      const updatedImages = [...existingImages, objectPath];
+      const updatedImages = [...existingImages, imageUrl];
       
       const updatedVan = await storage.updateVan(req.params.id, {
         images: updatedImages,
         // If no hero image is set, use the first uploaded image
-        ...((!van.heroImage && existingImages.length === 0) ? { heroImage: objectPath } : {})
+        ...((!van.heroImage && existingImages.length === 0) ? { heroImage: imageUrl } : {})
       });
 
       res.json(updatedVan);
@@ -1483,29 +1462,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin endpoint for getting presigned URL for object upload
-  app.post("/api/admin/objects/presigned-url", isAuthenticated, isAdmin, async (req, res) => {
+  // Admin endpoint for van image upload - simplified public upload
+  app.post("/api/admin/vans/:id/upload-image", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { filename, contentType } = req.body;
       
       // Validate file type
       const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
       if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
-        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, GIF, WebP, SVG)" });
+        return res.status(400).json({ error: "Only images are allowed" });
       }
       
-      // Validate filename
       if (!filename || filename.trim() === '') {
         return res.status(400).json({ error: "Filename is required" });
+      }
+
+      // Verify van exists
+      const van = await storage.getVan(req.params.id);
+      if (!van) {
+        return res.status(404).json({ error: "Van not found" });
       }
       
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
-      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(filename);
-      res.json({ uploadURL, objectPath });
+      
+      // Get upload URL for PUBLIC path (no ACL needed)
+      const { uploadURL, publicURL } = await objectStorageService.getPublicObjectUploadURL(filename);
+      
+      res.json({ uploadURL, publicURL });
     } catch (error) {
-      console.error("Error generating presigned URL:", error);
-      res.status(500).json({ error: "Failed to generate presigned URL" });
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
     }
   });
 
