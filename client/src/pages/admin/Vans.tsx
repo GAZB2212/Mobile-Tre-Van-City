@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
 import { Link } from "wouter";
-import { VanImageGallery } from "@/components/VanImageGallery";
+import { VanImages } from "@/components/VanImages";
 import { ImageUpload } from "@/components/ImageUpload";
 import { VanFormNew } from "./VanFormNew";
 import type { Van, InsertVan } from "@shared/schema";
@@ -331,7 +331,11 @@ export default function AdminVans() {
                   />
                 </TabsContent>
                 <TabsContent value="images">
-                  <VanImageGallery van={editingVan} />
+                  <VanImages 
+                    vanId={editingVan.id} 
+                    images={editingVan.images || []} 
+                    heroImage={editingVan.heroImage}
+                  />
                 </TabsContent>
               </Tabs>
             )}
