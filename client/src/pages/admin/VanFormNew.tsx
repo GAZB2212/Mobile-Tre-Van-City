@@ -13,7 +13,7 @@ import type { Van } from "@shared/schema";
 
 interface VanFormProps {
   van?: Van;
-  onSubmit: (formData: FormData) => void;
+  onSubmit: (formData: FormData, files?: File[]) => void;
   isLoading: boolean;
 }
 
@@ -21,6 +21,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const { toast } = useToast();
   const [registration, setRegistration] = useState('');
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   // Refs for direct DOM manipulation
@@ -78,7 +79,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        onSubmit(formData);
+        onSubmit(formData, selectedFiles);
       }}
     >
       <div className="grid gap-4">
@@ -293,22 +294,30 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
             onChange={(e) => {
               const files = e.target.files;
               if (files && files.length > 0) {
-                const previews: string[] = [];
-                const maxFiles = Math.min(files.length, 10);
-                for (let i = 0; i < maxFiles; i++) {
-                  previews.push(URL.createObjectURL(files[i]));
-                }
+                const newFiles = Array.from(files);
+                const combinedFiles = [...selectedFiles, ...newFiles];
+                
+                // Limit to 10 files total
+                const maxFiles = Math.min(combinedFiles.length, 10);
+                const limitedFiles = combinedFiles.slice(0, maxFiles);
+                
+                // Create preview URLs for all files
+                const previews = limitedFiles.map(file => URL.createObjectURL(file));
+                
+                setSelectedFiles(limitedFiles);
                 setSelectedImages(previews);
-                if (files.length > 10) {
+                
+                if (combinedFiles.length > 10) {
                   toast({
                     title: "Too many files",
-                    description: "Only the first 10 images will be uploaded",
+                    description: "Maximum 10 images allowed. Extra images were not added.",
                     variant: "destructive",
                   });
                 }
-              } else {
-                setSelectedImages([]);
               }
+              
+              // Reset the input so the same file can be selected again if needed
+              e.target.value = '';
             }}
           />
           {selectedImages.length > 0 && (

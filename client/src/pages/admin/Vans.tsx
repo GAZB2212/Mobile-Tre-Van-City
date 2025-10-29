@@ -106,10 +106,9 @@ export default function AdminVans() {
     },
   });
 
-  const handleCreateVan = async (formData: FormData) => {
-    // Get selected files
-    const fileInput = document.querySelector<HTMLInputElement>('#van-create-images');
-    const files = fileInput?.files;
+  const handleCreateVan = async (formData: FormData, selectedFiles?: File[]) => {
+    // Get files from the component state (passed as parameter)
+    const files = selectedFiles;
     
     const sessionId = localStorage.getItem('sessionId');
     if (!sessionId) {
@@ -124,23 +123,22 @@ export default function AdminVans() {
     // Upload images first if any (max 10)
     let imageUrls: string[] = [];
     if (files && files.length > 0) {
-      const maxFiles = Math.min(files.length, 10);
       try {
         toast({
           title: "Uploading images...",
-          description: `Uploading ${maxFiles} image(s)`,
+          description: `Uploading ${files.length} image(s)`,
         });
 
-        for (let i = 0; i < maxFiles; i++) {
-          const formData = new FormData();
-          formData.append('file', files[i]);
+        for (let i = 0; i < files.length; i++) {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', files[i]);
 
           const response = await fetch(`/api/admin/temp-upload`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${sessionId}`,
             },
-            body: formData,
+            body: uploadFormData,
           });
 
           if (!response.ok) throw new Error('Upload failed');
