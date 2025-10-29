@@ -225,11 +225,11 @@ export class ObjectStorageService {
       },
     });
     
-    // Make the file publicly accessible immediately
-    await file.makePublic();
-    
-    // Return the public URL
-    return `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    // Return the object path (will be served through backend proxy)
+    // Format: /objects/uploads/filename
+    const pathParts = objectName.split('/');
+    const uploadedFilename = pathParts[pathParts.length - 1];
+    return `/objects/uploads/${uploadedFilename}`;
   }
 
   // Gets the object entity file from the object path.
