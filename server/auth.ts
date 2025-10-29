@@ -212,12 +212,24 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   // Try to get session ID from Authorization header as fallback when cookies don't work
   const sessionIdFromHeader = req.headers.authorization?.replace('Bearer ', '');
   
+  console.log('🔐 isAuthenticated middleware:', {
+    path: req.path,
+    hasSessionUser: !!req.session.user,
+    hasAuthHeader: !!sessionIdFromHeader,
+    sessionId: sessionIdFromHeader ? `${sessionIdFromHeader.substring(0, 10)}...` : 'none'
+  });
+  
   // If no session user but we have a session ID from header, try to load the session
   if (!req.session.user && sessionIdFromHeader) {
     // Manually load session from store using the session ID from Authorization header
     const sessionStore = req.sessionStore;
     await new Promise<void>((resolve) => {
       sessionStore.get(sessionIdFromHeader, (err, sessionData) => {
+        console.log('📦 Session store lookup:', {
+          err: err?.message,
+          foundSession: !!sessionData,
+          hasUser: !!sessionData?.user
+        });
         if (!err && sessionData?.user) {
           req.session.user = sessionData.user;
         }
@@ -227,8 +239,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   }
   
   if (!req.session.user) {
+    console.log('❌ No session user found, returning 401');
     return res.status(401).json({ message: "Unauthorized" });
   }
+  console.log('✅ User authenticated:', req.session.user.username);
   next();
 };
 
