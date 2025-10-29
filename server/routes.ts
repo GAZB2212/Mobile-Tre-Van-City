@@ -1432,19 +1432,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { ObjectPermission } = await import("./objectAcl");
     const objectStorageService = new ObjectStorageService();
     try {
+      console.log('🖼️ Image request:', req.path);
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      console.log('✅ File found, checking access...');
       const canAccess = await objectStorageService.canAccessObjectEntity({
         objectFile,
         userId: userId,
         requestedPermission: ObjectPermission.READ,
       });
+      console.log('🔐 Access check result:', canAccess);
       if (!canAccess) {
+        console.log('❌ Access denied for:', req.path);
         return res.sendStatus(401);
       }
+      console.log('✅ Serving image:', req.path);
       objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error checking object access:", error);
       if (error instanceof ObjectNotFoundError) {
+        console.log('❌ Image not found:', req.path);
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
