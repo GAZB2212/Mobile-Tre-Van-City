@@ -118,10 +118,10 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       filename: file.name,
       contentType: file.type,
     });
-    const { uploadURL, objectPath } = await presignedResponse.json();
+    const { url, objectPath } = await presignedResponse.json();
 
     // Upload file directly to cloud storage
-    const uploadResponse = await fetch(uploadURL, {
+    const uploadResponse = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': file.type },
       body: file,
@@ -134,7 +134,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     // Set ACL using apiRequest (handles auth properly)
     await apiRequest('POST', '/api/admin/objects/set-acl', {
       objectPath,
-      acl: 'public-read',
+      acl: 'public',
     });
 
     return objectPath;
