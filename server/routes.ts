@@ -472,6 +472,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix ACLs for all van images
+  app.post("/api/admin/vans/fix-acls", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const vans = await storage.getVans();
+      let fixedCount = 0;
+
+      for (const van of vans) {
+        const imagesToFix: string[] = [];
+        
+        if (van.heroImage) {
+          imagesToFix.push(van.heroImage);
+        }
+        if (van.images && Array.isArray(van.images)) {
+          imagesToFix.push(...van.images);
+        }
+
+        // Remove duplicates
+        const uniqueImages = Array.from(new Set(imagesToFix));
+
+        for (const imageUrl of uniqueImages) {
+          if (imageUrl && imageUrl.includes('googleapis.com')) {
+            try {
+              const { setObjectACL } = await import("./objectStorage");
+              await setObjectACL(imageUrl, 'public');
+              fixedCount++;
+            } catch (error) {
+              console.error(`Failed to set ACL for ${imageUrl}:`, error);
+            }
+          }
+        }
+      }
+
+      res.json({ success: true, fixedCount, message: `Fixed ACLs for ${fixedCount} images` });
+    } catch (error) {
+      console.error("Error fixing van image ACLs:", error);
+      res.status(500).json({ error: "Failed to fix van image ACLs" });
+    }
+  });
+
   // Add image to van - NEW SIMPLIFIED VERSION
   app.post("/api/admin/vans/:id/images", isAuthenticated, isAdmin, async (req, res) => {
     try {

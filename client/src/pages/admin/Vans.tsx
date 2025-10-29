@@ -104,6 +104,27 @@ export default function AdminVans() {
     },
   });
 
+  // Fix van image ACLs mutation
+  const fixAclsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/admin/vans/fix-acls', {});
+      return response.json();
+    },
+    onSuccess: (data: { fixedCount: number; message: string }) => {
+      toast({
+        title: "Success",
+        description: data.message || `Fixed ${data.fixedCount} images`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to fix image permissions.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateVan = async (formData: FormData, selectedFiles?: File[]) => {
     // Get files from the component state (passed as parameter)
     const files = selectedFiles;
@@ -260,17 +281,27 @@ export default function AdminVans() {
                 </p>
               </div>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-create-van">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Van
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <VanWizard onComplete={handleCreateVan} isLoading={createVanMutation.isPending} />
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => fixAclsMutation.mutate()}
+                disabled={fixAclsMutation.isPending}
+                data-testid="button-fix-acls"
+              >
+                {fixAclsMutation.isPending ? "Fixing..." : "Fix Image Permissions"}
+              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-create-van">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Van
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <VanWizard onComplete={handleCreateVan} isLoading={createVanMutation.isPending} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </div>
