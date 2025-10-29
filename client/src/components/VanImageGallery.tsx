@@ -115,7 +115,7 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
     console.log('Getting upload parameters for:', file.name);
     setUploadingImage(true);
     try {
-      const response = await apiRequest('POST', '/api/objects/upload', {
+      const response = await apiRequest('POST', '/api/admin/objects/presigned-url', {
         filename: file.name,
         contentType: file.type,
       });
