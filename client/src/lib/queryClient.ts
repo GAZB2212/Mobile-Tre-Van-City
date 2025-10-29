@@ -16,6 +16,7 @@ export async function apiRequest(
   
   // Add session ID from localStorage as fallback since cookies aren't working
   const sessionId = localStorage.getItem('sessionId');
+  console.log('📤 apiRequest:', method, url, '| sessionId:', sessionId ? `${sessionId.substring(0, 10)}...` : 'MISSING');
   if (sessionId) {
     headers['Authorization'] = `Bearer ${sessionId}`;
   }
@@ -27,6 +28,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
+  console.log('📥 apiRequest response:', res.status, res.statusText);
   await throwIfResNotOk(res);
   return res;
 }
