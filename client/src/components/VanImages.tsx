@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Upload, Trash2, Star } from "lucide-react";
+import { Upload, Trash2, Star, ChevronUp, ChevronDown } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
 interface VanImagesProps {
@@ -132,6 +132,44 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
     }
   };
 
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= images.length) return;
+
+    const sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) return;
+
+    // Create new array with reordered images
+    const reordered = [...images];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+
+    try {
+      const response = await fetch(`/api/admin/vans/${vanId}/images/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionId}`,
+        },
+        body: JSON.stringify({ images: reordered }),
+      });
+
+      if (!response.ok) throw new Error('Failed to reorder');
+
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
+
+      toast({
+        title: "Success",
+        description: "Images reordered",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reorder images",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Upload Button */}
@@ -174,6 +212,28 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
                     Hero
                   </div>
                 )}
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-6 w-6"
+                    onClick={() => handleReorder(index, index - 1)}
+                    disabled={index === 0}
+                    data-testid={`button-move-up-${index}`}
+                  >
+                    <ChevronUp className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-6 w-6"
+                    onClick={() => handleReorder(index, index + 1)}
+                    disabled={index === images.length - 1}
+                    data-testid={`button-move-down-${index}`}
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
               <div className="p-2 flex gap-2">
                 {heroImage !== image && (
@@ -182,6 +242,7 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
                     variant="outline"
                     onClick={() => handleSetHero(image)}
                     className="flex-1"
+                    data-testid={`button-set-hero-${index}`}
                   >
                     <Star className="w-3 h-3" />
                   </Button>
@@ -194,6 +255,7 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
                       handleDelete(image);
                     }
                   }}
+                  data-testid={`button-delete-${index}`}
                 >
                   <Trash2 className="w-3 h-3" />
                 </Button>
