@@ -17,8 +17,8 @@ export function ImageUpload({ onImagesUploaded, maxFiles = 10, existingImages = 
   const { toast } = useToast();
 
   const uploadToObjectStorage = async (file: File): Promise<string> => {
-    // Step 1: Get upload URL
-    const response = await fetch('/api/objects/upload', {
+    // Step 1: Get presigned upload URL
+    const response = await fetch('/api/admin/objects/presigned-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -46,6 +46,17 @@ export function ImageUpload({ onImagesUploaded, maxFiles = 10, existingImages = 
     if (!uploadResponse.ok) {
       throw new Error('Failed to upload file');
     }
+
+    // Step 3: Set ACL to public-read so images are accessible
+    await fetch('/api/admin/objects/set-acl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        objectPath,
+        acl: 'public-read',
+      }),
+    });
 
     // Return the object path which can be used to access the file
     return objectPath;
