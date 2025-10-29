@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
 import { VanWizard } from "@/components/VanWizard";
@@ -21,6 +21,7 @@ import type { Van, InsertVan } from "@shared/schema";
 
 export default function AdminVans() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [editingVan, setEditingVan] = useState<Van | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -43,8 +44,12 @@ export default function AdminVans() {
       setIsCreateDialogOpen(false);
       toast({
         title: "Success",
-        description: "Van created successfully with all images!",
+        description: "Van published to website! Redirecting...",
       });
+      // Redirect to the live van page on the website
+      setTimeout(() => {
+        navigate(`/stock/${createdVan.slug}`);
+      }, 1000);
     },
     onError: () => {
       toast({
