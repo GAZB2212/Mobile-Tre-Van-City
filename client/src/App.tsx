@@ -15,7 +15,6 @@ import About from "@/pages/About";
 import Contact from "@/pages/Contact";
 import HowItWorks from "@/pages/HowItWorks";
 import Training from "@/pages/Training";
-import Configurator from "@/pages/Configurator";
 import SelectVan from "@/pages/configurator/SelectVan";
 import SelectKit from "@/pages/configurator/SelectKit";
 import SelectUpgrades from "@/pages/configurator/SelectUpgrades";
@@ -51,7 +50,13 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/training" component={Training} />
-      <Route path="/configurator" component={Configurator} />
+      {/* Configurator - redirect to multi-step flow */}
+      <Route path="/configurator">
+        {() => {
+          window.location.href = '/configurator/van';
+          return null;
+        }}
+      </Route>
       {/* Conversion funnel routes */}
       <Route path="/configurator/van" component={SelectVan} />
       <Route path="/configurator/kit" component={SelectKit} />

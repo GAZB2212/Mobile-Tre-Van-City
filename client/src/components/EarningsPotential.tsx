@@ -117,7 +117,7 @@ export default function EarningsPotential() {
               <Button 
                 size="lg" 
                 variant="outline"
-                onClick={() => setLocation('/configurator')}
+                onClick={() => setLocation('/configurator/van')}
                 data-testid="button-build-van"
               >
                 Build Your Van

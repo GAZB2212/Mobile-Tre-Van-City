@@ -121,7 +121,7 @@ export default function Training() {
               Comprehensive in-house training covering both REACT motorway certification and professional tyre fitting. Everything you need to start your mobile tyre business with confidence.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Link href="/configurator">
+              <Link href="/configurator/van">
                 <Button size="lg" data-testid="button-start-configurator">
                   <ShieldCheck className="w-5 h-5 mr-2" />
                   Start Your Van Build
@@ -389,7 +389,7 @@ export default function Training() {
             Every van purchase includes complete REACT and tyre fitting training - get certified and start earning from day one
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/configurator">
+            <Link href="/configurator/van">
               <Button size="lg" data-testid="button-configure-van">
                 <GraduationCap className="w-5 h-5 mr-2" />
                 Configure Your Van

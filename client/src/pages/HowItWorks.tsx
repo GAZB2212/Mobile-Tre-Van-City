@@ -188,7 +188,7 @@ export default function HowItWorks() {
               <p className="text-lg sm:text-xl text-accent-foreground/90 mb-10 leading-relaxed">
                 Start configuring your perfect mobile tyre van today. Choose your vehicle, select your equipment, and get a personalized quote in minutes.
               </p>
-              <Link href="/configurator">
+              <Link href="/configurator/van">
                 <Button 
                   size="lg" 
                   variant="secondary"
