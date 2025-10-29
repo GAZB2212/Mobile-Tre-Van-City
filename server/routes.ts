@@ -478,6 +478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ObjectStorageService } = await import("./objectStorage");
       const vans = await storage.getVans();
       let fixedCount = 0;
+      let errorCount = 0;
       const objectStorageService = new ObjectStorageService();
 
       for (const van of vans) {
@@ -495,20 +496,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         for (const imageUrl of uniqueImages) {
           if (imageUrl && imageUrl.includes('googleapis.com')) {
-            try {
-              await objectStorageService.trySetObjectEntityAclPolicy(imageUrl, {
-                owner: 'system',
-                visibility: 'public'
-              });
-              fixedCount++;
-            } catch (error) {
-              console.error(`Failed to set ACL for ${imageUrl}:`, error);
+            // Retry mechanism for GCS eventual consistency
+            let success = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              try {
+                if (attempt > 0) {
+                  await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+                }
+                await objectStorageService.trySetObjectEntityAclPolicy(imageUrl, {
+                  owner: 'system',
+                  visibility: 'public'
+                });
+                fixedCount++;
+                success = true;
+                break;
+              } catch (error: any) {
+                if (attempt === 2) {
+                  console.error(`Failed to set ACL for ${imageUrl} after 3 attempts:`, error.message);
+                  errorCount++;
+                }
+              }
             }
           }
         }
       }
 
-      res.json({ success: true, fixedCount, message: `Fixed ACLs for ${fixedCount} images` });
+      res.json({ 
+        success: true, 
+        fixedCount, 
+        errorCount,
+        message: errorCount > 0 
+          ? `Fixed ${fixedCount} images, ${errorCount} failed` 
+          : `Fixed ${fixedCount} images successfully`
+      });
     } catch (error) {
       console.error("Error fixing van image ACLs:", error);
       res.status(500).json({ error: "Failed to fix van image ACLs" });
