@@ -113,22 +113,14 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
   };
 
   const uploadToObjectStorage = async (file: File): Promise<string> => {
-    const response = await fetch('/api/admin/objects/presigned-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type,
-      }),
+    // Get presigned URL using apiRequest (handles auth properly)
+    const presignedResponse = await apiRequest('POST', '/api/admin/objects/presigned-url', {
+      filename: file.name,
+      contentType: file.type,
     });
+    const { uploadURL, objectPath } = await presignedResponse.json();
 
-    if (!response.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-
-    const { uploadURL, objectPath } = await response.json();
-
+    // Upload file directly to cloud storage
     const uploadResponse = await fetch(uploadURL, {
       method: 'PUT',
       headers: { 'Content-Type': file.type },
@@ -139,14 +131,10 @@ export function VanImageGallery({ van }: VanImageGalleryProps) {
       throw new Error('Failed to upload file');
     }
 
-    await fetch('/api/admin/objects/set-acl', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        objectPath,
-        acl: 'public-read',
-      }),
+    // Set ACL using apiRequest (handles auth properly)
+    await apiRequest('POST', '/api/admin/objects/set-acl', {
+      objectPath,
+      acl: 'public-read',
     });
 
     return objectPath;
