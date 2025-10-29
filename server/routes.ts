@@ -475,8 +475,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fix ACLs for all van images
   app.post("/api/admin/vans/fix-acls", isAuthenticated, isAdmin, async (req, res) => {
     try {
+      const { ObjectStorageService } = await import("./objectStorage");
       const vans = await storage.getVans();
       let fixedCount = 0;
+      const objectStorageService = new ObjectStorageService();
 
       for (const van of vans) {
         const imagesToFix: string[] = [];
@@ -494,8 +496,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const imageUrl of uniqueImages) {
           if (imageUrl && imageUrl.includes('googleapis.com')) {
             try {
-              const { setObjectACL } = await import("./objectStorage");
-              await setObjectACL(imageUrl, 'public');
+              await objectStorageService.trySetObjectEntityAclPolicy(imageUrl, {
+                owner: 'system',
+                visibility: 'public'
+              });
               fixedCount++;
             } catch (error) {
               console.error(`Failed to set ACL for ${imageUrl}:`, error);

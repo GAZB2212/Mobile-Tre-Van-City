@@ -134,7 +134,7 @@ export default function SelectVan() {
                             </div>
 
                             {/* More Info Expandable Section */}
-                            {(van.images && van.images.length > 1) || van.description ? (
+                            {(van.images && van.images.length > 0) || van.description ? (
                               <>
                                 <Button
                                   type="button"
