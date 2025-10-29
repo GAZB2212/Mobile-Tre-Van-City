@@ -273,23 +273,27 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </div>
         </div>
 
-        {!van && (
-          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="pt-6">
-              <p className="text-sm text-blue-900 dark:text-blue-100">
-                <strong>Note:</strong> Create the van first, then click "Edit" to add images in the Images tab.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <div>
+          <Label htmlFor="van-create-images">Van Images (optional)</Label>
+          <p className="text-sm text-muted-foreground mb-2">
+            Select images to upload. First image will be the hero image.
+          </p>
+          <Input
+            id="van-create-images"
+            type="file"
+            accept="image/*"
+            multiple
+            className="cursor-pointer"
+          />
+        </div>
 
         <div className="flex items-center space-x-4">
           <div className="flex-1">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description (optional)</Label>
             <Textarea
               id="description"
               name="description"
-              defaultValue={van?.description || ''}
+              defaultValue={''}
               placeholder="Van description..."
               rows={4}
               data-testid="input-van-description"

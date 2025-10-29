@@ -1462,6 +1462,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint for temporary image upload (for create forms)
+  app.post("/api/admin/temp-upload", isAuthenticated, isAdmin, async (req, res) => {
+    const multer = await import("multer");
+    const upload = multer.default({ storage: multer.memoryStorage() });
+    
+    upload.single("file")(req, res, async (err: any) => {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(400).json({ error: "File upload failed" });
+      }
+
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file provided" });
+        }
+
+        // Validate file type
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(req.file.mimetype.toLowerCase())) {
+          return res.status(400).json({ error: "Only images are allowed" });
+        }
+
+        // Upload to object storage
+        const { ObjectStorageService } = await import("./objectStorage");
+        const objectStorageService = new ObjectStorageService();
+        const url = await objectStorageService.uploadFileToPublicStorage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+
+        res.json({ url });
+      } catch (error) {
+        console.error("Upload error:", error);
+        res.status(500).json({ error: "Upload failed" });
+      }
+    });
+  });
+
   // Admin endpoint for van image upload - BACKEND PROXY (no CORS issues)
   app.post("/api/admin/vans/:id/upload-image", isAuthenticated, isAdmin, async (req, res) => {
     const multer = await import("multer");

@@ -106,7 +106,52 @@ export default function AdminVans() {
     },
   });
 
-  const handleCreateVan = (formData: FormData) => {
+  const handleCreateVan = async (formData: FormData) => {
+    // Get selected files
+    const fileInput = document.querySelector<HTMLInputElement>('#van-create-images');
+    const files = fileInput?.files;
+    
+    const sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in again",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Upload images first if any
+    let imageUrls: string[] = [];
+    if (files && files.length > 0) {
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const formData = new FormData();
+          formData.append('file', files[i]);
+
+          const response = await fetch(`/api/admin/temp-upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${sessionId}`,
+            },
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error('Upload failed');
+          
+          const data = await response.json();
+          imageUrls.push(data.url);
+        }
+      } catch (error) {
+        toast({
+          title: "Upload failed",
+          description: "Could not upload images",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const vanData: InsertVan = {
       slug: formData.get('slug') as string,
       title: formData.get('title') as string,
@@ -114,9 +159,8 @@ export default function AdminVans() {
       model: formData.get('model') as string,
       year: parseInt(formData.get('year') as string),
       mileage: parseInt(formData.get('mileage') as string),
-      price: parseInt(formData.get('price') as string) * 100, // Convert to pence
+      price: parseInt(formData.get('price') as string) * 100,
       vatIncluded: formData.get('vatIncluded') === 'on',
-      description: formData.get('description') as string,
       specs: {
         transmission: formData.get('transmission') as string,
         size: formData.get('size') as string,
@@ -124,8 +168,8 @@ export default function AdminVans() {
         doors: parseInt(formData.get('doors') as string) || undefined,
         engine: formData.get('engine') as string || undefined,
       },
-      images: [],
-      heroImage: undefined,
+      images: imageUrls,
+      heroImage: imageUrls[0] || undefined,
       published: formData.get('published') === 'on',
     };
 
