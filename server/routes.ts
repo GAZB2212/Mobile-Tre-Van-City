@@ -1438,8 +1438,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         visibility: acl as 'public' | 'private',
       };
       
-      const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(objectPath, aclPolicy);
-      res.json({ objectPath: normalizedPath });
+      // Retry mechanism for GCS eventual consistency
+      let lastError;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          if (attempt > 0) {
+            // Wait before retrying (exponential backoff: 100ms, 200ms, 400ms, 800ms)
+            await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
+          }
+          const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(objectPath, aclPolicy);
+          return res.json({ objectPath: normalizedPath });
+        } catch (error: any) {
+          lastError = error;
+          // Only retry on "Object not found" errors
+          if (!error.message?.includes('not found') && !error.code?.includes('404')) {
+            throw error;
+          }
+        }
+      }
+      
+      // All retries failed
+      throw lastError;
     } catch (error) {
       console.error("Error setting ACL:", error);
       res.status(500).json({ error: "Failed to set ACL policy" });
