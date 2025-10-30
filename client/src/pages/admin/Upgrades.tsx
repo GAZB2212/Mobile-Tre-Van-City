@@ -100,9 +100,10 @@ interface SortableUpgradeCardProps {
   onDelete: (id: string) => void;
   isDeleting: boolean;
   hasVariants?: boolean;
+  variants?: Upgrade[];
 }
 
-function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariants }: SortableUpgradeCardProps) {
+function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariants, variants = [] }: SortableUpgradeCardProps) {
   const {
     attributes,
     listeners,
@@ -135,14 +136,9 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
               <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
                 {upgrade.name}
               </CardTitle>
-              {upgrade.variantName && (
-                <Badge variant="outline" className="text-xs">
-                  {upgrade.variantName}
-                </Badge>
-              )}
               {hasVariants && (
                 <Badge variant="secondary" className="text-xs">
-                  Has Variants
+                  {variants.length} Variants
                 </Badge>
               )}
             </div>
@@ -165,10 +161,46 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
           <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-upgrade-description-${upgrade.id}`}>
             {upgrade.description}
           </p>
-          <div className="flex items-center justify-between">
-            <span className="text-xl font-bold" data-testid={`text-upgrade-price-${upgrade.id}`}>
-              £{penceToPounds(upgrade.price)}
-            </span>
+          
+          {/* Show variants nested under parent */}
+          {hasVariants && variants.length > 0 && (
+            <div className="mt-3 space-y-2 border-t pt-3">
+              <p className="text-xs font-medium text-muted-foreground">Variants:</p>
+              {variants.map((variant) => (
+                <div key={variant.id} className="flex items-center justify-between bg-muted/50 rounded p-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Badge variant="outline" className="text-xs flex-shrink-0">
+                      {variant.variantName}
+                    </Badge>
+                    <span className="text-sm font-semibold">
+                      £{penceToPounds(variant.price)}
+                    </span>
+                  </div>
+                  <div className="flex space-x-1 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onEdit(variant)}
+                      data-testid={`button-edit-variant-${variant.id}`}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between pt-2">
+            {hasVariants ? (
+              <span className="text-sm text-muted-foreground italic">
+                See variants above
+              </span>
+            ) : (
+              <span className="text-xl font-bold" data-testid={`text-upgrade-price-${upgrade.id}`}>
+                £{penceToPounds(upgrade.price)}
+              </span>
+            )}
             <div className="flex space-x-2">
               <Button
                 size="sm"
@@ -970,8 +1002,11 @@ export default function AdminUpgrades() {
     );
   }
 
-  // Group upgrades by category and sort by sortOrder
-  const upgradesByCategory = upgrades.reduce((acc, upgrade) => {
+  // Filter to only parent upgrades (no parentId) for main list
+  const parentUpgrades = upgrades.filter(u => !u.parentId);
+  
+  // Group parent upgrades by category and sort by sortOrder
+  const upgradesByCategory = parentUpgrades.reduce((acc, upgrade) => {
     if (!acc[upgrade.category]) {
       acc[upgrade.category] = [];
     }
@@ -1050,7 +1085,9 @@ export default function AdminUpgrades() {
                       >
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
                           {categoryUpgrades.map((upgrade: Upgrade) => {
-                            const hasVariants = upgrades.some(u => u.parentId === upgrade.id);
+                            // Get variants for this parent
+                            const variantChildren = upgrades.filter(u => u.parentId === upgrade.id);
+                            const hasVariants = variantChildren.length > 0;
                             return (
                               <SortableUpgradeCard
                                 key={upgrade.id}
@@ -1059,6 +1096,7 @@ export default function AdminUpgrades() {
                                 onDelete={handleDelete}
                                 isDeleting={deleteMutation.isPending}
                                 hasVariants={hasVariants}
+                                variants={variantChildren}
                               />
                             );
                           })}
