@@ -27,6 +27,7 @@ export interface IStorage {
 
   // Kits
   getKits(): Promise<Kit[]>;
+  getKitsAdmin(): Promise<Kit[]>; // Returns all kits including unpublished for admin
   getKit(id: string): Promise<Kit | undefined>;
   createKit(kit: InsertKit): Promise<Kit>;
   updateKit(id: string, kit: Partial<InsertKit>): Promise<Kit | undefined>;
@@ -97,6 +98,7 @@ export class MemStorage implements IStorage {
         includes: ["T1000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "Air Compressor", "Basic Tool Set"],
         powerKw: "3.5",
         price: 574500, // £5,745.00 in pence
+        sortOrder: 0,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -108,6 +110,7 @@ export class MemStorage implements IStorage {
         includes: ["T1000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "Euro 6 Compatible Air System", "Basic Tool Set"],
         powerKw: "3.5",
         price: 594500, // Estimated £5,945.00 in pence
+        sortOrder: 1,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -119,6 +122,7 @@ export class MemStorage implements IStorage {
         includes: ["T2000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "High-Capacity Air Compressor", "Professional Tool Set"],
         powerKw: "5.0",
         price: 644500, // Estimated £6,445.00 in pence
+        sortOrder: 2,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -130,6 +134,7 @@ export class MemStorage implements IStorage {
         includes: ["T2000 Pro Tyre Changer", "Mini Spin Wheel Balancer", "Euro 6 Compatible High-Capacity Air System", "Professional Tool Set"],
         powerKw: "5.0",
         price: 664500, // Estimated £6,645.00 in pence
+        sortOrder: 3,
         published: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -1169,7 +1174,14 @@ export class MemStorage implements IStorage {
 
   // Kits
   async getKits(): Promise<Kit[]> {
-    return Array.from(this.kits.values()).filter(kit => kit.published);
+    return Array.from(this.kits.values())
+      .filter(kit => kit.published)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }
+
+  async getKitsAdmin(): Promise<Kit[]> {
+    return Array.from(this.kits.values())
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }
 
   async getKit(id: string): Promise<Kit | undefined> {
@@ -1402,7 +1414,7 @@ export class MemStorage implements IStorage {
 // Database Storage Implementation
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, asc } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
   // Users
@@ -1484,7 +1496,11 @@ export class DbStorage implements IStorage {
 
   // Kits
   async getKits(): Promise<Kit[]> {
-    return await db.select().from(schema.kits).where(eq(schema.kits.published, true));
+    return await db.select().from(schema.kits).where(eq(schema.kits.published, true)).orderBy(asc(schema.kits.sortOrder));
+  }
+
+  async getKitsAdmin(): Promise<Kit[]> {
+    return await db.select().from(schema.kits).orderBy(asc(schema.kits.sortOrder));
   }
 
   async getKit(id: string): Promise<Kit | undefined> {

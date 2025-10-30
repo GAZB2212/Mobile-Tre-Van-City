@@ -772,7 +772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin CRUD endpoints for kits
   app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const kits = await storage.getKits();
+      const kits = await storage.getKitsAdmin();
       res.json(kits);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch kits" });
@@ -831,6 +831,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete kit" });
+    }
+  });
+
+  // Update kit sort order
+  app.patch("/api/admin/kits/:id/sort-order", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { sortOrder } = req.body;
+      
+      if (typeof sortOrder !== 'number') {
+        return res.status(400).json({ error: "sortOrder must be a number" });
+      }
+      
+      const kit = await storage.updateKit(req.params.id, { sortOrder });
+      if (!kit) {
+        return res.status(404).json({ error: "Kit not found" });
+      }
+      res.json(kit);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update sort order" });
     }
   });
 

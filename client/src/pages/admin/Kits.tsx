@@ -110,6 +110,38 @@ export default function AdminKits() {
     },
   });
 
+  // Reorder kit mutation
+  const reorderMutation = useMutation({
+    mutationFn: ({ id, sortOrder }: { id: string; sortOrder: number }) =>
+      apiRequest("PATCH", `/api/admin/kits/${id}/sort-order`, { sortOrder }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/kits"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to reorder kit", variant: "destructive" });
+    },
+  });
+
+  const handleMoveKitUp = (index: number) => {
+    if (index === 0 || !kits) return;
+    const currentKit = kits[index];
+    const previousKit = kits[index - 1];
+    
+    // Swap sort orders
+    reorderMutation.mutate({ id: currentKit.id, sortOrder: previousKit.sortOrder ?? index - 1 });
+    reorderMutation.mutate({ id: previousKit.id, sortOrder: currentKit.sortOrder ?? index });
+  };
+
+  const handleMoveKitDown = (index: number) => {
+    if (!kits || index === kits.length - 1) return;
+    const currentKit = kits[index];
+    const nextKit = kits[index + 1];
+    
+    // Swap sort orders
+    reorderMutation.mutate({ id: currentKit.id, sortOrder: nextKit.sortOrder ?? index + 1 });
+    reorderMutation.mutate({ id: nextKit.id, sortOrder: currentKit.sortOrder ?? index });
+  };
+
   const handleAddInclude = () => {
     if (includesInput.trim()) {
       const currentIncludes = form.getValues("includes");
@@ -714,20 +746,44 @@ export default function AdminKits() {
             </CardContent>
           </Card>
         ) : (
-          kits.map((kit: Kit) => (
+          kits.map((kit: Kit, index: number) => (
             <Card key={kit.id} className="hover-elevate">
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CardTitle className="text-lg">{kit.name}</CardTitle>
-                      {!kit.published && (
-                        <Badge variant="outline" data-testid={`badge-unpublished-${kit.id}`}>
-                          Unpublished
-                        </Badge>
-                      )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => handleMoveKitUp(index)}
+                        disabled={index === 0 || reorderMutation.isPending}
+                        data-testid={`button-move-kit-up-${kit.id}`}
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => handleMoveKitDown(index)}
+                        disabled={index === kits.length - 1 || reorderMutation.isPending}
+                        data-testid={`button-move-kit-down-${kit.id}`}
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">{kit.description}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CardTitle className="text-lg">{kit.name}</CardTitle>
+                        {!kit.published && (
+                          <Badge variant="outline" data-testid={`badge-unpublished-${kit.id}`}>
+                            Unpublished
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{kit.description}</p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button
