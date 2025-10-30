@@ -226,10 +226,10 @@ export class ObjectStorageService {
     });
     
     // Return the object path (will be served through backend proxy)
-    // Format: /objects/uploads/filename
+    // Format: /objects/van-images/filename (matches the storage location)
     const pathParts = objectName.split('/');
     const uploadedFilename = pathParts[pathParts.length - 1];
-    return `/objects/uploads/${uploadedFilename}`;
+    return `/objects/van-images/${uploadedFilename}`;
   }
 
   // Gets the object entity file from the object path.
@@ -244,6 +244,24 @@ export class ObjectStorageService {
     }
 
     const entityId = parts.slice(1).join("/");
+    
+    // Check if this is a public image (van-images directory)
+    if (entityId.startsWith("van-images/")) {
+      const publicPaths = this.getPublicObjectSearchPaths();
+      if (publicPaths && publicPaths.length > 0) {
+        const publicPath = publicPaths[0];
+        const objectEntityPath = `${publicPath}/${entityId}`;
+        const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+        const bucket = objectStorageClient.bucket(bucketName);
+        const objectFile = bucket.file(objectName);
+        const [exists] = await objectFile.exists();
+        if (exists) {
+          return objectFile;
+        }
+      }
+    }
+    
+    // Otherwise, look in private directory
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
