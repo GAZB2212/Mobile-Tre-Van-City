@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Kit } from "@shared/schema";
 
@@ -33,6 +33,8 @@ export default function AdminKits() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingKit, setEditingKit] = useState<Kit | null>(null);
   const [includesInput, setIncludesInput] = useState("");
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [editingItemText, setEditingItemText] = useState("");
   const { toast } = useToast();
 
   // Fetch kits with admin access (includes unpublished)
@@ -135,6 +137,28 @@ export default function AdminKits() {
     const newIncludes = [...currentIncludes];
     [newIncludes[index], newIncludes[index + 1]] = [newIncludes[index + 1], newIncludes[index]];
     form.setValue("includes", newIncludes);
+  };
+
+  const handleStartEditItem = (index: number) => {
+    const currentIncludes = form.getValues("includes");
+    setEditingItemIndex(index);
+    setEditingItemText(currentIncludes[index]);
+  };
+
+  const handleSaveEditItem = () => {
+    if (editingItemIndex !== null && editingItemText.trim()) {
+      const currentIncludes = form.getValues("includes");
+      const newIncludes = [...currentIncludes];
+      newIncludes[editingItemIndex] = editingItemText.trim();
+      form.setValue("includes", newIncludes);
+      setEditingItemIndex(null);
+      setEditingItemText("");
+    }
+  };
+
+  const handleCancelEditItem = () => {
+    setEditingItemIndex(null);
+    setEditingItemText("");
   };
 
   const handleEditKit = (kit: Kit) => {
@@ -262,7 +286,7 @@ export default function AdminKits() {
                                   size="icon"
                                   className="h-5 w-5"
                                   onClick={() => handleMoveIncludeUp(index)}
-                                  disabled={index === 0}
+                                  disabled={index === 0 || editingItemIndex !== null}
                                   data-testid={`button-move-include-up-${index}`}
                                 >
                                   <ChevronUp className="h-3 w-3" />
@@ -273,23 +297,75 @@ export default function AdminKits() {
                                   size="icon"
                                   className="h-5 w-5"
                                   onClick={() => handleMoveIncludeDown(index)}
-                                  disabled={index === form.watch("includes").length - 1}
+                                  disabled={index === form.watch("includes").length - 1 || editingItemIndex !== null}
                                   data-testid={`button-move-include-down-${index}`}
                                 >
                                   <ChevronDown className="h-3 w-3" />
                                 </Button>
                               </div>
-                              <span className="flex-1 text-sm">{item}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleRemoveInclude(index)}
-                                data-testid={`button-remove-include-${index}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {editingItemIndex === index ? (
+                                <>
+                                  <Input
+                                    value={editingItemText}
+                                    onChange={(e) => setEditingItemText(e.target.value)}
+                                    className="flex-1"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleSaveEditItem();
+                                      } else if (e.key === "Escape") {
+                                        handleCancelEditItem();
+                                      }
+                                    }}
+                                    autoFocus
+                                    data-testid={`input-edit-item-${index}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={handleSaveEditItem}
+                                    data-testid={`button-save-item-${index}`}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={handleCancelEditItem}
+                                    data-testid={`button-cancel-item-${index}`}
+                                  >
+                                    ×
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="flex-1 text-sm">{item}</span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleStartEditItem(index)}
+                                    data-testid={`button-edit-item-${index}`}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    onClick={() => handleRemoveInclude(index)}
+                                    data-testid={`button-remove-include-${index}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -451,7 +527,7 @@ export default function AdminKits() {
                                 size="icon"
                                 className="h-5 w-5"
                                 onClick={() => handleMoveIncludeUp(index)}
-                                disabled={index === 0}
+                                disabled={index === 0 || editingItemIndex !== null}
                                 data-testid={`button-edit-move-include-up-${index}`}
                               >
                                 <ChevronUp className="h-3 w-3" />
@@ -462,23 +538,75 @@ export default function AdminKits() {
                                 size="icon"
                                 className="h-5 w-5"
                                 onClick={() => handleMoveIncludeDown(index)}
-                                disabled={index === form.watch("includes").length - 1}
+                                disabled={index === form.watch("includes").length - 1 || editingItemIndex !== null}
                                 data-testid={`button-edit-move-include-down-${index}`}
                               >
                                 <ChevronDown className="h-3 w-3" />
                               </Button>
                             </div>
-                            <span className="flex-1 text-sm">{item}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveInclude(index)}
-                              data-testid={`button-edit-remove-include-${index}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {editingItemIndex === index ? (
+                              <>
+                                <Input
+                                  value={editingItemText}
+                                  onChange={(e) => setEditingItemText(e.target.value)}
+                                  className="flex-1"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      handleSaveEditItem();
+                                    } else if (e.key === "Escape") {
+                                      handleCancelEditItem();
+                                    }
+                                  }}
+                                  autoFocus
+                                  data-testid={`input-edit-dialog-item-${index}`}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={handleSaveEditItem}
+                                  data-testid={`button-edit-save-item-${index}`}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={handleCancelEditItem}
+                                  data-testid={`button-edit-cancel-item-${index}`}
+                                >
+                                  ×
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="flex-1 text-sm">{item}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => handleStartEditItem(index)}
+                                  data-testid={`button-edit-dialog-item-${index}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => handleRemoveInclude(index)}
+                                  data-testid={`button-edit-remove-include-${index}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
