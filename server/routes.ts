@@ -1285,15 +1285,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Referenced from blueprint: javascript_object_storage - protected file uploading
   // The endpoint for serving objects with ACL checks (public and private)
   app.get("/objects/:objectPath(*)", async (req, res) => {
-    // Get userId if user is authenticated (undefined for public access)
-    const userId = (req as any).user?.id;
     const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
-    const { ObjectPermission } = await import("./objectAcl");
     const objectStorageService = new ObjectStorageService();
     try {
       console.log('🖼️ Image request:', req.path);
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      console.log('✅ File found, checking access...');
+      console.log('✅ File found');
+      
+      // Check if this is a public van image (skip ACL for public images)
+      if (req.path.includes('/van-images/')) {
+        console.log('✅ Public van image - serving without ACL check');
+        objectStorageService.downloadObject(objectFile, res);
+        return;
+      }
+      
+      // For other files, check ACL
+      const userId = (req as any).user?.id;
+      const { ObjectPermission } = await import("./objectAcl");
+      console.log('🔐 Checking access permissions...');
       const canAccess = await objectStorageService.canAccessObjectEntity({
         objectFile,
         userId: userId,
@@ -1304,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('❌ Access denied for:', req.path);
         return res.sendStatus(401);
       }
-      console.log('✅ Serving image:', req.path);
+      console.log('✅ Serving file:', req.path);
       objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error checking object access:", error);
