@@ -1455,7 +1455,20 @@ export class DbStorage implements IStorage {
   }
 
   async createVan(insertVan: InsertVan): Promise<Van> {
-    const result = await db.insert(schema.vans).values(insertVan).returning();
+    // Check if slug already exists, and make it unique if needed
+    let finalSlug = insertVan.slug;
+    let counter = 1;
+    
+    while (true) {
+      const existing = await db.select().from(schema.vans).where(eq(schema.vans.slug, finalSlug));
+      if (existing.length === 0) break;
+      
+      // Add counter to make slug unique
+      finalSlug = `${insertVan.slug}-${counter}`;
+      counter++;
+    }
+    
+    const result = await db.insert(schema.vans).values({ ...insertVan, slug: finalSlug }).returning();
     return result[0];
   }
 
