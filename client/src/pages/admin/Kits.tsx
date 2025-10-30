@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Kit } from "@shared/schema";
 
@@ -119,6 +119,22 @@ export default function AdminKits() {
   const handleRemoveInclude = (index: number) => {
     const currentIncludes = form.getValues("includes");
     form.setValue("includes", currentIncludes.filter((_, i) => i !== index));
+  };
+
+  const handleMoveIncludeUp = (index: number) => {
+    if (index === 0) return;
+    const currentIncludes = form.getValues("includes");
+    const newIncludes = [...currentIncludes];
+    [newIncludes[index - 1], newIncludes[index]] = [newIncludes[index], newIncludes[index - 1]];
+    form.setValue("includes", newIncludes);
+  };
+
+  const handleMoveIncludeDown = (index: number) => {
+    const currentIncludes = form.getValues("includes");
+    if (index === currentIncludes.length - 1) return;
+    const newIncludes = [...currentIncludes];
+    [newIncludes[index], newIncludes[index + 1]] = [newIncludes[index + 1], newIncludes[index]];
+    form.setValue("includes", newIncludes);
   };
 
   const handleEditKit = (kit: Kit) => {
@@ -236,19 +252,45 @@ export default function AdminKits() {
                             Add
                           </Button>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="space-y-2">
                           {form.watch("includes").map((item, index) => (
-                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                              {item}
-                              <button
+                            <div key={index} className="flex items-center gap-2 bg-muted p-2 rounded-md">
+                              <div className="flex flex-col gap-0.5">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleMoveIncludeUp(index)}
+                                  disabled={index === 0}
+                                  data-testid={`button-move-include-up-${index}`}
+                                >
+                                  <ChevronUp className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleMoveIncludeDown(index)}
+                                  disabled={index === form.watch("includes").length - 1}
+                                  data-testid={`button-move-include-down-${index}`}
+                                >
+                                  <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <span className="flex-1 text-sm">{item}</span>
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
                                 onClick={() => handleRemoveInclude(index)}
-                                className="ml-1 hover:text-destructive"
                                 data-testid={`button-remove-include-${index}`}
                               >
-                                ×
-                              </button>
-                            </Badge>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -399,19 +441,45 @@ export default function AdminKits() {
                           Add
                         </Button>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="space-y-2">
                         {form.watch("includes").map((item, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                            {item}
-                            <button
+                          <div key={index} className="flex items-center gap-2 bg-muted p-2 rounded-md">
+                            <div className="flex flex-col gap-0.5">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5"
+                                onClick={() => handleMoveIncludeUp(index)}
+                                disabled={index === 0}
+                                data-testid={`button-edit-move-include-up-${index}`}
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5"
+                                onClick={() => handleMoveIncludeDown(index)}
+                                disabled={index === form.watch("includes").length - 1}
+                                data-testid={`button-edit-move-include-down-${index}`}
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <span className="flex-1 text-sm">{item}</span>
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
                               onClick={() => handleRemoveInclude(index)}
-                              className="ml-1 hover:text-destructive"
                               data-testid={`button-edit-remove-include-${index}`}
                             >
-                              ×
-                            </button>
-                          </Badge>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         ))}
                       </div>
                     </div>
