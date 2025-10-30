@@ -79,7 +79,7 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
     // Initialize form values from vehicle data
     if (vehicleData) {
       setTitle(vehicleData.title);
-      setSlug(vehicleData.title.toLowerCase().replace(/\s+/g, "-"));
+      setSlug(vehicleData.title.toLowerCase().replace(/[\/\s]+/g, "-"));
       setMileage(vehicleData.mileage?.toString() || "");
       setPrice(""); // User must enter price
     }
