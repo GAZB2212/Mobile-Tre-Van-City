@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Check } from "lucide-react";
+import { Search, Check, Upload, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface VehicleData {
@@ -190,7 +190,25 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
 
   // Step 3: Complete Vehicle Setup
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-lg">
+          <div className="flex flex-col items-center gap-4 p-8 bg-card rounded-lg border shadow-lg">
+            <div className="relative">
+              <Upload className="w-16 h-16 text-primary animate-pulse" />
+              <Loader2 className="w-8 h-8 text-primary animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="font-semibold text-lg">Uploading Van to Inventory</p>
+              <p className="text-sm text-muted-foreground">
+                Uploading {selectedFiles.length} {selectedFiles.length === 1 ? 'image' : 'images'} and saving details...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="border-b pb-4 mb-4">
         <h3 className="font-semibold text-lg">Complete Vehicle Setup</h3>
         <p className="text-sm text-muted-foreground">{vehicleData?.title}</p>
