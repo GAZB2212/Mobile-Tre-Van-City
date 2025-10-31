@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Star } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -374,12 +375,20 @@ export default function Configurator() {
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex justify-between items-start mb-1 gap-3">
-                                        <label 
-                                          htmlFor={upgrade.id}
-                                          className="font-medium cursor-pointer leading-tight"
-                                        >
-                                          {upgrade.name}
-                                        </label>
+                                        <div className="flex items-start gap-2 flex-wrap">
+                                          <label 
+                                            htmlFor={upgrade.id}
+                                            className="font-medium cursor-pointer leading-tight"
+                                          >
+                                            {upgrade.name}
+                                          </label>
+                                          {upgrade.popular && (
+                                            <div className="flex items-center gap-1">
+                                              <Star className="h-4 w-4 fill-green-500 text-green-500" />
+                                              <span className="text-xs font-medium text-green-600">Popular upgrade</span>
+                                            </div>
+                                          )}
+                                        </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                           {isSelected && (
                                             <div className="flex items-center gap-1">
@@ -436,6 +445,12 @@ export default function Configurator() {
                                           <Badge variant="outline" className="text-xs">
                                             {variants.length} options available
                                           </Badge>
+                                          {parent.popular && (
+                                            <div className="flex items-center gap-1">
+                                              <Star className="h-4 w-4 fill-green-500 text-green-500" />
+                                              <span className="text-xs font-medium text-green-600">Popular upgrade</span>
+                                            </div>
+                                          )}
                                         </div>
                                         <p className="text-sm text-muted-foreground mt-1">
                                           {parent.description}

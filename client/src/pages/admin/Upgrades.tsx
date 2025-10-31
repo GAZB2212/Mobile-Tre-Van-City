@@ -69,6 +69,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   variantName: z.string().optional().nullable(),
   hasVariants: z.boolean().optional(),
   allowQuantity: z.boolean().optional(),
+  popular: z.boolean().optional(),
 });
 
 type UpgradeFormData = z.infer<typeof upgradeFormSchema>;
@@ -262,6 +263,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       published: true,
       hasVariants: false,
       allowQuantity: false,
+      popular: false,
     },
   });
 
@@ -305,6 +307,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         published: upgrade.published,
         hasVariants: hasChildren,
         allowQuantity: upgrade.allowQuantity || false,
+        popular: upgrade.popular || false,
       });
     } else {
       setHasVariants(false);
@@ -321,6 +324,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         published: true,
         hasVariants: false,
         allowQuantity: false,
+        popular: false,
       });
     }
     // Only run when dialog opens/closes or upgrade ID changes, not on every allUpgrades change
@@ -916,6 +920,28 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-allow-quantity"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="popular"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Popular Upgrade</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Mark this upgrade as popular to show a green star indicator
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-popular-upgrade"
                     />
                   </FormControl>
                 </FormItem>

@@ -146,6 +146,7 @@ export class MemStorage implements IStorage {
         id: "van-001",
         slug: "ford-transit-custom-2022",
         title: "Mobile Tyre Van - Ready to Go",
+        description: "Professional mobile tyre fitting van with premium features",
         make: "Ford",
         model: "Transit Custom",
         year: 2022,
@@ -169,6 +170,7 @@ export class MemStorage implements IStorage {
         id: "van-002",
         slug: "mercedes-sprinter-2023",
         title: "Premium Mobile Workshop",
+        description: "Professional mobile tyre fitting van with premium features",
         make: "Mercedes",
         model: "Sprinter",
         year: 2023,
@@ -192,6 +194,7 @@ export class MemStorage implements IStorage {
         id: "van-003",
         slug: "volkswagen-crafter-2021",
         title: "Compact Tyre Service Van",
+        description: "Professional mobile tyre fitting van with premium features",
         make: "Volkswagen",
         model: "Crafter",
         year: 2021,
@@ -225,6 +228,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: false,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -238,6 +244,9 @@ export class MemStorage implements IStorage {
         parentId: "accessories-parent",
         variantName: "Pack 1 - Maxi Euro 8 with T5000 Pro & Mini Spin",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -251,6 +260,9 @@ export class MemStorage implements IStorage {
         parentId: "accessories-parent",
         variantName: "Pack 2 - Euro 8 with T5000 Pro & Mini Spin",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -264,6 +276,9 @@ export class MemStorage implements IStorage {
         parentId: "accessories-parent",
         variantName: "Pack 3 - Mini Euro 8 with T5000 Pro & Mini Spin",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -277,6 +292,9 @@ export class MemStorage implements IStorage {
         parentId: "accessories-parent",
         variantName: "Pack 4 - Maxi Euro 8 with T6000 Pro & Mini Spin",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -292,6 +310,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -305,6 +326,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -318,6 +342,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -331,6 +358,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -346,6 +376,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -361,6 +394,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -374,6 +410,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -387,6 +426,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -400,6 +442,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -413,6 +458,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -426,6 +474,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -439,6 +490,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -454,6 +508,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: false,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -467,6 +524,9 @@ export class MemStorage implements IStorage {
         parentId: "van-interior-walls-parent",
         variantName: "Diamond Liner - LWB Standard",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -480,6 +540,9 @@ export class MemStorage implements IStorage {
         parentId: "van-interior-walls-parent",
         variantName: "Diamond Liner - LWB Branded",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -495,6 +558,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -508,6 +574,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -521,6 +590,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -534,6 +606,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -547,6 +622,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -562,6 +640,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -577,6 +658,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: false,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -590,6 +674,9 @@ export class MemStorage implements IStorage {
         parentId: "light-pack-parent",
         variantName: "Standard Light Pack",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -603,6 +690,9 @@ export class MemStorage implements IStorage {
         parentId: "light-pack-parent",
         variantName: "Upgraded Light Pack - LED Scene Lights",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -618,6 +708,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -631,6 +724,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -644,6 +740,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -657,6 +756,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -672,6 +774,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: false,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -685,6 +790,9 @@ export class MemStorage implements IStorage {
         parentId: "carpeted-ceiling-parent",
         variantName: "LWB with LED cabin lights",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -698,6 +806,9 @@ export class MemStorage implements IStorage {
         parentId: "carpeted-ceiling-parent",
         variantName: "MWB with LED baton lights",
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -711,6 +822,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -724,6 +838,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -737,6 +854,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -752,6 +872,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -765,6 +888,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -778,6 +904,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -791,6 +920,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -804,6 +936,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -817,6 +952,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -830,6 +968,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -843,6 +984,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -858,6 +1002,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -871,6 +1018,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -884,6 +1034,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -899,6 +1052,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -912,6 +1068,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -925,6 +1084,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -938,6 +1100,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -951,6 +1116,9 @@ export class MemStorage implements IStorage {
         parentId: null,
         variantName: null,
         published: true,
+        sortOrder: 0,
+        allowQuantity: false,
+        popular: false,
         createdAt: new Date(),
         updatedAt: new Date()
       }
