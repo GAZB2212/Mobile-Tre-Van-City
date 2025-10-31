@@ -38,7 +38,7 @@ import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
@@ -379,9 +379,9 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         };
         const parentResult: any = await apiRequest("POST", "/api/admin/upgrades", parentData);
         
-        // Create each variant as a child
+        // Create each variant as a child with sortOrder based on position
         await Promise.all(
-          variants.map(variant =>
+          variants.map((variant, index) =>
             apiRequest("POST", "/api/admin/upgrades", {
               name: data.name,
               category: data.category,
@@ -391,6 +391,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               parentId: parentResult.id,
               variantName: variant.name,
               published: data.published,
+              sortOrder: index, // Add sortOrder based on position
             })
           )
         );
@@ -465,9 +466,9 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
           });
         }
         
-        // Update or create variants
+        // Update or create variants with sortOrder based on position
         await Promise.all(
-          variants.map(variant => {
+          variants.map((variant, index) => {
             const variantData = {
               name: data.name,
               category: data.category,
@@ -477,6 +478,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               parentId: upgrade!.id,
               variantName: variant.name,
               published: data.published,
+              sortOrder: index, // Add sortOrder based on position
             };
             
             if (variant.id) {
@@ -723,18 +725,57 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     <div key={index} className="space-y-3 p-4 rounded-lg border">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium">Variant {index + 1}</h4>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setVariants(variants.filter((_, i) => i !== index));
-                          }}
-                          data-testid={`button-remove-variant-${index}`}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {/* Reorder buttons */}
+                          <div className="flex flex-col">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                if (index > 0) {
+                                  const newVariants = [...variants];
+                                  [newVariants[index - 1], newVariants[index]] = [newVariants[index], newVariants[index - 1]];
+                                  setVariants(newVariants);
+                                }
+                              }}
+                              disabled={index === 0}
+                              data-testid={`button-variant-up-${index}`}
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                if (index < variants.length - 1) {
+                                  const newVariants = [...variants];
+                                  [newVariants[index], newVariants[index + 1]] = [newVariants[index + 1], newVariants[index]];
+                                  setVariants(newVariants);
+                                }
+                              }}
+                              disabled={index === variants.length - 1}
+                              data-testid={`button-variant-down-${index}`}
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setVariants(variants.filter((_, i) => i !== index));
+                            }}
+                            data-testid={`button-remove-variant-${index}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-2">

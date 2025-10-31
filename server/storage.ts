@@ -1528,9 +1528,10 @@ export class DbStorage implements IStorage {
     if (category) {
       return await db.select().from(schema.upgrades).where(
         and(eq(schema.upgrades.published, true), eq(schema.upgrades.category, category))
-      );
+      ).orderBy(schema.upgrades.sortOrder, schema.upgrades.name);
     }
-    return await db.select().from(schema.upgrades).where(eq(schema.upgrades.published, true));
+    return await db.select().from(schema.upgrades).where(eq(schema.upgrades.published, true))
+      .orderBy(schema.upgrades.sortOrder, schema.upgrades.name);
   }
 
   async getUpgrade(id: string): Promise<Upgrade | undefined> {

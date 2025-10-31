@@ -44,9 +44,13 @@ Preferred communication style: Simple, everyday language.
 - **Pricing Engine**: Dynamic calculation system with VAT handling and currency formatting
 - **Lead Generation**: Form capture with email notifications and quote generation
 - **Content Management**: Admin interface for managing inventory, finance plans, and leads
-- **Equipment Ordering**: Drag-free reordering system using up/down arrows to control equipment display order within categories
+- **Equipment Ordering**: Comprehensive reordering system using up/down arrows to control equipment display order
   - Each upgrade has a `sortOrder` field (integer, default 0) for position control
   - Admin can reorder items within their category using arrow buttons
+  - Variant Reordering: Variants within parent upgrades can be reordered using up/down arrows
+    - Variant order is preserved via sortOrder field when saving
+    - Configurator dropdown displays variants in admin-defined order
+    - Visual indicators show number of options available (e.g., "3 options available")
   - Sort order is preserved across both standalone items and grouped items with variants
   - Configurator displays equipment in admin-defined order via `/api/admin/upgrades/:id/sort-order` endpoint
 
