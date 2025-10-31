@@ -350,6 +350,10 @@ export default function Configurator() {
                             <div className="grid gap-3">
                               {/* Render standalone upgrades with checkbox */}
                               {standalone.map((upgrade) => {
+                                // Debug log to check popular field
+                                if (upgrade.id === 'compressor-12hp-270l') {
+                                  console.log('Compressor upgrade data:', upgrade);
+                                }
                                 const isSelected = selectedUpgrades.includes(upgrade.id);
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
