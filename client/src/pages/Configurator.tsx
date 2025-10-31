@@ -431,7 +431,12 @@ export default function Configurator() {
                                         />
                                       )}
                                       <div className="flex-1">
-                                        <h4 className="font-medium leading-tight">{parent.name}</h4>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h4 className="font-medium leading-tight">{parent.name}</h4>
+                                          <Badge variant="outline" className="text-xs">
+                                            {variants.length} options available
+                                          </Badge>
+                                        </div>
                                         <p className="text-sm text-muted-foreground mt-1">
                                           {parent.description}
                                         </p>
@@ -467,7 +472,7 @@ export default function Configurator() {
                                           className="flex-1"
                                           data-testid={`select-variant-${parent.id}`}
                                         >
-                                          <SelectValue placeholder="Select option..." />
+                                          <SelectValue placeholder="Choose your option..." />
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="">None</SelectItem>
