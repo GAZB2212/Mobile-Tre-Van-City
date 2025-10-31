@@ -30,13 +30,13 @@ export function UpgradeImageUploader({
       // Request presigned URL
       const presignedResponse = await apiRequest(
         "POST",
-        "/api/admin/objects/presigned-url",
+        "/api/objects/upload",
         {
           filename: file.name,
           contentType: file.type,
         }
       );
-      const { uploadURL, objectPath } = await presignedResponse.json();
+      const { uploadURL, objectPath } = presignedResponse;
 
       // Upload to object storage
       const uploadResponse = await fetch(uploadURL, {
@@ -50,12 +50,6 @@ export function UpgradeImageUploader({
       if (!uploadResponse.ok) {
         throw new Error("Failed to upload file");
       }
-
-      // Set ACL to public
-      await apiRequest("POST", "/api/admin/objects/set-acl", {
-        objectPath,
-        acl: "public",
-      });
 
       return objectPath;
     },
