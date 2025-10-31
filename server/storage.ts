@@ -328,7 +328,7 @@ export class MemStorage implements IStorage {
         published: true,
         sortOrder: 0,
         allowQuantity: false,
-        popular: false,
+        popular: true,
         createdAt: new Date(),
         updatedAt: new Date()
       },
