@@ -353,7 +353,9 @@ export default function Configurator() {
                                 const isSelected = selectedUpgrades.includes(upgrade.id);
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
-                                const isPopular = upgrade.popular === true;
+                                // Always show popular for compressor to test
+                                const isPopular = upgrade.id === 'compressor-12hp-270l' ? true : upgrade.popular === true;
+                                console.log('Upgrade:', upgrade.id, 'Popular?', upgrade.popular, 'isPopular?', isPopular);
                                 
                                 return (
                                   <div 
