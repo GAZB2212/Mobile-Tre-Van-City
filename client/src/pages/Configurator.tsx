@@ -365,23 +365,8 @@ export default function Configurator() {
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
                                 
-                                // Comprehensive debugging for compressor
-                                if (upgrade.id === 'compressor-12hp-270l') {
-                                  console.log('=== COMPRESSOR UPGRADE DEBUG ===');
-                                  console.log('Upgrade ID:', upgrade.id);
-                                  console.log('Upgrade object:', upgrade);
-                                  console.log('upgrade.popular value:', upgrade.popular);
-                                  console.log('upgrade.popular type:', typeof upgrade.popular);
-                                  console.log('upgrade.popular === true?', upgrade.popular === true);
-                                  console.log('Is compressor?', upgrade.id === 'compressor-12hp-270l');
-                                }
-                                
-                                // Always show popular for compressor to test
-                                const isPopular = upgrade.id === 'compressor-12hp-270l' ? true : upgrade.popular === true;
-                                
-                                if (upgrade.id === 'compressor-12hp-270l') {
-                                  console.log('Final isPopular:', isPopular);
-                                }
+                                // Check if this upgrade is popular
+                                const isPopular = upgrade.popular === true;
                                 
                                 return (
                                   <div 
@@ -413,9 +398,9 @@ export default function Configurator() {
                                               {upgrade.name}
                                             </label>
                                             {isPopular && (
-                                              <div className="flex items-center gap-1 flex-shrink-0 bg-red-500 p-1">
+                                              <div className="flex items-center gap-1 flex-shrink-0">
                                                 <Star className="h-4 w-4 fill-green-500 text-green-500" />
-                                                <span className="text-xs font-medium text-white">Popular upgrade TEST</span>
+                                                <span className="text-xs font-medium text-green-600">Popular upgrade</span>
                                               </div>
                                             )}
                                           </div>
