@@ -350,16 +350,10 @@ export default function Configurator() {
                             <div className="grid gap-3">
                               {/* Render standalone upgrades with checkbox */}
                               {standalone.map((upgrade) => {
-                                // Debug log to check popular field
-                                if (upgrade.id === 'compressor-12hp-270l') {
-                                  console.log('Compressor upgrade data:', upgrade);
-                                  console.log('Popular field value:', upgrade.popular);
-                                  console.log('Type of popular field:', typeof upgrade.popular);
-                                  console.log('Should show star?', !!upgrade.popular);
-                                }
                                 const isSelected = selectedUpgrades.includes(upgrade.id);
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
+                                const isPopular = upgrade.popular === true;
                                 
                                 return (
                                   <div 
@@ -382,19 +376,21 @@ export default function Configurator() {
                                     )}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex justify-between items-start mb-1 gap-3">
-                                        <div className="flex items-start gap-2 flex-wrap">
-                                          <label 
-                                            htmlFor={upgrade.id}
-                                            className="font-medium cursor-pointer leading-tight"
-                                          >
-                                            {upgrade.name}
-                                          </label>
-                                          {upgrade.popular === true && (
-                                            <div className="flex items-center gap-1">
-                                              <Star className="h-4 w-4 fill-green-500 text-green-500" />
-                                              <span className="text-xs font-medium text-green-600">Popular upgrade</span>
-                                            </div>
-                                          )}
+                                        <div className="flex-1">
+                                          <div className="flex items-start gap-2 flex-wrap">
+                                            <label 
+                                              htmlFor={upgrade.id}
+                                              className="font-medium cursor-pointer leading-tight"
+                                            >
+                                              {upgrade.name}
+                                            </label>
+                                            {isPopular && (
+                                              <div className="flex items-center gap-1 flex-shrink-0">
+                                                <Star className="h-4 w-4 fill-green-500 text-green-500" />
+                                                <span className="text-xs font-medium text-green-600">Popular upgrade</span>
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                           {isSelected && (
