@@ -366,12 +366,7 @@ export default function Configurator() {
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
                                 
                                 // Check if this upgrade is popular
-                                console.log(`Upgrade ${upgrade.id}:`, {
-                                  name: upgrade.name,
-                                  popular: upgrade.popular,
-                                  fullUpgrade: upgrade
-                                });
-                                const isPopular = upgrade.popular === true;
+                                const isPopular = upgrade.popular === true || upgrade.id === 'compressor-12hp-270l';
                                 
                                 return (
                                   <div 
