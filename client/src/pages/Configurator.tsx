@@ -366,6 +366,11 @@ export default function Configurator() {
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
                                 
                                 // Check if this upgrade is popular
+                                console.log(`Upgrade ${upgrade.id}:`, {
+                                  name: upgrade.name,
+                                  popular: upgrade.popular,
+                                  fullUpgrade: upgrade
+                                });
                                 const isPopular = upgrade.popular === true;
                                 
                                 return (
