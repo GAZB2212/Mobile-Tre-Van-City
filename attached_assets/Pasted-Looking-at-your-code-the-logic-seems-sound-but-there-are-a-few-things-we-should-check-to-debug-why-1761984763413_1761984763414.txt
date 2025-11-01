@@ -1,0 +1,53 @@
+Looking at your code, the logic seems sound, but there are a few things we should check to debug why the popular indicator isn't showing up:
+Debugging Steps:
+1. Check the actual API response
+Let's verify what data is actually being sent from the backend:
+typescript// Add this in Configurator.tsx, right after you fetch the data
+console.log('Full API Response:', data);
+console.log('All upgrades:', data.upgrades);
+console.log('Compressor upgrade full object:', 
+  Object.values(data.upgrades).flat().find(u => u.id === 'compressor-12hp-270l')
+);
+2. Check TypeScript type definitions
+Make sure the Upgrade type includes the popular field. Can you show me the type definition? It should be something like:
+typescriptinterface Upgrade {
+  id: string;
+  name: string;
+  popular: boolean;
+  // ... other fields
+}
+3. Check the rendering context
+Where exactly are lines 389-394 in your component? Are they:
+
+Inside a map function?
+Inside any conditional rendering?
+Hidden by CSS (like display: none or opacity: 0)?
+
+4. Simplify the debug check
+Replace your current check with this to see all the details:
+typescript// Around line 357
+console.log('=== UPGRADE DEBUG ===');
+console.log('Upgrade ID:', upgrade.id);
+console.log('Upgrade object:', upgrade);
+console.log('upgrade.popular value:', upgrade.popular);
+console.log('upgrade.popular type:', typeof upgrade.popular);
+console.log('upgrade.popular === true?', upgrade.popular === true);
+console.log('Is compressor?', upgrade.id === 'compressor-12hp-270l');
+
+const isPopular = upgrade.id === 'compressor-12hp-270l' ? true : upgrade.popular === true;
+console.log('Final isPopular:', isPopular);
+5. Check if the element is actually rendering
+Add a visible marker to verify the element renders at all:
+typescript{isPopular && (
+  <div className="flex items-center gap-1 flex-shrink-0 bg-red-500"> {/* Added bg-red to make it obvious */}
+    <Star className="h-4 w-4 fill-green-500 text-green-500" />
+    <span className="text-xs font-medium text-green-600">Popular upgrade TEST</span>
+  </div>
+)}
+Can you run these checks and share:
+
+What the console logs show?
+A screenshot showing where in the UI this star should appear?
+The TypeScript type definition for Upgrade?
+
+This will help us pinpoint whether it's a data issue, type issue, or rendering issue.
