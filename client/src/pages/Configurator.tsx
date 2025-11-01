@@ -353,6 +353,9 @@ export default function Configurator() {
                                 // Debug log to check popular field
                                 if (upgrade.id === 'compressor-12hp-270l') {
                                   console.log('Compressor upgrade data:', upgrade);
+                                  console.log('Popular field value:', upgrade.popular);
+                                  console.log('Type of popular field:', typeof upgrade.popular);
+                                  console.log('Should show star?', !!upgrade.popular);
                                 }
                                 const isSelected = selectedUpgrades.includes(upgrade.id);
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
@@ -386,7 +389,7 @@ export default function Configurator() {
                                           >
                                             {upgrade.name}
                                           </label>
-                                          {upgrade.popular && (
+                                          {upgrade.popular === true && (
                                             <div className="flex items-center gap-1">
                                               <Star className="h-4 w-4 fill-green-500 text-green-500" />
                                               <span className="text-xs font-medium text-green-600">Popular upgrade</span>
