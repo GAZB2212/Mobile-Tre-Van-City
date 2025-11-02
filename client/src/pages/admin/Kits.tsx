@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
 
 // Form validation schema
@@ -24,6 +25,7 @@ const kitSchema = z.object({
   includes: z.array(z.string()).min(1, "At least one included item is required"),
   powerKw: z.string().min(1, "Power (kW) is required"),
   price: z.number().min(0, "Price must be positive"),
+  images: z.array(z.string()).default([]),
   published: z.boolean().default(true),
 });
 
@@ -50,6 +52,7 @@ export default function AdminKits() {
       includes: [],
       powerKw: "",
       price: 0,
+      images: [],
       published: true,
     },
   });
@@ -201,6 +204,7 @@ export default function AdminKits() {
       includes: kit.includes || [],
       powerKw: kit.powerKw,
       price: parseInt(kit.price.toString()) / 100, // Convert from pence
+      images: kit.images || [],
       published: kit.published,
     });
   };
@@ -446,6 +450,27 @@ export default function AdminKits() {
 
                 <FormField
                   control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Images</FormLabel>
+                      <FormControl>
+                        <UpgradeImageUploader
+                          images={(field.value as string[]) || []}
+                          onChange={(images: string[]) => field.onChange(images)}
+                          data-testid="uploader-kit-images"
+                        />
+                      </FormControl>
+                      <div className="text-sm text-muted-foreground">
+                        Upload product images to showcase the kit equipment
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="published"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-lg border p-4">
@@ -684,6 +709,27 @@ export default function AdminKits() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Images</FormLabel>
+                    <FormControl>
+                      <UpgradeImageUploader
+                        images={(field.value as string[]) || []}
+                        onChange={(images: string[]) => field.onChange(images)}
+                        data-testid="uploader-edit-kit-images"
+                      />
+                    </FormControl>
+                    <div className="text-sm text-muted-foreground">
+                      Upload product images to showcase the kit equipment
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

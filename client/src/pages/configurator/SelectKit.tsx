@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle } from "lucide-react";
 import type { Kit } from "@shared/schema";
 
@@ -166,6 +167,39 @@ export default function SelectKit() {
               </DialogHeader>
 
               <div className="space-y-6">
+                {/* Image Carousel */}
+                {modalKit.images && modalKit.images.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Images ({modalKit.images.length})</h3>
+                    <Carousel className="w-full" data-testid={`modal-carousel-${modalKit.id}`}>
+                      <CarouselContent>
+                        {modalKit.images.map((img, idx) => (
+                          <CarouselItem key={idx}>
+                            <div className="relative aspect-video overflow-hidden rounded-md border bg-muted">
+                              <img 
+                                src={img} 
+                                alt={`${modalKit.name} - Image ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                                data-testid={`modal-carousel-img-${modalKit.id}-${idx}`}
+                                onError={(e) => {
+                                  console.error(`Failed to load image: ${img}`);
+                                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage unavailable%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      {modalKit.images.length > 1 && (
+                        <>
+                          <CarouselPrevious className="left-2" data-testid={`modal-carousel-prev-${modalKit.id}`} />
+                          <CarouselNext className="right-2" data-testid={`modal-carousel-next-${modalKit.id}`} />
+                        </>
+                      )}
+                    </Carousel>
+                  </div>
+                )}
+
                 {/* Description */}
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">Description</h3>

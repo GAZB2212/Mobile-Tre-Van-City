@@ -60,6 +60,7 @@ export const kits = pgTable("kits", {
   includes: json("includes").$type<string[]>().notNull().default([]),
   powerKw: decimal("power_kw").notNull(),
   price: integer("price").notNull(), // in pence
+  images: json("images").$type<string[]>().notNull().default([]),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
