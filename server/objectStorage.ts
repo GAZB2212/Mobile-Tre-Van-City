@@ -218,11 +218,8 @@ export class ObjectStorageService {
       ttlSec: 900,
     });
     
-    // Return the object path that will be served through backend proxy
-    // Format: /objects/product-images/filename
-    const pathParts = objectName.split('/');
-    const uploadedFilename = pathParts[pathParts.length - 1];
-    const publicURL = `/objects/product-images/${uploadedFilename}`;
+    // Return the full public GCS URL that works in production
+    const publicURL = `https://storage.googleapis.com/${bucketName}/${objectName}`;
     
     return { uploadURL, publicURL };
   }
