@@ -8,13 +8,58 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowRight, ArrowLeft, GraduationCap, Clock, CheckCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, GraduationCap, Clock, CheckCircle, Info, Shield, BookOpen, Users, Calendar, MapPin, PoundSterling as PoundIcon } from "lucide-react";
 import { PoundSterling } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 import type { TrainingOption } from "@shared/schema";
+
+// Detailed training content
+const trainingDetails: Record<string, {
+  overview: string;
+  whyEssential: string[];
+  courseIncludes: string[];
+  whoItsFor: string[];
+  durationInfo: string;
+  locationInfo: string;
+}> = {
+  REACT: {
+    overview: "Every mobile tyre technician working on live carriageways or motorways must hold a valid REACT Licence (Roadside Emergency Action Concerning Technicians). This nationally recognised qualification is endorsed by the National Tyre Distributors Association (NTDA) and forms part of the official Tyre Technician Professional Development Scheme (TTPDS).",
+    whyEssential: [
+      "Work safely at the roadside and on live carriageways",
+      "Correctly position your van, cones, and signage",
+      "Use PPE and equipment in compliance with Highways England guidance",
+      "Manage incidents, emergency stops, and recovery situations",
+      "Protect yourself, your customers, and passing traffic",
+    ],
+    courseIncludes: [
+      "Health & Safety Legislation – understanding roadside risk and legal responsibilities",
+      "Vehicle Preparation & Equipment Checks",
+      "Site Assessment & Positioning – safe van placement, coning and signage",
+      "Working Safely on Motorways & Dual Carriageways",
+      "Emergency Procedures – dealing with breakdowns, accidents, and hazards",
+      "Incident Reporting & Post-Job Safety Checks",
+    ],
+    whoItsFor: [
+      "New mobile tyre business owners",
+      "Commercial and fleet technicians",
+      "Franchisees purchasing a mobile tyre van",
+      "Any technician attending breakdowns on motorways, dual carriageways, or trunk roads",
+    ],
+    durationInfo: "1 day (typically 6 hours)",
+    locationInfo: "In-person classroom + safety briefing practical at Wirral / Chester training centre (on-site options available)",
+  },
+};
 
 export default function SelectTraining() {
   const [, setLocation] = useLocation();
   const { state, addTrainingOption, removeTrainingOption } = useConfigurator();
+  const [selectedTrainingInfo, setSelectedTrainingInfo] = useState<TrainingOption | null>(null);
 
   const { data: configuratorData, isLoading } = useQuery<{
     trainingOptions: TrainingOption[];
@@ -85,8 +130,7 @@ export default function SelectTraining() {
                       {trainingOptions.map((option) => (
                         <Card 
                           key={option.id} 
-                          className={`hover-elevate cursor-pointer ${isSelected(option.id) ? 'ring-2 ring-accent' : ''}`}
-                          onClick={() => handleToggleTraining(option.id)}
+                          className={`hover-elevate ${isSelected(option.id) ? 'ring-2 ring-accent' : ''}`}
                           data-testid={`card-training-option-${option.id}`}
                         >
                           <CardHeader>
@@ -130,6 +174,32 @@ export default function SelectTraining() {
                                 </span>
                               </div>
                             </div>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTrainingInfo(option);
+                                }}
+                                className="flex-1"
+                                data-testid={`button-more-info-${option.id}`}
+                              >
+                                <Info className="w-4 h-4 mr-2" />
+                                More Info
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleTraining(option.id);
+                                }}
+                                className={`flex-1 ${isSelected(option.id) ? 'bg-accent text-accent-foreground border-accent' : 'bg-transparent text-accent border-2 border-accent hover:bg-accent hover:text-accent-foreground'}`}
+                                data-testid={`button-toggle-training-${option.id}`}
+                              >
+                                {isSelected(option.id) ? 'Selected' : 'Select'}
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -168,6 +238,155 @@ export default function SelectTraining() {
       </main>
 
       <Footer />
+
+      {/* Training Details Dialog */}
+      <Dialog open={!!selectedTrainingInfo} onOpenChange={() => setSelectedTrainingInfo(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl sm:text-3xl flex items-center gap-3">
+              <Shield className="w-8 h-8 text-accent" />
+              {selectedTrainingInfo?.name}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedTrainingInfo && trainingDetails[selectedTrainingInfo.type] && (
+            <div className="space-y-6 mt-4">
+              {/* Overview */}
+              <div>
+                <p className="text-muted-foreground leading-relaxed">
+                  {trainingDetails[selectedTrainingInfo.type].overview}
+                </p>
+              </div>
+
+              {/* Why It's Essential */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-accent" />
+                  Why It's Essential
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Working on motorways, dual carriageways, and trunk roads is one of the most hazardous environments for any technician. The REACT licence ensures you have the skills, awareness, and procedures to:
+                </p>
+                <ul className="space-y-2 ml-4">
+                  {trainingDetails[selectedTrainingInfo.type].whyEssential.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-muted-foreground mt-3">
+                  Holding a REACT licence not only protects your life — it also demonstrates professional credibility to fleet operators, insurers, and customers.
+                </p>
+              </div>
+
+              {/* What the Course Includes */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-accent" />
+                  What the Course Includes
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Our 1-day, classroom-based course combines theory and practical learning covering:
+                </p>
+                <ul className="space-y-2 ml-4">
+                  {trainingDetails[selectedTrainingInfo.type].courseIncludes.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-muted-foreground mt-3">
+                  On completion, you'll receive your official NTDA REACT Licence, certifying you to operate at the roadside anywhere in the UK.
+                </p>
+              </div>
+
+              {/* Who It's For */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-accent" />
+                  Who It's For
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">This course is ideal for:</p>
+                <ul className="space-y-2 ml-4">
+                  {trainingDetails[selectedTrainingInfo.type].whoItsFor.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Duration & Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-accent" />
+                      Duration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{trainingDetails[selectedTrainingInfo.type].durationInfo}</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-accent" />
+                      Location
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{trainingDetails[selectedTrainingInfo.type].locationInfo}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Price & Certification */}
+              <Card className="bg-accent/10 border-accent">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <PoundIcon className="w-6 h-6 text-accent" />
+                    Course Price
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-accent mb-2">{formatPrice(selectedTrainingInfo.price)}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Includes certification, course materials, and registration with NTDA
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Action Button */}
+              <div className="flex gap-3">
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    handleToggleTraining(selectedTrainingInfo.id);
+                    setSelectedTrainingInfo(null);
+                  }}
+                  className={`flex-1 ${isSelected(selectedTrainingInfo.id) ? 'bg-accent text-accent-foreground border-accent' : 'bg-transparent text-accent border-2 border-accent hover:bg-accent hover:text-accent-foreground'}`}
+                  data-testid="button-select-from-dialog"
+                >
+                  {isSelected(selectedTrainingInfo.id) ? (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Selected
+                    </>
+                  ) : (
+                    'Select This Training'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
