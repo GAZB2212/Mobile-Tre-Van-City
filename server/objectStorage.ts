@@ -278,8 +278,8 @@ export class ObjectStorageService {
 
     const entityId = parts.slice(1).join("/");
     
-    // Check if this is a public image (van-images directory)
-    if (entityId.startsWith("van-images/")) {
+    // Check if this is a public image (van-images or product-images directory)
+    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/")) {
       const publicPaths = this.getPublicObjectSearchPaths();
       if (publicPaths && publicPaths.length > 0) {
         const publicPath = publicPaths[0];
