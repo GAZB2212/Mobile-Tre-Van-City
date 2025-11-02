@@ -11,6 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { getImageUrl } from "@/lib/utils";
 
 interface ImageGalleryProps {
   images: string[];
@@ -34,7 +35,7 @@ export function ImageGallery({ images, title, open, onOpenChange }: ImageGallery
                 <CarouselItem key={index}>
                   <div className="flex items-center justify-center bg-muted rounded-lg overflow-hidden aspect-video">
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`${title} - Image ${index + 1}`}
                       className="w-full h-full object-contain"
                       data-testid={`img-gallery-${index}`}
@@ -76,7 +77,7 @@ export function ImageThumbnail({ images, alt, onOpenGallery, testId }: ImageThum
       data-testid={testId}
     >
       <img
-        src={images[0]}
+        src={getImageUrl(images[0])}
         alt={alt}
         className="w-full h-full object-cover"
         data-testid={`${testId}-img`}

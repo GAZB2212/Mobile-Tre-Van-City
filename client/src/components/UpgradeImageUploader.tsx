@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, ImageIcon } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 
 interface UpgradeImageUploaderProps {
   images: string[];
@@ -195,7 +196,7 @@ export function UpgradeImageUploader({
             <Card key={index} className="relative group overflow-hidden">
               <div className="aspect-square relative">
                 <img
-                  src={imagePath}
+                  src={getImageUrl(imagePath)}
                   alt={`Upgrade image ${index + 1}`}
                   className="w-full h-full object-cover"
                   data-testid={`img-upgrade-preview-${index}`}
