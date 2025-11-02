@@ -54,6 +54,7 @@ export function UpgradeImageUploader({
       return objectPath;
     },
     onSuccess: (objectPath) => {
+      console.log('✅ Image uploaded successfully, path:', objectPath);
       onChange([...images, objectPath]);
       toast({
         title: "Success",
@@ -198,6 +199,13 @@ export function UpgradeImageUploader({
                   alt={`Upgrade image ${index + 1}`}
                   className="w-full h-full object-cover"
                   data-testid={`img-upgrade-preview-${index}`}
+                  onError={(e) => {
+                    console.error(`Failed to load preview image: ${imagePath}`);
+                    console.error(`Image element:`, e.currentTarget);
+                  }}
+                  onLoad={() => {
+                    console.log(`Successfully loaded preview image: ${imagePath}`);
+                  }}
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Button
