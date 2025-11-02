@@ -164,7 +164,7 @@ export class ObjectStorageService {
     return { uploadURL, objectPath };
   }
 
-  // Gets the upload URL for a PUBLIC object (no ACL needed)
+  // Gets the upload URL for a PUBLIC object (no ACL needed) - van images
   async getPublicObjectUploadURL(filename: string): Promise<{ uploadURL: string; publicURL: string }> {
     const publicPaths = this.getPublicObjectSearchPaths();
     if (!publicPaths || publicPaths.length === 0) {
@@ -190,6 +190,39 @@ export class ObjectStorageService {
     
     // Return the upload URL and the public URL that can be used directly
     const publicURL = `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    
+    return { uploadURL, publicURL };
+  }
+
+  // Gets the upload URL for PUBLIC product images (kits, upgrades - no ACL needed)
+  async getPublicProductUploadURL(filename: string): Promise<{ uploadURL: string; publicURL: string }> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+
+    // Use the first public path
+    const publicPath = publicPaths[0];
+    
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/product-images/${objectId}-${safeFilename}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Sign URL for PUT method with TTL
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    
+    // Return the object path that will be served through backend proxy
+    // Format: /objects/product-images/filename
+    const pathParts = objectName.split('/');
+    const uploadedFilename = pathParts[pathParts.length - 1];
+    const publicURL = `/objects/product-images/${uploadedFilename}`;
     
     return { uploadURL, publicURL };
   }

@@ -1323,9 +1323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       console.log('✅ File found');
       
-      // Check if this is a public van image (skip ACL for public images)
-      if (req.path.includes('/van-images/')) {
-        console.log('✅ Public van image - serving without ACL check');
+      // Check if this is a public image (van, product, kit, upgrade images - skip ACL)
+      if (req.path.includes('/van-images/') || req.path.includes('/product-images/')) {
+        console.log('✅ Public image - serving without ACL check');
         objectStorageService.downloadObject(objectFile, res);
         return;
       }
@@ -1356,15 +1356,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // The endpoint for getting the upload URL for an object entity
+  // The endpoint for getting the upload URL for public product images (kits, upgrades)
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
       const { filename, contentType } = req.body;
       
       // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
       if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
-        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, SVG)" });
+        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, SVG, GIF, WEBP)" });
       }
       
       // Validate filename
@@ -1374,8 +1374,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { ObjectStorageService } = await import("./objectStorage");
       const objectStorageService = new ObjectStorageService();
-      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(filename);
-      res.json({ uploadURL, objectPath });
+      const { uploadURL, publicURL } = await objectStorageService.getPublicProductUploadURL(filename);
+      // Return publicURL as objectPath for backwards compatibility with uploader
+      res.json({ uploadURL, objectPath: publicURL });
     } catch (error) {
       console.error("Error generating upload URL:", error);
       res.status(500).json({ error: "Failed to generate upload URL" });

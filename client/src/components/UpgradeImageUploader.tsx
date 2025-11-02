@@ -35,7 +35,7 @@ export function UpgradeImageUploader({
           filename: file.name,
           contentType: file.type,
         }
-      );
+      ) as { uploadURL: string; objectPath: string };
       const { uploadURL, objectPath } = presignedResponse;
 
       // Upload to object storage
