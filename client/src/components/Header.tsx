@@ -85,7 +85,7 @@ export default function Header() {
             <img 
               src={logoImage} 
               alt="Mobile Tyre Van City" 
-              className="h-10 sm:h-12 md:h-16 lg:h-24 xl:h-32 w-auto"
+              className="h-20 sm:h-24 md:h-16 lg:h-24 xl:h-32 w-auto"
             />
           </Link>
 

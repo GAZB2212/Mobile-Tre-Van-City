@@ -2,7 +2,7 @@ import ukFlagImage from "@assets/UNION-FLAG-MAIN-scaled_90a802df-2c99-4be4-b22f-
 
 export default function UKManufacturing() {
   return (
-    <section className="relative py-40 overflow-hidden">
+    <section className="relative py-16 sm:py-24 md:py-32 lg:py-40 overflow-hidden">
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${ukFlagImage})` }}
@@ -11,7 +11,7 @@ export default function UKManufacturing() {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center">
-          <h2 className="text-4xl md:text-6xl font-bold text-white drop-shadow-lg" data-testid="text-uk-manufacturing">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white drop-shadow-lg" data-testid="text-uk-manufacturing">
             Manufactured in the UK!
           </h2>
         </div>

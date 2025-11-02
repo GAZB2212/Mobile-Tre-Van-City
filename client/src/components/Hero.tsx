@@ -10,10 +10,10 @@ export default function Hero() {
         loop 
         muted 
         playsInline
+        preload="auto"
         className="absolute inset-0 w-full h-full object-cover opacity-100"
       >
         <source src={heroVideo} type="video/mp4" />
-        Your browser does not support the video tag.
       </video>
       
       {/* Dark overlay for text readability - always visible */}
