@@ -302,10 +302,10 @@ export default function SelectUpgrades() {
                                               {upgrade.name}
                                             </label>
                                             {upgrade.popular && (
-                                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 flex items-center gap-1">
+                                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
                                                 <Star className="w-3 h-3 fill-current" />
                                                 Popular Upgrade
-                                              </Badge>
+                                              </span>
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2 flex-shrink-0">
@@ -400,10 +400,10 @@ export default function SelectUpgrades() {
                                               {parent.name}
                                             </label>
                                             {parent.popular && (
-                                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 flex items-center gap-1">
+                                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
                                                 <Star className="w-3 h-3 fill-current" />
                                                 Popular Upgrade
-                                              </Badge>
+                                              </span>
                                             )}
                                           </div>
                                           {selectedVariant ? (
