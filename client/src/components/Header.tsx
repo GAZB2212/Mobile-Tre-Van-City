@@ -80,17 +80,17 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between py-3 md:py-4">
-          <Link href="/" className="flex items-center" data-testid="link-home">
+        <div className="flex items-center justify-between py-3 md:py-4 gap-3 md:gap-4">
+          <Link href="/" className="flex items-center flex-shrink-0" data-testid="link-home">
             <img 
               src={logoImage} 
               alt="Mobile Tyre Van City" 
-              className="h-12 sm:h-16 md:h-24 lg:h-36 w-auto"
+              className="h-10 sm:h-12 md:h-16 lg:h-24 xl:h-32 w-auto"
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+          <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -103,11 +103,11 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
             <Button 
               variant="default"
               size="lg"
-              className="hidden lg:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold whitespace-nowrap"
+              className="hidden lg:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold whitespace-nowrap text-sm xl:text-base px-4 xl:px-6"
               data-testid="button-configure"
               asChild
             >
