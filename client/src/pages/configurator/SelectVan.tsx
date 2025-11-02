@@ -161,7 +161,7 @@ export default function SelectVan() {
                             ) : null}
                             
                             <Button 
-                              className="w-full mt-4" 
+                              className={`w-full mt-4 ${state.vanId === van.id ? 'bg-accent text-accent-foreground' : ''}`}
                               variant={state.vanId === van.id ? "default" : "outline"}
                               data-testid={`button-select-van-${van.id}`}
                             >

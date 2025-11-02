@@ -147,7 +147,7 @@ export default function SelectTraining() {
                     <Button 
                       onClick={handleContinue}
                       size="lg"
-                      className="flex-1"
+                      className="flex-1 bg-accent text-accent-foreground"
                       data-testid="button-continue"
                     >
                       Continue to Finance

@@ -321,7 +321,7 @@ export default function RequestQuote() {
                       <Button 
                         type="submit" 
                         size="lg" 
-                        className="w-full"
+                        className="w-full bg-accent text-accent-foreground"
                         disabled={submitQuoteMutation.isPending || isLoadingData}
                         data-testid="button-submit-quote"
                       >
