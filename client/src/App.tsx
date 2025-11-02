@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfiguratorProvider } from "@/lib/ConfiguratorContext";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useEffect } from "react";
+import { initializeBucketName } from "@/lib/utils";
 import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
@@ -87,6 +89,11 @@ function Router() {
 }
 
 function App() {
+  // Initialize bucket name for image URLs on app startup
+  useEffect(() => {
+    initializeBucketName();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ConfiguratorProvider>

@@ -20,6 +20,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
 
+  // Storage configuration endpoint - returns bucket name for frontend image URLs
+  app.get("/api/storage/config", async (req, res) => {
+    try {
+      // Extract bucket name from environment variables
+      const privateDir = process.env.PRIVATE_OBJECT_DIR || '';
+      const publicPaths = process.env.PUBLIC_OBJECT_SEARCH_PATHS || '';
+      
+      // Parse bucket name from either variable (format: /bucket-name/path)
+      let bucketName = '';
+      if (privateDir) {
+        const match = privateDir.match(/^\/([^\/]+)\//);
+        bucketName = match ? match[1] : '';
+      } else if (publicPaths) {
+        const match = publicPaths.match(/^\/([^\/]+)\//);
+        bucketName = match ? match[1] : '';
+      }
+      
+      res.json({ bucketName });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch storage config" });
+    }
+  });
+
   // Public vans endpoints
   app.get("/api/vans", async (req, res) => {
     try {
