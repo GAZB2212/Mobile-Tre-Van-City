@@ -274,7 +274,7 @@ export default function SelectUpgrades() {
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
                                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                                      <div className="flex items-start gap-3 sm:contents">
+                                      <div className="flex items-center gap-3 sm:contents">
                                         {/* Image thumbnail */}
                                         <ImageThumbnail
                                           images={upgrade.images || []}
@@ -289,7 +289,6 @@ export default function SelectUpgrades() {
                                           checked={isSelected}
                                           onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
                                           data-testid={`checkbox-upgrade-${upgrade.id}`}
-                                          className="mt-1 sm:mt-1"
                                         />
                                       </div>
                                       
@@ -362,7 +361,7 @@ export default function SelectUpgrades() {
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
                                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                                      <div className="flex items-start gap-3 sm:contents">
+                                      <div className="flex items-center gap-3 sm:contents">
                                         {/* Image thumbnail */}
                                         <ImageThumbnail
                                           images={displayImages || []}
@@ -389,7 +388,6 @@ export default function SelectUpgrades() {
                                             }
                                           }}
                                           data-testid={`checkbox-variant-${parent.id}`}
-                                          className="mt-1 sm:mt-1"
                                         />
                                       </div>
                                       
