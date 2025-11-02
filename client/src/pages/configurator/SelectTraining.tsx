@@ -54,6 +54,33 @@ const trainingDetails: Record<string, {
     durationInfo: "1 day (typically 6 hours)",
     locationInfo: "In-person classroom + safety briefing practical at Wirral / Chester training centre (on-site options available)",
   },
+  "Tyre Fitting": {
+    overview: "Comprehensive hands-on training covering all aspects of professional tyre fitting. This practical course provides the essential skills and knowledge needed to safely and efficiently fit tyres on cars, vans, and light commercial vehicles. Perfect for new technicians or those looking to enhance their tyre fitting expertise.",
+    whyEssential: [
+      "Master safe and efficient tyre fitting techniques",
+      "Learn proper use of tyre fitting equipment and machinery",
+      "Understand wheel balancing and alignment principles",
+      "Ensure customer safety through correct fitting procedures",
+      "Build confidence in handling different tyre types and sizes",
+    ],
+    courseIncludes: [
+      "Tyre Construction & Specifications – understanding tyre types, sizes, and ratings",
+      "Equipment Operation – safe use of tyre changers, balancers, and hand tools",
+      "Fitting Procedures – step-by-step fitting for cars and commercial vehicles",
+      "Wheel Balancing – static and dynamic balancing techniques",
+      "TPMS Systems – working with tyre pressure monitoring systems",
+      "Health & Safety – risk assessment, manual handling, and workshop safety",
+      "Customer Care – professional communication and quality checks",
+    ],
+    whoItsFor: [
+      "New mobile tyre technicians",
+      "Existing technicians wanting to improve their skills",
+      "Mobile tyre business owners",
+      "Individuals starting a career in the tyre industry",
+    ],
+    durationInfo: "1 day (typically 6 hours)",
+    locationInfo: "Hands-on practical training at Wirral / Chester training centre",
+  },
 };
 
 export default function SelectTraining() {
