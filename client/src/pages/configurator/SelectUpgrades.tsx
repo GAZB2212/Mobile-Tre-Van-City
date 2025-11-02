@@ -273,34 +273,36 @@ export default function SelectUpgrades() {
                                     key={upgrade.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex items-start gap-3">
-                                      {/* Image thumbnail on the left */}
-                                      <ImageThumbnail
-                                        images={upgrade.images || []}
-                                        alt={upgrade.name}
-                                        onOpenGallery={() => openGallery(upgrade.images || [], upgrade.name)}
-                                        testId={`img-upgrade-${upgrade.id}`}
-                                      />
+                                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                                      <div className="flex items-start gap-3 sm:contents">
+                                        {/* Image thumbnail */}
+                                        <ImageThumbnail
+                                          images={upgrade.images || []}
+                                          alt={upgrade.name}
+                                          onOpenGallery={() => openGallery(upgrade.images || [], upgrade.name)}
+                                          testId={`img-upgrade-${upgrade.id}`}
+                                        />
+                                        
+                                        {/* Checkbox */}
+                                        <Checkbox
+                                          id={upgrade.id}
+                                          checked={isSelected}
+                                          onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                          data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                          className="mt-1 sm:mt-1"
+                                        />
+                                      </div>
                                       
-                                      {/* Checkbox */}
-                                      <Checkbox
-                                        id={upgrade.id}
-                                        checked={isSelected}
-                                        onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
-                                        data-testid={`checkbox-upgrade-${upgrade.id}`}
-                                        className="mt-1"
-                                      />
-                                      
-                                      {/* Content on the right */}
+                                      {/* Content */}
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start mb-1 gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
                                           <label 
                                             htmlFor={upgrade.id}
                                             className="font-medium cursor-pointer leading-tight"
                                           >
                                             {upgrade.name}
                                           </label>
-                                          <div className="flex items-center gap-2 flex-shrink-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
                                             {isSelected && upgrade.allowQuantity && (
                                               <div className="flex items-center gap-1">
                                                 <label className="text-xs text-muted-foreground whitespace-nowrap">Qty:</label>
@@ -320,19 +322,19 @@ export default function SelectUpgrades() {
                                             </Badge>
                                           </div>
                                         </div>
-                                        <div className="flex justify-between items-end gap-3">
-                                          {upgrade.description && (
-                                            <p className="text-sm text-muted-foreground flex-1">
-                                              {upgrade.description}
-                                            </p>
-                                          )}
-                                          {upgrade.popular && (
-                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium flex-shrink-0">
+                                        {upgrade.description && (
+                                          <p className="text-sm text-muted-foreground mb-2">
+                                            {upgrade.description}
+                                          </p>
+                                        )}
+                                        {upgrade.popular && (
+                                          <div className="flex justify-end">
+                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
                                               <Star className="w-3 h-3 fill-current" />
                                               Popular Upgrade
                                             </span>
-                                          )}
-                                        </div>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -359,39 +361,41 @@ export default function SelectUpgrades() {
                                     key={parent.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex items-start gap-3">
-                                      {/* Image thumbnail on the left */}
-                                      <ImageThumbnail
-                                        images={displayImages || []}
-                                        alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
-                                        onOpenGallery={() => openGallery(
-                                          displayImages || [], 
-                                          selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name
-                                        )}
-                                        testId={`img-variant-${parent.id}`}
-                                      />
+                                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                                      <div className="flex items-start gap-3 sm:contents">
+                                        {/* Image thumbnail */}
+                                        <ImageThumbnail
+                                          images={displayImages || []}
+                                          alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
+                                          onOpenGallery={() => openGallery(
+                                            displayImages || [], 
+                                            selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name
+                                          )}
+                                          testId={`img-variant-${parent.id}`}
+                                        />
+                                        
+                                        {/* Checkbox */}
+                                        <Checkbox
+                                          id={`variant-group-${parent.id}`}
+                                          checked={isSelected}
+                                          onCheckedChange={(checked) => {
+                                            if (checked && variants.length > 0) {
+                                              // When checking, select the first variant automatically
+                                              // The handleVariantSelect will handle removing other branding options
+                                              handleVariantSelect(parent.id, variants[0].id);
+                                            } else {
+                                              // Uncheck - remove any selected variant
+                                              handleVariantSelect(parent.id, null);
+                                            }
+                                          }}
+                                          data-testid={`checkbox-variant-${parent.id}`}
+                                          className="mt-1 sm:mt-1"
+                                        />
+                                      </div>
                                       
-                                      {/* Checkbox */}
-                                      <Checkbox
-                                        id={`variant-group-${parent.id}`}
-                                        checked={isSelected}
-                                        onCheckedChange={(checked) => {
-                                          if (checked && variants.length > 0) {
-                                            // When checking, select the first variant automatically
-                                            // The handleVariantSelect will handle removing other branding options
-                                            handleVariantSelect(parent.id, variants[0].id);
-                                          } else {
-                                            // Uncheck - remove any selected variant
-                                            handleVariantSelect(parent.id, null);
-                                          }
-                                        }}
-                                        data-testid={`checkbox-variant-${parent.id}`}
-                                        className="mt-1"
-                                      />
-                                      
-                                      {/* Content on the right */}
+                                      {/* Content */}
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start mb-1 gap-3">
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
                                           <label 
                                             htmlFor={`variant-group-${parent.id}`}
                                             className="font-medium cursor-pointer leading-tight"
@@ -399,34 +403,30 @@ export default function SelectUpgrades() {
                                             {parent.name}
                                           </label>
                                           {selectedVariant ? (
-                                            <Badge variant="secondary" className="flex-shrink-0">
+                                            <Badge variant="secondary" className="flex-shrink-0 w-fit">
                                               {formatPrice(selectedVariant.price, parent.name)}
                                             </Badge>
                                           ) : minVariantPrice !== null && (
-                                            <Badge variant="secondary" className="flex-shrink-0">
+                                            <Badge variant="secondary" className="flex-shrink-0 w-fit">
                                               From {formatPrice(minVariantPrice, parent.name)}
                                             </Badge>
                                           )}
                                         </div>
-                                        <div className="flex justify-between items-end gap-3 mb-3">
-                                          <div className="flex-1">
-                                            {selectedVariant?.description && selectedVariant.description !== parent.description ? (
-                                              <p className="text-sm text-muted-foreground">
-                                                {selectedVariant.description}
-                                              </p>
-                                            ) : parent.description && (
-                                              <p className="text-sm text-muted-foreground">
-                                                {parent.description}
-                                              </p>
-                                            )}
-                                          </div>
-                                          {parent.popular && (
-                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium flex-shrink-0">
+                                        {(selectedVariant?.description && selectedVariant.description !== parent.description) || parent.description ? (
+                                          <p className="text-sm text-muted-foreground mb-2">
+                                            {selectedVariant?.description && selectedVariant.description !== parent.description 
+                                              ? selectedVariant.description 
+                                              : parent.description}
+                                          </p>
+                                        ) : null}
+                                        {parent.popular && (
+                                          <div className="flex justify-end mb-2">
+                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
                                               <Star className="w-3 h-3 fill-current" />
                                               Popular Upgrade
                                             </span>
-                                          )}
-                                        </div>
+                                          </div>
+                                        )}
                                         {isSelected && (
                                           <Select
                                             value={selectedVariantId || ""}
@@ -460,18 +460,19 @@ export default function SelectUpgrades() {
                     );
                   })}
 
-                  <div className="flex justify-between items-center pt-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-6">
                     <Button 
                       variant="outline" 
                       onClick={() => setLocation('/configurator/kit')}
                       data-testid="button-back-bottom"
+                      className="w-full sm:w-auto"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back
                     </Button>
                     <Button 
                       onClick={handleContinue}
-                      className="bg-accent text-accent-foreground"
+                      className="bg-accent text-accent-foreground w-full sm:w-auto"
                       data-testid="button-continue"
                     >
                       Continue to Training
