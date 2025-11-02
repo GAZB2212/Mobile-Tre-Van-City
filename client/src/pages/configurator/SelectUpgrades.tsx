@@ -294,20 +294,12 @@ export default function SelectUpgrades() {
                                       {/* Content on the right */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1 gap-3">
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            <label 
-                                              htmlFor={upgrade.id}
-                                              className="font-medium cursor-pointer leading-tight"
-                                            >
-                                              {upgrade.name}
-                                            </label>
-                                            {upgrade.popular && (
-                                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
-                                                <Star className="w-3 h-3 fill-current" />
-                                                Popular Upgrade
-                                              </span>
-                                            )}
-                                          </div>
+                                          <label 
+                                            htmlFor={upgrade.id}
+                                            className="font-medium cursor-pointer leading-tight"
+                                          >
+                                            {upgrade.name}
+                                          </label>
                                           <div className="flex items-center gap-2 flex-shrink-0">
                                             {isSelected && upgrade.allowQuantity && (
                                               <div className="flex items-center gap-1">
@@ -328,11 +320,19 @@ export default function SelectUpgrades() {
                                             </Badge>
                                           </div>
                                         </div>
-                                        {upgrade.description && (
-                                          <p className="text-sm text-muted-foreground">
-                                            {upgrade.description}
-                                          </p>
-                                        )}
+                                        <div className="flex justify-between items-end gap-3">
+                                          {upgrade.description && (
+                                            <p className="text-sm text-muted-foreground flex-1">
+                                              {upgrade.description}
+                                            </p>
+                                          )}
+                                          {upgrade.popular && (
+                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium flex-shrink-0">
+                                              <Star className="w-3 h-3 fill-current" />
+                                              Popular Upgrade
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -392,20 +392,12 @@ export default function SelectUpgrades() {
                                       {/* Content on the right */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1 gap-3">
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            <label 
-                                              htmlFor={`variant-group-${parent.id}`}
-                                              className="font-medium cursor-pointer leading-tight"
-                                            >
-                                              {parent.name}
-                                            </label>
-                                            {parent.popular && (
-                                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
-                                                <Star className="w-3 h-3 fill-current" />
-                                                Popular Upgrade
-                                              </span>
-                                            )}
-                                          </div>
+                                          <label 
+                                            htmlFor={`variant-group-${parent.id}`}
+                                            className="font-medium cursor-pointer leading-tight"
+                                          >
+                                            {parent.name}
+                                          </label>
                                           {selectedVariant ? (
                                             <Badge variant="secondary" className="flex-shrink-0">
                                               {formatPrice(selectedVariant.price, parent.name)}
@@ -416,15 +408,25 @@ export default function SelectUpgrades() {
                                             </Badge>
                                           )}
                                         </div>
-                                        {selectedVariant?.description && selectedVariant.description !== parent.description ? (
-                                          <p className="text-sm text-muted-foreground mb-3">
-                                            {selectedVariant.description}
-                                          </p>
-                                        ) : parent.description && (
-                                          <p className="text-sm text-muted-foreground mb-3">
-                                            {parent.description}
-                                          </p>
-                                        )}
+                                        <div className="flex justify-between items-end gap-3 mb-3">
+                                          <div className="flex-1">
+                                            {selectedVariant?.description && selectedVariant.description !== parent.description ? (
+                                              <p className="text-sm text-muted-foreground">
+                                                {selectedVariant.description}
+                                              </p>
+                                            ) : parent.description && (
+                                              <p className="text-sm text-muted-foreground">
+                                                {parent.description}
+                                              </p>
+                                            )}
+                                          </div>
+                                          {parent.popular && (
+                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium flex-shrink-0">
+                                              <Star className="w-3 h-3 fill-current" />
+                                              Popular Upgrade
+                                            </span>
+                                          )}
+                                        </div>
                                         {isSelected && (
                                           <Select
                                             value={selectedVariantId || ""}
