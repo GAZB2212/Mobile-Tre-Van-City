@@ -6,7 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Convert relative object storage paths to full GCS URLs for production
-export function getImageUrl(imagePath: string): string {
+export function getImageUrl(imagePath: string | null | undefined): string {
+  // Handle null/undefined
+  if (!imagePath) {
+    return '';
+  }
+  
   // If it's already a full URL (starts with http:// or https://), return as-is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;

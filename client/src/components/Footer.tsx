@@ -108,7 +108,7 @@ export default function Footer() {
         <div className="border-t border-primary-foreground/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-primary-foreground/80 text-sm">
-              © 2024 TyreVans. All rights reserved.
+              © 2024 Mobile Tyre Van City. All rights reserved.
             </div>
             <div className="flex flex-wrap justify-center items-center gap-4">
               {legalLinks.map((link) => (
