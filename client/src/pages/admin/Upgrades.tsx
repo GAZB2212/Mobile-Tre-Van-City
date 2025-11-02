@@ -395,6 +395,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               parentId: parentResult.id,
               variantName: variant.name,
               published: data.published,
+              popular: data.popular || false,
+              allowQuantity: data.allowQuantity || false,
               sortOrder: index, // Add sortOrder based on position
             })
           )
@@ -482,6 +484,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               parentId: upgrade!.id,
               variantName: variant.name,
               published: data.published,
+              popular: data.popular || false,
+              allowQuantity: data.allowQuantity || false,
               sortOrder: index, // Add sortOrder based on position
             };
             
