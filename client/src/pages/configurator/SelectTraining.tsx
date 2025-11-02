@@ -13,6 +13,7 @@ import { PoundSterling } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -274,6 +275,9 @@ export default function SelectTraining() {
               <Shield className="w-8 h-8 text-accent" />
               {selectedTrainingInfo?.name}
             </DialogTitle>
+            <DialogDescription>
+              Professional training course - £{((selectedTrainingInfo?.price || 0) / 100).toFixed(2)} + VAT
+            </DialogDescription>
           </DialogHeader>
 
           {selectedTrainingInfo && trainingDetails[selectedTrainingInfo.type] && (

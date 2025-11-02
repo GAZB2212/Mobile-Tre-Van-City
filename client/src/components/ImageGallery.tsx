@@ -3,6 +3,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Carousel,
@@ -26,6 +27,9 @@ export function ImageGallery({ images, title, open, onOpenChange }: ImageGallery
       <DialogContent className="max-w-4xl p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Image gallery for {title}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="relative p-6 pt-4">
