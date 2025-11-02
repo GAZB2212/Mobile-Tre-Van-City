@@ -124,7 +124,7 @@ export default function SelectFinance() {
                       </div>
                       
                       <Button 
-                        className={`w-full ${state.financePlanId === plan.id ? 'bg-accent text-accent-foreground' : 'border-2 border-accent text-accent hover:bg-accent/10'}`}
+                        className={`w-full ${state.financePlanId === plan.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
                         variant={state.financePlanId === plan.id ? "default" : "outline"}
                         data-testid={`button-select-plan-${plan.id}`}
                       >

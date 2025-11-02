@@ -128,7 +128,7 @@ export default function SelectKit() {
                     </Button>
                     
                     <Button 
-                      className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : 'border-2 border-accent text-accent hover:bg-accent/10'}`}
+                      className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
                       variant={state.kitId === kit.id ? "default" : "outline"}
                       data-testid={`button-select-kit-${kit.id}`}
                     >
