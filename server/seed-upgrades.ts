@@ -81,6 +81,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    popular: true,
   },
   {
     id: "air-reel-fini",

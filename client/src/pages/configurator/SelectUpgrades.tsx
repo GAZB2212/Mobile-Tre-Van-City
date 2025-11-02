@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ImageGallery, ImageThumbnail } from "@/components/ImageGallery";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, Star } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -294,12 +294,20 @@ export default function SelectUpgrades() {
                                       {/* Content on the right */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1 gap-3">
-                                          <label 
-                                            htmlFor={upgrade.id}
-                                            className="font-medium cursor-pointer leading-tight"
-                                          >
-                                            {upgrade.name}
-                                          </label>
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <label 
+                                              htmlFor={upgrade.id}
+                                              className="font-medium cursor-pointer leading-tight"
+                                            >
+                                              {upgrade.name}
+                                            </label>
+                                            {upgrade.popular && (
+                                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 flex items-center gap-1">
+                                                <Star className="w-3 h-3 fill-current" />
+                                                Popular Upgrade
+                                              </Badge>
+                                            )}
+                                          </div>
                                           <div className="flex items-center gap-2 flex-shrink-0">
                                             {isSelected && upgrade.allowQuantity && (
                                               <div className="flex items-center gap-1">
@@ -384,12 +392,20 @@ export default function SelectUpgrades() {
                                       {/* Content on the right */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-1 gap-3">
-                                          <label 
-                                            htmlFor={`variant-group-${parent.id}`}
-                                            className="font-medium cursor-pointer leading-tight"
-                                          >
-                                            {parent.name}
-                                          </label>
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <label 
+                                              htmlFor={`variant-group-${parent.id}`}
+                                              className="font-medium cursor-pointer leading-tight"
+                                            >
+                                              {parent.name}
+                                            </label>
+                                            {parent.popular && (
+                                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 flex items-center gap-1">
+                                                <Star className="w-3 h-3 fill-current" />
+                                                Popular Upgrade
+                                              </Badge>
+                                            )}
+                                          </div>
                                           {selectedVariant ? (
                                             <Badge variant="secondary" className="flex-shrink-0">
                                               {formatPrice(selectedVariant.price, parent.name)}
