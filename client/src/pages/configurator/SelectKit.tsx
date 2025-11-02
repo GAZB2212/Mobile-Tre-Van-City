@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -8,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { ArrowRight, ArrowLeft, Zap, Package } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle } from "lucide-react";
 import type { Kit } from "@shared/schema";
 
 export default function SelectKit() {
   const [, setLocation] = useLocation();
   const { state, setKit } = useConfigurator();
+  const [modalKit, setModalKit] = useState<Kit | null>(null);
 
   const { data: kits = [], isLoading } = useQuery<Kit[]>({
     queryKey: ['/api/kits'],
@@ -30,6 +33,11 @@ export default function SelectKit() {
       currency: 'GBP',
       minimumFractionDigits: 0,
     }).format(price / 100);
+  };
+
+  const openModal = (kit: Kit, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setModalKit(kit);
   };
 
   return (
@@ -95,13 +103,29 @@ export default function SelectKit() {
                         <span>Includes:</span>
                       </div>
                       <ul className="space-y-1 ml-6">
-                        {kit.includes.map((item, idx) => (
+                        {kit.includes.slice(0, 3).map((item, idx) => (
                           <li key={idx} className="text-sm text-muted-foreground list-disc" data-testid={`text-kit-includes-${kit.id}-${idx}`}>
                             {item}
                           </li>
                         ))}
+                        {kit.includes.length > 3 && (
+                          <li className="text-sm text-muted-foreground italic">
+                            + {kit.includes.length - 3} more items...
+                          </li>
+                        )}
                       </ul>
                     </div>
+                    
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full mb-2"
+                      onClick={(e) => openModal(kit, e)}
+                      data-testid={`button-more-info-${kit.id}`}
+                    >
+                      <Info className="w-4 h-4 mr-2" />
+                      More Info
+                    </Button>
                     
                     <Button 
                       className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : 'border-2 border-accent text-accent hover:bg-accent/10'}`}
@@ -126,6 +150,81 @@ export default function SelectKit() {
       </main>
 
       <Footer />
+
+      {/* Kit Details Modal */}
+      <Dialog open={!!modalKit} onOpenChange={(open) => !open && setModalKit(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {modalKit && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl" data-testid={`modal-kit-title-${modalKit.id}`}>
+                  {modalKit.name}
+                </DialogTitle>
+                <DialogDescription data-testid={`modal-kit-subtitle-${modalKit.id}`}>
+                  {modalKit.powerKw}kW • {formatPrice(modalKit.price)}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Description */}
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Description</h3>
+                  <p className="text-muted-foreground" data-testid={`modal-kit-description-${modalKit.id}`}>
+                    {modalKit.description}
+                  </p>
+                </div>
+
+                {/* Full Includes List */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Package className="w-5 h-5 text-accent" />
+                    Complete Equipment List
+                  </h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {modalKit.includes.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                        <span data-testid={`modal-kit-includes-${modalKit.id}-${idx}`}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Key Specifications */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-lg">Key Specifications</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Zap className="w-4 h-4 text-accent" />
+                        <span className="text-muted-foreground">Power Output:</span>
+                        <span className="font-medium" data-testid={`modal-kit-power-${modalKit.id}`}>
+                          {modalKit.powerKw}kW
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <div className="pt-4 border-t">
+                  <Button
+                    className="w-full bg-accent text-accent-foreground"
+                    onClick={() => {
+                      handleSelectKit(modalKit.id);
+                      setModalKit(null);
+                    }}
+                    data-testid={`modal-button-select-kit-${modalKit.id}`}
+                  >
+                    {state.kitId === modalKit.id ? 'Selected - Continue' : 'Select This Kit'}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
