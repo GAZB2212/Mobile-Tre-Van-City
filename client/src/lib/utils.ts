@@ -12,7 +12,15 @@ export function getImageUrl(imagePath: string): string {
     return imagePath;
   }
   
-  // If it's a relative path starting with /objects/, convert to full GCS URL
+  // In development, keep relative paths as-is (they'll go through backend proxy)
+  // Only convert to full GCS URLs in production
+  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname.includes('replit.dev');
+  
+  if (isDevelopment) {
+    return imagePath;
+  }
+  
+  // In production: If it's a relative path starting with /objects/, convert to full GCS URL
   if (imagePath.startsWith('/objects/')) {
     // Extract the path after /objects/
     const objectPath = imagePath.replace('/objects/', '');
