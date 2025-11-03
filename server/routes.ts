@@ -1406,31 +1406,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // New endpoint specifically for upgrade image uploads - returns direct GCS public URLs
-  app.post("/api/upgrades/upload", isAuthenticated, async (req, res) => {
-    try {
-      const { filename, contentType } = req.body;
-      
-      // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
-      if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
-        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, SVG, GIF, WEBP)" });
+  // Backend proxy endpoint for upgrade image uploads (no CORS issues)
+  app.post("/api/upgrades/upload-image", isAuthenticated, async (req, res) => {
+    const multer = await import("multer");
+    const upload = multer.default({ storage: multer.memoryStorage() });
+    
+    upload.single("file")(req, res, async (err: any) => {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(400).json({ error: "File upload failed" });
       }
-      
-      // Validate filename
-      if (!filename || filename.trim() === '') {
-        return res.status(400).json({ error: "Filename is required" });
+
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file provided" });
+        }
+
+        // Validate file type
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(req.file.mimetype.toLowerCase())) {
+          return res.status(400).json({ error: "Only images are allowed" });
+        }
+        
+        const { ObjectStorageService } = await import("./objectStorage");
+        const objectStorageService = new ObjectStorageService();
+        
+        // Upload file to public storage (returns direct public GCS URL)
+        const publicURL = await objectStorageService.uploadUpgradeImageToPublicStorage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        
+        console.log('✅ Upgrade image uploaded successfully:', publicURL);
+        res.json({ publicURL });
+      } catch (error) {
+        console.error("Error uploading upgrade image:", error);
+        res.status(500).json({ error: "Failed to upload image" });
       }
-      
-      const { ObjectStorageService } = await import("./objectStorage");
-      const objectStorageService = new ObjectStorageService();
-      const { uploadURL, publicURL } = await objectStorageService.getPublicUpgradeUploadURL(filename);
-      // Return the direct public URL for upgrades
-      res.json({ uploadURL, objectPath: publicURL });
-    } catch (error) {
-      console.error("Error generating upgrade upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
-    }
+    });
   });
 
   // Admin endpoint for temporary image upload (for create forms)

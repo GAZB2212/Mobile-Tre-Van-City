@@ -28,31 +28,23 @@ export function UpgradeImageUploader({
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      // Request presigned URL - use new upgrades endpoint for direct public URLs
-      const presignedResponse = await apiRequest(
-        "POST",
-        "/api/upgrades/upload",
-        {
-          filename: file.name,
-          contentType: file.type,
-        }
-      );
-      const { uploadURL, objectPath } = presignedResponse as unknown as { uploadURL: string; objectPath: string };
+      // Use backend proxy upload - no CORS issues!
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Upload to object storage
-      const uploadResponse = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
+      const response = await fetch("/api/upgrades/upload-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to upload file");
       }
 
-      return objectPath;
+      const data = await response.json();
+      return data.publicURL;
     },
     onSuccess: (objectPath) => {
       console.log('✅ Image uploaded successfully, path:', objectPath);
