@@ -65,6 +65,8 @@ import { CSS } from '@dnd-kit/utilities';
 // Form validation schema - extend shared schema for price conversion
 const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   price: z.string().optional(),
+  detailedInfo: z.string().optional().nullable(),
+  videoUrl: z.string().optional().nullable(),
   parentId: z.string().optional().nullable(),
   variantName: z.string().optional().nullable(),
   hasVariants: z.boolean().optional(),
@@ -256,6 +258,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       name: "",
       category: "",
       description: "",
+      detailedInfo: "",
+      videoUrl: "",
       price: "",
       images: [],
       parentId: "",
@@ -300,6 +304,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         name: upgrade.name,
         category: upgrade.category,
         description: upgrade.description,
+        detailedInfo: upgrade.detailedInfo || "",
+        videoUrl: upgrade.videoUrl || "",
         price: hasChildren ? "" : penceToPounds(upgrade.price),
         images: upgrade.images,
         parentId: upgrade.parentId || "",
@@ -317,6 +323,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         name: "",
         category: "",
         description: "",
+        detailedInfo: "",
+        videoUrl: "",
         price: "",
         images: [],
         parentId: "",
@@ -633,13 +641,52 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Short Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Enter upgrade description"
-                      className="min-h-[100px]"
+                      placeholder="Brief description shown in the upgrade list"
+                      className="min-h-[80px]"
                       data-testid="input-upgrade-description"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="detailedInfo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Detailed Information (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Extended information shown in 'More Info' modal"
+                      className="min-h-[120px]"
+                      data-testid="input-upgrade-detailed-info"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="videoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Video URL (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="YouTube or Vimeo embed URL"
+                      data-testid="input-upgrade-video-url"
+                      {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
