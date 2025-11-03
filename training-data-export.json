@@ -1,0 +1,18 @@
+[
+  {
+    "id": "47ec3dc8-e178-4f9a-9763-b5fd6d8567a7",
+    "name": "REACT Training – Licence to Work Safely at the Roadside",
+    "description": "Become fully qualified to operate safely on the UK motorway network. This nationally recognised qualification is endorsed by the NTDA and forms part of the official Tyre Technician Professional Development Scheme (TTPDS).",
+    "type": "REACT",
+    "price": 49500,
+    "published": true
+  },
+  {
+    "id": "8de133dc-80d9-4046-ab7e-9925f75e4622",
+    "name": "Professional Tyre Fitting Training",
+    "description": "Comprehensive hands-on training covering all aspects of professional tyre fitting, including safety procedures, equipment operation, and industry best practices. Perfect for new technicians or those looking to enhance their skills.",
+    "type": "Tyre Fitting",
+    "price": 49500,
+    "published": true
+  }
+]
