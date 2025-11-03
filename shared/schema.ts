@@ -93,6 +93,7 @@ export const upgrades = pgTable("upgrades", {
   name: text("name").notNull(),
   category: text("category").notNull(),
   description: text("description").notNull(),
+  detailedInfo: text("detailed_info"), // Extended information shown in "More Info" modal
   price: integer("price").notNull(), // in pence
   images: json("images").$type<string[]>().notNull().default([]),
   videoUrl: text("video_url"), // YouTube, Vimeo, or direct video URL
