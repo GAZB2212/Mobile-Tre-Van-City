@@ -67,6 +67,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   price: z.string().optional(),
   detailedInfo: z.string().optional().nullable(),
   videoUrl: z.string().optional().nullable(),
+  showVideo: z.boolean().optional(),
   parentId: z.string().optional().nullable(),
   variantName: z.string().optional().nullable(),
   hasVariants: z.boolean().optional(),
@@ -260,6 +261,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       description: "",
       detailedInfo: "",
       videoUrl: "",
+      showVideo: false,
       price: "",
       images: [],
       parentId: "",
@@ -306,6 +308,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         description: upgrade.description,
         detailedInfo: upgrade.detailedInfo || "",
         videoUrl: upgrade.videoUrl || "",
+        showVideo: upgrade.showVideo || false,
         price: hasChildren ? "" : penceToPounds(upgrade.price),
         images: upgrade.images,
         parentId: upgrade.parentId || "",
@@ -325,6 +328,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         description: "",
         detailedInfo: "",
         videoUrl: "",
+        showVideo: false,
         price: "",
         images: [],
         parentId: "",
@@ -690,6 +694,28 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="showVideo"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-sm font-medium">Show Video in More Info</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Display the video section when customers view this upgrade
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-show-video"
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />

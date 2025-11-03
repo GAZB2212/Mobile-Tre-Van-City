@@ -110,21 +110,23 @@ export function UpgradeDetailsModal({
                 </div>
               )}
 
-              {/* Video Placeholder */}
-              {upgrade.videoUrl ? (
-                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                  <iframe
-                    src={upgrade.videoUrl}
-                    className="w-full h-full"
-                    allowFullScreen
-                    title={`${upgrade.name} video`}
-                  />
-                </div>
-              ) : (
-                <div className="aspect-video bg-muted/50 rounded-lg flex flex-col items-center justify-center border-2 border-dashed">
-                  <Play className="w-8 h-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Video coming soon</p>
-                </div>
+              {/* Video Section - only show if showVideo is enabled */}
+              {upgrade.showVideo && (
+                upgrade.videoUrl ? (
+                  <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                    <iframe
+                      src={upgrade.videoUrl}
+                      className="w-full h-full"
+                      allowFullScreen
+                      title={`${upgrade.name} video`}
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-muted/50 rounded-lg flex flex-col items-center justify-center border-2 border-dashed">
+                    <Play className="w-8 h-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Video coming soon</p>
+                  </div>
+                )
               )}
             </div>
 

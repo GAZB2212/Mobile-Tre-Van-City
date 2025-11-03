@@ -97,6 +97,7 @@ export const upgrades = pgTable("upgrades", {
   price: integer("price").notNull(), // in pence
   images: json("images").$type<string[]>().notNull().default([]),
   videoUrl: text("video_url"), // YouTube, Vimeo, or direct video URL
+  showVideo: boolean("show_video").notNull().default(false), // Toggle to show/hide video in More Info modal
   parentId: varchar("parent_id").references((): any => upgrades.id),
   variantName: text("variant_name"), // e.g., "Pack 1", "Pack 2", "Standard", "Premium"
   allowQuantity: boolean("allow_quantity").notNull().default(false),
