@@ -323,11 +323,11 @@ export class ObjectStorageService {
       },
     });
     
-    // Make the file publicly accessible
-    await file.makePublic();
-    
-    // Return the full public GCS URL
-    return `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    // Return the backend proxy path (will be served through /objects/ endpoint)
+    // Format: /objects/upgrade-images/filename (matches the storage location)
+    const pathParts = objectName.split('/');
+    const uploadedFilename = pathParts[pathParts.length - 1];
+    return `/objects/upgrade-images/${uploadedFilename}`;
   }
 
   // Gets the object entity file from the object path.
@@ -343,8 +343,8 @@ export class ObjectStorageService {
 
     const entityId = parts.slice(1).join("/");
     
-    // Check if this is a public image (van-images or product-images directory)
-    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/")) {
+    // Check if this is a public image (van-images, product-images, or upgrade-images directory)
+    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/")) {
       const publicPaths = this.getPublicObjectSearchPaths();
       if (publicPaths && publicPaths.length > 0) {
         const publicPath = publicPaths[0];
