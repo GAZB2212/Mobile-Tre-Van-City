@@ -1339,6 +1339,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Referenced from blueprint: javascript_object_storage - protected file uploading
   // The endpoint for serving objects with ACL checks (public and private)
   app.get("/objects/:objectPath(*)", async (req, res) => {
+    // Set CORS headers for images
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
     const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
     const objectStorageService = new ObjectStorageService();
     try {
