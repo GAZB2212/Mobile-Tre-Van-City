@@ -63,7 +63,7 @@ export function UpgradeDetailsModal({
                 <div className="space-y-3">
                   {/* Main Image */}
                   <div 
-                    className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer group"
+                    className="relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer group"
                     onClick={() => setGalleryOpen(true)}
                     data-testid="img-upgrade-detail-main"
                   >
@@ -105,7 +105,7 @@ export function UpgradeDetailsModal({
                   )}
                 </div>
               ) : (
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
                   <p className="text-muted-foreground">No images available</p>
                 </div>
               )}

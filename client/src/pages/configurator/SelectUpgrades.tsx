@@ -283,7 +283,7 @@ export default function SelectUpgrades() {
                                     key={upgrade.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex gap-3">
+                                    <div className="flex items-start gap-3">
                                       {/* Image thumbnail */}
                                       <ImageThumbnail
                                         images={upgrade.images || []}
@@ -292,8 +292,8 @@ export default function SelectUpgrades() {
                                         testId={`img-upgrade-${upgrade.id}`}
                                       />
                                       
-                                      {/* Checkbox */}
-                                      <div className="flex items-center">
+                                      {/* Checkbox - aligned with heading */}
+                                      <div className="pt-0.5">
                                         <Checkbox
                                           id={upgrade.id}
                                           checked={isSelected}
@@ -382,7 +382,7 @@ export default function SelectUpgrades() {
                                     key={parent.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex gap-3">
+                                    <div className="flex items-start gap-3">
                                       {/* Image thumbnail */}
                                       <ImageThumbnail
                                         images={displayImages || []}
@@ -394,8 +394,8 @@ export default function SelectUpgrades() {
                                         testId={`img-variant-${parent.id}`}
                                       />
                                       
-                                      {/* Checkbox */}
-                                      <div className="flex items-center">
+                                      {/* Checkbox - aligned with heading */}
+                                      <div className="pt-0.5">
                                         <Checkbox
                                           id={`variant-group-${parent.id}`}
                                           checked={isSelected}
