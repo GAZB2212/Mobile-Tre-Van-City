@@ -1444,7 +1444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { ObjectStorageService } = await import("./objectStorage");
         const objectStorageService = new ObjectStorageService();
         
-        // Upload file to public storage (returns direct public GCS URL)
+        // Upload file to public storage (returns backend proxy path /objects/upgrade-images/...)
         const publicURL = await objectStorageService.uploadUpgradeImageToPublicStorage(
           req.file.buffer,
           req.file.originalname,

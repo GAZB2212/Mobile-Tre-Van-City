@@ -5,20 +5,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Simple image URL handler that works with public GCS URLs
+// Simple image URL handler that works with both GCS URLs and backend proxy paths
 export function getImageUrl(imagePath: string | null | undefined): string {
   // Handle null/undefined
   if (!imagePath) {
     return '';
   }
   
-  // If it's a full GCS URL (public bucket), use it directly - these work in production!
+  // If it's a full GCS URL pointing to upgrade-images, convert to backend proxy path
+  // This handles images uploaded from the deployed site before the fix
   if (imagePath.startsWith('https://storage.googleapis.com/')) {
+    const upgradeImagesMatch = imagePath.match(/\/upgrade-images\/([^?]+)/);
+    if (upgradeImagesMatch) {
+      return `/objects/upgrade-images/${upgradeImagesMatch[1]}`;
+    }
+    const vanImagesMatch = imagePath.match(/\/van-images\/([^?]+)/);
+    if (vanImagesMatch) {
+      return `/objects/van-images/${vanImagesMatch[1]}`;
+    }
+    const productImagesMatch = imagePath.match(/\/product-images\/([^?]+)/);
+    if (productImagesMatch) {
+      return `/objects/product-images/${productImagesMatch[1]}`;
+    }
+    // For any other GCS URL, try to use it directly (may not work in production)
     return imagePath;
   }
   
   // If it's a relative path starting with /objects/, keep it for backend proxy
-  // This is for legacy images or private images
   if (imagePath.startsWith('/objects/')) {
     return imagePath;
   }
