@@ -28,16 +28,16 @@ export function UpgradeImageUploader({
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      // Request presigned URL
+      // Request presigned URL - use new upgrades endpoint for direct public URLs
       const presignedResponse = await apiRequest(
         "POST",
-        "/api/objects/upload",
+        "/api/upgrades/upload",
         {
           filename: file.name,
           contentType: file.type,
         }
-      ) as { uploadURL: string; objectPath: string };
-      const { uploadURL, objectPath } = presignedResponse;
+      );
+      const { uploadURL, objectPath } = presignedResponse as { uploadURL: string; objectPath: string };
 
       // Upload to object storage
       const uploadResponse = await fetch(uploadURL, {

@@ -224,6 +224,36 @@ export class ObjectStorageService {
     return { uploadURL, publicURL };
   }
 
+  // Gets the upload URL for PUBLIC upgrade images (no ACL needed)
+  async getPublicUpgradeUploadURL(filename: string): Promise<{ uploadURL: string; publicURL: string }> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+
+    // Use the first public path
+    const publicPath = publicPaths[0];
+    
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/upgrade-images/${objectId}-${safeFilename}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Sign URL for PUT method with TTL
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    
+    // Return the full public GCS URL that works in production
+    const publicURL = `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    
+    return { uploadURL, publicURL };
+  }
+
   // Upload file buffer directly to public storage (backend proxy - no CORS)
   async uploadFileToPublicStorage(
     fileBuffer: Buffer,

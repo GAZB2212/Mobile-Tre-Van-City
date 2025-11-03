@@ -5,45 +5,29 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Cache for bucket name - set on app initialization
-let cachedBucketName: string | null = null;
-
-// Initialize bucket name from backend - call this on app startup
-export async function initializeBucketName(): Promise<void> {
-  if (cachedBucketName) {
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/storage/config');
-    const data = await response.json();
-    cachedBucketName = data.bucketName || '';
-  } catch (err) {
-    console.error('Failed to fetch bucket name:', err);
-    cachedBucketName = '';
-  }
-}
-
-// Convert image paths to use backend proxy for all environments
+// Simple image URL handler that works with public GCS URLs
 export function getImageUrl(imagePath: string | null | undefined): string {
   // Handle null/undefined
   if (!imagePath) {
     return '';
   }
   
-  // If it's a full GCS URL, convert it to relative path to use backend proxy
+  // If it's a full GCS URL (public bucket), use it directly - these work in production!
   if (imagePath.startsWith('https://storage.googleapis.com/')) {
-    const match = imagePath.match(/https:\/\/storage\.googleapis\.com\/[^\/]+\/(.*)/);
-    if (match) {
-      return `/objects/${match[1]}`;
-    }
+    return imagePath;
   }
   
-  // If it's already a relative path starting with /objects/, use it as-is
+  // If it's a relative path starting with /objects/, keep it for backend proxy
+  // This is for legacy images or private images
   if (imagePath.startsWith('/objects/')) {
     return imagePath;
   }
   
-  // Otherwise return as-is (shouldn't happen, but just in case)
+  // Otherwise return as-is
   return imagePath;
+}
+
+// Legacy function - no longer needed but kept for compatibility
+export async function initializeBucketName(): Promise<void> {
+  // No longer needed - we use direct public URLs now
 }

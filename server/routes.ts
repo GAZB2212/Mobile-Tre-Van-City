@@ -1347,7 +1347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ File found');
       
       // Check if this is a public image (van, product, kit, upgrade images - skip ACL)
-      if (req.path.includes('/van-images/') || req.path.includes('/product-images/') || req.path.includes('/uploads/')) {
+      if (req.path.includes('/van-images/') || req.path.includes('/product-images/') || req.path.includes('/uploads/') || req.path.includes('/upgrade-images/')) {
         console.log('✅ Public image - serving without ACL check');
         objectStorageService.downloadObject(objectFile, res);
         return;
@@ -1379,7 +1379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // The endpoint for getting the upload URL for public product images (kits, upgrades)
+  // The endpoint for getting the upload URL for public product images (kits)
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
       const { filename, contentType } = req.body;
@@ -1402,6 +1402,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ uploadURL, objectPath: publicURL });
     } catch (error) {
       console.error("Error generating upload URL:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+
+  // New endpoint specifically for upgrade image uploads - returns direct GCS public URLs
+  app.post("/api/upgrades/upload", isAuthenticated, async (req, res) => {
+    try {
+      const { filename, contentType } = req.body;
+      
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
+      if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
+        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, SVG, GIF, WEBP)" });
+      }
+      
+      // Validate filename
+      if (!filename || filename.trim() === '') {
+        return res.status(400).json({ error: "Filename is required" });
+      }
+      
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const { uploadURL, publicURL } = await objectStorageService.getPublicUpgradeUploadURL(filename);
+      // Return the direct public URL for upgrades
+      res.json({ uploadURL, objectPath: publicURL });
+    } catch (error) {
+      console.error("Error generating upgrade upload URL:", error);
       res.status(500).json({ error: "Failed to generate upload URL" });
     }
   });
