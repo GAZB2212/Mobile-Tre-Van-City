@@ -323,6 +323,9 @@ export class ObjectStorageService {
       },
     });
     
+    // Make the file publicly accessible
+    await file.makePublic();
+    
     // Return the full public GCS URL
     return `https://storage.googleapis.com/${bucketName}/${objectName}`;
   }
