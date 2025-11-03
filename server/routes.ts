@@ -1337,6 +1337,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Referenced from blueprint: javascript_object_storage - protected file uploading
+  // Handle CORS preflight for images
+  app.options("/objects/:objectPath(*)", (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.sendStatus(200);
+  });
+  
   // The endpoint for serving objects with ACL checks (public and private)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     // Set CORS headers for images
