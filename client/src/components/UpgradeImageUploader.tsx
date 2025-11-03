@@ -193,11 +193,13 @@ export function UpgradeImageUploader({
                   className="w-full h-full object-cover"
                   data-testid={`img-upgrade-preview-${index}`}
                   onError={(e) => {
-                    console.error(`Failed to load preview image: ${imagePath}`);
-                    console.error(`Image element:`, e.currentTarget);
+                    console.error('❌ Failed to load upgrade image!');
+                    console.error('Original path:', imagePath);
+                    console.error('Transformed URL:', getImageUrl(imagePath));
+                    console.error('Actual src:', e.currentTarget.src);
                   }}
                   onLoad={() => {
-                    console.log(`Successfully loaded preview image: ${imagePath}`);
+                    console.log('✅ Successfully loaded upgrade image:', imagePath);
                   }}
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
