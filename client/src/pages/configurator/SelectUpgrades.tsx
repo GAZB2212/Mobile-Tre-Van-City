@@ -283,7 +283,7 @@ export default function SelectUpgrades() {
                                     key={upgrade.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                                       <div className="flex items-center gap-3 sm:contents">
                                         {/* Image thumbnail */}
                                         <ImageThumbnail
@@ -382,7 +382,7 @@ export default function SelectUpgrades() {
                                     key={parent.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                                       <div className="flex items-center gap-3 sm:contents">
                                         {/* Image thumbnail */}
                                         <ImageThumbnail
