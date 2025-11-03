@@ -305,7 +305,7 @@ export default function SelectUpgrades() {
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                             <label 
                                               htmlFor={upgrade.id}
                                               className="font-medium cursor-pointer leading-tight"
@@ -313,13 +313,14 @@ export default function SelectUpgrades() {
                                               {upgrade.name}
                                             </label>
                                             <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-6 w-6"
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-7 text-xs w-fit"
                                               onClick={() => openDetails(upgrade)}
                                               data-testid={`button-info-${upgrade.id}`}
                                             >
-                                              <Info className="w-4 h-4" />
+                                              <Info className="w-3 h-3 mr-1" />
+                                              More Info
                                             </Button>
                                           </div>
                                           <div className="flex items-center gap-2 flex-wrap">
@@ -415,7 +416,7 @@ export default function SelectUpgrades() {
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
-                                          <div className="flex items-center gap-2">
+                                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                                             <label 
                                               htmlFor={`variant-group-${parent.id}`}
                                               className="font-medium cursor-pointer leading-tight"
@@ -423,13 +424,14 @@ export default function SelectUpgrades() {
                                               {parent.name}
                                             </label>
                                             <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-6 w-6"
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-7 text-xs w-fit"
                                               onClick={() => openDetails(parent, variants)}
                                               data-testid={`button-info-${parent.id}`}
                                             >
-                                              <Info className="w-4 h-4" />
+                                              <Info className="w-3 h-3 mr-1" />
+                                              More Info
                                             </Button>
                                           </div>
                                           {selectedVariant ? (
