@@ -24,53 +24,26 @@ export async function initializeBucketName(): Promise<void> {
   }
 }
 
-// Convert relative object storage paths to full GCS URLs for production
+// Convert image paths to use backend proxy for all environments
 export function getImageUrl(imagePath: string | null | undefined): string {
   // Handle null/undefined
   if (!imagePath) {
     return '';
   }
   
-  // In development, always use relative paths (go through backend proxy)
-  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname.includes('replit.dev');
-  
-  if (isDevelopment) {
-    // If it's a full GCS URL, convert it to relative path for development
-    if (imagePath.startsWith('https://storage.googleapis.com/')) {
-      const match = imagePath.match(/https:\/\/storage\.googleapis\.com\/[^\/]+\/(.*)/);
-      if (match) {
-        return `/objects/${match[1]}`;
-      }
-    }
-    return imagePath;
-  }
-  
-  // In production: Normalize all image URLs
-  
-  // If it's a full GCS URL, update the bucket name if we have it cached
+  // If it's a full GCS URL, convert it to relative path to use backend proxy
   if (imagePath.startsWith('https://storage.googleapis.com/')) {
-    if (cachedBucketName) {
-      // Extract the object path after the bucket name
-      const match = imagePath.match(/https:\/\/storage\.googleapis\.com\/[^\/]+\/(.*)/);
-      if (match) {
-        const objectPath = match[1];
-        return `https://storage.googleapis.com/${cachedBucketName}/${objectPath}`;
-      }
+    const match = imagePath.match(/https:\/\/storage\.googleapis\.com\/[^\/]+\/(.*)/);
+    if (match) {
+      return `/objects/${match[1]}`;
     }
-    // If no cached bucket name yet, return as-is (might work if bucket name is correct)
-    return imagePath;
   }
   
-  // If it's a relative path starting with /objects/, convert to full GCS URL
+  // If it's already a relative path starting with /objects/, use it as-is
   if (imagePath.startsWith('/objects/')) {
-    if (cachedBucketName) {
-      const objectPath = imagePath.replace('/objects/', '');
-      return `https://storage.googleapis.com/${cachedBucketName}/${objectPath}`;
-    }
-    // Fallback: return relative path (backend proxy will handle it)
     return imagePath;
   }
   
-  // Otherwise return as-is
+  // Otherwise return as-is (shouldn't happen, but just in case)
   return imagePath;
 }

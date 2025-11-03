@@ -1347,7 +1347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ File found');
       
       // Check if this is a public image (van, product, kit, upgrade images - skip ACL)
-      if (req.path.includes('/van-images/') || req.path.includes('/product-images/')) {
+      if (req.path.includes('/van-images/') || req.path.includes('/product-images/') || req.path.includes('/uploads/')) {
         console.log('✅ Public image - serving without ACL check');
         objectStorageService.downloadObject(objectFile, res);
         return;
