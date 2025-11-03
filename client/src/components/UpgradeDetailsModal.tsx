@@ -150,6 +150,14 @@ export function UpgradeDetailsModal({
                 </div>
               )}
 
+              {/* Detailed Information */}
+              {upgrade.detailedInfo && (
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Detailed Information</h3>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{upgrade.detailedInfo}</p>
+                </div>
+              )}
+
               {/* Variants */}
               {hasVariants && (
                 <div>
