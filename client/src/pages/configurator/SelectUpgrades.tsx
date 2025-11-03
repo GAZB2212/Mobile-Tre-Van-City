@@ -283,17 +283,17 @@ export default function SelectUpgrades() {
                                     key={upgrade.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                      <div className="flex items-center gap-3 sm:contents">
-                                        {/* Image thumbnail */}
-                                        <ImageThumbnail
-                                          images={upgrade.images || []}
-                                          alt={upgrade.name}
-                                          onOpenGallery={() => openGallery(upgrade.images || [], upgrade.name)}
-                                          testId={`img-upgrade-${upgrade.id}`}
-                                        />
-                                        
-                                        {/* Checkbox */}
+                                    <div className="flex gap-3">
+                                      {/* Image thumbnail */}
+                                      <ImageThumbnail
+                                        images={upgrade.images || []}
+                                        alt={upgrade.name}
+                                        onOpenGallery={() => openGallery(upgrade.images || [], upgrade.name)}
+                                        testId={`img-upgrade-${upgrade.id}`}
+                                      />
+                                      
+                                      {/* Checkbox */}
+                                      <div className="flex items-center">
                                         <Checkbox
                                           id={upgrade.id}
                                           checked={isSelected}
@@ -382,20 +382,20 @@ export default function SelectUpgrades() {
                                     key={parent.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                                      <div className="flex items-center gap-3 sm:contents">
-                                        {/* Image thumbnail */}
-                                        <ImageThumbnail
-                                          images={displayImages || []}
-                                          alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
-                                          onOpenGallery={() => openGallery(
-                                            displayImages || [], 
-                                            selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name
-                                          )}
-                                          testId={`img-variant-${parent.id}`}
-                                        />
-                                        
-                                        {/* Checkbox */}
+                                    <div className="flex gap-3">
+                                      {/* Image thumbnail */}
+                                      <ImageThumbnail
+                                        images={displayImages || []}
+                                        alt={selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name}
+                                        onOpenGallery={() => openGallery(
+                                          displayImages || [], 
+                                          selectedVariant ? (selectedVariant.variantName || selectedVariant.name) : parent.name
+                                        )}
+                                        testId={`img-variant-${parent.id}`}
+                                      />
+                                      
+                                      {/* Checkbox */}
+                                      <div className="flex items-center">
                                         <Checkbox
                                           id={`variant-group-${parent.id}`}
                                           checked={isSelected}
