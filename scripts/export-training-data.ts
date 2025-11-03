@@ -14,10 +14,9 @@ async function exportTrainingData() {
       name: item.name,
       description: item.description,
       type: item.type,
-      duration: item.duration,
-      provider: item.provider,
+      durationDays: item.durationDays,
+      includes: item.includes,
       price: item.price,
-      details: item.details,
       published: item.published,
     }));
     
