@@ -283,7 +283,7 @@ export default function SelectUpgrades() {
                                     key={upgrade.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex items-start gap-3">
+                                    <div className="flex items-center gap-3">
                                       {/* Image thumbnail */}
                                       <ImageThumbnail
                                         images={upgrade.images || []}
@@ -292,15 +292,13 @@ export default function SelectUpgrades() {
                                         testId={`img-upgrade-${upgrade.id}`}
                                       />
                                       
-                                      {/* Checkbox - aligned with heading */}
-                                      <div className="pt-0.5">
-                                        <Checkbox
-                                          id={upgrade.id}
-                                          checked={isSelected}
-                                          onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
-                                          data-testid={`checkbox-upgrade-${upgrade.id}`}
-                                        />
-                                      </div>
+                                      {/* Checkbox - centered with heading */}
+                                      <Checkbox
+                                        id={upgrade.id}
+                                        checked={isSelected}
+                                        onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                        data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                      />
                                       
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
@@ -382,7 +380,7 @@ export default function SelectUpgrades() {
                                     key={parent.id}
                                     className="p-3 rounded-lg border hover-elevate"
                                   >
-                                    <div className="flex items-start gap-3">
+                                    <div className="flex items-center gap-3">
                                       {/* Image thumbnail */}
                                       <ImageThumbnail
                                         images={displayImages || []}
@@ -394,24 +392,22 @@ export default function SelectUpgrades() {
                                         testId={`img-variant-${parent.id}`}
                                       />
                                       
-                                      {/* Checkbox - aligned with heading */}
-                                      <div className="pt-0.5">
-                                        <Checkbox
-                                          id={`variant-group-${parent.id}`}
-                                          checked={isSelected}
-                                          onCheckedChange={(checked) => {
-                                            if (checked && variants.length > 0) {
-                                              // When checking, select the first variant automatically
-                                              // The handleVariantSelect will handle removing other branding options
-                                              handleVariantSelect(parent.id, variants[0].id);
-                                            } else {
-                                              // Uncheck - remove any selected variant
-                                              handleVariantSelect(parent.id, null);
-                                            }
-                                          }}
-                                          data-testid={`checkbox-variant-${parent.id}`}
-                                        />
-                                      </div>
+                                      {/* Checkbox - centered with heading */}
+                                      <Checkbox
+                                        id={`variant-group-${parent.id}`}
+                                        checked={isSelected}
+                                        onCheckedChange={(checked) => {
+                                          if (checked && variants.length > 0) {
+                                            // When checking, select the first variant automatically
+                                            // The handleVariantSelect will handle removing other branding options
+                                            handleVariantSelect(parent.id, variants[0].id);
+                                          } else {
+                                            // Uncheck - remove any selected variant
+                                            handleVariantSelect(parent.id, null);
+                                          }
+                                        }}
+                                        data-testid={`checkbox-variant-${parent.id}`}
+                                      />
                                       
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
