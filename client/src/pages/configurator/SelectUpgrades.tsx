@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ImageGallery, ImageThumbnail } from "@/components/ImageGallery";
-import { ArrowRight, ArrowLeft, Star } from "lucide-react";
+import { UpgradeDetailsModal } from "@/components/UpgradeDetailsModal";
+import { ArrowRight, ArrowLeft, Star, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -102,6 +103,9 @@ export default function SelectUpgrades() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [galleryTitle, setGalleryTitle] = useState("");
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedUpgrade, setSelectedUpgrade] = useState<Upgrade | null>(null);
+  const [selectedVariants, setSelectedVariants] = useState<Upgrade[]>([]);
 
   const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
     queryKey: ['/api/configurator/data'],
@@ -205,6 +209,12 @@ export default function SelectUpgrades() {
     setGalleryOpen(true);
   };
 
+  const openDetails = (upgrade: Upgrade, variants: Upgrade[] = []) => {
+    setSelectedUpgrade(upgrade);
+    setSelectedVariants(variants);
+    setDetailsModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -295,12 +305,23 @@ export default function SelectUpgrades() {
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
-                                          <label 
-                                            htmlFor={upgrade.id}
-                                            className="font-medium cursor-pointer leading-tight"
-                                          >
-                                            {upgrade.name}
-                                          </label>
+                                          <div className="flex items-center gap-2">
+                                            <label 
+                                              htmlFor={upgrade.id}
+                                              className="font-medium cursor-pointer leading-tight"
+                                            >
+                                              {upgrade.name}
+                                            </label>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6"
+                                              onClick={() => openDetails(upgrade)}
+                                              data-testid={`button-info-${upgrade.id}`}
+                                            >
+                                              <Info className="w-4 h-4" />
+                                            </Button>
+                                          </div>
                                           <div className="flex items-center gap-2 flex-wrap">
                                             {isSelected && upgrade.allowQuantity && (
                                               <div className="flex items-center gap-1">
@@ -394,12 +415,23 @@ export default function SelectUpgrades() {
                                       {/* Content */}
                                       <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
-                                          <label 
-                                            htmlFor={`variant-group-${parent.id}`}
-                                            className="font-medium cursor-pointer leading-tight"
-                                          >
-                                            {parent.name}
-                                          </label>
+                                          <div className="flex items-center gap-2">
+                                            <label 
+                                              htmlFor={`variant-group-${parent.id}`}
+                                              className="font-medium cursor-pointer leading-tight"
+                                            >
+                                              {parent.name}
+                                            </label>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6"
+                                              onClick={() => openDetails(parent, variants)}
+                                              data-testid={`button-info-${parent.id}`}
+                                            >
+                                              <Info className="w-4 h-4" />
+                                            </Button>
+                                          </div>
                                           {selectedVariant ? (
                                             <Badge variant="secondary" className="flex-shrink-0 w-fit">
                                               {formatPrice(selectedVariant.price, parent.name)}
@@ -496,6 +528,15 @@ export default function SelectUpgrades() {
         open={galleryOpen}
         onOpenChange={setGalleryOpen}
       />
+
+      {selectedUpgrade && (
+        <UpgradeDetailsModal
+          open={detailsModalOpen}
+          onOpenChange={setDetailsModalOpen}
+          upgrade={selectedUpgrade}
+          variants={selectedVariants}
+        />
+      )}
     </div>
   );
 }
