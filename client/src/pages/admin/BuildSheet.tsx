@@ -83,10 +83,6 @@ export default function BuildSheet() {
   const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds.includes(u.id));
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
 
-  const formatPrice = (pence: number): string => {
-    return `£${(pence / 100).toFixed(2)}`;
-  };
-
   const formatDate = (dateString: string | Date | null): string => {
     if (!dateString) return "Unknown date";
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -94,6 +90,11 @@ export default function BuildSheet() {
       month: "long",
       year: "numeric",
     });
+  };
+
+  const formatBuildStage = (stage: string | null): string => {
+    if (!stage) return "Not Started";
+    return stage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const handlePrint = () => {
@@ -205,9 +206,25 @@ export default function BuildSheet() {
               </div>
               {quote.notes && (
                 <div className="mt-4">
-                  <p className="text-sm text-muted-foreground">Notes</p>
+                  <p className="text-sm text-muted-foreground">Customer Request Notes</p>
                   <p className="text-sm" data-testid="text-customer-notes">
                     {quote.notes}
+                  </p>
+                </div>
+              )}
+              {quote.adminNotes && (
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground font-semibold">Admin Notes (Internal)</p>
+                  <p className="text-sm whitespace-pre-wrap" data-testid="text-admin-notes">
+                    {quote.adminNotes}
+                  </p>
+                </div>
+              )}
+              {quote.customerNotes && (
+                <div className="mt-4">
+                  <p className="text-sm text-muted-foreground font-semibold">Customer Notes</p>
+                  <p className="text-sm whitespace-pre-wrap" data-testid="text-customer-facing-notes">
+                    {quote.customerNotes}
                   </p>
                 </div>
               )}
@@ -217,14 +234,14 @@ export default function BuildSheet() {
           {van && (
             <Card>
               <CardHeader>
-                <CardTitle>Base Vehicle</CardTitle>
+                <CardTitle>Base Vehicle Specification</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <h3 className="text-lg font-semibold" data-testid="text-van-title">
                     {van.make} {van.model} ({van.year})
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Mileage</p>
                       <p className="font-medium" data-testid="text-van-mileage">
@@ -238,24 +255,33 @@ export default function BuildSheet() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Fuel</p>
+                      <p className="text-muted-foreground">Fuel Type</p>
                       <p className="font-medium" data-testid="text-van-fuel">
                         {van.specs.fuel}
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Size</p>
+                      <p className="text-muted-foreground">Size/Body Type</p>
                       <p className="font-medium" data-testid="text-van-size">
                         {van.specs.size}
                       </p>
                     </div>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium">Van Price</p>
-                    <p className="text-lg font-bold" data-testid="text-van-price">
-                      {formatPrice(van.price)}
-                    </p>
+                    {van.specs.engine && (
+                      <div>
+                        <p className="text-muted-foreground">Engine</p>
+                        <p className="font-medium" data-testid="text-van-engine">
+                          {van.specs.engine}
+                        </p>
+                      </div>
+                    )}
+                    {van.specs.doors && (
+                      <div>
+                        <p className="text-muted-foreground">Doors</p>
+                        <p className="font-medium" data-testid="text-van-doors">
+                          {van.specs.doors}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -265,10 +291,10 @@ export default function BuildSheet() {
           {kit && (
             <Card>
               <CardHeader>
-                <CardTitle>Equipment Package</CardTitle>
+                <CardTitle>Equipment Package - To Install</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <h3 className="text-lg font-semibold" data-testid="text-kit-name">
                     {kit.name}
                   </h3>
@@ -276,21 +302,14 @@ export default function BuildSheet() {
                     {kit.description}
                   </p>
                   <div className="mt-3">
-                    <p className="text-sm font-medium mb-2">Package Includes:</p>
-                    <ul className="list-disc list-inside space-y-1 text-sm">
+                    <p className="text-sm font-semibold mb-2 text-foreground">Items to Install:</p>
+                    <ul className="list-disc list-inside space-y-1.5 text-sm">
                       {kit.includes.map((item, idx) => (
-                        <li key={idx} data-testid={`text-kit-includes-${idx}`}>
+                        <li key={idx} className="font-medium" data-testid={`text-kit-includes-${idx}`}>
                           {item}
                         </li>
                       ))}
                     </ul>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium">Package Price</p>
-                    <p className="text-lg font-bold" data-testid="text-kit-price">
-                      {formatPrice(kit.price)}
-                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -300,82 +319,35 @@ export default function BuildSheet() {
           {upgrades.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Additional Equipment & Upgrades</CardTitle>
+                <CardTitle>Additional Equipment & Upgrades - To Install</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {upgrades.map((upgrade) => (
-                    <div
-                      key={upgrade.id}
-                      className="flex justify-between items-start border-b pb-2 last:border-0"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium" data-testid={`text-upgrade-name-${upgrade.id}`}>
-                          {upgrade.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground" data-testid={`text-upgrade-description-${upgrade.id}`}>
-                          {upgrade.description}
-                        </p>
+                  {upgrades.map((upgrade) => {
+                    const quantity = quote.selectedUpgrades?.[upgrade.id] || 1;
+                    return (
+                      <div
+                        key={upgrade.id}
+                        className="border-b pb-3 last:border-0"
+                      >
+                        <div className="flex items-start gap-2">
+                          {quantity > 1 && (
+                            <span className="font-bold text-accent text-lg">
+                              {quantity}×
+                            </span>
+                          )}
+                          <div className="flex-1">
+                            <p className="font-semibold" data-testid={`text-upgrade-name-${upgrade.id}`}>
+                              {upgrade.name}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-upgrade-description-${upgrade.id}`}>
+                              {upgrade.description}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="font-medium ml-4 whitespace-nowrap" data-testid={`text-upgrade-price-${upgrade.id}`}>
-                        {formatPrice(upgrade.price)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {financePlan && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Finance Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold" data-testid="text-finance-name">
-                    {financePlan.name}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Type</p>
-                      <p className="font-medium" data-testid="text-finance-type">
-                        {financePlan.type === 'HP' ? 'Hire Purchase' : 'Lease'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Term</p>
-                      <p className="font-medium" data-testid="text-finance-term">
-                        {financePlan.termMonths} months
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">APR</p>
-                      <p className="font-medium" data-testid="text-finance-apr">
-                        {(financePlan.aprBps / 100).toFixed(2)}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Deposit</p>
-                      <p className="font-medium" data-testid="text-finance-deposit">
-                        {financePlan.depositPercent}%
-                      </p>
-                    </div>
-                    {financePlan.balloonPercent && (
-                      <div>
-                        <p className="text-muted-foreground">Balloon Payment</p>
-                        <p className="font-medium" data-testid="text-finance-balloon">
-                          {financePlan.balloonPercent}%
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  {financePlan.notes && (
-                    <p className="text-sm text-muted-foreground mt-2" data-testid="text-finance-notes">
-                      {financePlan.notes}
-                    </p>
-                  )}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -383,37 +355,45 @@ export default function BuildSheet() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Price Summary</CardTitle>
+              <CardTitle>Build Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium" data-testid="text-subtotal">
-                    {formatPrice(quote.estSubtotal)}
-                  </span>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Build Stage</p>
+                  <p className="text-lg font-semibold" data-testid="text-build-stage">
+                    {formatBuildStage(quote.buildStage)}
+                  </p>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">VAT (20%)</span>
-                  <span className="font-medium" data-testid="text-vat">
-                    {formatPrice(quote.estVAT)}
-                  </span>
+                <div>
+                  <p className="text-sm text-muted-foreground">Quote Status</p>
+                  <p className="font-medium" data-testid="text-quote-status">
+                    {quote.status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                  </p>
                 </div>
-                <Separator />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className="text-accent" data-testid="text-total">
-                    {formatPrice(quote.estTotal)}
-                  </span>
-                </div>
+                {quote.graphicsArtworkUrl && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Graphics Artwork</p>
+                    <p className="font-medium text-accent" data-testid="text-artwork-status">
+                      Artwork uploaded - See attached file
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="mt-8 text-center text-sm text-muted-foreground print:mt-16">
-          <p>This is a build specification sheet for internal use only.</p>
-          <p>Final pricing and specifications subject to confirmation.</p>
+        <div className="mt-8 p-4 bg-muted/50 rounded-lg print:mt-16">
+          <p className="text-sm font-semibold text-center mb-2">Build Team Instructions</p>
+          <ul className="text-sm space-y-1 list-disc list-inside">
+            <li>This is a build specification sheet for internal use only</li>
+            <li>Verify all equipment and parts are available before starting build</li>
+            <li>Check vehicle condition and note any pre-existing damage</li>
+            <li>Follow installation guides for all equipment packages</li>
+            <li>Test all installed equipment before sign-off</li>
+            <li>Update build stage in system as work progresses</li>
+          </ul>
         </div>
       </div>
     </>

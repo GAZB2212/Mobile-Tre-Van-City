@@ -44,6 +44,15 @@ Preferred communication style: Simple, everyday language.
 - **Pricing Engine**: Dynamic calculation system with VAT handling and currency formatting
 - **Lead Generation**: Form capture with email notifications and quote generation
 - **Content Management**: Admin interface for managing inventory, finance plans, and leads
+- **Build Sheet System**: Practical build documentation for technicians
+  - No pricing information (internal use only)
+  - Full vehicle specifications and technical details
+  - Complete equipment list with installation details
+  - Quantities displayed for multi-item upgrades
+  - Admin notes and customer notes included
+  - Current build stage and quote status
+  - Build team instructions checklist
+  - Printable format for workshop use
 - **Staff-Driven Quote Workflow**: Comprehensive quote management system with no customer accounts required
   - Customer submits quote request via configurator
   - Staff review quote in admin panel and can apply discounts (percentage or fixed amount)
