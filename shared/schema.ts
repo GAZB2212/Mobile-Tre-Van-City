@@ -84,9 +84,10 @@ export const upgradeCategories = [
 ] as const;
 
 // Quote status enums
-export const quoteStatuses = ["pending", "approved", "in_progress", "completed", "cancelled"] as const;
+export const quoteStatuses = ["pending", "under_review", "awaiting_confirmation", "confirmed", "in_progress", "completed", "cancelled"] as const;
 export const buildStages = ["graphics", "electrical_systems", "accessories", "emergency_lighting", "tyre_equipment", "final_checks", "valet"] as const;
 export const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
+export const discountTypes = ["percentage", "fixed"] as const;
 
 export const upgrades = pgTable("upgrades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -130,6 +131,17 @@ export const quotes = pgTable("quotes", {
   estSubtotal: integer("est_subtotal").notNull(), // in pence
   estVAT: integer("est_vat").notNull(), // in pence
   estTotal: integer("est_total").notNull(), // in pence
+  
+  // Admin adjustments
+  discountType: text("discount_type"), // "percentage" or "fixed"
+  discountValue: integer("discount_value"), // percentage (e.g., 10 = 10%) or pence amount
+  adminNotes: text("admin_notes"), // Internal notes for staff
+  customerNotes: text("customer_notes"), // Notes shown to customer
+  
+  // Quote confirmation
+  confirmationToken: text("confirmation_token").unique(), // Unique token for customer confirmation link
+  confirmedAt: timestamp("confirmed_at"), // When customer confirmed the quote
+  
   status: text("status").notNull().default("pending"),
   buildStage: text("build_stage"),
   financeStatus: text("finance_status").notNull().default("pending"),
