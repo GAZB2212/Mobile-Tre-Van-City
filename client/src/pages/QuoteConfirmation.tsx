@@ -378,12 +378,15 @@ export default function QuoteConfirmation() {
                       
                       let monthlyPayment = 0;
                       if (monthlyRate > 0) {
-                        const netFinance = amountToFinance - balloonAmount;
+                        // For balloon payments, subtract the present value of the balloon
+                        const balloonPV = balloonAmount / Math.pow(1 + monthlyRate, termMonths);
+                        const netFinance = amountToFinance - balloonPV;
                         monthlyPayment = Math.round(
                           (netFinance * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
                           (Math.pow(1 + monthlyRate, termMonths) - 1)
                         );
                       } else {
+                        // Zero interest - simple division
                         monthlyPayment = Math.round((amountToFinance - balloonAmount) / termMonths);
                       }
 
