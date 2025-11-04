@@ -12,7 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, UserCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LogIn, UserCircle, UserPlus } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -21,12 +22,25 @@ const loginSchema = z.object({
 
 type LoginData = z.infer<typeof loginSchema>;
 
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type RegisterData = z.infer<typeof registerSchema>;
+
 export default function CustomerLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
-  const form = useForm<LoginData>({
+  const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -34,7 +48,17 @@ export default function CustomerLogin() {
     },
   });
 
-  const onSubmit = async (data: LoginData) => {
+  const registerForm = useForm<RegisterData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onLogin = async (data: LoginData) => {
     setIsLoading(true);
     try {
       const response = await apiRequest('POST', '/api/auth/login', data) as unknown as { user: { id: string; email: string; username: string | null; isAdmin: boolean } };
@@ -69,6 +93,33 @@ export default function CustomerLogin() {
     }
   };
 
+  const onRegister = async (data: RegisterData) => {
+    setIsRegistering(true);
+    try {
+      await apiRequest('POST', '/api/customer/register', {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+      });
+      
+      toast({
+        title: "Account Created!",
+        description: "Your account has been created successfully. You can now log in.",
+      });
+      
+      // Redirect to dashboard after registration
+      setLocation('/customer/dashboard');
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Failed to create account. You may already have an account with this email.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -78,26 +129,33 @@ export default function CustomerLogin() {
           <div className="text-center mb-8">
             <UserCircle className="w-16 h-16 text-accent mx-auto mb-4" />
             <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-              Customer Login
+              Customer Portal
             </h1>
             <p className="text-muted-foreground">
               Access your quotes and account
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Sign In</CardTitle>
-              <CardDescription>
-                Enter your email and password to continue
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
+              <TabsTrigger value="register" data-testid="tab-register">Create Account</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sign In</CardTitle>
+                  <CardDescription>
+                    Enter your email and password to continue
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...loginForm}>
+                    <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                      <FormField
+                        control={loginForm.control}
+                        name="email"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Email</FormLabel>
@@ -114,9 +172,9 @@ export default function CustomerLogin() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="password"
+                      <FormField
+                        control={loginForm.control}
+                        name="password"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Password</FormLabel>
@@ -133,45 +191,144 @@ export default function CustomerLogin() {
                     )}
                   />
 
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-accent text-accent-foreground"
-                    disabled={isLoading}
-                    data-testid="button-login"
-                  >
-                    {isLoading ? (
-                      <>
-                        <LoadingSpinner className="mr-2" />
-                        Signing In...
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="w-4 h-4 mr-2" />
-                        Sign In
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </Form>
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-accent text-accent-foreground"
+                        disabled={isLoading}
+                        data-testid="button-login"
+                      >
+                        {isLoading ? (
+                          <>
+                            <LoadingSpinner className="mr-2" />
+                            Signing In...
+                          </>
+                        ) : (
+                          <>
+                            <LogIn className="w-4 h-4 mr-2" />
+                            Sign In
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-              <div className="mt-6 pt-6 border-t text-center">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Don't have an account yet?
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Submit a quote request and you'll be able to create an account after submission.
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setLocation('/configurator/van')}
-                  className="mt-3"
-                  data-testid="button-start-quote"
-                >
-                  Start a Quote Request
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <TabsContent value="register">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Account</CardTitle>
+                  <CardDescription>
+                    Create an account to track your quotes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...registerForm}>
+                    <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                      <FormField
+                        control={registerForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="John Smith" 
+                                {...field} 
+                                data-testid="input-register-name"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="your@email.com" 
+                                {...field} 
+                                data-testid="input-register-email"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={registerForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="password" 
+                                placeholder="Min 8 characters" 
+                                {...field} 
+                                data-testid="input-register-password"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={registerForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="password" 
+                                placeholder="Re-enter password" 
+                                {...field} 
+                                data-testid="input-register-confirm-password"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-accent text-accent-foreground"
+                        disabled={isRegistering}
+                        data-testid="button-register"
+                      >
+                        {isRegistering ? (
+                          <>
+                            <LoadingSpinner className="mr-2" />
+                            Creating Account...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Create Account
+                          </>
+                        )}
+                      </Button>
+
+                      <p className="text-sm text-muted-foreground text-center mt-4">
+                        Any previous quotes with this email will be automatically linked to your account.
+                      </p>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
