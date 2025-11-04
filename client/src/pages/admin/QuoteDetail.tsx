@@ -30,9 +30,62 @@ import {
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
+import { upgradeCategories } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
+
+// Helper to transform upgrades with variations
+interface UpgradeGroup {
+  parent: Upgrade;
+  variants: Upgrade[];
+}
+
+function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; standalone: Upgrade[] } {
+  const groups: UpgradeGroup[] = [];
+  const standalone: Upgrade[] = [];
+  
+  const parentIds = new Set<string>();
+  const childIds = new Set<string>();
+  
+  upgrades.forEach(upgrade => {
+    if (upgrade.parentId) {
+      childIds.add(upgrade.id);
+      parentIds.add(upgrade.parentId);
+    }
+  });
+  
+  const parentMap = new Map<string, UpgradeGroup>();
+  upgrades.forEach(upgrade => {
+    if (upgrade.parentId) {
+      let group = parentMap.get(upgrade.parentId);
+      if (!group) {
+        const parent = upgrades.find(u => u.id === upgrade.parentId);
+        if (parent) {
+          group = { parent, variants: [] };
+          parentMap.set(upgrade.parentId, group);
+        }
+      }
+      if (group) {
+        group.variants.push(upgrade);
+      }
+    }
+  });
+  
+  upgrades.forEach(upgrade => {
+    if (!upgrade.parentId && !parentIds.has(upgrade.id)) {
+      standalone.push(upgrade);
+    }
+  });
+  
+  return {
+    groups: Array.from(parentMap.values()).map(g => ({
+      ...g,
+      variants: g.variants.sort((a, b) => a.sortOrder - b.sortOrder)
+    })),
+    standalone: standalone.sort((a, b) => a.sortOrder - b.sortOrder)
+  };
+}
 
 const quoteStatuses = ["pending", "under_review", "awaiting_confirmation", "confirmed", "in_progress", "completed", "cancelled"] as const;
 const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
@@ -67,6 +120,9 @@ export default function AdminQuoteDetail() {
   const [selectedKitId, setSelectedKitId] = useState<string | null>(null);
   const [selectedUpgradeIds, setSelectedUpgradeIds] = useState<string[]>([]);
   const [selectedUpgrades, setSelectedUpgrades] = useState<Record<string, number>>({});
+  
+  // Track originally selected items from customer's quote (for highlighting)
+  const [originalUpgradeIds, setOriginalUpgradeIds] = useState<string[]>([]);
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
@@ -103,6 +159,7 @@ export default function AdminQuoteDetail() {
       setSelectedKitId(quote.kitId || null);
       setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setSelectedUpgrades(quote.selectedUpgrades || {});
+      setOriginalUpgradeIds(quote.selectedUpgradeIds || []);
     }
   }, [quote]);
 
@@ -437,51 +494,148 @@ export default function AdminQuoteDetail() {
                   </Select>
                 </div>
 
-                {/* Upgrades Selection */}
+                {/* Upgrades Selection - Organized by Category */}
                 <div>
                   <Label>Equipment & Upgrades</Label>
-                  <div className="mt-2 space-y-3 max-h-96 overflow-y-auto border rounded-md p-4">
-                    {upgrades.filter(u => u.published && !u.parentId).map((upgrade) => {
-                      const isSelected = selectedUpgradeIds.includes(upgrade.id);
-                      const quantity = selectedUpgrades[upgrade.id] || 1;
+                  <p className="text-xs text-muted-foreground mt-1 mb-3">
+                    Items with a yellow background were originally selected by the customer
+                  </p>
+                  <div className="mt-2 space-y-4 max-h-96 overflow-y-auto border rounded-md p-4">
+                    {upgradeCategories.map((category) => {
+                      const categoryUpgrades = upgrades.filter(u => u.published && u.category === category);
+                      if (categoryUpgrades.length === 0) return null;
+                      
+                      const { groups, standalone } = groupUpgradeVariations(categoryUpgrades);
                       
                       return (
-                        <div key={upgrade.id} className="flex items-start gap-3">
-                          <Checkbox
-                            id={`upgrade-${upgrade.id}`}
-                            checked={isSelected}
-                            onCheckedChange={() => handleUpgradeToggle(upgrade.id, upgrade)}
-                            data-testid={`checkbox-upgrade-${upgrade.id}`}
-                          />
-                          <div className="flex-1">
-                            <label
-                              htmlFor={`upgrade-${upgrade.id}`}
-                              className="text-sm font-medium cursor-pointer"
-                            >
-                              {upgrade.name} - £{(upgrade.price / 100).toLocaleString()}
-                            </label>
-                            {upgrade.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {upgrade.description}
-                              </p>
-                            )}
-                            {isSelected && upgrade.allowQuantity && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <Label htmlFor={`qty-${upgrade.id}`} className="text-xs">
-                                  Quantity:
-                                </Label>
-                                <Input
-                                  id={`qty-${upgrade.id}`}
-                                  type="number"
-                                  min="1"
-                                  value={quantity}
-                                  onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value))}
-                                  className="w-20 h-8 text-sm"
-                                  data-testid={`input-quantity-${upgrade.id}`}
-                                />
-                              </div>
-                            )}
+                        <div key={category} className="space-y-3">
+                          <div className="text-sm font-semibold text-foreground border-b pb-1">
+                            {category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
                           </div>
+                          
+                          {/* Standalone upgrades with checkbox */}
+                          {standalone.map((upgrade) => {
+                            const isSelected = selectedUpgradeIds.includes(upgrade.id);
+                            const wasOriginallySelected = originalUpgradeIds.includes(upgrade.id);
+                            const quantity = selectedUpgrades[upgrade.id] || 1;
+                            
+                            return (
+                              <div 
+                                key={upgrade.id} 
+                                className={`flex items-start gap-3 p-2 rounded ${wasOriginallySelected ? 'bg-yellow-100 dark:bg-yellow-900/20' : ''}`}
+                              >
+                                <Checkbox
+                                  id={`upgrade-${upgrade.id}`}
+                                  checked={isSelected}
+                                  onCheckedChange={() => handleUpgradeToggle(upgrade.id, upgrade)}
+                                  data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <label
+                                    htmlFor={`upgrade-${upgrade.id}`}
+                                    className="text-sm font-medium cursor-pointer"
+                                  >
+                                    {upgrade.name} - £{(upgrade.price / 100).toLocaleString()}
+                                  </label>
+                                  {upgrade.description && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {upgrade.description}
+                                    </p>
+                                  )}
+                                  {isSelected && upgrade.allowQuantity && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Label htmlFor={`qty-${upgrade.id}`} className="text-xs">
+                                        Quantity:
+                                      </Label>
+                                      <Input
+                                        id={`qty-${upgrade.id}`}
+                                        type="number"
+                                        min="1"
+                                        value={quantity}
+                                        onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value))}
+                                        className="w-20 h-8 text-sm"
+                                        data-testid={`input-quantity-${upgrade.id}`}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Grouped upgrades with variants */}
+                          {groups.map(({ parent, variants }) => {
+                            const selectedVariantId = selectedUpgradeIds.find(id => 
+                              variants.some(v => v.id === id)
+                            );
+                            const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                            const wasOriginallySelected = originalUpgradeIds.some(id => 
+                              variants.some(v => v.id === id)
+                            );
+                            const quantity = selectedVariant ? (selectedUpgrades[selectedVariant.id] || 1) : 1;
+                            
+                            return (
+                              <div 
+                                key={parent.id} 
+                                className={`p-2 rounded ${wasOriginallySelected ? 'bg-yellow-100 dark:bg-yellow-900/20' : ''}`}
+                              >
+                                <Label className="text-sm font-medium">{parent.name}</Label>
+                                {parent.description && (
+                                  <p className="text-xs text-muted-foreground mb-2">{parent.description}</p>
+                                )}
+                                <Select
+                                  value={selectedVariantId || "none"}
+                                  onValueChange={(value) => {
+                                    if (value === "none") {
+                                      variants.forEach(v => {
+                                        if (selectedUpgradeIds.includes(v.id)) {
+                                          handleUpgradeToggle(v.id, v);
+                                        }
+                                      });
+                                    } else {
+                                      variants.forEach(v => {
+                                        if (selectedUpgradeIds.includes(v.id)) {
+                                          handleUpgradeToggle(v.id, v);
+                                        }
+                                      });
+                                      const variant = variants.find(v => v.id === value);
+                                      if (variant) {
+                                        handleUpgradeToggle(variant.id, variant);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="mt-2">
+                                    <SelectValue placeholder="Select option" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    {variants.map((variant) => (
+                                      <SelectItem key={variant.id} value={variant.id}>
+                                        {variant.name} - £{(variant.price / 100).toLocaleString()}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {selectedVariant && selectedVariant.allowQuantity && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Label htmlFor={`qty-${selectedVariant.id}`} className="text-xs">
+                                      Quantity:
+                                    </Label>
+                                    <Input
+                                      id={`qty-${selectedVariant.id}`}
+                                      type="number"
+                                      min="1"
+                                      value={quantity}
+                                      onChange={(e) => handleQuantityChange(selectedVariant.id, parseInt(e.target.value))}
+                                      className="w-20 h-8 text-sm"
+                                      data-testid={`input-quantity-${selectedVariant.id}`}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })}

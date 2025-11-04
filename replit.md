@@ -53,6 +53,12 @@ Preferred communication style: Simple, everyday language.
     - Change van selection or remove van entirely (nullable field)
     - Change kit selection or remove kit (nullable field with migration support)
     - Add or remove equipment/upgrades with quantity support
+    - **Equipment Editor Organization**: Matches configurator layout exactly
+      - Organized by category (tyre_equipment, air_compressors, etc.)
+      - Displays in admin-defined sort order via sortOrder field
+      - Supports both standalone items (checkboxes) and variant groups (dropdowns)
+      - Originally selected items highlighted with yellow background for visibility
+      - Staff can add new items or remove customer selections
     - Server-side pricing recalculation includes van, kit, upgrades, and training options
     - All pricing changes validated server-side to ensure data integrity
     - Real-time preview of updated pricing before saving
