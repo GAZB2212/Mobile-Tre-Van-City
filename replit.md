@@ -55,7 +55,7 @@ Preferred communication style: Simple, everyday language.
   - Printable format for workshop use
 - **Staff-Driven Quote Workflow**: Comprehensive quote management system with no customer accounts required
   - Customer submits quote request via configurator
-  - Staff review quote in admin panel and can apply discounts (percentage or fixed amount)
+  - Staff review quote in admin panel and can apply discounts (percentage or fixed amount in pounds and pence)
   - Two types of notes: adminNotes (internal staff reference) and customerNotes (shown to customer)
   - **Real-Time Pricing**: Price summary updates dynamically when staff modify configuration
     - Recalculates total based on current van, kit, and equipment selections

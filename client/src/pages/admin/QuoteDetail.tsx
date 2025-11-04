@@ -170,7 +170,16 @@ export default function AdminQuoteDetail() {
       setBuildStage(quote.buildStage || "");
       setArtworkUrl(quote.graphicsArtworkUrl || "");
       setDiscountType(quote.discountType as any || "");
-      setDiscountValue(quote.discountValue ? String(quote.discountValue) : "");
+      // Convert discount from pence to pounds for fixed amounts
+      if (quote.discountValue) {
+        if (quote.discountType === "fixed") {
+          setDiscountValue(String(quote.discountValue / 100));
+        } else {
+          setDiscountValue(String(quote.discountValue));
+        }
+      } else {
+        setDiscountValue("");
+      }
       setAdminNotes(quote.adminNotes || "");
       setCustomerNotes(quote.customerNotes || "");
       
@@ -369,13 +378,24 @@ export default function AdminQuoteDetail() {
   };
 
   const handleSave = () => {
+    // Convert discount value to pence based on type
+    let discountValueInPence = null;
+    if (discountValue) {
+      if (discountType === "percentage") {
+        discountValueInPence = parseInt(discountValue);
+      } else if (discountType === "fixed") {
+        // Convert pounds to pence
+        discountValueInPence = Math.round(parseFloat(discountValue) * 100);
+      }
+    }
+    
     const updates: any = {
       status,
       financeStatus,
       buildStage: buildStage || null,
       graphicsArtworkUrl: artworkUrl || null,
       discountType: discountType || null,
-      discountValue: discountValue ? parseInt(discountValue) : null,
+      discountValue: discountValueInPence,
       adminNotes: adminNotes || null,
       customerNotes: customerNotes || null,
       selectedUpgradeIds,
@@ -397,11 +417,12 @@ export default function AdminQuoteDetail() {
     let discountAmount = 0;
 
     if (discountType && discountValue) {
-      const value = parseInt(discountValue);
       if (discountType === "percentage") {
-        discountAmount = Math.round((subtotal * value) / 100);
+        const percentValue = parseInt(discountValue);
+        discountAmount = Math.round((subtotal * percentValue) / 100);
       } else if (discountType === "fixed") {
-        discountAmount = value;
+        // Convert pounds to pence for calculation
+        discountAmount = Math.round(parseFloat(discountValue) * 100);
       }
     }
 
@@ -1037,19 +1058,21 @@ export default function AdminQuoteDetail() {
                 {discountType && (
                   <div>
                     <Label htmlFor="discount-value">
-                      {discountType === "percentage" ? "Percentage" : "Amount (in pence)"}
+                      {discountType === "percentage" ? "Percentage" : "Amount (£)"}
                     </Label>
                     <Input
                       id="discount-value"
                       type="number"
+                      step={discountType === "fixed" ? "0.01" : "1"}
+                      min="0"
                       value={discountValue}
                       onChange={(e) => setDiscountValue(e.target.value)}
-                      placeholder={discountType === "percentage" ? "e.g., 10" : "e.g., 50000"}
+                      placeholder={discountType === "percentage" ? "e.g., 10" : "e.g., 50.00"}
                       data-testid="input-discount-value"
                     />
                     {discountType === "fixed" && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Enter amount in pence (e.g., 50000 = £500)
+                        Enter amount in pounds (e.g., 50.00 = £50.00)
                       </p>
                     )}
                   </div>
