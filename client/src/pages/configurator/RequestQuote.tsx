@@ -145,8 +145,47 @@ export default function RequestQuote() {
     },
   });
 
+  const accountForm = useForm<AccountCreationData>({
+    resolver: zodResolver(accountCreationSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: async (data: AccountCreationData) => {
+      return apiRequest('POST', '/api/auth/register', {
+        email: submittedEmail,
+        password: data.password,
+      });
+    },
+    onSuccess: () => {
+      setAccountCreated(true);
+      toast({
+        title: "Account Created!",
+        description: "You can now log in to view your quotes.",
+      });
+      // Redirect to customer dashboard after a brief delay
+      setTimeout(() => {
+        setLocation('/customer/dashboard');
+      }, 2000);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create account. You may already have an account with this email.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: QuoteFormData) => {
     submitQuoteMutation.mutate(data);
+  };
+
+  const onCreateAccount = (data: AccountCreationData) => {
+    createAccountMutation.mutate(data);
   };
 
   const formatPrice = (price: number) => {
@@ -182,21 +221,169 @@ export default function RequestQuote() {
         <Header />
         
         <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center py-20">
-            <CheckCircle className="w-20 h-20 text-accent mx-auto mb-6" />
-            <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-success-title">
-              Quote Request Submitted!
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              Thank you for your interest. Our team will review your configuration and contact you shortly with a detailed quote.
-            </p>
+          <div className="max-w-2xl mx-auto py-20">
+            <div className="text-center mb-8">
+              <CheckCircle className="w-20 h-20 text-accent mx-auto mb-6" />
+              <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-success-title">
+                Quote Request Submitted!
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Thank you for your interest. Our team will review your configuration and contact you shortly with a detailed quote.
+              </p>
+            </div>
+
+            {!showAccountCreation && !accountCreated && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <UserPlus className="w-6 h-6 text-accent" />
+                    <div>
+                      <CardTitle>Create an Account (Optional)</CardTitle>
+                      <CardDescription>
+                        View and track your quotes anytime
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Create a free account to access your quote history and track the status of your requests.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => setShowAccountCreation(true)}
+                      data-testid="button-create-account"
+                    >
+                      Create Account
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setLocation('/')}
+                      data-testid="button-skip-account"
+                    >
+                      Skip for Now
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {showAccountCreation && !accountCreated && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>Create Your Account</CardTitle>
+                  <CardDescription>
+                    Set a password to access your account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...accountForm}>
+                    <form onSubmit={accountForm.handleSubmit(onCreateAccount)} className="space-y-4">
+                      <div>
+                        <FormLabel>Email</FormLabel>
+                        <Input 
+                          value={submittedEmail} 
+                          disabled 
+                          className="bg-muted"
+                          data-testid="input-account-email"
+                        />
+                      </div>
+
+                      <FormField
+                        control={accountForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="password" 
+                                placeholder="Enter password (min 8 characters)" 
+                                {...field} 
+                                data-testid="input-account-password"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={accountForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="password" 
+                                placeholder="Re-enter password" 
+                                {...field} 
+                                data-testid="input-account-confirm-password"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex gap-3">
+                        <Button 
+                          type="submit"
+                          disabled={createAccountMutation.isPending}
+                          data-testid="button-submit-account"
+                        >
+                          {createAccountMutation.isPending ? (
+                            <>
+                              <LoadingSpinner className="mr-2" />
+                              Creating Account...
+                            </>
+                          ) : (
+                            'Create Account'
+                          )}
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAccountCreation(false)}
+                          disabled={createAccountMutation.isPending}
+                          data-testid="button-cancel-account"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
+
+            {accountCreated && (
+              <Card className="mb-8 border-accent">
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <CheckCircle className="w-12 h-12 text-accent mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold mb-2">Account Created Successfully!</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Redirecting you to your dashboard...
+                    </p>
+                    <LoadingSpinner className="mx-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex gap-4 justify-center">
-              <Button onClick={() => setLocation('/')} data-testid="button-home">
-                Back to Home
-              </Button>
-              <Button variant="outline" onClick={() => setLocation('/stock')} data-testid="button-browse-stock">
-                Browse More Vans
-              </Button>
+              {!accountCreated && (
+                <>
+                  <Button onClick={() => setLocation('/')} data-testid="button-home">
+                    Back to Home
+                  </Button>
+                  <Button variant="outline" onClick={() => setLocation('/stock')} data-testid="button-browse-stock">
+                    Browse More Vans
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </main>
