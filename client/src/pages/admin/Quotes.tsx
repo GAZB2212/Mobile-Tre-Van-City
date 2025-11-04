@@ -433,7 +433,7 @@ export default function AdminQuotes() {
                       </CardDescription>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-primary" data-testid={`quote-total-${quote.id}`}>
+                      <div className="text-2xl font-bold text-foreground" data-testid={`quote-total-${quote.id}`}>
                         {formatPrice(quote.estTotal)}
                       </div>
                       <div className="text-sm text-muted-foreground">
