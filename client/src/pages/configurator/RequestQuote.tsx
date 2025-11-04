@@ -44,6 +44,7 @@ export default function RequestQuote() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [submittedName, setSubmittedName] = useState("");
   const [showAccountCreation, setShowAccountCreation] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
 
@@ -130,6 +131,7 @@ export default function RequestQuote() {
       queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
       setSubmitted(true);
       setSubmittedEmail(variables.email);
+      setSubmittedName(variables.userName);
       clearAll();
       toast({
         title: "Quote Requested!",
@@ -155,9 +157,10 @@ export default function RequestQuote() {
 
   const createAccountMutation = useMutation({
     mutationFn: async (data: AccountCreationData) => {
-      return apiRequest('POST', '/api/auth/register', {
+      return apiRequest('POST', '/api/customer/register', {
         email: submittedEmail,
         password: data.password,
+        name: submittedName,
       });
     },
     onSuccess: () => {
@@ -246,24 +249,32 @@ export default function RequestQuote() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Create a free account to access your quote history and track the status of your requests.
-                  </p>
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={() => setShowAccountCreation(true)}
-                      data-testid="button-create-account"
-                    >
-                      Create Account
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => setLocation('/')}
-                      data-testid="button-skip-account"
-                    >
-                      Skip for Now
-                    </Button>
-                  </div>
+                  {!submittedName ? (
+                    <p className="text-sm text-muted-foreground">
+                      Account creation requires a name. Please submit a new quote with your name to create an account.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Create a free account to access your quote history and track the status of your requests.
+                      </p>
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => setShowAccountCreation(true)}
+                          data-testid="button-create-account"
+                        >
+                          Create Account
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => setLocation('/')}
+                          data-testid="button-skip-account"
+                        >
+                          Skip for Now
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}
