@@ -1339,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Serve static assets (videos, images) from attached_assets folder
-  // This works in both development and production
+  // Supports HTTP range requests for video streaming
   app.get("/assets/:filename(*)", (req, res) => {
     try {
       const filename = req.params.filename;
@@ -1352,6 +1352,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('❌ Asset not found:', assetsPath);
         return res.status(404).send('Asset not found');
       }
+      
+      // Get file stats
+      const stat = fs.statSync(assetsPath);
+      const fileSize = stat.size;
       
       // Set appropriate headers for videos
       const ext = path.extname(filename).toLowerCase();
@@ -1368,16 +1372,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const contentType = mimeTypes[ext] || 'application/octet-stream';
       
-      // Set CORS and caching headers
+      // Set common headers
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
       
-      // Stream the file
-      const fileStream = fs.createReadStream(assetsPath);
-      fileStream.pipe(res);
+      // Handle range requests for video streaming
+      const range = req.headers.range;
       
-      console.log('✅ Serving asset:', filename);
+      if (range) {
+        // Parse range header (e.g., "bytes=0-1023")
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = (end - start) + 1;
+        
+        // Create read stream for the requested range
+        const fileStream = fs.createReadStream(assetsPath, { start, end });
+        
+        // Set partial content headers
+        res.status(206); // Partial Content
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Content-Length', chunkSize);
+        
+        fileStream.pipe(res);
+        console.log(`✅ Serving asset (range ${start}-${end}):`, filename);
+      } else {
+        // No range request, send entire file
+        res.setHeader('Content-Length', fileSize);
+        res.setHeader('Accept-Ranges', 'bytes');
+        
+        const fileStream = fs.createReadStream(assetsPath);
+        fileStream.pipe(res);
+        console.log('✅ Serving asset (full):', filename);
+      }
     } catch (error) {
       console.error('Error serving static asset:', error);
       res.status(500).send('Error serving asset');
