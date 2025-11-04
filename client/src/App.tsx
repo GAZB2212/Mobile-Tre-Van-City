@@ -24,6 +24,8 @@ import SelectTraining from "@/pages/configurator/SelectTraining";
 import SelectFinance from "@/pages/configurator/SelectFinance";
 import RequestQuote from "@/pages/configurator/RequestQuote";
 import Login from "@/pages/Login";
+import CustomerLogin from "@/pages/CustomerLogin";
+import CustomerDashboard from "@/pages/CustomerDashboard";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminVans from "@/pages/admin/Vans";
 import AdminKits from "@/pages/admin/Kits";
@@ -67,6 +69,9 @@ function Router() {
       <Route path="/configurator/quote" component={RequestQuote} />
       {/* Auth routes */}
       <Route path="/login" component={Login} />
+      {/* Customer routes */}
+      <Route path="/customer/login" component={CustomerLogin} />
+      <Route path="/customer/dashboard" component={CustomerDashboard} />
       {/* Customer portal routes */}
       <Route path="/portal" component={Portal} />
       <Route path="/portal/configuration/:id" component={ConfigurationDetail} />

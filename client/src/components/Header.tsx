@@ -123,7 +123,7 @@ export default function Header() {
                 data-testid="button-login"
                 className="hidden lg:flex"
               >
-                <Link href="/login">
+                <Link href="/customer/login">
                   <User className="w-4 h-4 mr-1" />
                   Customer Login
                 </Link>
@@ -137,9 +137,9 @@ export default function Header() {
                 data-testid="button-portal"
                 className="hidden lg:flex"
               >
-                <Link href="/portal">
-                  <Package className="w-4 h-4 mr-1" />
-                  My Builds
+                <Link href="/customer/dashboard">
+                  <User className="w-4 h-4 mr-1" />
+                  My Account
                 </Link>
               </Button>
             )}
@@ -210,9 +210,9 @@ export default function Header() {
                       )}
                       {!user?.isAdmin && (
                         <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
-                          <Link href="/portal" data-testid="mobile-link-portal">
-                            <Package className="w-4 h-4 mr-2" />
-                            My Builds
+                          <Link href="/customer/dashboard" data-testid="mobile-link-portal">
+                            <User className="w-4 h-4 mr-2" />
+                            My Account
                           </Link>
                         </Button>
                       )}
@@ -240,7 +240,7 @@ export default function Header() {
                       data-testid="mobile-button-login"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      <Link href="/login">
+                      <Link href="/customer/login">
                         <User className="w-4 h-4 mr-2" />
                         Customer Login
                       </Link>
