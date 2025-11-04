@@ -71,21 +71,31 @@ Preferred communication style: Simple, everyday language.
 - **ESBuild**: Fast JavaScript bundling for production builds
 - **PostCSS**: CSS processing with Autoprefixer for browser compatibility
 
-### Image Assets
+### Media Assets
 - Generated placeholder images stored in `attached_assets/generated_images/` for van stock and equipment displays
 - Responsive image handling with proper aspect ratios for mobile optimization
+- **Media Serving**: Backend proxy endpoints for serving all media in both development and production
+  - `/media/:filename` - Serves static videos and images from `attached_assets` folder with HTTP range request support for video streaming
+    - Supports video formats: MP4, WebM, OGG, MOV
+    - Supports image formats: PNG, JPEG, GIF
+    - Path traversal protection for security
+    - 206 Partial Content responses for efficient video streaming
+    - Used by hero video and 360-degree gallery renders
+  - `/objects/:objectPath` - Serves uploaded images from object storage (Google Cloud Storage) with ACL checks
+    - Public images (equipment, vans) accessible without authentication
+    - Private images require user authentication
 - **Object Storage Integration**: Admin image uploads via presigned URLs with ACL management
   - `/api/admin/objects/presigned-url` - Generate presigned upload URLs for admin uploads
   - `/api/admin/objects/set-acl` - Set ACL policy (public/private) on uploaded objects
   - Supports PNG, JPEG, GIF, WebP, and SVG image formats
   - Images stored in Google Cloud Storage with automatic ACL management
-  - Public images (equipment, vans) accessible without authentication for public pages
 - **Image Gallery System**: Interactive image viewer for equipment and upgrades
   - All upgrade images clickable to expand and view larger in modal gallery
   - Carousel navigation for multiple images per item
   - Hover indicator shows "+X more" for multiple images or "View" for single images
   - Works for both standalone upgrades and variant groups
   - Unique uploader IDs ensure correct file picker opens for each variant
+- **Video Optimization**: All videos use `preload="metadata"` to load quickly without downloading entire file upfront
 
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations
