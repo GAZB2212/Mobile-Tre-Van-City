@@ -76,12 +76,19 @@ export default function RequestQuote() {
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (formData: QuoteFormData) => {
-      // Calculate pricing including upgrades and training
+      // Build selectedUpgrades object with quantities (all 1 for now)
+      const selectedUpgrades: Record<string, number> = {};
+      state.upgradeIds.forEach(id => {
+        selectedUpgrades[id] = 1;
+      });
+      
+      // Calculate pricing including upgrades and training with quantities
       let subtotal = 0;
       if (van) subtotal += van.price;
       if (kit) subtotal += kit.price;
       upgrades.forEach(upgrade => {
-        subtotal += upgrade.price;
+        const quantity = selectedUpgrades[upgrade.id] || 1;
+        subtotal += upgrade.price * quantity;
       });
       trainingOptions.forEach(option => {
         subtotal += option.price;
@@ -94,7 +101,8 @@ export default function RequestQuote() {
         ...formData,
         vanId: state.vanId,
         kitId: state.kitId!,
-        upgradeIds: state.upgradeIds,
+        selectedUpgradeIds: state.upgradeIds,
+        selectedUpgrades: selectedUpgrades,
         trainingOptionIds: state.trainingOptionIds,
         financePlanId: state.financePlanId,
         financeInputs: state.financeInputs,
@@ -140,7 +148,7 @@ export default function RequestQuote() {
     if (van) subtotal += van.price;
     if (kit) subtotal += kit.price;
     upgrades.forEach(upgrade => {
-      subtotal += upgrade.price;
+      subtotal += upgrade.price * 1; // Quantity is always 1 for now
     });
     trainingOptions.forEach(option => {
       subtotal += option.price;
