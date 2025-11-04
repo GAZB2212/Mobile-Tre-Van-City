@@ -22,14 +22,17 @@ import {
   Wrench,
   DollarSign,
   Image as ImageIcon,
-  X
+  X,
+  Send,
+  Percent,
+  MessageSquare
 } from "lucide-react";
 import type { Quote } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
-const quoteStatuses = ["pending", "approved", "in_progress", "completed", "cancelled"] as const;
+const quoteStatuses = ["pending", "under_review", "awaiting_confirmation", "confirmed", "in_progress", "completed", "cancelled"] as const;
 const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
 const buildStages = [
   "graphics",
@@ -51,6 +54,11 @@ export default function AdminQuoteDetail() {
   const [financeStatus, setFinanceStatus] = useState("");
   const [buildStage, setBuildStage] = useState("");
   const [artworkUrl, setArtworkUrl] = useState("");
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [customerNotes, setCustomerNotes] = useState("");
+  const [confirmationUrl, setConfirmationUrl] = useState("");
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
@@ -64,6 +72,10 @@ export default function AdminQuoteDetail() {
       setFinanceStatus(quote.financeStatus || "pending");
       setBuildStage(quote.buildStage || "");
       setArtworkUrl(quote.graphicsArtworkUrl || "");
+      setDiscountType(quote.discountType as any || "");
+      setDiscountValue(quote.discountValue ? String(quote.discountValue) : "");
+      setAdminNotes(quote.adminNotes || "");
+      setCustomerNotes(quote.customerNotes || "");
     }
   }, [quote]);
 
@@ -153,14 +165,71 @@ export default function AdminQuoteDetail() {
     );
   }
 
+  const sendConfirmationMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/admin/quotes/${id}/send-confirmation`);
+      return response as { confirmationUrl: string; token: string };
+    },
+    onSuccess: (data) => {
+      setConfirmationUrl(data.confirmationUrl);
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      toast({
+        title: "Confirmation Link Generated",
+        description: "Copy the link below and send it to the customer",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to generate confirmation link",
+      });
+    },
+  });
+
   const handleSave = () => {
     updateMutation.mutate({
       status,
       financeStatus,
       buildStage: buildStage || null,
       graphicsArtworkUrl: artworkUrl || null,
+      discountType: discountType || null,
+      discountValue: discountValue ? parseInt(discountValue) : null,
+      adminNotes: adminNotes || null,
+      customerNotes: customerNotes || null,
     });
   };
+
+  const calculateAdjustedPrice = () => {
+    if (!quote) return { subtotal: 0, discount: 0, vat: 0, total: 0 };
+
+    let subtotal = quote.estSubtotal;
+    let discountAmount = 0;
+
+    if (discountType && discountValue) {
+      const value = parseInt(discountValue);
+      if (discountType === "percentage") {
+        discountAmount = Math.round((subtotal * value) / 100);
+      } else if (discountType === "fixed") {
+        discountAmount = value;
+      }
+    }
+
+    const subtotalAfterDiscount = subtotal - discountAmount;
+    const vat = Math.round(subtotalAfterDiscount * 0.2);
+    const total = subtotalAfterDiscount + vat;
+
+    return {
+      subtotal,
+      discount: discountAmount,
+      subtotalAfterDiscount,
+      vat,
+      total
+    };
+  };
+
+  const pricing = calculateAdjustedPrice();
 
   return (
     <div className="min-h-screen bg-background">
@@ -445,6 +514,91 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
+            {/* Discount */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Percent className="w-5 h-5" />
+                  Apply Discount
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="discount-type">Discount Type</Label>
+                  <Select value={discountType} onValueChange={(value: any) => setDiscountType(value)}>
+                    <SelectTrigger id="discount-type" data-testid="select-discount-type">
+                      <SelectValue placeholder="No discount" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No discount</SelectItem>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount (£)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {discountType && (
+                  <div>
+                    <Label htmlFor="discount-value">
+                      {discountType === "percentage" ? "Percentage" : "Amount (in pence)"}
+                    </Label>
+                    <Input
+                      id="discount-value"
+                      type="number"
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      placeholder={discountType === "percentage" ? "e.g., 10" : "e.g., 50000"}
+                      data-testid="input-discount-value"
+                    />
+                    {discountType === "fixed" && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Enter amount in pence (e.g., 50000 = £500)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Admin Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Internal Notes
+                </CardTitle>
+                <CardDescription>Only visible to staff</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Add internal notes for staff..."
+                  rows={3}
+                  data-testid="textarea-admin-notes"
+                />
+              </CardContent>
+            </Card>
+
+            {/* Customer Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Customer Notes
+                </CardTitle>
+                <CardDescription>Shown to customer in confirmation</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={customerNotes}
+                  onChange={(e) => setCustomerNotes(e.target.value)}
+                  placeholder="Add notes for the customer..."
+                  rows={4}
+                  data-testid="textarea-customer-notes"
+                />
+              </CardContent>
+            </Card>
+
             {/* Price Summary */}
             <Card>
               <CardHeader>
@@ -454,22 +608,100 @@ export default function AdminQuoteDetail() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">
-                    £{(quote.estSubtotal / 100).toLocaleString()}
+                    £{(pricing.subtotal / 100).toLocaleString()}
                   </span>
                 </div>
+                {pricing.discount > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm text-accent">
+                      <span className="font-medium">
+                        Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                      </span>
+                      <span className="font-medium">
+                        -£{(pricing.discount / 100).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal After Discount</span>
+                      <span className="font-medium">
+                        £{(pricing.subtotalAfterDiscount / 100).toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">VAT (20%)</span>
                   <span className="font-medium">
-                    £{(quote.estVAT / 100).toLocaleString()}
+                    £{(pricing.vat / 100).toLocaleString()}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Total</span>
                   <span className="text-2xl font-bold text-accent">
-                    £{(quote.estTotal / 100).toLocaleString()}
+                    £{(pricing.total / 100).toLocaleString()}
                   </span>
                 </div>
+                {pricing.discount > 0 && (
+                  <div className="text-xs text-muted-foreground text-center pt-2">
+                    Original: £{(quote.estTotal / 100).toLocaleString()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Send Confirmation Link */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Send className="w-5 h-5" />
+                  Customer Confirmation
+                </CardTitle>
+                <CardDescription>
+                  Generate a link for customer to confirm the quote
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  onClick={() => sendConfirmationMutation.mutate()}
+                  disabled={sendConfirmationMutation.isPending}
+                  className="w-full"
+                  data-testid="button-send-confirmation"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {sendConfirmationMutation.isPending ? "Generating..." : "Generate Confirmation Link"}
+                </Button>
+                
+                {(confirmationUrl || quote.confirmationToken) && (
+                  <div className="space-y-2">
+                    <Label>Confirmation Link</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={confirmationUrl || `${window.location.origin}/quote/confirm/${quote.confirmationToken}`}
+                        readOnly
+                        className="font-mono text-xs"
+                        data-testid="input-confirmation-url"
+                      />
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(confirmationUrl || `${window.location.origin}/quote/confirm/${quote.confirmationToken}`);
+                          toast({
+                            title: "Copied!",
+                            description: "Link copied to clipboard",
+                          });
+                        }}
+                        data-testid="button-copy-link"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Share this link with the customer via email or SMS
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -37,6 +37,7 @@ import AdminAnalytics from "@/pages/admin/Analytics";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import Portal from "@/pages/Portal";
 import ConfigurationDetail from "@/pages/portal/ConfigurationDetail";
+import QuoteConfirmation from "@/pages/QuoteConfirmation";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -67,6 +68,8 @@ function Router() {
       <Route path="/configurator/quote" component={RequestQuote} />
       {/* Auth routes */}
       <Route path="/login" component={Login} />
+      {/* Quote confirmation (public) */}
+      <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
       {/* Customer portal routes */}
       <Route path="/portal" component={Portal} />
       <Route path="/portal/configuration/:id" component={ConfigurationDetail} />

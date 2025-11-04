@@ -1204,6 +1204,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         buildStage: z.enum(buildStages).nullable().optional(),
         graphicsArtworkUrl: z.string().url().or(z.literal('')).nullable().optional(),
         graphicsArtworkNotes: z.string().nullable().optional(),
+        discountType: z.enum(['percentage', 'fixed']).nullable().optional(),
+        discountValue: z.number().int().nullable().optional(),
+        adminNotes: z.string().nullable().optional(),
+        customerNotes: z.string().nullable().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
@@ -1218,6 +1222,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid update data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to update quote" });
+    }
+  });
+
+  // Generate confirmation token and update quote to awaiting_confirmation
+  app.post("/api/admin/quotes/:id/send-confirmation", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Generate unique token
+      const crypto = await import('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+
+      // Update quote with token and status
+      const updated = await storage.updateQuote(req.params.id, {
+        confirmationToken: token,
+        status: 'awaiting_confirmation' as const,
+      });
+
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update quote" });
+      }
+
+      // Return the confirmation URL
+      const confirmationUrl = `${req.protocol}://${req.get('host')}/quote/confirm/${token}`;
+      res.json({ 
+        success: true, 
+        confirmationUrl,
+        token 
+      });
+    } catch (error) {
+      console.error('Error generating confirmation token:', error);
+      res.status(500).json({ error: "Failed to generate confirmation link" });
+    }
+  });
+
+  // Public quote confirmation endpoint (no auth required)
+  app.get("/api/quote/confirm/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const quotes = await storage.getQuotes();
+      const quote = quotes.find(q => q.confirmationToken === token);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found or link expired" });
+      }
+
+      // Return only essential customer-facing fields (no internal data)
+      const customerSafeQuote = {
+        id: quote.id,
+        userName: quote.userName,
+        email: quote.email,
+        phone: quote.phone,
+        company: quote.company,
+        estSubtotal: quote.estSubtotal,
+        estVAT: quote.estVAT,
+        estTotal: quote.estTotal,
+        discountType: quote.discountType,
+        discountValue: quote.discountValue,
+        customerNotes: quote.customerNotes, // Only customer notes, NOT adminNotes
+        status: quote.status,
+        createdAt: quote.createdAt,
+        confirmedAt: quote.confirmedAt,
+      };
+
+      res.json(customerSafeQuote);
+    } catch (error) {
+      console.error('Error fetching quote by token:', error);
+      res.status(500).json({ error: "Failed to fetch quote" });
+    }
+  });
+
+  // Confirm quote (public endpoint)
+  app.post("/api/quote/confirm/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const quotes = await storage.getQuotes();
+      const quote = quotes.find(q => q.confirmationToken === token);
+      
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found or link expired" });
+      }
+
+      // Check if already confirmed to prevent replay
+      if (quote.status === 'confirmed' && quote.confirmedAt) {
+        return res.json({ success: true, alreadyConfirmed: true });
+      }
+
+      // Update quote to confirmed status and clear token (one-time use)
+      const updated = await storage.updateQuote(quote.id, {
+        status: 'confirmed' as const,
+        confirmedAt: new Date(),
+        confirmationToken: null, // Clear token to prevent reuse
+      });
+
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to confirm quote" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error confirming quote:', error);
+      res.status(500).json({ error: "Failed to confirm quote" });
     }
   });
 
