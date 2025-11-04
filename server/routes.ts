@@ -213,11 +213,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Fetch all referenced entities to recalculate prices server-side
       const selectedUpgradeIds = (validatedData.selectedUpgradeIds || []) as string[];
-      const [van, kit, upgrades] = await Promise.all([
+      const selectedTrainingOptionIds = (validatedData.trainingOptionIds || []) as string[];
+      const [van, kit, upgrades, trainingOptions] = await Promise.all([
         validatedData.vanId ? storage.getVan(validatedData.vanId) : Promise.resolve(null),
         validatedData.kitId ? storage.getKit(validatedData.kitId) : Promise.resolve(null),
         selectedUpgradeIds.length > 0
           ? Promise.all(selectedUpgradeIds.map((id: string) => storage.getUpgrade(id)))
+          : Promise.resolve([]),
+        selectedTrainingOptionIds.length > 0
+          ? Promise.all(selectedTrainingOptionIds.map((id: string) => storage.getTrainingOption(id)))
           : Promise.resolve([])
       ]);
 
@@ -231,6 +235,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (upgrades.some((u: any) => !u)) {
         return res.status(400).json({ error: "One or more selected upgrades not found" });
       }
+      if (trainingOptions.some((t: any) => !t)) {
+        return res.status(400).json({ error: "One or more selected training options not found" });
+      }
 
       // Calculate server-side pricing (all prices in pence) with quantities
       const vanPrice = van?.price || 0;
@@ -239,8 +246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const quantity = validatedData.selectedUpgrades?.[upgrade.id] || 1;
         return sum + (upgrade?.price || 0) * quantity;
       }, 0);
+      const trainingTotal = trainingOptions.reduce((sum: number, trainingOption: any) => {
+        return sum + (trainingOption?.price || 0);
+      }, 0);
       
-      const subtotal = vanPrice + kitPrice + upgradesTotal;
+      const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
       const vatRate = 0.20; // 20% VAT
       const vat = Math.round(subtotal * vatRate);
       const total = subtotal + vat;
