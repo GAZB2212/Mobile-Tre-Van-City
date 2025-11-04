@@ -63,7 +63,7 @@ export default function PreviouslyBuiltVans() {
         </div>
 
         <div className="text-center">
-          <Button size="lg" variant="outline" asChild data-testid="button-view-all-builds">
+          <Button size="lg" variant="outline" className="!border-2 !border-accent text-accent hover:bg-accent/10" asChild data-testid="button-view-all-builds">
             <Link href="/portfolio">
               View Full Portfolio
               <ArrowRight className="w-4 h-4 ml-2" />

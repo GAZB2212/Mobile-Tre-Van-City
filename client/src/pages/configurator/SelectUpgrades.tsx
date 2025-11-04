@@ -520,7 +520,7 @@ export default function SelectUpgrades() {
                       variant="outline" 
                       onClick={() => setLocation('/configurator/kit')}
                       data-testid="button-back-bottom"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto !border-2 !border-accent text-accent hover:bg-accent/10"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back

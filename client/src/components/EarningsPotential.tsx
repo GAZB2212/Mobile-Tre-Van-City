@@ -117,6 +117,7 @@ export default function EarningsPotential() {
               <Button 
                 size="lg" 
                 variant="outline"
+                className="!border-2 !border-accent text-accent hover:bg-accent/10"
                 onClick={() => setLocation('/configurator/van')}
                 data-testid="button-build-van"
               >
