@@ -1397,10 +1397,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { filename, contentType } = req.body;
       
-      // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp'];
+      // Validate file type - now supports images and videos
+      const allowedTypes = [
+        'image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/gif', 'image/webp',
+        'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+      ];
       if (!contentType || !allowedTypes.includes(contentType.toLowerCase())) {
-        return res.status(400).json({ error: "Only images are allowed (PNG, JPEG, SVG, GIF, WEBP)" });
+        return res.status(400).json({ error: "Only images (PNG, JPEG, SVG, GIF, WEBP) and videos (MP4, WebM, OGG, MOV) are allowed" });
       }
       
       // Validate filename
