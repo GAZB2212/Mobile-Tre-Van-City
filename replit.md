@@ -74,9 +74,13 @@ Preferred communication style: Simple, everyday language.
       - Originally selected items highlighted with yellow background for visibility
       - Staff can add new items or remove customer selections
     - **Server-Side Pricing Security**: All pricing calculations performed server-side
-      - estSubtotal stores base price before discount
-      - estDiscount stores server-calculated discount amount (prevents tampering)
-      - estVAT and estTotal calculated server-side after applying discount
+      - **Discount Application**: Discounts apply to total including VAT (not subtotal before VAT)
+        - Percentage discounts: calculated as percentage of total inc VAT
+        - Fixed discounts: deducted from total inc VAT
+        - VAT back-calculated from final total (VAT = final total / 6 for 20% rate)
+      - estSubtotal stores final subtotal after discount and VAT back-calculation
+      - estVAT stores final VAT after discount application
+      - estTotal stores final total after discount
       - Admin UI shows client-side preview, but server recalculates on save
       - Confirmation page uses server values only (no client-side calculation)
       - Pricing recalculation triggered by configuration OR discount changes
