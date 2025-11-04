@@ -1319,7 +1319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate confirmation token, send email, and update quote to awaiting_confirmation
+  // Generate confirmation token, send email, and update quote to deposit_taken
   app.post("/api/admin/quotes/:id/send-confirmation", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
@@ -1334,7 +1334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update quote with token and status
       const updated = await storage.updateQuote(req.params.id, {
         confirmationToken: token,
-        status: 'awaiting_confirmation' as const,
+        status: 'deposit_taken' as const,
       });
 
       if (!updated) {
@@ -1429,13 +1429,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if already confirmed to prevent replay
-      if (quote.status === 'confirmed' && quote.confirmedAt) {
+      if ((quote.status === 'deposit_taken' || quote.status === 'in_build' || quote.status === 'completed') && quote.confirmedAt) {
         return res.json({ success: true, alreadyConfirmed: true });
       }
 
-      // Update quote to confirmed status and clear token (one-time use)
+      // Update quote to deposit_taken status and clear token (one-time use)
       const updated = await storage.updateQuote(quote.id, {
-        status: 'confirmed' as const,
+        status: 'deposit_taken' as const,
         confirmedAt: new Date(),
         confirmationToken: null, // Clear token to prevent reuse
       });

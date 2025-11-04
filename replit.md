@@ -91,7 +91,7 @@ Preferred communication style: Simple, everyday language.
   - Customer receives link via email/SMS and confirms quote (no login required)
   - One-time use tokens automatically cleared after confirmation
   - Public confirmation page shows only customer-safe data (no internal/admin fields exposed)
-  - Quote statuses: pending → under_review → awaiting_confirmation → confirmed → in_progress → completed → cancelled
+  - Quote statuses: pending → deposit_taken → in_build → completed (cancelled available for admin)
 - **Equipment Ordering**: Comprehensive reordering system using up/down arrows to control equipment display order
   - Each upgrade has a `sortOrder` field (integer, default 0) for position control
   - Admin can reorder items within their category using arrow buttons

@@ -84,7 +84,7 @@ export const upgradeCategories = [
 ] as const;
 
 // Quote status enums
-export const quoteStatuses = ["pending", "under_review", "awaiting_confirmation", "confirmed", "in_progress", "completed", "cancelled"] as const;
+export const quoteStatuses = ["pending", "deposit_taken", "in_build", "completed", "cancelled"] as const;
 export const buildStages = ["graphics", "electrical_systems", "accessories", "emergency_lighting", "tyre_equipment", "final_checks", "valet"] as const;
 export const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
 export const discountTypes = ["percentage", "fixed"] as const;
