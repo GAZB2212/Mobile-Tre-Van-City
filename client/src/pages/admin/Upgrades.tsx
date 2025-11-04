@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Upgrade } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
+import { UpgradeVideoUploader } from "@/components/UpgradeVideoUploader";
 import { useEffect } from "react";
 import {
   DndContext,
@@ -679,24 +680,51 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="videoUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Video URL (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="YouTube or Vimeo embed URL"
-                      data-testid="input-upgrade-video-url"
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-4">
+              <FormLabel>Video (Optional)</FormLabel>
+              <p className="text-sm text-muted-foreground">
+                Upload a video file or enter a YouTube/Vimeo URL
+              </p>
+              
+              <FormField
+                control={form.control}
+                name="videoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="space-y-4">
+                      {/* Video Uploader */}
+                      <UpgradeVideoUploader
+                        videoUrl={field.value || null}
+                        onChange={(url) => field.onChange(url)}
+                      />
+                      
+                      {/* OR divider */}
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Or use embed URL
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* URL Input */}
+                      <FormControl>
+                        <Input
+                          placeholder="https://www.youtube.com/embed/VIDEO_ID or Vimeo URL"
+                          data-testid="input-upgrade-video-url"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

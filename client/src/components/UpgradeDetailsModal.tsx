@@ -114,12 +114,27 @@ export function UpgradeDetailsModal({
               {upgrade.showVideo && (
                 upgrade.videoUrl ? (
                   <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                    <iframe
-                      src={upgrade.videoUrl}
-                      className="w-full h-full"
-                      allowFullScreen
-                      title={`${upgrade.name} video`}
-                    />
+                    {/* Check if it's a YouTube/Vimeo embed URL or uploaded video */}
+                    {upgrade.videoUrl.includes('youtube.com') || upgrade.videoUrl.includes('vimeo.com') ? (
+                      <iframe
+                        src={upgrade.videoUrl}
+                        className="w-full h-full"
+                        allowFullScreen
+                        title={`${upgrade.name} video`}
+                      />
+                    ) : (
+                      <video
+                        src={getImageUrl(upgrade.videoUrl)}
+                        controls
+                        className="w-full h-full"
+                        data-testid="video-upgrade-detail"
+                      >
+                        <source src={getImageUrl(upgrade.videoUrl)} type="video/mp4" />
+                        <source src={getImageUrl(upgrade.videoUrl)} type="video/webm" />
+                        <source src={getImageUrl(upgrade.videoUrl)} type="video/ogg" />
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
                   </div>
                 ) : (
                   <div className="aspect-video bg-muted/50 rounded-lg flex flex-col items-center justify-center border-2 border-dashed">
