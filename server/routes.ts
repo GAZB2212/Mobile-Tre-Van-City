@@ -1343,9 +1343,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/assets/:filename(*)", (req, res) => {
     try {
       const filename = req.params.filename;
-      const assetsPath = path.join(process.cwd(), 'attached_assets', filename);
+      const assetsRoot = path.resolve(process.cwd(), 'attached_assets');
+      const assetsPath = path.resolve(assetsRoot, filename);
       
       console.log('📁 Static asset request:', filename);
+      
+      // Security: Prevent path traversal attacks
+      if (!assetsPath.startsWith(assetsRoot)) {
+        console.log('❌ Path traversal attempt blocked:', assetsPath);
+        return res.status(403).send('Forbidden');
+      }
       
       // Check if file exists
       if (!fs.existsSync(assetsPath)) {
