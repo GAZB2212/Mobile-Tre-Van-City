@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import heroVideo from "@assets/ZenoVideo 24_1759239850808.mp4";
 
 export default function Hero() {
   return (
@@ -10,11 +9,10 @@ export default function Hero() {
         loop 
         muted 
         playsInline
-        preload="auto"
+        preload="metadata"
         className="absolute inset-0 w-full h-full object-cover opacity-100"
-      >
-        <source src={heroVideo} type="video/mp4" />
-      </video>
+        src="/assets/ZenoVideo 24_1759239850808.mp4"
+      />
       
       {/* Dark overlay for text readability - always visible */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/80 to-black/70 pointer-events-none" />

@@ -183,6 +183,7 @@ export function UpgradeVideoUploader({
             <video
               src={getImageUrl(videoUrl)}
               controls
+              preload="metadata"
               className="w-full h-full"
               data-testid="video-upgrade-preview"
             >

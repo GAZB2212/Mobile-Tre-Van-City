@@ -127,6 +127,7 @@ export function UpgradeDetailsModal({
                       <video
                         src={getImageUrl(upgrade.videoUrl)}
                         controls
+                        preload="metadata"
                         className="w-full h-full"
                         data-testid="video-upgrade-detail"
                       >
