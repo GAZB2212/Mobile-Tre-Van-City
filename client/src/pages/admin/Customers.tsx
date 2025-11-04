@@ -64,6 +64,27 @@ export default function AdminCustomers() {
     },
   });
 
+  const createAccountMutation = useMutation({
+    mutationFn: async ({ email, name }: { email: string; name: string }) => {
+      return apiRequest('POST', '/api/admin/customers/create-account', { email, name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/customers'] });
+      toast({
+        title: "Success",
+        description: "Customer account created and quotes linked",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create customer account",
+        variant: "destructive",
+      });
+    },
+  });
+
   const formatDate = (dateString: string | Date | null) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -87,6 +108,16 @@ export default function AdminCustomers() {
 
   const unlinkedQuotes = quotes.filter(q => !q.userId);
 
+  // Group unlinked quotes by email
+  const unlinkedQuotesByEmail = unlinkedQuotes.reduce((acc, quote) => {
+    const email = quote.email;
+    if (!acc[email]) {
+      acc[email] = [];
+    }
+    acc[email].push(quote);
+    return acc;
+  }, {} as Record<string, Quote[]>);
+
   const handleLinkQuotes = (email: string, userId: string) => {
     setLinkQuoteEmail(email);
     setLinkQuoteUserId(userId);
@@ -97,6 +128,10 @@ export default function AdminCustomers() {
     if (linkQuoteEmail && linkQuoteUserId) {
       linkQuotesMutation.mutate({ email: linkQuoteEmail, userId: linkQuoteUserId });
     }
+  };
+
+  const handleCreateAccount = (email: string, name: string) => {
+    createAccountMutation.mutate({ email, name });
   };
 
   return (
@@ -246,6 +281,67 @@ export default function AdminCustomers() {
             )}
           </CardContent>
         </Card>
+
+        {/* Unlinked Quotes Section */}
+        {Object.keys(unlinkedQuotesByEmail).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Unlinked Quotes</CardTitle>
+              <CardDescription>
+                Create customer accounts for these quotes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(unlinkedQuotesByEmail).map(([email, emailQuotes]) => {
+                  const firstQuote = emailQuotes[0];
+                  return (
+                    <Card key={email} data-testid={`card-unlinked-${email}`}>
+                      <CardContent className="pt-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Mail className="w-4 h-4 text-accent" />
+                              <span className="font-medium" data-testid={`text-unlinked-email-${email}`}>
+                                {email}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                              <span className="font-medium">Name:</span> {firstQuote.userName}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <FileText className="w-3 h-3" />
+                              <span>
+                                {emailQuotes.length} {emailQuotes.length === 1 ? 'quote' : 'quotes'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleCreateAccount(email, firstQuote.userName)}
+                              disabled={createAccountMutation.isPending}
+                              data-testid={`button-create-account-${email}`}
+                            >
+                              {createAccountMutation.isPending ? (
+                                <>
+                                  <LoadingSpinner className="mr-2" />
+                                  Creating...
+                                </>
+                              ) : (
+                                'Create Account & Link Quotes'
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Customer Quotes Dialog */}
         <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>

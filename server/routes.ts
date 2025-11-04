@@ -15,7 +15,8 @@ import {
   insertTrainingOptionSchema,
   quoteStatuses,
   financeStatuses,
-  buildStages
+  buildStages,
+  type User
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1325,6 +1326,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to link quotes" });
+    }
+  });
+
+  app.post("/api/admin/customers/create-account", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email || !name) {
+        return res.status(400).json({ error: "Email and name are required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Customer account already exists with this email" });
+      }
+
+      // Create customer account with temporary password
+      const { createUser } = await import("./auth");
+      const temporaryPassword = Math.random().toString(36).slice(-12) + 'Aa1!'; // Random password with required chars
+      
+      const user = await createUser({
+        username: email,
+        password: temporaryPassword,
+        email,
+        firstName: name.split(' ')[0],
+        lastName: name.split(' ').slice(1).join(' ') || undefined,
+        isAdmin: false,
+      });
+
+      // Automatically link all quotes with this email to the new account
+      await storage.linkQuotesToCustomer(email, user.id);
+
+      const { passwordHash, ...userWithoutPassword } = user;
+      res.status(201).json({
+        ...userWithoutPassword,
+        message: "Customer account created with temporary password. Customer should reset password on first login."
+      });
+    } catch (error) {
+      console.error('Admin create customer account error:', error);
+      res.status(500).json({ error: "Failed to create customer account" });
     }
   });
 
