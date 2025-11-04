@@ -1291,6 +1291,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Customer Management
+  app.get("/api/admin/customers", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      // Get all non-admin users
+      const users = await storage.getUsers();
+      const customers = users.filter((u: User) => !u.isAdmin);
+      res.json(customers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
+  app.get("/api/admin/customers/:id/quotes", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quotes = await storage.getQuotesByUserId(req.params.id);
+      res.json(quotes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer quotes" });
+    }
+  });
+
+  app.post("/api/admin/customers/link-quotes", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { email, userId } = req.body;
+      
+      if (!email || !userId) {
+        return res.status(400).json({ error: "Email and userId are required" });
+      }
+
+      // Link all quotes with matching email to this customer
+      await storage.linkQuotesToCustomer(email, userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to link quotes" });
+    }
+  });
+
   app.get("/api/admin/leads", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const leads = await storage.getLeads();
