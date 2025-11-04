@@ -45,6 +45,7 @@ export default function RequestQuote() {
   const [submitted, setSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [submittedName, setSubmittedName] = useState("");
+  const [showAccountCreation, setShowAccountCreation] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
 
   const { data: van, isLoading: isLoadingVan } = useQuery<Van>({
@@ -234,7 +235,7 @@ export default function RequestQuote() {
               </p>
             </div>
 
-            {!accountCreated && (
+            {!showAccountCreation && !accountCreated && submittedName && (
               <Card className="mb-8">
                 <CardHeader>
                   <div className="flex items-center gap-3">
@@ -242,10 +243,52 @@ export default function RequestQuote() {
                     <div>
                       <CardTitle>Create Your Account</CardTitle>
                       <CardDescription>
-                        Required - Set a password to complete your quote request
+                        Track your quotes and communicate with our team
                       </CardDescription>
                     </div>
                   </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                    <p className="text-sm font-medium mb-2">For Customers:</p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Create an account to view your quotes, track progress, and manage your requests anytime.
+                    </p>
+                    <p className="text-sm font-medium mb-2">For Staff:</p>
+                    <p className="text-sm text-muted-foreground">
+                      Entering on behalf of a customer? Click "Skip for Now" - the customer can create their account later.
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => setShowAccountCreation(true)}
+                      className="flex-1"
+                      data-testid="button-create-account"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Create Account
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setLocation('/')}
+                      className="flex-1"
+                      data-testid="button-skip-account"
+                    >
+                      Skip for Now
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {showAccountCreation && !accountCreated && (
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>Set Your Password</CardTitle>
+                  <CardDescription>
+                    Complete account creation for {submittedEmail}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...accountForm}>
@@ -298,25 +341,32 @@ export default function RequestQuote() {
                         )}
                       />
 
-                      <Button 
-                        type="submit"
-                        className="w-full"
-                        disabled={createAccountMutation.isPending}
-                        data-testid="button-submit-account"
-                      >
-                        {createAccountMutation.isPending ? (
-                          <>
-                            <LoadingSpinner className="mr-2" />
-                            Creating Account...
-                          </>
-                        ) : (
-                          'Create Account & Continue'
-                        )}
-                      </Button>
-
-                      <p className="text-sm text-muted-foreground text-center mt-4">
-                        Creating an account allows you to track your quote and communicate with our team.
-                      </p>
+                      <div className="flex gap-3">
+                        <Button 
+                          type="submit"
+                          className="flex-1"
+                          disabled={createAccountMutation.isPending}
+                          data-testid="button-submit-account"
+                        >
+                          {createAccountMutation.isPending ? (
+                            <>
+                              <LoadingSpinner className="mr-2" />
+                              Creating...
+                            </>
+                          ) : (
+                            'Create Account'
+                          )}
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAccountCreation(false)}
+                          disabled={createAccountMutation.isPending}
+                          data-testid="button-cancel-account"
+                        >
+                          Back
+                        </Button>
+                      </div>
                     </form>
                   </Form>
                 </CardContent>
