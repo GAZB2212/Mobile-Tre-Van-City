@@ -35,8 +35,6 @@ import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
 import AdminAnalytics from "@/pages/admin/Analytics";
 import BuildSheet from "@/pages/admin/BuildSheet";
-import Portal from "@/pages/Portal";
-import ConfigurationDetail from "@/pages/portal/ConfigurationDetail";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
 import NotFound from "@/pages/not-found";
 
@@ -70,9 +68,6 @@ function Router() {
       <Route path="/login" component={Login} />
       {/* Quote confirmation (public) */}
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
-      {/* Customer portal routes */}
-      <Route path="/portal" component={Portal} />
-      <Route path="/portal/configuration/:id" component={ConfigurationDetail} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/analytics" component={AdminAnalytics} />

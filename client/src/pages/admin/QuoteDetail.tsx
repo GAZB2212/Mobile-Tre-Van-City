@@ -79,10 +79,12 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
   });
   
   return {
-    groups: Array.from(parentMap.values()).map(g => ({
-      ...g,
-      variants: g.variants.sort((a, b) => a.sortOrder - b.sortOrder)
-    })),
+    groups: Array.from(parentMap.values())
+      .map(g => ({
+        ...g,
+        variants: g.variants.sort((a, b) => a.sortOrder - b.sortOrder)
+      }))
+      .sort((a, b) => a.parent.sortOrder - b.parent.sortOrder),
     standalone: standalone.sort((a, b) => a.sortOrder - b.sortOrder)
   };
 }
