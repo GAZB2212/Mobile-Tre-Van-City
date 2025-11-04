@@ -3,9 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Image as ImageIcon, ArrowRight } from "lucide-react";
-import video1 from "@assets/ZenoVideo 20_1759504716286.mp4";
-import video2 from "@assets/ZenoVideo 14_1759504750775.mp4";
-import video3 from "@assets/ZenoVideo 8_1759504750775.mp4";
 import vanImage1 from "@assets/IMG_8800_1759504961672.jpg";
 import vanImage2 from "@assets/IMG_1129_1759504961672.jpg";
 import vanImage3 from "@assets/IMG_7127_1759504961672.jpg";
@@ -15,21 +12,21 @@ const designCategories = [
     title: "360° Van Design Render",
     description: "Interactive 360-degree view of our professional mobile tyre van conversions",
     type: "video" as const,
-    videoSrc: video1,
+    videoSrc: "/assets/ZenoVideo 20_1759504716286.mp4",
     featured: true,
   },
   {
     title: "360° Van Design Render",
     description: "Complete rotating view showcasing premium equipment and interior layout",
     type: "video" as const,
-    videoSrc: video2,
+    videoSrc: "/assets/ZenoVideo 14_1759504750775.mp4",
     featured: false,
   },
   {
     title: "360° Van Design Render",
     description: "Full 360-degree render of a finished mobile tyre business setup",
     type: "video" as const,
-    videoSrc: video3,
+    videoSrc: "/assets/ZenoVideo 8_1759504750775.mp4",
     featured: false,
   },
   {

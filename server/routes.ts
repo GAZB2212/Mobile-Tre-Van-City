@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import { 
@@ -1333,6 +1335,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Analytics error:", error);
       res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  // Serve static assets (videos, images) from attached_assets folder
+  // This works in both development and production
+  app.get("/assets/:filename(*)", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const assetsPath = path.join(process.cwd(), 'attached_assets', filename);
+      
+      console.log('📁 Static asset request:', filename);
+      
+      // Check if file exists
+      if (!fs.existsSync(assetsPath)) {
+        console.log('❌ Asset not found:', assetsPath);
+        return res.status(404).send('Asset not found');
+      }
+      
+      // Set appropriate headers for videos
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.mp4': 'video/mp4',
+        '.webm': 'video/webm',
+        '.ogg': 'video/ogg',
+        '.mov': 'video/quicktime',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+      };
+      
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      
+      // Set CORS and caching headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(assetsPath);
+      fileStream.pipe(res);
+      
+      console.log('✅ Serving asset:', filename);
+    } catch (error) {
+      console.error('Error serving static asset:', error);
+      res.status(500).send('Error serving asset');
     }
   });
 
