@@ -118,6 +118,14 @@ export default function SelectUpgrades() {
     return brandingOptions.some(option => upgradeName.toLowerCase().includes(option.toLowerCase()));
   };
 
+  // Define mutually exclusive air system upgrade IDs
+  // PTO and Electric Start Compressor cannot be fitted at the same time
+  const airSystemExclusiveIds = ['mounted-pto-air-system', 'compressor-12hp-270l'];
+  
+  const isAirSystemExclusive = (upgradeId: string) => {
+    return airSystemExclusiveIds.includes(upgradeId);
+  };
+
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
       ? Object.values(configuratorData.upgrades).flat().find(u => u.id === upgradeId)
@@ -126,16 +134,26 @@ export default function SelectUpgrades() {
     if (state.upgradeIds.includes(upgradeId)) {
       removeUpgrade(upgradeId);
     } else {
+      const allUpgrades = configuratorData?.upgrades 
+        ? Object.values(configuratorData.upgrades).flat()
+        : [];
+      
       // If this is a branding option, remove any other branding options first
       if (upgrade && isBrandingOption(upgrade.name)) {
-        const allUpgrades = configuratorData?.upgrades 
-          ? Object.values(configuratorData.upgrades).flat()
-          : [];
-        
         // Find and remove any other selected branding options
         state.upgradeIds.forEach(selectedId => {
           const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
           if (selectedUpgrade && isBrandingOption(selectedUpgrade.name) && selectedId !== upgradeId) {
+            removeUpgrade(selectedId);
+          }
+        });
+      }
+      
+      // If this is a mutually exclusive air system upgrade, remove the other one
+      if (isAirSystemExclusive(upgradeId)) {
+        // Find and remove the other mutually exclusive air system upgrade
+        state.upgradeIds.forEach(selectedId => {
+          if (isAirSystemExclusive(selectedId) && selectedId !== upgradeId) {
             removeUpgrade(selectedId);
           }
         });
@@ -176,6 +194,15 @@ export default function SelectUpgrades() {
         state.upgradeIds.forEach(selectedId => {
           const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
           if (selectedUpgrade && isBrandingOption(selectedUpgrade.name)) {
+            removeUpgrade(selectedId);
+          }
+        });
+      }
+      
+      // If this is a mutually exclusive air system upgrade, remove the other one
+      if (isAirSystemExclusive(variantId)) {
+        state.upgradeIds.forEach(selectedId => {
+          if (isAirSystemExclusive(selectedId) && selectedId !== variantId) {
             removeUpgrade(selectedId);
           }
         });
