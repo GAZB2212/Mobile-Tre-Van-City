@@ -49,6 +49,13 @@ Preferred communication style: Simple, everyday language.
   - Staff review quote in admin panel and can apply discounts (percentage or fixed amount)
   - Two types of notes: adminNotes (internal staff reference) and customerNotes (shown to customer)
   - Real-time price calculation showing discount impact
+  - **Quote Configuration Editing**: Staff can modify quote configurations after submission
+    - Change van selection or remove van entirely (nullable field)
+    - Change kit selection or remove kit (nullable field with migration support)
+    - Add or remove equipment/upgrades with quantity support
+    - Server-side pricing recalculation includes van, kit, upgrades, and training options
+    - All pricing changes validated server-side to ensure data integrity
+    - Real-time preview of updated pricing before saving
   - Staff generate unique confirmation link via secure token
   - Customer receives link via email/SMS and confirms quote (no login required)
   - One-time use tokens automatically cleared after confirmation

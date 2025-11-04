@@ -1208,9 +1208,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         discountValue: z.number().int().nullable().optional(),
         adminNotes: z.string().nullable().optional(),
         customerNotes: z.string().nullable().optional(),
+        // Configuration fields
+        vanId: z.string().nullable().optional(),
+        kitId: z.string().nullable().optional(),
+        selectedUpgradeIds: z.array(z.string()).optional(),
+        selectedUpgrades: z.record(z.number()).optional(),
+        estSubtotal: z.number().int().optional(),
+        estVAT: z.number().int().optional(),
+        estTotal: z.number().int().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
+      
+      // If configuration fields changed, recalculate pricing server-side
+      if ('vanId' in validatedData || 'kitId' in validatedData || 'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData) {
+        const quote = await storage.getQuote(req.params.id);
+        if (!quote) {
+          return res.status(404).json({ error: "Quote not found" });
+        }
+        
+        // Get the configuration (use updated values or fall back to existing)
+        const vanId = 'vanId' in validatedData ? validatedData.vanId : quote.vanId;
+        const kitId = 'kitId' in validatedData ? validatedData.kitId : quote.kitId;
+        const selectedUpgradeIds = validatedData.selectedUpgradeIds || quote.selectedUpgradeIds || [];
+        const selectedUpgrades = validatedData.selectedUpgrades || quote.selectedUpgrades || {};
+        const trainingOptionIds = quote.trainingOptionIds || [];
+        
+        // Recalculate pricing
+        let estSubtotal = 0;
+        
+        // Add van price
+        if (vanId) {
+          const van = await storage.getVan(vanId);
+          if (van) {
+            estSubtotal += van.price;
+          }
+        }
+        
+        // Add kit price
+        if (kitId) {
+          const kit = await storage.getKit(kitId);
+          if (kit) {
+            estSubtotal += kit.price;
+          }
+        }
+        
+        // Add upgrade prices
+        for (const upgradeId of selectedUpgradeIds) {
+          const upgrade = await storage.getUpgrade(upgradeId);
+          if (upgrade) {
+            const quantity = selectedUpgrades[upgradeId] || 1;
+            estSubtotal += upgrade.price * quantity;
+          }
+        }
+        
+        // Add training option prices
+        for (const trainingId of trainingOptionIds) {
+          const training = await storage.getTrainingOption(trainingId);
+          if (training) {
+            estSubtotal += training.price;
+          }
+        }
+        
+        const estVAT = Math.round(estSubtotal * 0.2);
+        const estTotal = estSubtotal + estVAT;
+        
+        // Add calculated pricing to validated data
+        validatedData.estSubtotal = estSubtotal;
+        validatedData.estVAT = estVAT;
+        validatedData.estTotal = estTotal;
+      }
+      
       const updated = await storage.updateQuote(req.params.id, validatedData);
       
       if (!updated) {

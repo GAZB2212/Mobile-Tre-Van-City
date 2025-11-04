@@ -25,9 +25,11 @@ import {
   X,
   Send,
   Percent,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from "lucide-react";
-import type { Quote } from "@shared/schema";
+import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
+import { Checkbox } from "@/components/ui/checkbox";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
@@ -59,10 +61,31 @@ export default function AdminQuoteDetail() {
   const [adminNotes, setAdminNotes] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
   const [confirmationUrl, setConfirmationUrl] = useState("");
+  
+  // Configuration state
+  const [selectedVanId, setSelectedVanId] = useState<string | null>(null);
+  const [selectedKitId, setSelectedKitId] = useState<string | null>(null);
+  const [selectedUpgradeIds, setSelectedUpgradeIds] = useState<string[]>([]);
+  const [selectedUpgrades, setSelectedUpgrades] = useState<Record<string, number>>({});
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
     enabled: !!user?.isAdmin && !!id,
+  });
+
+  const { data: vans = [] } = useQuery<Van[]>({
+    queryKey: ["/api/admin/vans"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: kits = [] } = useQuery<Kit[]>({
+    queryKey: ["/api/admin/kits"],
+    enabled: !!user?.isAdmin,
+  });
+
+  const { data: upgrades = [] } = useQuery<Upgrade[]>({
+    queryKey: ["/api/admin/upgrades"],
+    enabled: !!user?.isAdmin,
   });
 
   // Initialize form fields when quote loads
@@ -76,6 +99,10 @@ export default function AdminQuoteDetail() {
       setDiscountValue(quote.discountValue ? String(quote.discountValue) : "");
       setAdminNotes(quote.adminNotes || "");
       setCustomerNotes(quote.customerNotes || "");
+      setSelectedVanId(quote.vanId || null);
+      setSelectedKitId(quote.kitId || null);
+      setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
+      setSelectedUpgrades(quote.selectedUpgrades || {});
     }
   }, [quote]);
 
@@ -188,8 +215,59 @@ export default function AdminQuoteDetail() {
     );
   }
 
+  const handleUpgradeToggle = (upgradeId: string, upgrade: Upgrade) => {
+    const isSelected = selectedUpgradeIds.includes(upgradeId);
+    
+    if (isSelected) {
+      // Remove upgrade
+      setSelectedUpgradeIds(selectedUpgradeIds.filter(id => id !== upgradeId));
+      const newUpgrades = { ...selectedUpgrades };
+      delete newUpgrades[upgradeId];
+      setSelectedUpgrades(newUpgrades);
+    } else {
+      // Add upgrade
+      setSelectedUpgradeIds([...selectedUpgradeIds, upgradeId]);
+      if (upgrade.allowQuantity) {
+        setSelectedUpgrades({ ...selectedUpgrades, [upgradeId]: 1 });
+      }
+    }
+  };
+
+  const handleQuantityChange = (upgradeId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setSelectedUpgrades({ ...selectedUpgrades, [upgradeId]: quantity });
+  };
+
+  const recalculatePricing = () => {
+    const selectedVan = vans.find(v => v.id === selectedVanId);
+    const selectedKit = kits.find(k => k.id === selectedKitId);
+    
+    let subtotal = 0;
+    
+    // Add van price
+    if (selectedVan) {
+      subtotal += selectedVan.price;
+    }
+    
+    // Add kit price
+    if (selectedKit) {
+      subtotal += selectedKit.price;
+    }
+    
+    // Add upgrades prices
+    selectedUpgradeIds.forEach(upgradeId => {
+      const upgrade = upgrades.find(u => u.id === upgradeId);
+      if (upgrade) {
+        const quantity = selectedUpgrades[upgradeId] || 1;
+        subtotal += upgrade.price * quantity;
+      }
+    });
+    
+    return subtotal;
+  };
+
   const handleSave = () => {
-    updateMutation.mutate({
+    const updates: any = {
       status,
       financeStatus,
       buildStage: buildStage || null,
@@ -198,7 +276,15 @@ export default function AdminQuoteDetail() {
       discountValue: discountValue ? parseInt(discountValue) : null,
       adminNotes: adminNotes || null,
       customerNotes: customerNotes || null,
-    });
+      selectedUpgradeIds,
+      selectedUpgrades,
+    };
+    
+    // Explicitly include null values for van and kit to allow clearing
+    updates.vanId = selectedVanId;
+    updates.kitId = selectedKitId;
+    
+    updateMutation.mutate(updates);
   };
 
   const calculateAdjustedPrice = () => {
@@ -299,6 +385,129 @@ export default function AdminQuoteDetail() {
                       <div className="text-base">{quote.company}</div>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Configuration Editor */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Edit Configuration
+                </CardTitle>
+                <CardDescription>
+                  Modify the van, kit, and equipment selections
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Van Selection */}
+                <div>
+                  <Label htmlFor="van-select">Van</Label>
+                  <Select value={selectedVanId || "none"} onValueChange={(v) => setSelectedVanId(v === "none" ? null : v)}>
+                    <SelectTrigger id="van-select" data-testid="select-van">
+                      <SelectValue placeholder="Select van" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No van selected</SelectItem>
+                      {vans.filter(v => v.published).map((van) => (
+                        <SelectItem key={van.id} value={van.id}>
+                          {van.year} {van.make} {van.model} - £{(van.price / 100).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Kit Selection */}
+                <div>
+                  <Label htmlFor="kit-select">Equipment Kit</Label>
+                  <Select value={selectedKitId || "none"} onValueChange={(v) => setSelectedKitId(v === "none" ? null : v)}>
+                    <SelectTrigger id="kit-select" data-testid="select-kit">
+                      <SelectValue placeholder="Select kit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No kit selected</SelectItem>
+                      {kits.filter(k => k.published).map((kit) => (
+                        <SelectItem key={kit.id} value={kit.id}>
+                          {kit.name} - £{(kit.price / 100).toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Upgrades Selection */}
+                <div>
+                  <Label>Equipment & Upgrades</Label>
+                  <div className="mt-2 space-y-3 max-h-96 overflow-y-auto border rounded-md p-4">
+                    {upgrades.filter(u => u.published && !u.parentId).map((upgrade) => {
+                      const isSelected = selectedUpgradeIds.includes(upgrade.id);
+                      const quantity = selectedUpgrades[upgrade.id] || 1;
+                      
+                      return (
+                        <div key={upgrade.id} className="flex items-start gap-3">
+                          <Checkbox
+                            id={`upgrade-${upgrade.id}`}
+                            checked={isSelected}
+                            onCheckedChange={() => handleUpgradeToggle(upgrade.id, upgrade)}
+                            data-testid={`checkbox-upgrade-${upgrade.id}`}
+                          />
+                          <div className="flex-1">
+                            <label
+                              htmlFor={`upgrade-${upgrade.id}`}
+                              className="text-sm font-medium cursor-pointer"
+                            >
+                              {upgrade.name} - £{(upgrade.price / 100).toLocaleString()}
+                            </label>
+                            {upgrade.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {upgrade.description}
+                              </p>
+                            )}
+                            {isSelected && upgrade.allowQuantity && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Label htmlFor={`qty-${upgrade.id}`} className="text-xs">
+                                  Quantity:
+                                </Label>
+                                <Input
+                                  id={`qty-${upgrade.id}`}
+                                  type="number"
+                                  min="1"
+                                  value={quantity}
+                                  onChange={(e) => handleQuantityChange(upgrade.id, parseInt(e.target.value))}
+                                  className="w-20 h-8 text-sm"
+                                  data-testid={`input-quantity-${upgrade.id}`}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Selected: {selectedUpgradeIds.length} items
+                  </p>
+                </div>
+
+                {/* Pricing Preview */}
+                <div className="pt-4 border-t">
+                  <div className="text-sm font-medium mb-2">Updated Pricing:</div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span className="font-medium">£{(recalculatePricing() / 100).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">VAT (20%):</span>
+                      <span className="font-medium">£{(Math.round(recalculatePricing() * 0.2) / 100).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t">
+                      <span className="font-semibold">Total:</span>
+                      <span className="font-semibold">£{((recalculatePricing() + Math.round(recalculatePricing() * 0.2)) / 100).toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

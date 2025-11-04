@@ -117,7 +117,7 @@ export const quotes = pgTable("quotes", {
   phone: text("phone").notNull(),
   company: text("company"),
   vanId: varchar("van_id").references(() => vans.id),
-  kitId: varchar("kit_id").notNull().references(() => kits.id),
+  kitId: varchar("kit_id").references(() => kits.id),
   selectedUpgradeIds: json("selected_upgrade_ids").$type<string[]>().notNull().default([]),
   selectedUpgrades: json("selected_upgrades").$type<Record<string, number>>().notNull().default({}),
   trainingOptionIds: json("training_option_ids").$type<string[]>().notNull().default([]),
