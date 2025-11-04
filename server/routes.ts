@@ -1392,16 +1392,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Quote not found or link expired" });
       }
 
-      // Return only essential customer-facing fields (no internal data)
+      // Fetch related data for full configuration details
+      let van = null;
+      let kit = null;
+      let upgrades: any[] = [];
+      let financePlan = null;
+
+      if (quote.vanId) {
+        van = await storage.getVan(quote.vanId);
+      }
+
+      if (quote.kitId) {
+        kit = await storage.getKit(quote.kitId);
+      }
+
+      if (quote.selectedUpgradeIds && quote.selectedUpgradeIds.length > 0) {
+        upgrades = await Promise.all(
+          quote.selectedUpgradeIds.map(id => storage.getUpgrade(id))
+        );
+        // Filter out nulls and add quantity info
+        upgrades = upgrades.filter(Boolean).map(upgrade => ({
+          ...upgrade,
+          quantity: quote.selectedUpgrades[upgrade.id] || 1
+        }));
+      }
+
+      if (quote.financePlanId) {
+        financePlan = await storage.getFinancePlan(quote.financePlanId);
+      }
+
+      // Return full configuration details (no internal admin fields)
       const customerSafeQuote = {
         id: quote.id,
         userName: quote.userName,
         email: quote.email,
         phone: quote.phone,
         company: quote.company,
+        van,
+        kit,
+        upgrades,
+        financePlan,
+        financeInputs: quote.financeInputs,
         estSubtotal: quote.estSubtotal,
         estVAT: quote.estVAT,
         estTotal: quote.estTotal,
+        estDiscount: quote.estDiscount,
         discountType: quote.discountType,
         discountValue: quote.discountValue,
         customerNotes: quote.customerNotes, // Only customer notes, NOT adminNotes
