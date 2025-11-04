@@ -137,7 +137,8 @@ export default function AdminQuotes() {
     return van ? `${van.make} ${van.model}` : "Unknown van";
   };
 
-  const getKitName = (kitId: string): string => {
+  const getKitName = (kitId: string | null): string => {
+    if (!kitId) return "No kit selected";
     const kit = kits.find((k) => k.id === kitId);
     return kit?.name || "Unknown kit";
   };

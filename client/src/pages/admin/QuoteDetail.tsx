@@ -27,7 +27,8 @@ import {
   Percent,
   MessageSquare,
   Settings,
-  ChevronDown
+  ChevronDown,
+  CheckCircle
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -913,6 +914,46 @@ export default function AdminQuoteDetail() {
                     </SelectContent>
                   </Select>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Customer Confirmation Status */}
+            <Card className={quote.confirmedAt ? "border-accent bg-accent/5" : ""}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Customer Confirmation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {quote.confirmedAt ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="bg-accent text-accent-foreground">
+                        ✓ Confirmed
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Confirmed on {new Date(quote.confirmedAt).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-2">
+                      Customer has reviewed and confirmed this quote
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Badge variant="secondary">Awaiting Confirmation</Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Customer has not yet confirmed this quote
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
