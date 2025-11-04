@@ -130,7 +130,7 @@ export default function Training() {
                 </Button>
               </Link>
               <Link href="/stock">
-                <Button variant="outline" size="lg" data-testid="button-view-stock">
+                <Button variant="outline" size="lg" className="!border-2 !border-accent text-accent hover:bg-accent/10" data-testid="button-view-stock">
                   View Van Stock
                 </Button>
               </Link>
@@ -398,7 +398,7 @@ export default function Training() {
               </Button>
             </Link>
             <Link href="/stock">
-              <Button variant="outline" size="lg" data-testid="button-browse-stock">
+              <Button variant="outline" size="lg" className="!border-2 !border-accent text-accent hover:bg-accent/10" data-testid="button-browse-stock">
                 Browse Van Stock
               </Button>
             </Link>

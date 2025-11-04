@@ -189,7 +189,7 @@ export default function Contact() {
                         <p className="text-muted-foreground mb-6">
                           Thank you for contacting us. We'll respond to your inquiry within 24 hours.
                         </p>
-                        <Button onClick={() => setSubmitted(false)} variant="outline">
+                        <Button onClick={() => setSubmitted(false)} variant="outline" className="!border-2 !border-accent text-accent hover:bg-accent/10">
                           Send Another Message
                         </Button>
                       </div>

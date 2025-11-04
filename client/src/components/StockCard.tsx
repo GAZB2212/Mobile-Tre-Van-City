@@ -102,7 +102,7 @@ export default function StockCard({
       </CardContent>
       
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1" asChild data-testid={`button-view-${id}`}>
+        <Button variant="outline" size="sm" className="flex-1 !border-2 !border-accent text-accent hover:bg-accent/10" asChild data-testid={`button-view-${id}`}>
           <Link href={`/stock/${slug}`}>
             <Eye className="w-4 h-4 mr-2" />
             View

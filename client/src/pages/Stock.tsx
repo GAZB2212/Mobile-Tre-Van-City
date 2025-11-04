@@ -153,7 +153,7 @@ export default function Stock() {
             <div className="flex items-end">
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full !border-2 !border-accent text-accent hover:bg-accent/10"
                 onClick={() => {
                   setMakeFilter("all");
                   setModelFilter("all");
@@ -190,6 +190,7 @@ export default function Stock() {
                 </p>
                 <Button
                   variant="outline"
+                  className="!border-2 !border-accent text-accent hover:bg-accent/10"
                   onClick={() => {
                     setMakeFilter("all");
                     setModelFilter("all");
@@ -264,7 +265,7 @@ export default function Stock() {
                   <CardFooter className="pt-0 flex gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 !border-2 !border-accent text-accent hover:bg-accent/10"
                       onClick={() => handleConfigureVan(van.id)}
                       data-testid={`button-configure-${van.id}`}
                     >
@@ -305,7 +306,7 @@ export default function Stock() {
                   Configure Your Van
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild data-testid="button-contact-sales">
+              <Button size="lg" variant="outline" className="!border-2 !border-accent text-accent hover:bg-accent/10" asChild data-testid="button-contact-sales">
                 <Link href="/contact">
                   Contact Sales
                 </Link>

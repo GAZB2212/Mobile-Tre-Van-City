@@ -160,7 +160,7 @@ export default function About() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild data-testid="button-contact">
+              <Button size="lg" variant="outline" className="!border-2 !border-accent text-accent hover:bg-accent/10" asChild data-testid="button-contact">
                 <Link href="/contact">Contact Us</Link>
               </Button>
             </div>

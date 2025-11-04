@@ -321,7 +321,7 @@ export default function VanDetails() {
                       asChild
                       size="lg"
                       variant="outline"
-                      className="w-full"
+                      className="w-full !border-2 !border-accent text-accent hover:bg-accent/10"
                       data-testid="button-enquire"
                     >
                       <Link href="/contact">
@@ -366,7 +366,7 @@ export default function VanDetails() {
                     <Button
                       asChild
                       variant="outline"
-                      className="w-full"
+                      className="w-full !border-2 !border-accent text-accent hover:bg-accent/10"
                       data-testid="button-finance"
                     >
                       <Link href="/finance">
