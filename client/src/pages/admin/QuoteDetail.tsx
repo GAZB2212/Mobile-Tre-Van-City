@@ -525,12 +525,12 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="discount-type">Discount Type</Label>
-                  <Select value={discountType} onValueChange={(value: any) => setDiscountType(value)}>
+                  <Select value={discountType || "none"} onValueChange={(value: any) => setDiscountType(value === "none" ? "" : value)}>
                     <SelectTrigger id="discount-type" data-testid="select-discount-type">
                       <SelectValue placeholder="No discount" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No discount</SelectItem>
+                      <SelectItem value="none">No discount</SelectItem>
                       <SelectItem value="percentage">Percentage (%)</SelectItem>
                       <SelectItem value="fixed">Fixed Amount (£)</SelectItem>
                     </SelectContent>
