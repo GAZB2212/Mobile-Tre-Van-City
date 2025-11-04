@@ -48,7 +48,12 @@ Preferred communication style: Simple, everyday language.
   - Customer submits quote request via configurator
   - Staff review quote in admin panel and can apply discounts (percentage or fixed amount)
   - Two types of notes: adminNotes (internal staff reference) and customerNotes (shown to customer)
-  - Real-time price calculation showing discount impact
+  - **Real-Time Pricing**: Price summary updates dynamically when staff modify configuration
+    - Recalculates total based on current van, kit, and equipment selections
+    - Shows discount impact immediately
+    - Displays finance calculations (deposit, monthly payment, term, balloon) if customer selected financing
+    - Finance calculations use correct amortization formula with APR in basis points
+    - Handles both interest and zero-interest finance plans with balloon payments
   - **Quote Configuration Editing**: Staff can modify quote configurations after submission
     - Change van selection or remove van entirely (nullable field)
     - Change kit selection or remove kit (nullable field with migration support)
