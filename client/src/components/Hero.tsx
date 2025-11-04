@@ -11,7 +11,7 @@ export default function Hero() {
         playsInline
         preload="metadata"
         className="absolute inset-0 w-full h-full object-cover opacity-100"
-        src="/assets/ZenoVideo 24_1759239850808.mp4"
+        src="/media/ZenoVideo 24_1759239850808.mp4"
       />
       
       {/* Dark overlay for text readability - always visible */}

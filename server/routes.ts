@@ -1338,9 +1338,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve static assets (videos, images) from attached_assets folder
+  // Serve media files (videos, images) from attached_assets folder
   // Supports HTTP range requests for video streaming
-  app.get("/assets/:filename(*)", (req, res) => {
+  // Using /media/ to avoid conflicts with Vite's /assets/ in production builds
+  app.get("/media/:filename(*)", (req, res) => {
     try {
       const filename = req.params.filename;
       const assetsRoot = path.resolve(process.cwd(), 'attached_assets');
