@@ -1220,8 +1220,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = allowedUpdates.parse(req.body);
       
-      // If configuration fields changed, recalculate pricing server-side
-      if ('vanId' in validatedData || 'kitId' in validatedData || 'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData) {
+      // If configuration OR discount fields changed, recalculate pricing server-side
+      const needsRecalculation = 'vanId' in validatedData || 'kitId' in validatedData || 
+                                  'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData ||
+                                  'discountType' in validatedData || 'discountValue' in validatedData;
+      
+      if (needsRecalculation) {
         const quote = await storage.getQuote(req.params.id);
         if (!quote) {
           return res.status(404).json({ error: "Quote not found" });
@@ -1233,15 +1237,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const selectedUpgradeIds = validatedData.selectedUpgradeIds || quote.selectedUpgradeIds || [];
         const selectedUpgrades = validatedData.selectedUpgrades || quote.selectedUpgrades || {};
         const trainingOptionIds = quote.trainingOptionIds || [];
+        const discountType = 'discountType' in validatedData ? validatedData.discountType : quote.discountType;
+        const discountValue = 'discountValue' in validatedData ? validatedData.discountValue : quote.discountValue;
         
-        // Recalculate pricing
-        let estSubtotal = 0;
+        // Recalculate base pricing (before discount)
+        let baseSubtotal = 0;
         
         // Add van price
         if (vanId) {
           const van = await storage.getVan(vanId);
           if (van) {
-            estSubtotal += van.price;
+            baseSubtotal += van.price;
           }
         }
         
@@ -1249,7 +1255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (kitId) {
           const kit = await storage.getKit(kitId);
           if (kit) {
-            estSubtotal += kit.price;
+            baseSubtotal += kit.price;
           }
         }
         
@@ -1258,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const upgrade = await storage.getUpgrade(upgradeId);
           if (upgrade) {
             const quantity = selectedUpgrades[upgradeId] || 1;
-            estSubtotal += upgrade.price * quantity;
+            baseSubtotal += upgrade.price * quantity;
           }
         }
         
@@ -1266,15 +1272,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const trainingId of trainingOptionIds) {
           const training = await storage.getTrainingOption(trainingId);
           if (training) {
-            estSubtotal += training.price;
+            baseSubtotal += training.price;
           }
         }
         
-        const estVAT = Math.round(estSubtotal * 0.2);
-        const estTotal = estSubtotal + estVAT;
+        // Apply discount
+        let discountAmount = 0;
+        if (discountType && discountValue) {
+          if (discountType === "percentage") {
+            discountAmount = Math.round((baseSubtotal * discountValue) / 100);
+          } else if (discountType === "fixed") {
+            discountAmount = discountValue;
+          }
+        }
         
-        // Add calculated pricing to validated data
-        validatedData.estSubtotal = estSubtotal;
+        const subtotalAfterDiscount = baseSubtotal - discountAmount;
+        const estVAT = Math.round(subtotalAfterDiscount * 0.2);
+        const estTotal = subtotalAfterDiscount + estVAT;
+        
+        // Store base pricing, calculated discount, and final pricing
+        validatedData.estSubtotal = baseSubtotal;
+        validatedData.estDiscount = discountAmount;
         validatedData.estVAT = estVAT;
         validatedData.estTotal = estTotal;
       }

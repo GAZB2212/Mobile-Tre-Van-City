@@ -43,30 +43,16 @@ export default function QuoteConfirmation() {
     },
   });
 
+  // Use server-calculated pricing (discount already applied server-side for security)
   const calculateAdjustedPrice = () => {
-    if (!quote) return { subtotal: 0, discount: 0, vat: 0, total: 0 };
-
-    let subtotal = quote.estSubtotal;
-    let discountAmount = 0;
-
-    if (quote.discountType && quote.discountValue) {
-      if (quote.discountType === "percentage") {
-        discountAmount = Math.round((subtotal * quote.discountValue) / 100);
-      } else if (quote.discountType === "fixed") {
-        discountAmount = quote.discountValue;
-      }
-    }
-
-    const subtotalAfterDiscount = subtotal - discountAmount;
-    const vat = Math.round(subtotalAfterDiscount * 0.2);
-    const total = subtotalAfterDiscount + vat;
+    if (!quote) return { subtotal: 0, discount: 0, subtotalAfterDiscount: 0, vat: 0, total: 0 };
 
     return {
-      subtotal,
-      discount: discountAmount,
-      subtotalAfterDiscount,
-      vat,
-      total
+      subtotal: quote.estSubtotal, // Base price before discount
+      discount: quote.estDiscount || 0, // Server-calculated discount amount
+      subtotalAfterDiscount: quote.estSubtotal - (quote.estDiscount || 0),
+      vat: quote.estVAT, // Server-calculated VAT (after discount)
+      total: quote.estTotal, // Server-calculated total (after discount)
     };
   };
 

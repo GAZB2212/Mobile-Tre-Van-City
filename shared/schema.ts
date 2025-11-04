@@ -128,9 +128,10 @@ export const quotes = pgTable("quotes", {
     balloon?: number;
   }>(),
   notes: text("notes"),
-  estSubtotal: integer("est_subtotal").notNull(), // in pence
-  estVAT: integer("est_vat").notNull(), // in pence
-  estTotal: integer("est_total").notNull(), // in pence
+  estSubtotal: integer("est_subtotal").notNull(), // in pence (base price before discount)
+  estDiscount: integer("est_discount").notNull().default(0), // in pence (calculated discount amount)
+  estVAT: integer("est_vat").notNull(), // in pence (calculated after discount)
+  estTotal: integer("est_total").notNull(), // in pence (final price after discount)
   
   // Admin adjustments
   discountType: text("discount_type"), // "percentage" or "fixed"

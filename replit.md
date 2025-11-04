@@ -59,9 +59,14 @@ Preferred communication style: Simple, everyday language.
       - Supports both standalone items (checkboxes) and variant groups (dropdowns)
       - Originally selected items highlighted with yellow background for visibility
       - Staff can add new items or remove customer selections
-    - Server-side pricing recalculation includes van, kit, upgrades, and training options
+    - **Server-Side Pricing Security**: All pricing calculations performed server-side
+      - estSubtotal stores base price before discount
+      - estDiscount stores server-calculated discount amount (prevents tampering)
+      - estVAT and estTotal calculated server-side after applying discount
+      - Admin UI shows client-side preview, but server recalculates on save
+      - Confirmation page uses server values only (no client-side calculation)
+      - Pricing recalculation triggered by configuration OR discount changes
     - All pricing changes validated server-side to ensure data integrity
-    - Real-time preview of updated pricing before saving
   - Staff generate unique confirmation link via secure token
   - Customer receives link via email/SMS and confirms quote (no login required)
   - One-time use tokens automatically cleared after confirmation
