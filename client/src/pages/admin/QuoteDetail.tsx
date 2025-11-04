@@ -317,12 +317,12 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="build-stage">Current Build Stage</Label>
-                  <Select value={buildStage} onValueChange={setBuildStage}>
+                  <Select value={buildStage || "not_started"} onValueChange={(value) => setBuildStage(value === "not_started" ? "" : value)}>
                     <SelectTrigger id="build-stage" data-testid="select-build-stage">
                       <SelectValue placeholder="Select build stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Not Started</SelectItem>
+                      <SelectItem value="not_started">Not Started</SelectItem>
                       {buildStages.map((stage) => (
                         <SelectItem key={stage} value={stage}>
                           {stage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
