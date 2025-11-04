@@ -86,6 +86,7 @@ export default function VanDesigns() {
                     muted
                     loop
                     playsInline
+                    preload="metadata"
                   />
                 ) : design.type === 'image' && design.imageSrc ? (
                   <img 
