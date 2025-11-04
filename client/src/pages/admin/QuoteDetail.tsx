@@ -20,7 +20,7 @@ import {
   User as UserIcon,
   Truck,
   Wrench,
-  DollarSign,
+  PoundSterling,
   Image as ImageIcon,
   X,
   Send,
@@ -1010,7 +1010,7 @@ export default function AdminQuoteDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
+                  <PoundSterling className="w-5 h-5" />
                   Finance Status
                 </CardTitle>
               </CardHeader>
