@@ -164,13 +164,13 @@ export default function SelectFinance() {
                         Total Amount
                       </Label>
                       <div className="relative">
-                        <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
                         <Input
                           id="total"
                           type="text"
                           value={formatPrice(configuratorTotal)}
                           disabled
-                          className="pl-9 bg-muted/50"
+                          className="pl-9 bg-muted/50 font-bold text-lg text-foreground"
                           data-testid="input-total"
                         />
                       </div>
