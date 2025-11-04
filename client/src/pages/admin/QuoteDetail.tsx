@@ -430,6 +430,9 @@ export default function AdminQuoteDetail() {
       }
     }
 
+    // Clamp discount to prevent negative totals
+    discountAmount = Math.min(discountAmount, totalWithVat);
+
     const totalAfterDiscount = totalWithVat - discountAmount;
     // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%)
     const finalVat = Math.round(totalAfterDiscount / 6);

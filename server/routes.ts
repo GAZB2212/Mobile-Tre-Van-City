@@ -1290,15 +1290,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // Clamp discount to prevent negative totals
+        discountAmount = Math.min(discountAmount, baseTotalWithVat);
+        
         const totalAfterDiscount = baseTotalWithVat - discountAmount;
         // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%)
         const finalVAT = Math.round(totalAfterDiscount / 6);
         const finalSubtotal = totalAfterDiscount - finalVAT;
         
-        // Store final pricing
+        // Store final pricing and discount amount
         validatedData.estSubtotal = finalSubtotal;
         validatedData.estVAT = finalVAT;
         validatedData.estTotal = totalAfterDiscount;
+        (validatedData as any).estDiscount = discountAmount;
       }
       
       const updated = await storage.updateQuote(req.params.id, validatedData);

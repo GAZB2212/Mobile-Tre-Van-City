@@ -78,9 +78,11 @@ Preferred communication style: Simple, everyday language.
         - Percentage discounts: calculated as percentage of total inc VAT
         - Fixed discounts: deducted from total inc VAT
         - VAT back-calculated from final total (VAT = final total / 6 for 20% rate)
-      - estSubtotal stores final subtotal after discount and VAT back-calculation
-      - estVAT stores final VAT after discount application
-      - estTotal stores final total after discount
+      - **Database Fields**: All est* fields store FINAL values after discount
+        - estSubtotal: final subtotal (ex VAT) after discount and VAT back-calculation
+        - estVAT: final VAT after discount application  
+        - estTotal: final total (inc VAT) after discount
+        - To display original price: reverse-calculate using discountType and discountValue
       - Admin UI shows client-side preview, but server recalculates on save
       - Confirmation page uses server values only (no client-side calculation)
       - Pricing recalculation triggered by configuration OR discount changes

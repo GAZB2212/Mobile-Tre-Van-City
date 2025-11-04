@@ -45,14 +45,25 @@ export default function QuoteConfirmation() {
 
   // Use server-calculated pricing (discount already applied server-side for security)
   const calculateAdjustedPrice = () => {
-    if (!quote) return { subtotal: 0, discount: 0, subtotalAfterDiscount: 0, vat: 0, total: 0 };
+    if (!quote) return { subtotal: 0, discount: 0, subtotalAfterDiscount: 0, vat: 0, total: 0, originalTotal: 0 };
+
+    // estTotal, estVAT, and estSubtotal already reflect the final values AFTER discount
+    const finalTotal = quote.estTotal;
+    const finalVAT = quote.estVAT;
+    const finalSubtotal = quote.estSubtotal;
+
+    // Calculate discount amount and original price
+    // Use server-stored discount amount for accuracy
+    const discountAmount = quote.estDiscount || 0;
+    const originalTotal = finalTotal + discountAmount;
 
     return {
-      subtotal: quote.estSubtotal, // Base price before discount
-      discount: quote.estDiscount || 0, // Server-calculated discount amount
-      subtotalAfterDiscount: quote.estSubtotal - (quote.estDiscount || 0),
-      vat: quote.estVAT, // Server-calculated VAT (after discount)
-      total: quote.estTotal, // Server-calculated total (after discount)
+      subtotal: finalSubtotal, // Final subtotal (ex VAT) after discount
+      discount: discountAmount, // Calculated discount amount
+      subtotalAfterDiscount: finalSubtotal, // Same as subtotal (already after discount)
+      vat: finalVAT, // Final VAT after discount
+      total: finalTotal, // Final total after discount
+      originalTotal: originalTotal, // Original total before discount (for display purposes)
     };
   };
 
