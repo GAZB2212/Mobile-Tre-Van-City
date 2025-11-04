@@ -1225,7 +1225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate confirmation token and update quote to awaiting_confirmation
+  // Generate confirmation token, send email, and update quote to awaiting_confirmation
   app.post("/api/admin/quotes/:id/send-confirmation", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
@@ -1247,16 +1247,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to update quote" });
       }
 
-      // Return the confirmation URL
+      // Generate confirmation URL
       const confirmationUrl = `${req.protocol}://${req.get('host')}/quote/confirm/${token}`;
+
+      // Calculate discount for email
+      let discount = 0;
+      if (updated.discountType && updated.discountValue) {
+        if (updated.discountType === 'percentage') {
+          discount = Math.round((updated.estSubtotal * updated.discountValue) / 100);
+        } else {
+          discount = updated.discountValue;
+        }
+      }
+
+      // Send confirmation email to customer
+      const { sendQuoteConfirmationEmail } = await import('./email.js');
+      await sendQuoteConfirmationEmail({
+        to: updated.email,
+        customerName: updated.userName,
+        quoteId: updated.id,
+        confirmationUrl,
+        totalPrice: discount > 0 
+          ? updated.estSubtotal - discount + Math.round((updated.estSubtotal - discount) * 0.2)
+          : updated.estTotal,
+        discount: discount > 0 ? discount : undefined,
+        customerNotes: updated.customerNotes || undefined,
+      });
+
       res.json({ 
         success: true, 
         confirmationUrl,
+        emailSent: true,
         token 
       });
     } catch (error) {
-      console.error('Error generating confirmation token:', error);
-      res.status(500).json({ error: "Failed to generate confirmation link" });
+      console.error('Error sending confirmation email:', error);
+      res.status(500).json({ error: "Failed to send confirmation email" });
     }
   });
 

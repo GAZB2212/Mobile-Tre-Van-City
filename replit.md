@@ -109,7 +109,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options and calculations
-- **Email System**: Infrastructure ready for quote delivery and lead notifications
+- **Email System**: Automated quote confirmation emails via SendGrid
+  - Professional HTML email templates with mobile-responsive design
+  - Automatic sending when staff generate confirmation link
+  - Dynamic pricing display with discount highlighting
+  - Customer notes section (optional)
+  - Plain text fallback for email clients
+  - One-time use confirmation links
+  - SendGrid integration managed via Replit connector for secure API key handling
 - **SEO Optimization**: Comprehensive search engine optimization system
   - Dynamic meta tags (title, description) unique to each page
   - Open Graph tags for social media sharing (Facebook, Twitter, LinkedIn)

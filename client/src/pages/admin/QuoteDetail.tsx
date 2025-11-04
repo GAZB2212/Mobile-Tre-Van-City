@@ -168,22 +168,22 @@ export default function AdminQuoteDetail() {
   const sendConfirmationMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", `/api/admin/quotes/${id}/send-confirmation`);
-      return response as { confirmationUrl: string; token: string };
+      return response as unknown as { confirmationUrl: string; token: string; emailSent: boolean };
     },
     onSuccess: (data) => {
       setConfirmationUrl(data.confirmationUrl);
       queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       toast({
-        title: "Confirmation Link Generated",
-        description: "Copy the link below and send it to the customer",
+        title: "Email Sent Successfully!",
+        description: `Confirmation email sent to ${quote?.email}. The link is also available below for your reference.`,
       });
     },
     onError: () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to generate confirmation link",
+        description: "Failed to send confirmation email. Please try again.",
       });
     },
   });
@@ -202,7 +202,7 @@ export default function AdminQuoteDetail() {
   };
 
   const calculateAdjustedPrice = () => {
-    if (!quote) return { subtotal: 0, discount: 0, vat: 0, total: 0 };
+    if (!quote) return { subtotal: 0, discount: 0, subtotalAfterDiscount: 0, vat: 0, total: 0 };
 
     let subtotal = quote.estSubtotal;
     let discountAmount = 0;
@@ -650,15 +650,15 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Send Confirmation Link */}
+            {/* Send Confirmation Email */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Send className="w-5 h-5" />
-                  Customer Confirmation
+                  Send to Customer
                 </CardTitle>
                 <CardDescription>
-                  Generate a link for customer to confirm the quote
+                  Email confirmation link to customer automatically
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -669,12 +669,12 @@ export default function AdminQuoteDetail() {
                   data-testid="button-send-confirmation"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {sendConfirmationMutation.isPending ? "Generating..." : "Generate Confirmation Link"}
+                  {sendConfirmationMutation.isPending ? "Sending Email..." : "Send Confirmation Email"}
                 </Button>
                 
                 {(confirmationUrl || quote.confirmationToken) && (
                   <div className="space-y-2">
-                    <Label>Confirmation Link</Label>
+                    <Label>Confirmation Link (Reference)</Label>
                     <div className="flex gap-2">
                       <Input
                         value={confirmationUrl || `${window.location.origin}/quote/confirm/${quote.confirmationToken}`}
@@ -698,7 +698,7 @@ export default function AdminQuoteDetail() {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Share this link with the customer via email or SMS
+                      Email already sent to customer. This link is for your reference.
                     </p>
                   </div>
                 )}
