@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle, Package, Truck, CreditCard } from "lucide-react";
+import { ArrowLeft, CheckCircle, Package, Truck, CreditCard, UserPlus } from "lucide-react";
 import type { Van, Kit, FinancePlan, Upgrade, TrainingOption } from "@shared/schema";
 
 const quoteFormSchema = z.object({
@@ -28,11 +28,24 @@ const quoteFormSchema = z.object({
 
 type QuoteFormData = z.infer<typeof quoteFormSchema>;
 
+const accountCreationSchema = z.object({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type AccountCreationData = z.infer<typeof accountCreationSchema>;
+
 export default function RequestQuote() {
   const [, setLocation] = useLocation();
   const { state, clearAll } = useConfigurator();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const [showAccountCreation, setShowAccountCreation] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
 
   const { data: van, isLoading: isLoadingVan } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
@@ -113,9 +126,10 @@ export default function RequestQuote() {
 
       return apiRequest('POST', '/api/quotes', quoteData);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
       setSubmitted(true);
+      setSubmittedEmail(variables.email);
       clearAll();
       toast({
         title: "Quote Requested!",
