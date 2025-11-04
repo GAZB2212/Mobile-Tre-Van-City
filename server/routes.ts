@@ -1349,7 +1349,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📁 Static asset request:', filename);
       
       // Security: Prevent path traversal attacks
-      if (!assetsPath.startsWith(assetsRoot)) {
+      // Use path.relative to ensure the requested file is within assetsRoot
+      const relativePath = path.relative(assetsRoot, assetsPath);
+      if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
         console.log('❌ Path traversal attempt blocked:', assetsPath);
         return res.status(403).send('Forbidden');
       }
