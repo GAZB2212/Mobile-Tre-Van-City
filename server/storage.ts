@@ -45,10 +45,8 @@ export interface IStorage {
   // Quotes
   getQuotes(): Promise<Quote[]>;
   getQuote(id: string): Promise<Quote | undefined>;
-  getQuotesByUserId(userId: string): Promise<Quote[]>;
   createQuote(quote: InsertQuote): Promise<Quote>;
   updateQuote(id: string, quote: Partial<Quote>): Promise<Quote | undefined>;
-  linkQuotesToCustomer(email: string, userId: string): Promise<void>;
 
   // Leads
   getLeads(): Promise<Lead[]>;
@@ -1461,10 +1459,6 @@ export class MemStorage implements IStorage {
     return this.quotes.get(id);
   }
 
-  async getQuotesByUserId(userId: string): Promise<Quote[]> {
-    return Array.from(this.quotes.values()).filter(quote => quote.userId === userId);
-  }
-
   async createQuote(insertQuote: InsertQuote): Promise<Quote> {
     const id = randomUUID();
     const quote: Quote = { 
@@ -1489,16 +1483,6 @@ export class MemStorage implements IStorage {
     const updated: Quote = { ...existing, ...updates, id, createdAt: existing.createdAt };
     this.quotes.set(id, updated);
     return updated;
-  }
-
-  async linkQuotesToCustomer(email: string, userId: string): Promise<void> {
-    // Find all quotes with matching email and no userId, link them to this customer
-    for (const [id, quote] of this.quotes.entries()) {
-      if (quote.email === email && !quote.userId) {
-        const updated: Quote = { ...quote, userId };
-        this.quotes.set(id, updated);
-      }
-    }
   }
 
   // Leads
@@ -1767,10 +1751,6 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async getQuotesByUserId(userId: string): Promise<Quote[]> {
-    return await db.select().from(schema.quotes).where(eq(schema.quotes.userId, userId));
-  }
-
   async createQuote(insertQuote: InsertQuote): Promise<Quote> {
     const result = await db.insert(schema.quotes).values(insertQuote).returning();
     return result[0];
@@ -1779,13 +1759,6 @@ export class DbStorage implements IStorage {
   async updateQuote(id: string, updateQuote: Partial<Quote>): Promise<Quote | undefined> {
     const result = await db.update(schema.quotes).set(updateQuote).where(eq(schema.quotes.id, id)).returning();
     return result[0];
-  }
-
-  async linkQuotesToCustomer(email: string, userId: string): Promise<void> {
-    // Find all quotes with matching email and no userId, link them to this customer
-    await db.update(schema.quotes)
-      .set({ userId })
-      .where(and(eq(schema.quotes.email, email), isNull(schema.quotes.userId)));
   }
 
   // Leads

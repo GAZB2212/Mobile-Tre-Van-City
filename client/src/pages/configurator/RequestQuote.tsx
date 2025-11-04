@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle, Package, Truck, CreditCard, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle, Package, Truck, CreditCard } from "lucide-react";
 import type { Van, Kit, FinancePlan, Upgrade, TrainingOption } from "@shared/schema";
 
 const quoteFormSchema = z.object({
@@ -28,25 +28,11 @@ const quoteFormSchema = z.object({
 
 type QuoteFormData = z.infer<typeof quoteFormSchema>;
 
-const accountCreationSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type AccountCreationData = z.infer<typeof accountCreationSchema>;
-
 export default function RequestQuote() {
   const [, setLocation] = useLocation();
   const { state, clearAll } = useConfigurator();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
-  const [submittedEmail, setSubmittedEmail] = useState("");
-  const [submittedName, setSubmittedName] = useState("");
-  const [showAccountCreation, setShowAccountCreation] = useState(false);
-  const [accountCreated, setAccountCreated] = useState(false);
 
   const { data: van, isLoading: isLoadingVan } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
@@ -127,11 +113,9 @@ export default function RequestQuote() {
 
       return apiRequest('POST', '/api/quotes', quoteData);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
       setSubmitted(true);
-      setSubmittedEmail(variables.email);
-      setSubmittedName(variables.userName);
       clearAll();
       toast({
         title: "Quote Requested!",
@@ -147,48 +131,8 @@ export default function RequestQuote() {
     },
   });
 
-  const accountForm = useForm<AccountCreationData>({
-    resolver: zodResolver(accountCreationSchema),
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  const createAccountMutation = useMutation({
-    mutationFn: async (data: AccountCreationData) => {
-      return apiRequest('POST', '/api/customer/register', {
-        email: submittedEmail,
-        password: data.password,
-        name: submittedName,
-      });
-    },
-    onSuccess: () => {
-      setAccountCreated(true);
-      toast({
-        title: "Account Created!",
-        description: "You can now log in to view your quotes.",
-      });
-      // Redirect to customer dashboard after a brief delay
-      setTimeout(() => {
-        setLocation('/customer/dashboard');
-      }, 2000);
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to create account. You may already have an account with this email.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const onSubmit = (data: QuoteFormData) => {
     submitQuoteMutation.mutate(data);
-  };
-
-  const onCreateAccount = (data: AccountCreationData) => {
-    createAccountMutation.mutate(data);
   };
 
   const formatPrice = (price: number) => {
@@ -230,175 +174,21 @@ export default function RequestQuote() {
               <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-success-title">
                 Quote Request Submitted!
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground mb-4">
                 Thank you for your interest. Our team will review your configuration and contact you shortly with a detailed quote.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                We'll be in touch within 1 business day to discuss your custom build and finalize the details.
               </p>
             </div>
 
-            {!showAccountCreation && !accountCreated && submittedName && (
-              <Card className="mb-8">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <UserPlus className="w-6 h-6 text-accent" />
-                    <div>
-                      <CardTitle>Create Your Account</CardTitle>
-                      <CardDescription>
-                        Track your quotes and communicate with our team
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
-                    <p className="text-sm font-medium mb-2">For Customers:</p>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Create an account to view your quotes, track progress, and manage your requests anytime.
-                    </p>
-                    <p className="text-sm font-medium mb-2">For Staff:</p>
-                    <p className="text-sm text-muted-foreground">
-                      Entering on behalf of a customer? Click "Skip for Now" - the customer can create their account later.
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={() => setShowAccountCreation(true)}
-                      className="flex-1"
-                      data-testid="button-create-account"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Create Account
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => setLocation('/')}
-                      className="flex-1"
-                      data-testid="button-skip-account"
-                    >
-                      Skip for Now
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {showAccountCreation && !accountCreated && (
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle>Set Your Password</CardTitle>
-                  <CardDescription>
-                    Complete account creation for {submittedEmail}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...accountForm}>
-                    <form onSubmit={accountForm.handleSubmit(onCreateAccount)} className="space-y-4">
-                      <div>
-                        <FormLabel>Email</FormLabel>
-                        <Input 
-                          value={submittedEmail} 
-                          disabled 
-                          className="bg-muted"
-                          data-testid="input-account-email"
-                        />
-                      </div>
-
-                      <FormField
-                        control={accountForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Enter password (min 8 characters)" 
-                                {...field} 
-                                data-testid="input-account-password"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={accountForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="Re-enter password" 
-                                {...field} 
-                                data-testid="input-account-confirm-password"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex gap-3">
-                        <Button 
-                          type="submit"
-                          className="flex-1"
-                          disabled={createAccountMutation.isPending}
-                          data-testid="button-submit-account"
-                        >
-                          {createAccountMutation.isPending ? (
-                            <>
-                              <LoadingSpinner className="mr-2" />
-                              Creating...
-                            </>
-                          ) : (
-                            'Create Account'
-                          )}
-                        </Button>
-                        <Button 
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowAccountCreation(false)}
-                          disabled={createAccountMutation.isPending}
-                          data-testid="button-cancel-account"
-                        >
-                          Back
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            )}
-
-            {accountCreated && (
-              <Card className="mb-8 border-accent">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <CheckCircle className="w-12 h-12 text-accent mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold mb-2">Account Created Successfully!</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Redirecting you to your dashboard...
-                    </p>
-                    <LoadingSpinner className="mx-auto" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             <div className="flex gap-4 justify-center">
-              {!accountCreated && (
-                <>
-                  <Button onClick={() => setLocation('/')} data-testid="button-home">
-                    Back to Home
-                  </Button>
-                  <Button variant="outline" onClick={() => setLocation('/stock')} data-testid="button-browse-stock">
-                    Browse More Vans
-                  </Button>
-                </>
-              )}
+              <Button onClick={() => setLocation('/')} data-testid="button-home">
+                Back to Home
+              </Button>
+              <Button variant="outline" onClick={() => setLocation('/stock')} data-testid="button-browse-stock">
+                Browse More Vans
+              </Button>
             </div>
           </div>
         </main>

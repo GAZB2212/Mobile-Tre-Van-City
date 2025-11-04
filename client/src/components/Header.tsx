@@ -114,36 +114,8 @@ export default function Header() {
               <Link href="/configurator/van">Configure Your Van</Link>
             </Button>
 
-            {/* Authentication Section */}
-            {!isLoading && !isAuthenticated && (
-              <Button 
-                variant="ghost"
-                size="sm"
-                asChild
-                data-testid="button-login"
-                className="hidden lg:flex"
-              >
-                <Link href="/customer/login">
-                  <User className="w-4 h-4 mr-1" />
-                  Customer Login
-                </Link>
-              </Button>
-            )}
-            {!isLoading && isAuthenticated && !user?.isAdmin && (
-              <Button 
-                variant="ghost"
-                size="sm"
-                asChild
-                data-testid="button-portal"
-                className="hidden lg:flex"
-              >
-                <Link href="/customer/dashboard">
-                  <User className="w-4 h-4 mr-1" />
-                  My Account
-                </Link>
-              </Button>
-            )}
-            {!isLoading && isAuthenticated && (
+            {/* Admin Authentication Section */}
+            {!isLoading && isAuthenticated && user?.isAdmin && (
               <Button 
                 variant="ghost"
                 size="sm"
@@ -195,57 +167,29 @@ export default function Header() {
                 <Link href="/configurator/van">Configure Your Van</Link>
               </Button>
 
-              {/* Mobile Authentication */}
-              {!isLoading && (
+              {/* Mobile Admin Authentication */}
+              {!isLoading && isAuthenticated && user?.isAdmin && (
                 <div className="pt-4 border-t space-y-2">
-                  {isAuthenticated ? (
-                    <>
-                      {user?.isAdmin && (
-                        <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
-                          <Link href="/admin" data-testid="mobile-link-admin">
-                            <Shield className="w-4 h-4 mr-2" />
-                            Admin Panel
-                          </Link>
-                        </Button>
-                      )}
-                      {!user?.isAdmin && (
-                        <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
-                          <Link href="/customer/dashboard" data-testid="mobile-link-portal">
-                            <User className="w-4 h-4 mr-2" />
-                            My Account
-                          </Link>
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          handleLogout();
-                          setIsMenuOpen(false);
-                        }}
-                        disabled={logoutMutation.isPending}
-                        data-testid="mobile-button-logout"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        {logoutMutation.isPending ? "Logging out..." : "Logout"}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button 
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start"
-                      asChild
-                      data-testid="mobile-button-login"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Link href="/customer/login">
-                        <User className="w-4 h-4 mr-2" />
-                        Customer Login
-                      </Link>
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
+                    <Link href="/admin" data-testid="mobile-link-admin">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admin Panel
+                    </Link>
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    disabled={logoutMutation.isPending}
+                    data-testid="mobile-button-logout"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    {logoutMutation.isPending ? "Logging out..." : "Logout"}
+                  </Button>
                 </div>
               )}
             </nav>
