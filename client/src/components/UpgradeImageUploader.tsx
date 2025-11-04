@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { getImageUrl } from "@/lib/utils";
+import imageCompression from "browser-image-compression";
 
 interface UpgradeImageUploaderProps {
   images: string[];
@@ -28,9 +29,20 @@ export function UpgradeImageUploader({
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      // Compress image before upload for faster loading
+      const options = {
+        maxSizeMB: 1, // Maximum file size in MB
+        maxWidthOrHeight: 1920, // Maximum width or height
+        useWebWorker: true, // Use web worker for better performance
+        fileType: file.type, // Preserve original file type
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      console.log(`📊 Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      
       // Use backend proxy upload - no CORS issues!
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", compressedFile);
 
       const response = await fetch("/api/upgrades/upload-image", {
         method: "POST",
