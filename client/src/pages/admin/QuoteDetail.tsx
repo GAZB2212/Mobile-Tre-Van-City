@@ -414,28 +414,33 @@ export default function AdminQuoteDetail() {
 
     // Use recalculated pricing from current configuration (not original quote.estSubtotal)
     let subtotal = recalculatePricing();
+    const vat = Math.round(subtotal * 0.2);
+    const totalWithVat = subtotal + vat;
+    
     let discountAmount = 0;
 
     if (discountType && discountValue) {
       if (discountType === "percentage") {
         const percentValue = parseInt(discountValue);
-        discountAmount = Math.round((subtotal * percentValue) / 100);
+        // Apply discount to total including VAT
+        discountAmount = Math.round((totalWithVat * percentValue) / 100);
       } else if (discountType === "fixed") {
         // Convert pounds to pence for calculation
         discountAmount = Math.round(parseFloat(discountValue) * 100);
       }
     }
 
-    const subtotalAfterDiscount = subtotal - discountAmount;
-    const vat = Math.round(subtotalAfterDiscount * 0.2);
-    const total = subtotalAfterDiscount + vat;
+    const totalAfterDiscount = totalWithVat - discountAmount;
+    // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%)
+    const finalVat = Math.round(totalAfterDiscount / 6);
+    const finalSubtotal = totalAfterDiscount - finalVat;
 
     return {
-      subtotal,
+      subtotal: finalSubtotal,
       discount: discountAmount,
-      subtotalAfterDiscount,
-      vat,
-      total
+      subtotalAfterDiscount: finalSubtotal,
+      vat: finalVat,
+      total: totalAfterDiscount
     };
   };
 

@@ -1276,25 +1276,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Apply discount
+        // Calculate total with VAT first
+        const baseVAT = Math.round(baseSubtotal * 0.2);
+        const baseTotalWithVat = baseSubtotal + baseVAT;
+        
+        // Apply discount to total including VAT
         let discountAmount = 0;
         if (discountType && discountValue) {
           if (discountType === "percentage") {
-            discountAmount = Math.round((baseSubtotal * discountValue) / 100);
+            discountAmount = Math.round((baseTotalWithVat * discountValue) / 100);
           } else if (discountType === "fixed") {
             discountAmount = discountValue;
           }
         }
         
-        const subtotalAfterDiscount = baseSubtotal - discountAmount;
-        const estVAT = Math.round(subtotalAfterDiscount * 0.2);
-        const estTotal = subtotalAfterDiscount + estVAT;
+        const totalAfterDiscount = baseTotalWithVat - discountAmount;
+        // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%)
+        const finalVAT = Math.round(totalAfterDiscount / 6);
+        const finalSubtotal = totalAfterDiscount - finalVAT;
         
-        // Store base pricing, calculated discount, and final pricing
-        validatedData.estSubtotal = baseSubtotal;
-        validatedData.estDiscount = discountAmount;
-        validatedData.estVAT = estVAT;
-        validatedData.estTotal = estTotal;
+        // Store final pricing
+        validatedData.estSubtotal = finalSubtotal;
+        validatedData.estVAT = finalVAT;
+        validatedData.estTotal = totalAfterDiscount;
       }
       
       const updated = await storage.updateQuote(req.params.id, validatedData);
@@ -1336,12 +1340,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate confirmation URL
       const confirmationUrl = `${req.protocol}://${req.get('host')}/quote/confirm/${token}`;
 
-      // Calculate discount for email
+      // Calculate discount for email - discount applies to total inc VAT
+      const totalWithVat = updated.estSubtotal + updated.estVAT;
       let discount = 0;
       if (updated.discountType && updated.discountValue) {
         if (updated.discountType === 'percentage') {
-          discount = Math.round((updated.estSubtotal * updated.discountValue) / 100);
+          // Percentage discount applies to total including VAT
+          discount = Math.round((totalWithVat * updated.discountValue) / 100);
         } else {
+          // Fixed amount discount
           discount = updated.discountValue;
         }
       }
@@ -1353,9 +1360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerName: updated.userName,
         quoteId: updated.id,
         confirmationUrl,
-        totalPrice: discount > 0 
-          ? updated.estSubtotal - discount + Math.round((updated.estSubtotal - discount) * 0.2)
-          : updated.estTotal,
+        totalPrice: discount > 0 ? totalWithVat - discount : updated.estTotal,
         discount: discount > 0 ? discount : undefined,
         customerNotes: updated.customerNotes || undefined,
       });
