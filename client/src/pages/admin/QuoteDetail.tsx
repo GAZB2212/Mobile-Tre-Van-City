@@ -28,7 +28,7 @@ import {
   MessageSquare,
   Settings
 } from "lucide-react";
-import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
+import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { upgradeCategories } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
@@ -144,6 +144,11 @@ export default function AdminQuoteDetail() {
   const { data: upgrades = [] } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
     enabled: !!user?.isAdmin,
+  });
+
+  const { data: financePlan } = useQuery<FinancePlan | null>({
+    queryKey: [`/api/finance-plans/${quote?.financePlanId}`],
+    enabled: !!user?.isAdmin && !!quote?.financePlanId,
   });
 
   // Initialize form fields when quote loads
@@ -349,7 +354,8 @@ export default function AdminQuoteDetail() {
   const calculateAdjustedPrice = () => {
     if (!quote) return { subtotal: 0, discount: 0, subtotalAfterDiscount: 0, vat: 0, total: 0 };
 
-    let subtotal = quote.estSubtotal;
+    // Use recalculated pricing from current configuration (not original quote.estSubtotal)
+    let subtotal = recalculatePricing();
     let discountAmount = 0;
 
     if (discountType && discountValue) {
@@ -375,6 +381,68 @@ export default function AdminQuoteDetail() {
   };
 
   const pricing = calculateAdjustedPrice();
+
+  // Calculate monthly finance payments if finance plan selected
+  const calculateFinancePayments = () => {
+    if (!financePlan || !quote) return null;
+
+    const total = pricing.total; // Total price after discount and VAT
+    
+    // Get deposit from quote.financeInputs or use default from plan
+    const depositPercent = quote.financeInputs?.deposit !== undefined 
+      ? quote.financeInputs.deposit 
+      : financePlan.depositPercent;
+    const depositAmount = Math.round((total * depositPercent) / 100);
+    
+    // Get term from quote.financeInputs or use default from plan
+    const termMonths = quote.financeInputs?.term || financePlan.termMonths;
+    
+    // Get balloon from quote.financeInputs or use default from plan
+    const balloonPercent = quote.financeInputs?.balloon !== undefined
+      ? quote.financeInputs.balloon
+      : (financePlan.balloonPercent || 0);
+    const balloonAmount = Math.round((total * balloonPercent) / 100);
+    
+    // Calculate amount to finance (after deposit, before balloon)
+    const amountToFinance = total - depositAmount;
+    
+    // Calculate monthly interest rate from APR in basis points
+    const aprDecimal = financePlan.aprBps / 10000; // Convert basis points to decimal
+    const monthlyRate = aprDecimal / 12;
+    
+    // Calculate monthly payment using amortization formula
+    let monthlyPayment: number;
+    
+    if (monthlyRate === 0) {
+      // No interest - still need to account for balloon as future value
+      const amountToAmortize = amountToFinance - balloonAmount;
+      monthlyPayment = Math.round(amountToAmortize / termMonths);
+    } else {
+      // Standard amortization formula, adjusted for balloon
+      const presentValueFactor = Math.pow(1 + monthlyRate, termMonths);
+      const balloonPV = balloonAmount / presentValueFactor;
+      const amountToAmortize = amountToFinance - balloonPV;
+      
+      monthlyPayment = Math.round(
+        (amountToAmortize * monthlyRate * presentValueFactor) / (presentValueFactor - 1)
+      );
+    }
+    
+    return {
+      depositAmount,
+      depositPercent,
+      monthlyPayment,
+      termMonths,
+      balloonAmount,
+      balloonPercent,
+      total,
+      planName: financePlan.name,
+      planType: financePlan.type,
+      apr: financePlan.aprBps / 10000 * 100, // Convert basis points to percentage (595 → 5.95%)
+    };
+  };
+
+  const financeInfo = calculateFinancePayments();
 
   return (
     <div className="min-h-screen bg-background">
@@ -1011,6 +1079,46 @@ export default function AdminQuoteDetail() {
                   <div className="text-xs text-muted-foreground text-center pt-2">
                     Original: £{(quote.estTotal / 100).toLocaleString()}
                   </div>
+                )}
+                
+                {/* Finance Calculations */}
+                {financeInfo && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="space-y-2 pt-2">
+                      <div className="text-sm font-semibold text-accent">
+                        {financeInfo.planName} ({financeInfo.planType})
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Deposit ({financeInfo.depositPercent}%)</span>
+                        <span className="font-medium">
+                          £{(financeInfo.depositAmount / 100).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Monthly Payment</span>
+                        <span className="font-bold text-accent">
+                          £{(financeInfo.monthlyPayment / 100).toLocaleString()}/mo
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Term</span>
+                        <span className="font-medium">{financeInfo.termMonths} months</span>
+                      </div>
+                      {financeInfo.balloonAmount > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Final Payment ({financeInfo.balloonPercent}%)</span>
+                          <span className="font-medium">
+                            £{(financeInfo.balloonAmount / 100).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                        <span>APR</span>
+                        <span>{financeInfo.apr.toFixed(2)}%</span>
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
