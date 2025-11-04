@@ -107,12 +107,10 @@ export default function AdminQuoteDetail() {
   const { id } = useParams();
   const { toast } = useToast();
   const { user } = useAuth();
-  const pendingArtworkPathRef = useRef<string | null>(null);
   
   const [status, setStatus] = useState("");
   const [financeStatus, setFinanceStatus] = useState("");
   const [buildStage, setBuildStage] = useState("");
-  const [artworkUrl, setArtworkUrl] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
@@ -168,7 +166,6 @@ export default function AdminQuoteDetail() {
       setStatus(quote.status || "pending");
       setFinanceStatus(quote.financeStatus || "pending");
       setBuildStage(quote.buildStage || "");
-      setArtworkUrl(quote.graphicsArtworkUrl || "");
       setDiscountType(quote.discountType as any || "");
       // Convert discount from pence to pounds for fixed amounts
       if (quote.discountValue) {
@@ -218,33 +215,6 @@ export default function AdminQuoteDetail() {
       });
     },
   });
-
-  const handleGetArtworkUploadParameters = async (file: { name: string; type: string }) => {
-    const response = await apiRequest("POST", "/api/objects/upload", {
-      filename: file.name,
-      contentType: file.type,
-    });
-    
-    const data = response as unknown as { uploadURL: string; objectPath: string };
-    pendingArtworkPathRef.current = data.objectPath;
-    
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL,
-      objectPath: data.objectPath,
-    };
-  };
-
-  const handleArtworkUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    if (result.successful && result.successful.length > 0 && pendingArtworkPathRef.current) {
-      setArtworkUrl(pendingArtworkPathRef.current);
-      pendingArtworkPathRef.current = null;
-      toast({
-        title: "Upload Complete",
-        description: "Artwork uploaded successfully. Click 'Save Changes' to update the quote.",
-      });
-    }
-  };
 
   const sendConfirmationMutation = useMutation({
     mutationFn: async () => {
@@ -393,7 +363,6 @@ export default function AdminQuoteDetail() {
       status,
       financeStatus,
       buildStage: buildStage || null,
-      graphicsArtworkUrl: artworkUrl || null,
       discountType: discountType || null,
       discountValue: discountValueInPence,
       adminNotes: adminNotes || null,
@@ -864,73 +833,6 @@ export default function AdminQuoteDetail() {
                   <div className="text-sm font-medium mb-3">Customer's View:</div>
                   <BuildProgressTracker currentStage={buildStage || null} />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Graphics Artwork Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5" />
-                  Graphics Artwork
-                </CardTitle>
-                <CardDescription>
-                  Upload artwork for customer review and approval
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Upload Artwork</Label>
-                  {!artworkUrl ? (
-                    <div className="pt-2">
-                      <ObjectUploader
-                        maxNumberOfFiles={1}
-                        maxFileSize={20 * 1024 * 1024}
-                        allowedFileTypes={['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml']}
-                        onGetUploadParameters={handleGetArtworkUploadParameters}
-                        onComplete={handleArtworkUploadComplete}
-                        buttonClassName="w-full"
-                      >
-                        <div className="flex items-center justify-center gap-2" data-testid="button-upload-artwork">
-                          <Upload className="w-4 h-4" />
-                          <span>Upload Artwork</span>
-                        </div>
-                      </ObjectUploader>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 pt-2">
-                      <div className="relative rounded-md border overflow-hidden">
-                        <img
-                          src={artworkUrl}
-                          alt="Artwork preview"
-                          className="w-full"
-                          data-testid="img-artwork-preview"
-                          onError={(e) => {
-                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EFailed to load%3C/text%3E%3C/svg%3E";
-                          }}
-                        />
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          className="absolute top-2 right-2"
-                          onClick={() => setArtworkUrl("")}
-                          data-testid="button-remove-artwork"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload artwork for the customer to review (PNG, JPEG, SVG - max 20MB)
-                  </p>
-                </div>
-
-                {quote.graphicsArtworkApproved && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Badge variant="default">Approved by Customer</Badge>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
