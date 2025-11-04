@@ -104,16 +104,11 @@ export default function SelectKit() {
                         <span>Includes:</span>
                       </div>
                       <ul className="space-y-1 ml-6">
-                        {kit.includes.slice(0, 3).map((item, idx) => (
+                        {kit.includes.map((item, idx) => (
                           <li key={idx} className="text-sm text-muted-foreground list-disc" data-testid={`text-kit-includes-${kit.id}-${idx}`}>
                             {item}
                           </li>
                         ))}
-                        {kit.includes.length > 3 && (
-                          <li className="text-sm text-muted-foreground italic">
-                            + {kit.includes.length - 3} more items...
-                          </li>
-                        )}
                       </ul>
                     </div>
                     
