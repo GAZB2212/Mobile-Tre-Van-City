@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import SEO from "@/components/SEO";
+import Header from "@/components/Header";
 import { 
   GraduationCap, 
   ShieldCheck, 
@@ -101,6 +102,7 @@ export default function Training() {
 
   return (
     <div className="min-h-screen">
+      <Header />
       <SEO 
         title="Training Programme - REACT & Tyre Fitting Certification"
         description="Comprehensive in-house training covering REACT motorway certification and professional tyre fitting. Full legal compliance, professional certification, and ongoing support included with every van."
