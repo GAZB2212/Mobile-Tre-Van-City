@@ -85,6 +85,7 @@ export default function EquipmentGrid({ selectedKit, onKitSelect }: EquipmentGri
                 src={kit.imageUrl} 
                 alt={kit.name}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
             </div>
             <CardTitle className="flex items-center justify-between">

@@ -99,6 +99,7 @@ export default function SelectVan() {
                                 src={firstImage} 
                                 alt={`${van.make} ${van.model}`}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                                 data-testid={`img-van-${van.id}`}
                               />
                             </div>

@@ -191,6 +191,7 @@ export function UpgradeImageUploader({
                   src={getImageUrl(imagePath)}
                   alt={`Upgrade image ${index + 1}`}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                   data-testid={`img-upgrade-preview-${index}`}
                   onError={(e) => {
                     console.error('❌ Failed to load upgrade image!');
