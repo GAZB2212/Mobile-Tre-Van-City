@@ -26,10 +26,12 @@ import {
   Send,
   Percent,
   MessageSquare,
-  Settings
+  Settings,
+  ChevronDown
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { upgradeCategories } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -125,6 +127,15 @@ export default function AdminQuoteDetail() {
   
   // Track originally selected items from customer's quote (for highlighting)
   const [originalUpgradeIds, setOriginalUpgradeIds] = useState<string[]>([]);
+  
+  // Track original configuration values to detect changes
+  const [originalVanId, setOriginalVanId] = useState<string | null>(null);
+  const [originalKitId, setOriginalKitId] = useState<string | null>(null);
+  const [originalSelectedUpgradeIds, setOriginalSelectedUpgradeIds] = useState<string[]>([]);
+  const [originalSelectedUpgrades, setOriginalSelectedUpgrades] = useState<Record<string, number>>({});
+  
+  // Configuration editor collapse state
+  const [isConfigEditorOpen, setIsConfigEditorOpen] = useState(false);
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
@@ -162,11 +173,19 @@ export default function AdminQuoteDetail() {
       setDiscountValue(quote.discountValue ? String(quote.discountValue) : "");
       setAdminNotes(quote.adminNotes || "");
       setCustomerNotes(quote.customerNotes || "");
+      
+      // Set current configuration
       setSelectedVanId(quote.vanId || null);
       setSelectedKitId(quote.kitId || null);
       setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setSelectedUpgrades(quote.selectedUpgrades || {});
       setOriginalUpgradeIds(quote.selectedUpgradeIds || []);
+      
+      // Store original configuration for change detection
+      setOriginalVanId(quote.vanId || null);
+      setOriginalKitId(quote.kitId || null);
+      setOriginalSelectedUpgradeIds(quote.selectedUpgradeIds || []);
+      setOriginalSelectedUpgrades(quote.selectedUpgrades || {});
     }
   }, [quote]);
 
@@ -328,6 +347,25 @@ export default function AdminQuoteDetail() {
     });
     
     return subtotal;
+  };
+
+  // Detect if configuration has changed
+  const hasConfigurationChanged = () => {
+    // Check if van changed
+    if (selectedVanId !== originalVanId) return true;
+    
+    // Check if kit changed
+    if (selectedKitId !== originalKitId) return true;
+    
+    // Check if upgrade IDs changed (order doesn't matter)
+    const currentIds = [...selectedUpgradeIds].sort();
+    const originalIds = [...originalSelectedUpgradeIds].sort();
+    if (JSON.stringify(currentIds) !== JSON.stringify(originalIds)) return true;
+    
+    // Check if upgrade quantities changed
+    if (JSON.stringify(selectedUpgrades) !== JSON.stringify(originalSelectedUpgrades)) return true;
+    
+    return false;
   };
 
   const handleSave = () => {
@@ -518,16 +556,27 @@ export default function AdminQuoteDetail() {
 
             {/* Configuration Editor */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Edit Configuration
-                </CardTitle>
-                <CardDescription>
-                  Modify the van, kit, and equipment selections
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+              <Collapsible open={isConfigEditorOpen} onOpenChange={setIsConfigEditorOpen}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="w-5 h-5" />
+                        Edit Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Modify the van, kit, and equipment selections
+                      </CardDescription>
+                    </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-config-editor">
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isConfigEditorOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="space-y-6">
                 {/* Van Selection */}
                 <div>
                   <Label htmlFor="van-select">Van</Label>
@@ -733,7 +782,23 @@ export default function AdminQuoteDetail() {
                     </div>
                   </div>
                 </div>
+
+                {/* Confirm Changes Button - Only show if changes detected */}
+                {hasConfigurationChanged() && (
+                  <div className="pt-4">
+                    <Button
+                      onClick={handleSave}
+                      disabled={updateMutation.isPending}
+                      className="w-full bg-accent hover:bg-accent/90"
+                      data-testid="button-confirm-config-changes"
+                    >
+                      {updateMutation.isPending ? "Saving..." : "Confirm Changes"}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
 
             {/* Build Progress Management */}
