@@ -127,6 +127,29 @@ export default function AdminQuoteDetail() {
     }
   };
 
+  const sendConfirmationMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/admin/quotes/${id}/send-confirmation`);
+      return response as unknown as { confirmationUrl: string; token: string; emailSent: boolean };
+    },
+    onSuccess: (data) => {
+      setConfirmationUrl(data.confirmationUrl);
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      toast({
+        title: "Email Sent Successfully!",
+        description: `Confirmation email sent to ${quote?.email}. The link is also available below for your reference.`,
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send confirmation email. Please try again.",
+      });
+    },
+  });
+
   if (!user?.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -164,29 +187,6 @@ export default function AdminQuoteDetail() {
       </div>
     );
   }
-
-  const sendConfirmationMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/admin/quotes/${id}/send-confirmation`);
-      return response as unknown as { confirmationUrl: string; token: string; emailSent: boolean };
-    },
-    onSuccess: (data) => {
-      setConfirmationUrl(data.confirmationUrl);
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
-      toast({
-        title: "Email Sent Successfully!",
-        description: `Confirmation email sent to ${quote?.email}. The link is also available below for your reference.`,
-      });
-    },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send confirmation email. Please try again.",
-      });
-    },
-  });
 
   const handleSave = () => {
     updateMutation.mutate({
