@@ -128,6 +128,13 @@ export default function AdminDashboard() {
       icon: Users,
       href: "/admin/leads",
       badge: "CRM"
+    },
+    {
+      title: "Manage Customers",
+      description: "View customer accounts and link quotes",
+      icon: Users,
+      href: "/admin/customers",
+      badge: "Accounts"
     }
   ];
 
