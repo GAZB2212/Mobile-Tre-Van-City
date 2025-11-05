@@ -38,6 +38,7 @@ export const vans = pgTable("vans", {
   mileage: integer("mileage").notNull(),
   price: integer("price").notNull(), // in pence
   vatIncluded: boolean("vat_included").notNull().default(false),
+  euroStatus: text("euro_status"), // e.g., "Euro 6", "Euro 5", "Euro 4"
   specs: json("specs").$type<{
     transmission: string;
     size: string;
@@ -60,6 +61,7 @@ export const kits = pgTable("kits", {
   includes: json("includes").$type<string[]>().notNull().default([]),
   powerKw: decimal("power_kw").notNull(),
   price: integer("price").notNull(), // in pence
+  euroSixCompatible: boolean("euro_six_compatible").notNull().default(false), // True for Euro 6 compatible kits
   images: json("images").$type<string[]>().notNull().default([]),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),

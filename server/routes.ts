@@ -792,12 +792,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else if (bodyType.toLowerCase().includes('long')) vanSize = 'LWB';
       else if (bodyType.toLowerCase().includes('medium')) vanSize = 'MWB';
 
+      // Extract Euro emissions standard
+      const euroStatus = specsData?.EmissionsAndFuelConsumption?.EuroEmissionsStandard || 
+                        regData?.euroEmissionsStandard || 
+                        null;
+      
       // Transform API response to our van format
       const vanData = {
         registration: cleanReg,
         make: regData.make || '',
         model: regData.model || '',
         year: parseInt(regData.yearOfManufacture) || new Date().getFullYear(),
+        euroStatus: euroStatus,
         specs: {
           transmission: specsData?.Transmission?.TransmissionType || 'Manual',
           fuel: regData.fuelType || 'Diesel',

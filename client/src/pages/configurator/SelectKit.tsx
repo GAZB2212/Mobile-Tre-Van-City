@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -12,17 +12,38 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle } from "lucide-react";
-import type { Kit } from "@shared/schema";
+import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle, AlertCircle } from "lucide-react";
+import type { Kit, Van } from "@shared/schema";
 
 export default function SelectKit() {
   const [, setLocation] = useLocation();
   const { state, setKit } = useConfigurator();
   const [modalKit, setModalKit] = useState<Kit | null>(null);
 
-  const { data: kits = [], isLoading } = useQuery<Kit[]>({
+  const { data: allKits = [], isLoading } = useQuery<Kit[]>({
     queryKey: ['/api/kits'],
   });
+
+  // Fetch van data if van is selected
+  const { data: van } = useQuery<Van>({
+    queryKey: ['/api/vans', state.vanId],
+    enabled: !!state.vanId,
+  });
+
+  // Filter kits based on van's Euro status
+  const kits = useMemo(() => {
+    if (!van?.euroStatus) {
+      // If no van selected or no euro status, show all kits
+      return allKits;
+    }
+
+    // Check if van is Euro 6
+    const isEuro6 = van.euroStatus.toLowerCase().includes('euro 6') || 
+                   van.euroStatus.toLowerCase().includes('euro6');
+
+    // Filter kits based on compatibility
+    return allKits.filter(kit => kit.euroSixCompatible === isEuro6);
+  }, [allKits, van]);
 
   const handleSelectKit = (kitId: string) => {
     setKit(kitId);
@@ -73,69 +94,86 @@ export default function SelectKit() {
                   <LoadingSpinner size="lg" />
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-kits">
-              {kits.map((kit) => (
-                <Card 
-                  key={kit.id} 
-                  className={`hover-elevate cursor-pointer ${state.kitId === kit.id ? 'ring-2 ring-accent' : ''}`}
-                  onClick={() => handleSelectKit(kit.id)}
-                  data-testid={`card-kit-${kit.id}`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge variant="secondary" className="flex items-center gap-1" data-testid={`badge-kit-power-${kit.id}`}>
-                        <Zap className="w-3 h-3" />
-                        {kit.powerKw}kW
-                      </Badge>
-                      <p className="text-2xl font-bold text-accent" data-testid={`text-kit-price-${kit.id}`}>
-                        {formatPrice(kit.price)}
-                      </p>
-                    </div>
-                    <CardTitle className="text-xl" data-testid={`text-kit-name-${kit.id}`}>
-                      {kit.name}
-                    </CardTitle>
-                    <CardDescription data-testid={`text-kit-description-${kit.id}`}>
-                      {kit.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Package className="w-4 h-4 text-accent" />
-                        <span>Includes:</span>
+                <>
+                  {/* Euro Status Filter Message */}
+                  {van?.euroStatus && (
+                    <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-md flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">
+                          Showing {van.euroStatus} Compatible Equipment
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Based on your {van.make} {van.model}'s emissions standard, we're showing kits specifically designed for {van.euroStatus} vehicles.
+                        </p>
                       </div>
-                      <ul className="space-y-1 ml-6">
-                        {kit.includes.map((item, idx) => (
-                          <li key={idx} className="text-sm text-muted-foreground list-disc" data-testid={`text-kit-includes-${kit.id}-${idx}`}>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
                     </div>
-                    
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full mb-2"
-                      onClick={(e) => openModal(kit, e)}
-                      data-testid={`button-more-info-${kit.id}`}
-                    >
-                      <Info className="w-4 h-4 mr-2" />
-                      More Info
-                    </Button>
-                    
-                    <Button 
-                      className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
-                      variant={state.kitId === kit.id ? "default" : "outline"}
-                      data-testid={`button-select-kit-${kit.id}`}
-                    >
-                      {state.kitId === kit.id ? 'Selected' : 'Select Kit'}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-                </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-kits">
+                    {kits.map((kit) => (
+                      <Card 
+                        key={kit.id} 
+                        className={`hover-elevate cursor-pointer ${state.kitId === kit.id ? 'ring-2 ring-accent' : ''}`}
+                        onClick={() => handleSelectKit(kit.id)}
+                        data-testid={`card-kit-${kit.id}`}
+                      >
+                        <CardHeader>
+                          <div className="flex items-start justify-between mb-2">
+                            <Badge variant="secondary" className="flex items-center gap-1" data-testid={`badge-kit-power-${kit.id}`}>
+                              <Zap className="w-3 h-3" />
+                              {kit.powerKw}kW
+                            </Badge>
+                            <p className="text-2xl font-bold text-accent" data-testid={`text-kit-price-${kit.id}`}>
+                              {formatPrice(kit.price)}
+                            </p>
+                          </div>
+                          <CardTitle className="text-xl" data-testid={`text-kit-name-${kit.id}`}>
+                            {kit.name}
+                          </CardTitle>
+                          <CardDescription data-testid={`text-kit-description-${kit.id}`}>
+                            {kit.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Package className="w-4 h-4 text-accent" />
+                              <span>Includes:</span>
+                            </div>
+                            <ul className="space-y-1 ml-6">
+                              {kit.includes.map((item, idx) => (
+                                <li key={idx} className="text-sm text-muted-foreground list-disc" data-testid={`text-kit-includes-${kit.id}-${idx}`}>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="w-full mb-2"
+                            onClick={(e) => openModal(kit, e)}
+                            data-testid={`button-more-info-${kit.id}`}
+                          >
+                            <Info className="w-4 h-4 mr-2" />
+                            More Info
+                          </Button>
+                          
+                          <Button 
+                            className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
+                            variant={state.kitId === kit.id ? "default" : "outline"}
+                            data-testid={`button-select-kit-${kit.id}`}
+                          >
+                            {state.kitId === kit.id ? 'Selected' : 'Select Kit'}
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
