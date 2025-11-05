@@ -236,7 +236,7 @@ export default function SelectVan() {
                       return (
                         <Card 
                           key={van.id} 
-                          className={`hover-elevate cursor-pointer overflow-visible ${state.vanId === van.id ? 'ring-2 ring-accent' : ''}`}
+                          className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${state.vanId === van.id ? 'ring-2 ring-accent' : ''}`}
                           onClick={() => handleSelectVan(van.id)}
                           data-testid={`card-van-${van.id}`}
                         >
@@ -267,8 +267,8 @@ export default function SelectVan() {
                             </p>
                           </CardHeader>
                           
-                          <CardContent className="pt-0 pb-3">
-                            <div className="space-y-1.5 mb-3">
+                          <CardContent className="pt-0 pb-3 flex-1 flex flex-col">
+                            <div className="space-y-1.5 mb-3 flex-1">
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Gauge className="w-3.5 h-3.5" />
                                 <span data-testid={`text-van-mileage-${van.id}`}>
