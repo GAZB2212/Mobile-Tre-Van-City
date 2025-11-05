@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Upload, X, GripVertical } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, X, GripVertical, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -80,7 +80,8 @@ function SortableImage({
       <button
         type="button"
         onClick={onRemove}
-        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover-elevate active-elevate-2"
+        aria-label={`Remove image ${index + 1}`}
+        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover-elevate active-elevate-2"
         data-testid={`button-remove-image-${index}`}
       >
         <X className="h-4 w-4" />
@@ -89,7 +90,8 @@ function SortableImage({
       <div
         {...attributes}
         {...listeners}
-        className="absolute bottom-2 right-2 bg-black/70 text-white rounded p-1.5 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-label={`Drag to reorder image ${index + 1}`}
+        className="absolute bottom-2 right-2 bg-black/70 text-white rounded p-1.5 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
         data-testid={`button-drag-image-${index}`}
       >
         <GripVertical className="h-4 w-4" />
@@ -114,6 +116,17 @@ export function MultiImageUploader({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Cleanup: revoke Object URLs when images are removed or component unmounts
+  useEffect(() => {
+    return () => {
+      selectedImages.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [selectedImages]);
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -249,9 +262,10 @@ export function MultiImageUploader({
           </div>
 
           <div className="border rounded-lg p-4 bg-card">
-            <p className="text-xs text-muted-foreground mb-3">
-              💡 Drag images to reorder • Click X to remove • First image is the hero
-            </p>
+            <div className="flex items-start gap-2 mb-3 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              <p>Drag images to reorder • Click X to remove • First image is the hero</p>
+            </div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
