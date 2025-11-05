@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 
 interface ConfiguratorTutorialProps {
-  page: "van" | "kit" | "upgrades" | "finance" | "quote";
+  page: "van" | "kit" | "upgrades" | "training" | "finance" | "quote";
 }
 
 const tutorialSteps: Record<string, Step[]> = {
@@ -62,8 +62,31 @@ const tutorialSteps: Record<string, Step[]> = {
       placement: "top",
     },
     {
+      target: "[data-testid='button-continue']",
+      content: "Next, you'll select training options. Every van purchase includes comprehensive REACT and Tyre Fitting training to ensure you're fully prepared for mobile operations.",
+      placement: "top",
+    },
+    {
       target: "[data-testid='summary-container']",
       content: "Your running total updates automatically as you add upgrades. Review your selections here anytime.",
+      placement: "left",
+    },
+  ],
+  training: [
+    {
+      target: "[data-testid='text-page-title']",
+      content: "Select your training courses. Professional training ensures you're ready for mobile tyre operations from day one!",
+      placement: "bottom",
+      disableBeacon: true,
+    },
+    {
+      target: "[data-testid='grid-training']",
+      content: "We offer REACT training (essential for motorway operations) and comprehensive Tyre Fitting training. Click on any course to learn more about what's included.",
+      placement: "top",
+    },
+    {
+      target: "[data-testid='summary-container']",
+      content: "Your training selections update your total. Review everything before moving to finance options.",
       placement: "left",
     },
   ],

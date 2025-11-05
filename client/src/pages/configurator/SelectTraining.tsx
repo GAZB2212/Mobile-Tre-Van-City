@@ -4,6 +4,7 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
+import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -154,7 +155,7 @@ export default function SelectTraining() {
               ) : (
                 <>
                   {trainingOptions.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" data-testid="grid-training">
                       {trainingOptions.map((option) => (
                         <Card 
                           key={option.id} 
@@ -418,6 +419,8 @@ export default function SelectTraining() {
           )}
         </DialogContent>
       </Dialog>
+      
+      <ConfiguratorTutorial page="training" />
     </div>
   );
 }
