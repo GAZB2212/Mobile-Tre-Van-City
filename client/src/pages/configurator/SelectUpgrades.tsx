@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Upgrade } from "@shared/schema";
+import type { Upgrade, Van } from "@shared/schema";
 
 interface ConfiguratorData {
   kits: any[];
@@ -111,6 +111,12 @@ export default function SelectUpgrades() {
     queryKey: ['/api/configurator/data'],
   });
 
+  // Fetch selected van if vanId exists
+  const { data: selectedVan } = useQuery<Van>({
+    queryKey: ['/api/vans', state.vanId],
+    enabled: !!state.vanId,
+  });
+
   // Define mutually exclusive upgrade names (branding options)
   const brandingOptions = ['Graphic Pack', 'Full Wrap', 'Half Wrap'];
   
@@ -126,8 +132,17 @@ export default function SelectUpgrades() {
     return airSystemExclusiveIds.includes(upgradeId);
   };
 
-  // Detect selected wrap size (LWB or MWB) for interior wall filtering
-  const getSelectedWrapSize = (): 'LWB' | 'MWB' | null => {
+  // Detect van size from selected van, or from selected wrap size as fallback
+  const getVanSize = (): 'LWB' | 'MWB' | 'SWB' | null => {
+    // First priority: Use selected van's size if available
+    if (selectedVan?.specs?.size) {
+      const size = selectedVan.specs.size.toUpperCase();
+      if (size === 'LWB' || size === 'MWB' || size === 'SWB') {
+        return size as 'LWB' | 'MWB' | 'SWB';
+      }
+    }
+
+    // Fallback: Detect from selected wrap if no van selected
     if (!configuratorData) return null;
     
     const allUpgrades = Object.values(configuratorData.upgrades).flat();
@@ -141,36 +156,38 @@ export default function SelectUpgrades() {
         const variantName = upgrade.variantName?.toUpperCase() || '';
         if (variantName.includes('LWB')) return 'LWB';
         if (variantName.includes('MWB')) return 'MWB';
+        if (variantName.includes('SWB')) return 'SWB';
       }
     }
     
     return null;
   };
 
-  const selectedWrapSize = getSelectedWrapSize();
+  const vanSize = getVanSize();
 
-  // Auto-remove incompatible interior walls when wrap size changes
+  // Auto-remove incompatible interior walls when van size changes
   useEffect(() => {
-    if (!selectedWrapSize || !configuratorData) return;
+    if (!vanSize || !configuratorData) return;
     
     const allUpgrades = Object.values(configuratorData.upgrades).flat();
     const selectedUpgrades = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
     
-    // Check if any selected interior wall is incompatible
+    // Check if any selected interior wall is incompatible with the van size
     selectedUpgrades.forEach(upgrade => {
       const isInteriorWall = upgrade.name.toLowerCase().includes('interior');
       if (isInteriorWall && upgrade.variantName) {
         const variantName = upgrade.variantName.toUpperCase();
         const isIncompatible = 
-          (selectedWrapSize === 'LWB' && variantName.includes('MWB')) ||
-          (selectedWrapSize === 'MWB' && variantName.includes('LWB'));
+          (vanSize === 'LWB' && variantName.includes('MWB')) ||
+          (vanSize === 'MWB' && variantName.includes('LWB')) ||
+          (vanSize === 'SWB' && (variantName.includes('LWB') || variantName.includes('MWB')));
         
         if (isIncompatible) {
           removeUpgrade(upgrade.id);
         }
       }
     });
-  }, [selectedWrapSize, configuratorData]);
+  }, [vanSize, configuratorData]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
@@ -327,8 +344,8 @@ export default function SelectUpgrades() {
                     const sortedUpgrades = [...upgrades].sort((a, b) => a.sortOrder - b.sortOrder);
                     const { groups, standalone } = groupUpgradeVariations(sortedUpgrades);
                     
-                    // Filter interior wall variants based on selected wrap size
-                    const filteredGroups = category === 'comfort' && selectedWrapSize
+                    // Filter interior wall variants based on van size (from van specs or selected wrap)
+                    const filteredGroups = category === 'comfort' && vanSize
                       ? groups.map(group => {
                           // Check if this is an interior wall group
                           const isInteriorWalls = group.parent.name.toLowerCase().includes('interior');
@@ -336,7 +353,7 @@ export default function SelectUpgrades() {
                             // Filter variants to only show matching size
                             const filteredVariants = group.variants.filter(variant => {
                               const variantName = variant.variantName?.toUpperCase() || '';
-                              return variantName.includes(selectedWrapSize);
+                              return variantName.includes(vanSize);
                             });
                             return { ...group, variants: filteredVariants };
                           }
@@ -362,9 +379,9 @@ export default function SelectUpgrades() {
                           <CardTitle className="text-lg capitalize">
                             {category.replace('-', ' ')} Options
                           </CardTitle>
-                          {category === 'comfort' && selectedWrapSize && (
+                          {category === 'comfort' && vanSize && (
                             <p className="text-sm text-muted-foreground mt-2">
-                              Showing {selectedWrapSize} options only (based on your selected wrap)
+                              Showing {vanSize} options only {selectedVan ? '(based on your selected van)' : '(based on your selected wrap)'}
                             </p>
                           )}
                         </CardHeader>
