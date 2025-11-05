@@ -207,11 +207,68 @@ export default function AdminVans() {
     createVanMutation.mutate(vanData);
   };
 
-  const handleUpdateVan = (formData: FormData) => {
+  const handleUpdateVan = async (formData: FormData, selectedFiles?: File[]) => {
     if (!editingVan) return;
 
+    const sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in again",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Upload new images if any
+    let newImageUrls: string[] = [];
+    if (selectedFiles && selectedFiles.length > 0) {
+      try {
+        toast({
+          title: "Uploading images...",
+          description: `Uploading ${selectedFiles.length} image(s)`,
+        });
+
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', selectedFiles[i]);
+
+          const response = await fetch('/api/admin/temp-upload', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${sessionId}`,
+            },
+            body: uploadFormData,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to upload image ${i + 1}`);
+          }
+
+          const { url } = await response.json();
+          newImageUrls.push(url);
+        }
+
+        toast({
+          title: "Images uploaded",
+          description: `Successfully uploaded ${newImageUrls.length} image(s)`,
+        });
+      } catch (error) {
+        toast({
+          title: "Image upload failed",
+          description: error instanceof Error ? error.message : "Failed to upload images",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Get existing images from the form (if managing them separately)
     const imagesJson = formData.get('images') as string;
-    const images = imagesJson ? JSON.parse(imagesJson) : [];
+    const existingImages = imagesJson ? JSON.parse(imagesJson) : (editingVan.images || []);
+
+    // Combine existing and new images
+    const allImages = [...existingImages, ...newImageUrls];
 
     const vanData: Partial<InsertVan> = {
       slug: formData.get('slug') as string,
@@ -229,8 +286,8 @@ export default function AdminVans() {
         doors: parseInt(formData.get('doors') as string) || undefined,
         engine: formData.get('engine') as string || undefined,
       },
-      images: images,
-      heroImage: formData.get('heroImage') as string || undefined,
+      images: allImages,
+      heroImage: allImages[0] || formData.get('heroImage') as string || undefined,
       description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
     };
