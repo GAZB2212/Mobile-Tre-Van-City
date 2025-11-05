@@ -97,11 +97,9 @@ const tutorialSteps: Record<string, Step[]> = {
 
 export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
   const [run, setRun] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
     // Check if user has seen tutorial for this page
-    const tutorialCompleted = localStorage.getItem("configurator-tutorial-completed");
     const isFirstVisit = localStorage.getItem("configurator-first-visit") === null;
 
     // Only show tutorial on first ever visit to the configurator
@@ -132,22 +130,17 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
   }, [page]);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, index } = data;
+    const { status } = data;
+
+    console.log("Joyride callback:", data);
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
-      setStepIndex(0);
       localStorage.setItem("configurator-tutorial-completed", "true");
-    }
-
-    if (data.action === "next" || data.action === "prev") {
-      setStepIndex(index + (data.action === "next" ? 1 : -1));
     }
   };
 
   const startTutorial = () => {
-    setStepIndex(0);
-    
     // Wait for all target elements to exist before starting
     const waitForElements = () => {
       const steps = tutorialSteps[page] || [];
@@ -177,7 +170,6 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
       <Joyride
         steps={steps}
         run={run}
-        stepIndex={stepIndex}
         continuous
         showProgress
         showSkipButton
