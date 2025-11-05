@@ -268,7 +268,7 @@ export default function QuoteConfirmation() {
                 </CardContent>
               </Card>
 
-              {quote.customerNotes && (
+              {quote.customerNotesHistory && quote.customerNotesHistory.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -276,8 +276,26 @@ export default function QuoteConfirmation() {
                       Notes from Our Team
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="whitespace-pre-wrap">{quote.customerNotes}</p>
+                  <CardContent className="space-y-3">
+                    {quote.customerNotesHistory.map((note, index) => (
+                      <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {note.author || 'Team'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(note.timestamp).toLocaleString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
               )}
