@@ -214,9 +214,9 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
       {/* Help button to restart tutorial */}
       <Button
         onClick={startTutorial}
-        variant="outline"
+        variant="default"
         size="icon"
-        className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full shadow-lg"
+        className="fixed bottom-6 right-6 z-[9999] h-12 w-12 rounded-full shadow-lg bg-accent hover:bg-accent/90"
         data-testid="button-tutorial-help"
         title="Start tutorial"
       >
