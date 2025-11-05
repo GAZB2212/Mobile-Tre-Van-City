@@ -1438,6 +1438,22 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Delete a quote (admin only)
+  app.delete("/api/admin/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const deleted = await storage.deleteQuote(req.params.id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting quote:', error);
+      res.status(500).json({ error: "Failed to delete quote" });
+    }
+  });
+
   // Edit a specific note in the history
   app.patch("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
     try {
