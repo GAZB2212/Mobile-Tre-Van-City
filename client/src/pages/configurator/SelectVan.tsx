@@ -222,9 +222,9 @@ export default function SelectVan() {
                     </CardContent>
                   </Card>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" data-testid="grid-vans">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" data-testid="grid-vans">
                     {vans.length === 0 ? (
-                      <div className="col-span-2 text-center py-12">
+                      <div className="col-span-full text-center py-12">
                         <p className="text-muted-foreground text-lg">
                           No vans match your filters. Try adjusting your selection.
                         </p>
@@ -242,7 +242,7 @@ export default function SelectVan() {
                         >
                           {/* Van Image */}
                           {firstImage && (
-                            <div className="relative w-full h-48 overflow-hidden rounded-t-md">
+                            <div className="relative w-full h-36 overflow-hidden rounded-t-md">
                               <img 
                                 src={firstImage} 
                                 alt={`${van.make} ${van.model}`}
@@ -253,70 +253,74 @@ export default function SelectVan() {
                             </div>
                           )}
 
-                          <CardHeader className="space-y-0 pb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <Badge variant="secondary" data-testid={`badge-van-year-${van.id}`}>
+                          <CardHeader className="space-y-0 pb-3 pt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <Badge variant="secondary" className="text-xs" data-testid={`badge-van-year-${van.id}`}>
                                 {van.year}
                               </Badge>
-                              <p className="text-2xl font-bold text-accent" data-testid={`text-van-price-${van.id}`}>
-                                {formatPrice(van.price)}
-                              </p>
                             </div>
-                            <CardTitle className="text-xl" data-testid={`text-van-title-${van.id}`}>
+                            <CardTitle className="text-base leading-tight mb-1" data-testid={`text-van-title-${van.id}`}>
                               {van.make} {van.model}
                             </CardTitle>
+                            <p className="text-xl font-bold text-accent" data-testid={`text-van-price-${van.id}`}>
+                              {formatPrice(van.price)}
+                            </p>
                           </CardHeader>
                           
-                          <CardContent>
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Gauge className="w-4 h-4" />
+                          <CardContent className="pt-0 pb-3">
+                            <div className="space-y-1.5 mb-3">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Gauge className="w-3.5 h-3.5" />
                                 <span data-testid={`text-van-mileage-${van.id}`}>
                                   {van.mileage.toLocaleString()} miles
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Settings className="w-4 h-4" />
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Settings className="w-3.5 h-3.5" />
                                 <span data-testid={`text-van-transmission-${van.id}`}>
                                   {van.specs.transmission}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Fuel className="w-4 h-4" />
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Fuel className="w-3.5 h-3.5" />
                                 <span data-testid={`text-van-fuel-${van.id}`}>
                                   {van.specs.fuel}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Car className="w-4 h-4" />
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Car className="w-3.5 h-3.5" />
                                 <span data-testid={`text-van-size-${van.id}`}>
                                   {van.specs.size}
                                 </span>
                               </div>
                             </div>
 
-                            {/* More Info Button */}
-                            {(van.heroImage || (van.images && van.images.length > 0) || van.description) ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="w-full mt-4"
-                                onClick={(e) => openModal(van, e)}
-                                data-testid={`button-more-info-${van.id}`}
+                            {/* Action Buttons */}
+                            <div className="space-y-2">
+                              {(van.heroImage || (van.images && van.images.length > 0) || van.description) && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={(e) => openModal(van, e)}
+                                  data-testid={`button-more-info-${van.id}`}
+                                >
+                                  <Info className="w-3.5 h-3.5 mr-1.5" />
+                                  More Info
+                                </Button>
+                              )}
+                              
+                              <Button 
+                                size="sm"
+                                className={`w-full ${state.vanId === van.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
+                                variant={state.vanId === van.id ? "default" : "outline"}
+                                data-testid={`button-select-van-${van.id}`}
                               >
-                                <Info className="w-4 h-4 mr-2" />
-                                More Info
+                                {state.vanId === van.id ? 'Selected' : 'Select Van'}
+                                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                               </Button>
-                            ) : null}
-                            
-                            <Button 
-                              className={`w-full mt-4 ${state.vanId === van.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
-                              variant={state.vanId === van.id ? "default" : "outline"}
-                              data-testid={`button-select-van-${van.id}`}
-                            >
-                              {state.vanId === van.id ? 'Selected' : 'Select Van'}
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       );
