@@ -103,8 +103,11 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
     const pageKey = `configurator-tutorial-${page}-seen`;
     const hasSeenThisPage = localStorage.getItem(pageKey) === "true";
 
+    console.log(`Tutorial check for ${page}:`, { hasSeenThisPage, pageKey });
+
     // Auto-start tutorial on first visit to each page
     if (!hasSeenThisPage) {
+      console.log(`Starting tutorial for ${page} (first visit)`);
       // Mark this page as seen
       localStorage.setItem(pageKey, "true");
       
@@ -115,10 +118,15 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
           // Skip "body" target as it always exists
           if (step.target === "body") return true;
           // Check if element exists
-          return document.querySelector(step.target as string) !== null;
+          const exists = document.querySelector(step.target as string) !== null;
+          if (!exists) {
+            console.log(`Waiting for element: ${step.target}`);
+          }
+          return exists;
         });
 
         if (allTargetsExist) {
+          console.log(`All elements ready for ${page} tutorial, starting...`);
           setRun(true);
         } else {
           // Keep checking every 100ms until elements load
@@ -127,7 +135,9 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
       };
 
       // Start checking after initial delay for page render
-      setTimeout(waitForElements, 300);
+      setTimeout(waitForElements, 500);
+    } else {
+      console.log(`Skipping tutorial for ${page} (already seen)`);
     }
   }, [page]);
 
@@ -174,6 +184,9 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
         continuous
         showProgress
         showSkipButton
+        scrollToFirstStep
+        scrollOffset={100}
+        disableScrolling={false}
         callback={handleJoyrideCallback}
         styles={{
           options: {
