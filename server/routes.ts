@@ -817,6 +817,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Description Generator for Vans (using OpenAI via Replit AI Integrations)
+  app.post("/api/admin/generate-van-description", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { make, model, year, transmission, size, fuel, mileage, engine } = req.body;
+
+      if (!make || !model || !year) {
+        return res.status(400).json({ error: "Make, model, and year are required" });
+      }
+
+      // Import OpenAI SDK
+      const OpenAI = (await import('openai')).default;
+
+      // Initialize OpenAI client with Replit AI Integrations
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      // Build context string from van details
+      const vanDetails = [
+        `${year} ${make} ${model}`,
+        size ? `${size} (${size === 'SWB' ? 'Short Wheel Base' : size === 'MWB' ? 'Medium Wheel Base' : 'Long Wheel Base'})` : '',
+        transmission || '',
+        fuel || '',
+        mileage ? `${mileage.toLocaleString()} miles` : '',
+        engine || '',
+      ].filter(Boolean).join(' • ');
+
+      // Create completion with mobile tyre van focus
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional automotive copywriter specializing in commercial vehicle sales for mobile tyre businesses. Your descriptions are concise, professional, and highlight practical benefits for mobile tyre fitting operations."
+          },
+          {
+            role: "user",
+            content: `Write a compelling sales description (2-3 paragraphs, around 150 words) for this van as a mobile tyre van:
+
+${vanDetails}
+
+Focus on:
+- Spacious interior perfect for carrying tyre equipment and stock
+- Reliability and build quality for daily mobile operations
+- Professional appearance for customer visits
+- Practical features that benefit mobile tyre fitting businesses
+- Load capacity and accessibility
+
+Keep it professional, concise, and sales-focused. Do not include pricing or warranty details.`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 300,
+      });
+
+      const description = completion.choices[0]?.message?.content?.trim();
+
+      if (!description) {
+        throw new Error("No description generated");
+      }
+
+      res.json({ description });
+    } catch (error) {
+      console.error("Error generating description:", error);
+      res.status(500).json({ error: "Failed to generate description" });
+    }
+  });
+
   // Admin CRUD endpoints for kits
   app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
     try {

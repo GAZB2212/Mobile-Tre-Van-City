@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Van } from "@shared/schema";
 import { MultiImageUploader } from "@/components/MultiImageUploader";
@@ -24,6 +24,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   // Refs for direct DOM manipulation
   const titleRef = useRef<HTMLInputElement>(null);
@@ -31,11 +32,13 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const makeRef = useRef<HTMLInputElement>(null);
   const modelRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
+  const mileageRef = useRef<HTMLInputElement>(null);
   const [transmission, setTransmission] = useState(van?.specs.transmission || 'Manual');
   const [size, setSize] = useState(van?.specs.size || 'MWB');
   const [fuel, setFuel] = useState(van?.specs.fuel || 'Diesel');
   const doorsRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   const handleLookup = async () => {
     if (!registration.trim()) return;
@@ -72,6 +75,57 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
       });
     } finally {
       setIsLookingUp(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    // Get current form values
+    const make = makeRef.current?.value;
+    const model = modelRef.current?.value;
+    const year = yearRef.current?.value;
+    const mileage = mileageRef.current?.value;
+    const engine = engineRef.current?.value;
+
+    if (!make || !model || !year) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in make, model, and year first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const response = await apiRequest('POST', '/api/admin/generate-van-description', {
+        make,
+        model,
+        year: parseInt(year),
+        transmission,
+        size,
+        fuel,
+        mileage: mileage ? parseInt(mileage) : undefined,
+        engine: engine || undefined,
+      });
+
+      const data = await response.json();
+
+      if (descriptionRef.current && data.description) {
+        descriptionRef.current.value = data.description;
+      }
+
+      toast({
+        title: "Description generated",
+        description: "AI-powered description has been added to the field",
+      });
+    } catch (error) {
+      toast({
+        title: "Generation failed",
+        description: "Could not generate description. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingDescription(false);
     }
   };
 
@@ -185,6 +239,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           <div>
             <Label htmlFor="mileage">Mileage</Label>
             <Input
+              ref={mileageRef}
               id="mileage"
               name="mileage"
               type="number"
@@ -289,18 +344,34 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           />
         </div>
 
-        <div className="flex items-center space-x-4">
-          <div className="flex-1">
+        <div>
+          <div className="flex items-center justify-between mb-2">
             <Label htmlFor="description">Description (optional)</Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={''}
-              placeholder="Van description..."
-              rows={4}
-              data-testid="input-van-description"
-            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateDescription}
+              disabled={isGeneratingDescription}
+              className="!border-2 !border-accent text-accent hover:bg-accent/10"
+              data-testid="button-generate-description"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              {isGeneratingDescription ? "Generating..." : "Generate with AI"}
+            </Button>
           </div>
+          <Textarea
+            ref={descriptionRef}
+            id="description"
+            name="description"
+            defaultValue={van?.description || ''}
+            placeholder="Van description tailored for mobile tyre business..."
+            rows={6}
+            data-testid="input-van-description"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            AI generates descriptions tailored to mobile tyre van sales, highlighting space, reliability, and equipment capacity
+          </p>
         </div>
 
         <div className="flex items-center space-x-2">
