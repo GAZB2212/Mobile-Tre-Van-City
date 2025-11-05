@@ -108,6 +108,7 @@ export function MultiImageUploader({
 }: MultiImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previousUrlsRef = useRef<string[]>([]);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -117,16 +118,35 @@ export function MultiImageUploader({
     })
   );
 
-  // Cleanup: revoke Object URLs when images are removed or component unmounts
+  // Cleanup: revoke Object URLs only for removed images
+  useEffect(() => {
+    const previousUrls = previousUrlsRef.current;
+    const currentUrls = selectedImages;
+
+    // Find URLs that were removed (in previous but not in current)
+    const removedUrls = previousUrls.filter(url => !currentUrls.includes(url));
+    
+    // Revoke only the removed blob URLs
+    removedUrls.forEach(url => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    // Update the ref to current URLs
+    previousUrlsRef.current = currentUrls;
+  }, [selectedImages]);
+
+  // Cleanup on unmount: revoke all remaining blob URLs
   useEffect(() => {
     return () => {
-      selectedImages.forEach(url => {
+      previousUrlsRef.current.forEach(url => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       });
     };
-  }, [selectedImages]);
+  }, []);
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
