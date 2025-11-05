@@ -1208,6 +1208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         discountValue: z.number().int().nullable().optional(),
         adminNotes: z.string().nullable().optional(),
         customerNotes: z.string().nullable().optional(),
+        // New note text to append to history
+        newAdminNote: z.string().optional(),
+        newCustomerNote: z.string().optional(),
         // Configuration fields
         vanId: z.string().nullable().optional(),
         kitId: z.string().nullable().optional(),
@@ -1219,6 +1222,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const validatedData = allowedUpdates.parse(req.body);
+      
+      // Handle new notes - append to history
+      if (validatedData.newAdminNote || validatedData.newCustomerNote) {
+        const quote = await storage.getQuote(req.params.id);
+        if (!quote) {
+          return res.status(404).json({ error: "Quote not found" });
+        }
+        
+        const user = req.user as any;
+        const author = user?.username || 'Admin';
+        
+        // Append new admin note to history
+        if (validatedData.newAdminNote && validatedData.newAdminNote.trim()) {
+          const existingAdminHistory = quote.adminNotesHistory || [];
+          (validatedData as any).adminNotesHistory = [
+            ...existingAdminHistory,
+            {
+              text: validatedData.newAdminNote.trim(),
+              timestamp: new Date().toISOString(),
+              author
+            }
+          ];
+        }
+        
+        // Append new customer note to history
+        if (validatedData.newCustomerNote && validatedData.newCustomerNote.trim()) {
+          const existingCustomerHistory = quote.customerNotesHistory || [];
+          (validatedData as any).customerNotesHistory = [
+            ...existingCustomerHistory,
+            {
+              text: validatedData.newCustomerNote.trim(),
+              timestamp: new Date().toISOString(),
+              author
+            }
+          ];
+        }
+        
+        // Remove the temporary fields
+        delete (validatedData as any).newAdminNote;
+        delete (validatedData as any).newCustomerNote;
+      }
       
       // If configuration OR discount fields changed, recalculate pricing server-side
       const needsRecalculation = 'vanId' in validatedData || 'kitId' in validatedData || 
