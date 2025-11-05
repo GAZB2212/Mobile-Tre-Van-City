@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -10,6 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -24,17 +31,52 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ArrowRight, Car, Fuel, Gauge, Settings, Info } from "lucide-react";
+import { ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal, X } from "lucide-react";
 import type { Van } from "@shared/schema";
 
 export default function SelectVan() {
   const [, setLocation] = useLocation();
   const { state, setVan } = useConfigurator();
   const [modalVan, setModalVan] = useState<Van | null>(null);
+  
+  const [filterMake, setFilterMake] = useState<string>("all");
+  const [filterModel, setFilterModel] = useState<string>("all");
+  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterFuel, setFilterFuel] = useState<string>("all");
 
-  const { data: vans = [], isLoading } = useQuery<Van[]>({
+  const { data: allVans = [], isLoading } = useQuery<Van[]>({
     queryKey: ['/api/vans'],
   });
+  
+  // Extract unique filter options
+  const filterOptions = useMemo(() => {
+    const makes = Array.from(new Set(allVans.map(v => v.make))).sort();
+    const models = Array.from(new Set(allVans.map(v => v.model))).sort();
+    const years = Array.from(new Set(allVans.map(v => v.year))).sort((a, b) => b - a);
+    const fuels = Array.from(new Set(allVans.map(v => v.specs.fuel).filter(Boolean))).sort();
+    
+    return { makes, models, years, fuels };
+  }, [allVans]);
+  
+  // Apply filters
+  const vans = useMemo(() => {
+    return allVans.filter(van => {
+      if (filterMake !== "all" && van.make !== filterMake) return false;
+      if (filterModel !== "all" && van.model !== filterModel) return false;
+      if (filterYear !== "all" && van.year.toString() !== filterYear) return false;
+      if (filterFuel !== "all" && van.specs.fuel !== filterFuel) return false;
+      return true;
+    });
+  }, [allVans, filterMake, filterModel, filterYear, filterFuel]);
+  
+  const clearFilters = () => {
+    setFilterMake("all");
+    setFilterModel("all");
+    setFilterYear("all");
+    setFilterFuel("all");
+  };
+  
+  const hasActiveFilters = filterMake !== "all" || filterModel !== "all" || filterYear !== "all" || filterFuel !== "all";
 
   const handleSelectVan = (vanId: string) => {
     setVan(vanId);
@@ -82,8 +124,113 @@ export default function SelectVan() {
                 </div>
               ) : (
                 <>
+                  {/* Filters */}
+                  <Card className="mb-6" data-testid="filter-container">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <SlidersHorizontal className="w-5 h-5 text-accent" />
+                          <CardTitle className="text-lg">Filter Vans</CardTitle>
+                        </div>
+                        {hasActiveFilters && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearFilters}
+                            data-testid="button-clear-filters"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Clear Filters
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Make</label>
+                          <Select value={filterMake} onValueChange={setFilterMake}>
+                            <SelectTrigger data-testid="select-filter-make">
+                              <SelectValue placeholder="All Makes" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Makes</SelectItem>
+                              {filterOptions.makes.map((make) => (
+                                <SelectItem key={make} value={make}>
+                                  {make}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Model</label>
+                          <Select value={filterModel} onValueChange={setFilterModel}>
+                            <SelectTrigger data-testid="select-filter-model">
+                              <SelectValue placeholder="All Models" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Models</SelectItem>
+                              {filterOptions.models.map((model) => (
+                                <SelectItem key={model} value={model}>
+                                  {model}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Year</label>
+                          <Select value={filterYear} onValueChange={setFilterYear}>
+                            <SelectTrigger data-testid="select-filter-year">
+                              <SelectValue placeholder="All Years" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Years</SelectItem>
+                              {filterOptions.years.map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Fuel Type</label>
+                          <Select value={filterFuel} onValueChange={setFilterFuel}>
+                            <SelectTrigger data-testid="select-filter-fuel">
+                              <SelectValue placeholder="All Fuel Types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Fuel Types</SelectItem>
+                              {filterOptions.fuels.map((fuel) => (
+                                <SelectItem key={fuel} value={fuel}>
+                                  {fuel}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 text-sm text-muted-foreground">
+                        Showing {vans.length} of {allVans.length} vans
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" data-testid="grid-vans">
-                    {vans.map((van) => {
+                    {vans.length === 0 ? (
+                      <div className="col-span-2 text-center py-12">
+                        <p className="text-muted-foreground text-lg">
+                          No vans match your filters. Try adjusting your selection.
+                        </p>
+                      </div>
+                    ) : (
+                      vans.map((van) => {
                       const firstImage = van.heroImage || van.images?.[0];
                       
                       return (
@@ -173,7 +320,7 @@ export default function SelectVan() {
                           </CardContent>
                         </Card>
                       );
-                    })}
+                    }))}
                   </div>
 
                   <div className="flex justify-center">
