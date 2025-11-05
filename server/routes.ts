@@ -1363,6 +1363,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Edit a specific note in the history
+  app.patch("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { noteType, timestamp, text } = req.body;
+      
+      // Validate input
+      if (!noteType || !timestamp || !text) {
+        return res.status(400).json({ error: "noteType, timestamp, and text are required" });
+      }
+      
+      if (noteType !== 'admin' && noteType !== 'customer') {
+        return res.status(400).json({ error: "noteType must be 'admin' or 'customer'" });
+      }
+      
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      const historyField = noteType === 'admin' ? 'adminNotesHistory' : 'customerNotesHistory';
+      const history = quote[historyField] || [];
+      
+      // Find and update the note with matching timestamp
+      const noteIndex = history.findIndex((note: any) => note.timestamp === timestamp);
+      if (noteIndex === -1) {
+        return res.status(404).json({ error: "Note not found" });
+      }
+      
+      // Update the note text (keep original timestamp and author)
+      history[noteIndex].text = text.trim();
+      
+      // Update the quote
+      const updated = await storage.updateQuote(req.params.id, {
+        [historyField]: history
+      });
+      
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update note" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating note:', error);
+      res.status(500).json({ error: "Failed to update note" });
+    }
+  });
+
+  // Delete a specific note from the history
+  app.delete("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { noteType, timestamp } = req.body;
+      
+      // Validate input
+      if (!noteType || !timestamp) {
+        return res.status(400).json({ error: "noteType and timestamp are required" });
+      }
+      
+      if (noteType !== 'admin' && noteType !== 'customer') {
+        return res.status(400).json({ error: "noteType must be 'admin' or 'customer'" });
+      }
+      
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      
+      const historyField = noteType === 'admin' ? 'adminNotesHistory' : 'customerNotesHistory';
+      const history = quote[historyField] || [];
+      
+      // Filter out the note with matching timestamp
+      const updatedHistory = history.filter((note: any) => note.timestamp !== timestamp);
+      
+      if (updatedHistory.length === history.length) {
+        return res.status(404).json({ error: "Note not found" });
+      }
+      
+      // Update the quote
+      const updated = await storage.updateQuote(req.params.id, {
+        [historyField]: updatedHistory
+      });
+      
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to delete note" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      res.status(500).json({ error: "Failed to delete note" });
+    }
+  });
+
   // Generate confirmation token, send email, and update quote to deposit_taken
   app.post("/api/admin/quotes/:id/send-confirmation", isAuthenticated, isAdmin, async (req, res) => {
     try {
