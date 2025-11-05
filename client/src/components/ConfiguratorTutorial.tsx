@@ -97,6 +97,7 @@ const tutorialSteps: Record<string, Step[]> = {
 
 export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
   const [run, setRun] = useState(false);
+  const [isAutoStart, setIsAutoStart] = useState(false);
 
   useEffect(() => {
     // Check if user has seen tutorial for this specific page
@@ -107,9 +108,8 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
 
     // Auto-start tutorial on first visit to each page
     if (!hasSeenThisPage) {
-      console.log(`Starting tutorial for ${page} (first visit)`);
-      // Mark this page as seen
-      localStorage.setItem(pageKey, "true");
+      console.log(`Auto-starting tutorial for ${page} (first visit)`);
+      setIsAutoStart(true);
       
       // Wait for all target elements to exist before starting
       const waitForElements = () => {
@@ -137,7 +137,7 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
       // Start checking after initial delay for page render
       setTimeout(waitForElements, 500);
     } else {
-      console.log(`Skipping tutorial for ${page} (already seen)`);
+      console.log(`Skipping auto-start for ${page} (already seen)`);
     }
   }, [page]);
 
@@ -148,10 +148,24 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
+      
+      // Only mark as "seen" if this was an auto-start (not manual replay)
+      if (isAutoStart) {
+        const pageKey = `configurator-tutorial-${page}-seen`;
+        localStorage.setItem(pageKey, "true");
+        console.log(`Marked ${page} tutorial as seen (auto-start completed)`);
+        setIsAutoStart(false);
+      } else {
+        console.log(`Tutorial completed but not marking as seen (was manual replay)`);
+      }
     }
   };
 
   const startTutorial = () => {
+    console.log(`Manual replay of ${page} tutorial`);
+    // Don't set isAutoStart - this is a manual replay
+    setIsAutoStart(false);
+    
     // Wait for all target elements to exist before starting
     const waitForElements = () => {
       const steps = tutorialSteps[page] || [];
