@@ -51,7 +51,7 @@ export function ConfiguratorSummary() {
   const hasItems = vanPrice > 0 || kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0;
 
   return (
-    <Card className="sticky top-24 z-10 max-h-[calc(100vh-7rem)] overflow-y-auto" data-testid="summary-container">
+    <Card className="sticky top-[180px] sm:top-[200px] xl:top-[220px] z-10 max-h-[calc(100vh-200px)] overflow-y-auto" data-testid="summary-container">
       <CardHeader>
         <CardTitle className="text-base sm:text-lg">Configuration Summary</CardTitle>
       </CardHeader>
