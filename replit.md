@@ -40,6 +40,12 @@ Preferred communication style: Simple, everyday language.
 ### Business Logic
 - **Conversion Funnel**: Customer journey system guiding users through Van → Kit → Finance → Quote
 - **Configurator Flow**: Multi-step wizard with localStorage persistence via ConfiguratorProvider
+  - **Equipment Compatibility Validation**: LWB/MWB wrap and interior wall compatibility enforcement
+    - When customer selects LWB wrap/half wrap/graphic pack → only LWB interior walls are displayed
+    - When customer selects MWB wrap/half wrap/graphic pack → only MWB interior walls are displayed
+    - Incompatible interior walls are automatically removed if wrap size changes
+    - Helpful message displays in comfort category showing which size options are active
+    - Prevents mismatched equipment selections ensuring proper van fitment
 - **Finance Plans**: Complete finance options system (Hire Purchase, Lease) with APR calculations
 - **Pricing Engine**: Dynamic calculation system with VAT handling and currency formatting
 - **Lead Generation**: Form capture with email notifications and quote generation

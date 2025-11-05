@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -125,6 +125,52 @@ export default function SelectUpgrades() {
   const isAirSystemExclusive = (upgradeId: string) => {
     return airSystemExclusiveIds.includes(upgradeId);
   };
+
+  // Detect selected wrap size (LWB or MWB) for interior wall filtering
+  const getSelectedWrapSize = (): 'LWB' | 'MWB' | null => {
+    if (!configuratorData) return null;
+    
+    const allUpgrades = Object.values(configuratorData.upgrades).flat();
+    const selectedUpgrades = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
+    
+    // Check if any selected upgrade is a wrap/half wrap/graphic pack variant
+    for (const upgrade of selectedUpgrades) {
+      const parentId = upgrade.parentId;
+      // Check if this is a variant of Full Wrap, Half Wrap, or Graphic Pack
+      if (parentId === 'full-revalco-wrap' || parentId === 'half-wrap' || parentId === 'graphic-pack') {
+        const variantName = upgrade.variantName?.toUpperCase() || '';
+        if (variantName.includes('LWB')) return 'LWB';
+        if (variantName.includes('MWB')) return 'MWB';
+      }
+    }
+    
+    return null;
+  };
+
+  const selectedWrapSize = getSelectedWrapSize();
+
+  // Auto-remove incompatible interior walls when wrap size changes
+  useEffect(() => {
+    if (!selectedWrapSize || !configuratorData) return;
+    
+    const allUpgrades = Object.values(configuratorData.upgrades).flat();
+    const selectedUpgrades = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
+    
+    // Check if any selected interior wall is incompatible
+    selectedUpgrades.forEach(upgrade => {
+      const isInteriorWall = upgrade.name.toLowerCase().includes('interior');
+      if (isInteriorWall && upgrade.variantName) {
+        const variantName = upgrade.variantName.toUpperCase();
+        const isIncompatible = 
+          (selectedWrapSize === 'LWB' && variantName.includes('MWB')) ||
+          (selectedWrapSize === 'MWB' && variantName.includes('LWB'));
+        
+        if (isIncompatible) {
+          removeUpgrade(upgrade.id);
+        }
+      }
+    });
+  }, [selectedWrapSize, configuratorData]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
@@ -281,12 +327,32 @@ export default function SelectUpgrades() {
                     const sortedUpgrades = [...upgrades].sort((a, b) => a.sortOrder - b.sortOrder);
                     const { groups, standalone } = groupUpgradeVariations(sortedUpgrades);
                     
+                    // Filter interior wall variants based on selected wrap size
+                    const filteredGroups = category === 'comfort' && selectedWrapSize
+                      ? groups.map(group => {
+                          // Check if this is an interior wall group
+                          const isInteriorWalls = group.parent.name.toLowerCase().includes('interior');
+                          if (isInteriorWalls) {
+                            // Filter variants to only show matching size
+                            const filteredVariants = group.variants.filter(variant => {
+                              const variantName = variant.variantName?.toUpperCase() || '';
+                              return variantName.includes(selectedWrapSize);
+                            });
+                            return { ...group, variants: filteredVariants };
+                          }
+                          return group;
+                        }).filter(group => {
+                          // Remove groups with no variants
+                          return group.variants.length > 0;
+                        })
+                      : groups;
+                    
                     // Sort groups by parent sortOrder
-                    groups.sort((a, b) => a.parent.sortOrder - b.parent.sortOrder);
+                    filteredGroups.sort((a, b) => a.parent.sortOrder - b.parent.sortOrder);
                     
                     // Combine and render in order: groups and standalone items mixed by sortOrder
                     const allItems = [
-                      ...groups.map(g => ({ type: 'group' as const, sortOrder: g.parent.sortOrder, data: g })),
+                      ...filteredGroups.map(g => ({ type: 'group' as const, sortOrder: g.parent.sortOrder, data: g })),
                       ...standalone.map(u => ({ type: 'standalone' as const, sortOrder: u.sortOrder, data: u }))
                     ].sort((a, b) => a.sortOrder - b.sortOrder);
                     
@@ -296,6 +362,11 @@ export default function SelectUpgrades() {
                           <CardTitle className="text-lg capitalize">
                             {category.replace('-', ' ')} Options
                           </CardTitle>
+                          {category === 'comfort' && selectedWrapSize && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Showing {selectedWrapSize} options only (based on your selected wrap)
+                            </p>
+                          )}
                         </CardHeader>
                         <CardContent>
                           <div className="grid gap-3">
