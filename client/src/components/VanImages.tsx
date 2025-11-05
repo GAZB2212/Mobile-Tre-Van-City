@@ -28,9 +28,110 @@ interface VanImagesProps {
   heroImage?: string | null;
 }
 
+function SortableImageCard({
+  id,
+  image,
+  index,
+  isHero,
+  onSetHero,
+  onDelete,
+}: {
+  id: string;
+  image: string;
+  index: number;
+  isHero: boolean;
+  onSetHero: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="overflow-hidden">
+      <div className="aspect-video relative bg-muted">
+        <img
+          src={image}
+          alt={`Van image ${index + 1}`}
+          className="w-full h-full object-cover"
+        />
+        {isHero && (
+          <div className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-bold shadow">
+            <Star className="w-3 h-3 inline mr-1" />
+            HERO
+          </div>
+        )}
+        <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-medium">
+          #{index + 1}
+        </div>
+        <div
+          {...attributes}
+          {...listeners}
+          aria-label={`Drag to reorder image ${index + 1}`}
+          className="absolute bottom-2 right-2 bg-black/70 text-white rounded p-1.5 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+          data-testid={`button-drag-image-${index}`}
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="p-2 flex gap-2">
+        {!isHero && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onSetHero}
+            className="flex-1 !border-2 !border-accent text-accent hover:bg-accent/10"
+            data-testid={`button-set-hero-${index}`}
+          >
+            <Star className="w-3 h-3 mr-1" />
+            Set Hero
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={onDelete}
+          data-testid={`button-delete-${index}`}
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [localImages, setLocalImages] = useState<string[]>(images);
+  const [localHero, setLocalHero] = useState<string | null | undefined>(heroImage);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalImages(images);
+  }, [images]);
+
+  useEffect(() => {
+    setLocalHero(heroImage);
+  }, [heroImage]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -122,6 +223,9 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
     const sessionId = localStorage.getItem('sessionId');
     if (!sessionId) return;
 
+    // Update local state immediately for instant feedback
+    setLocalHero(imageUrl);
+
     try {
       const response = await fetch(`/api/admin/vans/${vanId}/hero-image`, {
         method: 'PUT',
@@ -141,6 +245,8 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
         description: "Hero image updated",
       });
     } catch (error) {
+      // Revert on error
+      setLocalHero(heroImage);
       toast({
         title: "Error",
         description: "Failed to set hero image",
@@ -149,16 +255,26 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
     }
   };
 
-  const handleReorder = async (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= images.length) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
+    if (over && active.id !== over.id) {
+      const oldIndex = localImages.findIndex((_, i) => `image-${i}` === active.id);
+      const newIndex = localImages.findIndex((_, i) => `image-${i}` === over.id);
+
+      const reordered = arrayMove(localImages, oldIndex, newIndex);
+      
+      // Update local state immediately for instant feedback
+      setLocalImages(reordered);
+      
+      // Save to backend
+      saveReorder(reordered);
+    }
+  };
+
+  const saveReorder = async (reordered: string[]) => {
     const sessionId = localStorage.getItem('sessionId');
     if (!sessionId) return;
-
-    // Create new array with reordered images
-    const reordered = [...images];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
 
     try {
       const response = await fetch(`/api/admin/vans/${vanId}/images/reorder`, {
@@ -179,6 +295,8 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
         description: "Images reordered",
       });
     } catch (error) {
+      // Revert on error
+      setLocalImages(images);
       toast({
         title: "Error",
         description: "Failed to reorder images",
@@ -203,86 +321,56 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
           type="button"
           onClick={() => document.getElementById('van-image-upload')?.click()}
           disabled={uploading}
+          data-testid="button-upload-image"
         >
           <Upload className="w-4 h-4 mr-2" />
           {uploading ? "Uploading..." : "Upload Image"}
         </Button>
         <span className="text-sm text-muted-foreground">
-          {images.length} image(s)
+          {localImages.length} image(s)
         </span>
       </div>
 
-      {/* Image Grid */}
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map((image, index) => (
-            <Card key={index} className="overflow-hidden">
-              <div className="aspect-video relative">
-                <img
-                  src={image}
-                  alt={`Van image ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                {heroImage === image && (
-                  <div className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-medium">
-                    <Star className="w-3 h-3 inline mr-1" />
-                    Hero
+      {/* Image Grid with Drag and Drop */}
+      {localImages.length > 0 && (
+        <div className="border rounded-lg p-4 bg-card">
+          <div className="flex items-start gap-2 mb-3 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+            <p>Drag images to reorder • Click star to set hero • First image is the main display image</p>
+          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={localImages.map((_, i) => `image-${i}`)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {localImages.map((image, index) => (
+                  <div key={`image-${index}`} className="group">
+                    <SortableImageCard
+                      id={`image-${index}`}
+                      image={image}
+                      index={index}
+                      isHero={localHero === image}
+                      onSetHero={() => handleSetHero(image)}
+                      onDelete={() => {
+                        if (confirm("Delete this image?")) {
+                          handleDelete(image);
+                        }
+                      }}
+                    />
                   </div>
-                )}
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="h-6 w-6"
-                    onClick={() => handleReorder(index, index - 1)}
-                    disabled={index === 0}
-                    data-testid={`button-move-up-${index}`}
-                  >
-                    <ChevronUp className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="h-6 w-6"
-                    onClick={() => handleReorder(index, index + 1)}
-                    disabled={index === images.length - 1}
-                    data-testid={`button-move-down-${index}`}
-                  >
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </div>
+                ))}
               </div>
-              <div className="p-2 flex gap-2">
-                {heroImage !== image && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSetHero(image)}
-                    className="flex-1"
-                    data-testid={`button-set-hero-${index}`}
-                  >
-                    <Star className="w-3 h-3" />
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirm("Delete this image?")) {
-                      handleDelete(image);
-                    }
-                  }}
-                  data-testid={`button-delete-${index}`}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            </Card>
-          ))}
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 
-      {images.length === 0 && (
+      {localImages.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           <p>No images uploaded yet</p>
         </div>
