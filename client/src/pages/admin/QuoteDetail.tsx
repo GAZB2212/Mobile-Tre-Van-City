@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   ArrowLeft, 
@@ -110,6 +121,7 @@ const buildStages = [
 
 export default function AdminQuoteDetail() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -245,6 +257,27 @@ export default function AdminQuoteDetail() {
         variant: "destructive",
         title: "Error",
         description: "Failed to send confirmation email. Please try again.",
+      });
+    },
+  });
+
+  const deleteQuoteMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/admin/quotes/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      toast({
+        title: "Quote Deleted",
+        description: "The quote has been permanently deleted.",
+      });
+      setLocation("/admin/quotes");
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete quote. Please try again.",
       });
     },
   });
@@ -1496,6 +1529,53 @@ export default function AdminQuoteDetail() {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Delete Quote */}
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="w-5 h-5" />
+                  Delete Quote
+                </CardTitle>
+                <CardDescription>
+                  Permanently delete this quote from the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      data-testid="button-delete-quote"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Quote
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure you want to delete this quote?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the quote for{" "}
+                        <span className="font-semibold">{quote.userName}</span> ({quote.email}) and remove all associated data.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteQuoteMutation.mutate()}
+                        disabled={deleteQuoteMutation.isPending}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        data-testid="button-confirm-delete"
+                      >
+                        {deleteQuoteMutation.isPending ? "Deleting..." : "Delete Quote"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           </div>
