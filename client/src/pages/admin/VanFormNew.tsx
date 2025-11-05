@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Van } from "@shared/schema";
+import { MultiImageUploader } from "@/components/MultiImageUploader";
 
 interface VanFormProps {
   van?: Van;
@@ -276,71 +277,16 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="van-create-images">Van Images (optional)</Label>
-          <p className="text-sm text-muted-foreground mb-2">
-            Select up to 10 images. First image will be the hero image.
-            {selectedImages.length > 0 && (
-              <span className="font-medium text-foreground ml-2">
-                ({selectedImages.length} selected)
-              </span>
-            )}
-          </p>
-          <Input
-            id="van-create-images"
-            type="file"
-            accept="image/*"
-            multiple
-            className="cursor-pointer"
-            onChange={(e) => {
-              const files = e.target.files;
-              if (files && files.length > 0) {
-                const newFiles = Array.from(files);
-                const combinedFiles = [...selectedFiles, ...newFiles];
-                
-                // Limit to 10 files total
-                const maxFiles = Math.min(combinedFiles.length, 10);
-                const limitedFiles = combinedFiles.slice(0, maxFiles);
-                
-                // Create preview URLs for all files
-                const previews = limitedFiles.map(file => URL.createObjectURL(file));
-                
-                setSelectedFiles(limitedFiles);
-                setSelectedImages(previews);
-                
-                if (combinedFiles.length > 10) {
-                  toast({
-                    title: "Too many files",
-                    description: "Maximum 10 images allowed. Extra images were not added.",
-                    variant: "destructive",
-                  });
-                }
-              }
-              
-              // Reset the input so the same file can be selected again if needed
-              e.target.value = '';
+          <Label>Van Images (optional)</Label>
+          <MultiImageUploader
+            selectedFiles={selectedFiles}
+            selectedImages={selectedImages}
+            onFilesChange={(files, previews) => {
+              setSelectedFiles(files);
+              setSelectedImages(previews);
             }}
+            maxFiles={10}
           />
-          {selectedImages.length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 border rounded">
-              {selectedImages.map((preview, index) => (
-                <div key={index} className="relative aspect-video">
-                  <img
-                    src={preview}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-full object-cover rounded border"
-                  />
-                  {index === 0 && (
-                    <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded text-xs font-bold">
-                      Hero
-                    </div>
-                  )}
-                  <div className="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-xs">
-                    {index + 1}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="flex items-center space-x-4">
