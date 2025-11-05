@@ -136,8 +136,8 @@ export const quotes = pgTable("quotes", {
   // Admin adjustments
   discountType: text("discount_type"), // "percentage" or "fixed"
   discountValue: integer("discount_value"), // percentage (e.g., 10 = 10%) or pence amount
-  adminNotes: text("admin_notes"), // Internal notes for staff
-  customerNotes: text("customer_notes"), // Notes shown to customer
+  adminNotesHistory: json("admin_notes_history").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]), // Internal notes history for staff
+  customerNotesHistory: json("customer_notes_history").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]), // Customer notes history
   
   // Quote confirmation
   confirmationToken: text("confirmation_token").unique(), // Unique token for customer confirmation link
