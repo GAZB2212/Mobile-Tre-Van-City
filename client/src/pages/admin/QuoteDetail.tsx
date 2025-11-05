@@ -28,7 +28,11 @@ import {
   MessageSquare,
   Settings,
   ChevronDown,
-  CheckCircle
+  CheckCircle,
+  Pencil,
+  Trash2,
+  Check,
+  XCircle
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -117,6 +121,9 @@ export default function AdminQuoteDetail() {
   const [newAdminNote, setNewAdminNote] = useState("");
   const [newCustomerNote, setNewCustomerNote] = useState("");
   const [confirmationUrl, setConfirmationUrl] = useState("");
+  
+  // Note editing state - stores { noteType, timestamp, text } when editing a note
+  const [editingNote, setEditingNote] = useState<{ noteType: 'admin' | 'customer'; timestamp: string; text: string } | null>(null);
   
   // Configuration state
   const [selectedVanId, setSelectedVanId] = useState<string | null>(null);
@@ -238,6 +245,47 @@ export default function AdminQuoteDetail() {
         variant: "destructive",
         title: "Error",
         description: "Failed to send confirmation email. Please try again.",
+      });
+    },
+  });
+
+  const editNoteMutation = useMutation({
+    mutationFn: async (data: { noteType: 'admin' | 'customer'; timestamp: string; text: string }) => {
+      return await apiRequest("PATCH", `/api/admin/quotes/${id}/notes`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      setEditingNote(null);
+      toast({
+        title: "Success",
+        description: "Note updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update note",
+      });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (data: { noteType: 'admin' | 'customer'; timestamp: string }) => {
+      return await apiRequest("DELETE", `/api/admin/quotes/${id}/notes`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      toast({
+        title: "Success",
+        description: "Note deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete note",
       });
     },
   });
@@ -1052,25 +1100,96 @@ export default function AdminQuoteDetail() {
                 {/* Note History */}
                 {quote?.adminNotesHistory && quote.adminNotesHistory.length > 0 && (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {quote.adminNotesHistory.map((note, index) => (
-                      <div key={index} className="p-3 rounded-lg bg-muted/50 border">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {note.author || 'Admin'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(note.timestamp).toLocaleString('en-GB', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                    {quote.adminNotesHistory.map((note, index) => {
+                      const isEditing = editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
+                      
+                      return (
+                        <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {note.author || 'Admin'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(note.timestamp).toLocaleString('en-GB', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              {!isEditing && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => setEditingNote({ noteType: 'admin', timestamp: note.timestamp, text: note.text })}
+                                    data-testid={`button-edit-admin-note-${index}`}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive"
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this note?')) {
+                                        deleteNoteMutation.mutate({ noteType: 'admin', timestamp: note.timestamp });
+                                      }
+                                    }}
+                                    data-testid={`button-delete-admin-note-${index}`}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={editingNote.text}
+                                onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
+                                rows={3}
+                                data-testid="textarea-edit-admin-note"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    if (editingNote.text.trim()) {
+                                      editNoteMutation.mutate({
+                                        noteType: 'admin',
+                                        timestamp: editingNote.timestamp,
+                                        text: editingNote.text
+                                      });
+                                    }
+                                  }}
+                                  disabled={!editingNote.text.trim()}
+                                  data-testid="button-save-admin-note"
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingNote(null)}
+                                  data-testid="button-cancel-admin-note"
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                          )}
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{note.text}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 
@@ -1114,25 +1233,96 @@ export default function AdminQuoteDetail() {
                 {/* Note History */}
                 {quote?.customerNotesHistory && quote.customerNotesHistory.length > 0 && (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {quote.customerNotesHistory.map((note, index) => (
-                      <div key={index} className="p-3 rounded-lg bg-muted/50 border">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {note.author || 'Admin'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(note.timestamp).toLocaleString('en-GB', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                    {quote.customerNotesHistory.map((note, index) => {
+                      const isEditing = editingNote?.noteType === 'customer' && editingNote?.timestamp === note.timestamp;
+                      
+                      return (
+                        <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {note.author || 'Admin'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(note.timestamp).toLocaleString('en-GB', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              {!isEditing && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => setEditingNote({ noteType: 'customer', timestamp: note.timestamp, text: note.text })}
+                                    data-testid={`button-edit-customer-note-${index}`}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive"
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this note?')) {
+                                        deleteNoteMutation.mutate({ noteType: 'customer', timestamp: note.timestamp });
+                                      }
+                                    }}
+                                    data-testid={`button-delete-customer-note-${index}`}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={editingNote.text}
+                                onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
+                                rows={3}
+                                data-testid="textarea-edit-customer-note"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    if (editingNote.text.trim()) {
+                                      editNoteMutation.mutate({
+                                        noteType: 'customer',
+                                        timestamp: editingNote.timestamp,
+                                        text: editingNote.text
+                                      });
+                                    }
+                                  }}
+                                  disabled={!editingNote.text.trim()}
+                                  data-testid="button-save-customer-note"
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingNote(null)}
+                                  data-testid="button-cancel-customer-note"
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                          )}
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{note.text}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 
