@@ -47,6 +47,7 @@ export interface IStorage {
   getQuote(id: string): Promise<Quote | undefined>;
   createQuote(quote: InsertQuote): Promise<Quote>;
   updateQuote(id: string, quote: Partial<Quote>): Promise<Quote | undefined>;
+  deleteQuote(id: string): Promise<boolean>;
 
   // Leads
   getLeads(): Promise<Lead[]>;
@@ -1485,6 +1486,10 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
+  async deleteQuote(id: string): Promise<boolean> {
+    return this.quotes.delete(id);
+  }
+
   // Leads
   async getLeads(): Promise<Lead[]> {
     return Array.from(this.leads.values());
@@ -1759,6 +1764,11 @@ export class DbStorage implements IStorage {
   async updateQuote(id: string, updateQuote: Partial<Quote>): Promise<Quote | undefined> {
     const result = await db.update(schema.quotes).set(updateQuote).where(eq(schema.quotes.id, id)).returning();
     return result[0];
+  }
+
+  async deleteQuote(id: string): Promise<boolean> {
+    const result = await db.delete(schema.quotes).where(eq(schema.quotes.id, id)).returning();
+    return result.length > 0;
   }
 
   // Leads
