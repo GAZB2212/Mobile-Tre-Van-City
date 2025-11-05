@@ -139,9 +139,13 @@ Preferred communication style: Simple, everyday language.
     - Path traversal protection for security
     - 206 Partial Content responses for efficient video streaming
     - Used by hero video and 360-degree gallery renders
-  - `/objects/:objectPath` - Serves uploaded images from object storage (Google Cloud Storage) with ACL checks
-    - Public images (equipment, vans) accessible without authentication
-    - Private images require user authentication
+  - `/objects/:objectPath` - Serves uploaded images and videos from object storage (Google Cloud Storage) with ACL checks
+    - Supports both images and videos with HTTP range request support for video streaming
+    - Public files (equipment, vans, videos in /videos/ directory) accessible without authentication
+    - Private files require user authentication
+    - 206 Partial Content responses for efficient video streaming
+    - Supports video formats: MP4, WebM, OGG, MOV
+    - Supports image formats: PNG, JPEG, GIF, WebP, SVG
 - **Object Storage Integration**: Admin image uploads via presigned URLs with ACL management
   - `/api/admin/objects/presigned-url` - Generate presigned upload URLs for admin uploads
   - `/api/admin/objects/set-acl` - Set ACL policy (public/private) on uploaded objects

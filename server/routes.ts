@@ -1911,58 +1911,135 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Referenced from blueprint: javascript_object_storage - protected file uploading
-  // Handle CORS preflight for images
+  // Handle CORS preflight for images and videos
   app.options("/objects/:objectPath(*)", (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
     res.sendStatus(200);
   });
   
   // The endpoint for serving objects with ACL checks (public and private)
   app.get("/objects/:objectPath(*)", async (req, res) => {
-    // Set CORS headers for images
+    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
     
     const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
     const objectStorageService = new ObjectStorageService();
+    
     try {
-      console.log('🖼️ Image request:', req.path);
+      const isVideo = req.path.toLowerCase().match(/\.(mp4|webm|ogg|mov)$/);
+      console.log(isVideo ? '🎥 Video request:' : '🖼️ Image request:', req.path);
+      
+      // Get the object file reference
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      console.log('✅ File found');
       
-      // Check if this is a public image (van, product, kit, upgrade images - skip ACL)
-      if (req.path.includes('/van-images/') || req.path.includes('/product-images/') || req.path.includes('/uploads/') || req.path.includes('/upgrade-images/')) {
-        console.log('✅ Public image - serving without ACL check');
+      // Check if this is a public file (van, product, kit, upgrade images/videos - skip ACL)
+      const isPublic = req.path.includes('/van-images/') || 
+                      req.path.includes('/product-images/') || 
+                      req.path.includes('/uploads/') || 
+                      req.path.includes('/upgrade-images/') ||
+                      req.path.includes('/videos/');
+      
+      // Perform ACL check BEFORE fetching metadata
+      if (!isPublic) {
+        const userId = (req as any).user?.id;
+        const { ObjectPermission } = await import("./objectAcl");
+        console.log('🔐 Checking access permissions...');
+        const canAccess = await objectStorageService.canAccessObjectEntity({
+          objectFile,
+          userId: userId,
+          requestedPermission: ObjectPermission.READ,
+        });
+        if (!canAccess) {
+          console.log('❌ Access denied for:', req.path);
+          return res.sendStatus(401);
+        }
+        console.log('✅ Access granted');
+      } else {
+        console.log('✅ Public file - serving without ACL check');
+      }
+      
+      // For videos, support range requests for streaming
+      if (isVideo) {
+        try {
+          // Get file metadata
+          const [metadata] = await objectFile.getMetadata();
+          const fileSize = parseInt(metadata.size as string);
+          const range = req.headers.range;
+          
+          if (range) {
+            // Parse range header
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            
+            // Validate range
+            if (start >= fileSize || end >= fileSize || start > end) {
+              console.log('❌ Invalid range requested:', range);
+              return res.status(416).send('Range Not Satisfiable');
+            }
+            
+            const chunkSize = end - start + 1;
+            
+            res.status(206);
+            res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+            res.setHeader('Content-Length', chunkSize);
+            res.setHeader('Content-Type', metadata.contentType || 'video/mp4');
+            res.setHeader('Accept-Ranges', 'bytes');
+            
+            // Stream the requested range with error handling
+            const stream = objectFile.createReadStream({ start, end });
+            
+            stream.on('error', (streamError: any) => {
+              console.error('❌ Stream error:', streamError);
+              if (!res.headersSent) {
+                res.status(500).send('Error streaming video');
+              }
+            });
+            
+            stream.pipe(res);
+            console.log(`✅ Streaming video (range ${start}-${end}):`, req.path);
+          } else {
+            // No range request, send entire file
+            res.setHeader('Content-Length', fileSize);
+            res.setHeader('Content-Type', metadata.contentType || 'video/mp4');
+            res.setHeader('Accept-Ranges', 'bytes');
+            
+            const stream = objectFile.createReadStream();
+            
+            stream.on('error', (streamError: any) => {
+              console.error('❌ Stream error:', streamError);
+              if (!res.headersSent) {
+                res.status(500).send('Error streaming video');
+              }
+            });
+            
+            stream.pipe(res);
+            console.log('✅ Streaming video (full):', req.path);
+          }
+        } catch (videoError) {
+          console.error('❌ Error preparing video stream:', videoError);
+          if (!res.headersSent) {
+            return res.status(500).send('Error preparing video');
+          }
+        }
+      } else {
+        // For images, use the standard download method
+        console.log('✅ Serving file:', req.path);
         objectStorageService.downloadObject(objectFile, res);
-        return;
       }
-      
-      // For other files, check ACL
-      const userId = (req as any).user?.id;
-      const { ObjectPermission } = await import("./objectAcl");
-      console.log('🔐 Checking access permissions...');
-      const canAccess = await objectStorageService.canAccessObjectEntity({
-        objectFile,
-        userId: userId,
-        requestedPermission: ObjectPermission.READ,
-      });
-      console.log('🔐 Access check result:', canAccess);
-      if (!canAccess) {
-        console.log('❌ Access denied for:', req.path);
-        return res.sendStatus(401);
-      }
-      console.log('✅ Serving file:', req.path);
-      objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
-      console.error("Error checking object access:", error);
+      console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
-        console.log('❌ Image not found:', req.path);
+        console.log('❌ File not found:', req.path);
         return res.sendStatus(404);
       }
-      return res.sendStatus(500);
+      if (!res.headersSent) {
+        return res.sendStatus(500);
+      }
     }
   });
 
