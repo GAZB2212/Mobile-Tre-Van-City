@@ -27,14 +27,19 @@ export default function SelectKit() {
   // Fetch van data if van is selected
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
+    queryFn: async () => {
+      const res = await fetch(`/api/vans/${state.vanId}`);
+      if (!res.ok) throw new Error('Failed to fetch van');
+      return res.json();
+    },
     enabled: !!state.vanId,
   });
 
   // Filter kits based on van's Euro status
-  const kits = useMemo(() => {
+  const { filteredKits: kits, filterMessage } = useMemo(() => {
     if (!van?.euroStatus) {
       // If no van selected or no euro status, show all kits
-      return allKits;
+      return { filteredKits: allKits, filterMessage: null };
     }
 
     // Check if van is Euro 6
@@ -42,7 +47,29 @@ export default function SelectKit() {
                    van.euroStatus.toLowerCase().includes('euro6');
 
     // Filter kits based on compatibility
-    return allKits.filter(kit => kit.euroSixCompatible === isEuro6);
+    const filtered = allKits.filter(kit => kit.euroSixCompatible === isEuro6);
+
+    // If no kits match the filter, show all kits with a warning message
+    if (filtered.length === 0) {
+      return {
+        filteredKits: allKits,
+        filterMessage: {
+          type: 'warning' as const,
+          title: `Limited ${van.euroStatus} Options Available`,
+          description: `Your ${van.make} ${van.model} requires ${van.euroStatus} compatible equipment, but we currently have limited stock. Showing all available kits - please contact us to confirm compatibility.`
+        }
+      };
+    }
+
+    // Return filtered kits with success message
+    return {
+      filteredKits: filtered,
+      filterMessage: {
+        type: 'info' as const,
+        title: `Showing ${van.euroStatus} Compatible Equipment`,
+        description: `Based on your ${van.make} ${van.model}'s emissions standard, we're showing kits specifically designed for ${van.euroStatus} vehicles.`
+      }
+    };
   }, [allKits, van]);
 
   const handleSelectKit = (kitId: string) => {
@@ -96,15 +123,21 @@ export default function SelectKit() {
               ) : (
                 <>
                   {/* Euro Status Filter Message */}
-                  {van?.euroStatus && (
-                    <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-md flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                  {filterMessage && (
+                    <div className={`mb-6 p-4 rounded-md flex items-start gap-3 ${
+                      filterMessage.type === 'warning' 
+                        ? 'bg-destructive/10 border border-destructive/20' 
+                        : 'bg-accent/10 border border-accent/20'
+                    }`}>
+                      <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                        filterMessage.type === 'warning' ? 'text-destructive' : 'text-accent'
+                      }`} />
                       <div className="flex-1">
                         <p className="font-medium text-sm">
-                          Showing {van.euroStatus} Compatible Equipment
+                          {filterMessage.title}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Based on your {van.make} {van.model}'s emissions standard, we're showing kits specifically designed for {van.euroStatus} vehicles.
+                          {filterMessage.description}
                         </p>
                       </div>
                     </div>
