@@ -1403,6 +1403,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send confirmation email to customer
       const { sendQuoteConfirmationEmail } = await import('./email.js');
+      // Get latest customer note from history
+      const customerNotesHistory = updated.customerNotesHistory || [];
+      const latestCustomerNote = customerNotesHistory.length > 0 
+        ? customerNotesHistory[customerNotesHistory.length - 1].text 
+        : undefined;
+      
       await sendQuoteConfirmationEmail({
         to: updated.email,
         customerName: updated.userName,
@@ -1410,7 +1416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         confirmationUrl,
         totalPrice: discount > 0 ? totalWithVat - discount : updated.estTotal,
         discount: discount > 0 ? discount : undefined,
-        customerNotes: updated.customerNotes || undefined,
+        customerNotes: latestCustomerNote,
       });
 
       res.json({ 
@@ -1483,7 +1489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         estDiscount: quote.estDiscount,
         discountType: quote.discountType,
         discountValue: quote.discountValue,
-        customerNotes: quote.customerNotes, // Only customer notes, NOT adminNotes
+        customerNotesHistory: quote.customerNotesHistory, // Only customer notes history, NOT adminNotesHistory
         status: quote.status,
         createdAt: quote.createdAt,
         confirmedAt: quote.confirmedAt,

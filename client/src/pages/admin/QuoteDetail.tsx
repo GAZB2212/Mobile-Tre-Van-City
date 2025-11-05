@@ -114,8 +114,8 @@ export default function AdminQuoteDetail() {
   const [buildStage, setBuildStage] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
-  const [adminNotes, setAdminNotes] = useState("");
-  const [customerNotes, setCustomerNotes] = useState("");
+  const [newAdminNote, setNewAdminNote] = useState("");
+  const [newCustomerNote, setNewCustomerNote] = useState("");
   const [confirmationUrl, setConfirmationUrl] = useState("");
   
   // Configuration state
@@ -178,8 +178,7 @@ export default function AdminQuoteDetail() {
       } else {
         setDiscountValue("");
       }
-      setAdminNotes(quote.adminNotes || "");
-      setCustomerNotes(quote.customerNotes || "");
+      // Notes are now in history format, no need to set them here
       
       // Set current configuration
       setSelectedVanId(quote.vanId || null);
@@ -203,6 +202,9 @@ export default function AdminQuoteDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      // Clear note inputs after successful save
+      setNewAdminNote("");
+      setNewCustomerNote("");
       toast({
         title: "Success",
         description: "Quote updated successfully",
@@ -366,11 +368,17 @@ export default function AdminQuoteDetail() {
       buildStage: buildStage || null,
       discountType: discountType || null,
       discountValue: discountValueInPence,
-      adminNotes: adminNotes || null,
-      customerNotes: customerNotes || null,
       selectedUpgradeIds,
       selectedUpgrades,
     };
+    
+    // Add new notes to history if provided
+    if (newAdminNote.trim()) {
+      updates.newAdminNote = newAdminNote.trim();
+    }
+    if (newCustomerNote.trim()) {
+      updates.newCustomerNote = newCustomerNote.trim();
+    }
     
     // Explicitly include null values for van and kit to allow clearing
     updates.vanId = selectedVanId;
@@ -1031,7 +1039,7 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Admin Notes */}
+            {/* Admin Notes History */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1040,18 +1048,60 @@ export default function AdminQuoteDetail() {
                 </CardTitle>
                 <CardDescription>Only visible to staff</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add internal notes for staff..."
-                  rows={3}
-                  data-testid="textarea-admin-notes"
-                />
+              <CardContent className="space-y-4">
+                {/* Note History */}
+                {quote?.adminNotesHistory && quote.adminNotesHistory.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {quote.adminNotesHistory.map((note, index) => (
+                      <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {note.author || 'Admin'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(note.timestamp).toLocaleString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Add New Note */}
+                <div className="space-y-2">
+                  <Label htmlFor="new-admin-note">Add New Note</Label>
+                  <Textarea
+                    id="new-admin-note"
+                    value={newAdminNote}
+                    onChange={(e) => setNewAdminNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newAdminNote.trim()) {
+                          handleSave();
+                          setNewAdminNote("");
+                        }
+                      }
+                    }}
+                    placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
+                    rows={2}
+                    data-testid="textarea-new-admin-note"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Press Enter to save, Shift+Enter for new line
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Customer Notes */}
+            {/* Customer Notes History */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1060,14 +1110,56 @@ export default function AdminQuoteDetail() {
                 </CardTitle>
                 <CardDescription>Shown to customer in confirmation</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={customerNotes}
-                  onChange={(e) => setCustomerNotes(e.target.value)}
-                  placeholder="Add notes for the customer..."
-                  rows={4}
-                  data-testid="textarea-customer-notes"
-                />
+              <CardContent className="space-y-4">
+                {/* Note History */}
+                {quote?.customerNotesHistory && quote.customerNotesHistory.length > 0 && (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {quote.customerNotesHistory.map((note, index) => (
+                      <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {note.author || 'Admin'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(note.timestamp).toLocaleString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Add New Note */}
+                <div className="space-y-2">
+                  <Label htmlFor="new-customer-note">Add New Note</Label>
+                  <Textarea
+                    id="new-customer-note"
+                    value={newCustomerNote}
+                    onChange={(e) => setNewCustomerNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newCustomerNote.trim()) {
+                          handleSave();
+                          setNewCustomerNote("");
+                        }
+                      }
+                    }}
+                    placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
+                    rows={2}
+                    data-testid="textarea-new-customer-note"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Press Enter to save, Shift+Enter for new line
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
