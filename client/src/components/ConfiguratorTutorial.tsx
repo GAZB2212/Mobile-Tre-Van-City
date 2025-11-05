@@ -99,12 +99,14 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
   const [run, setRun] = useState(false);
 
   useEffect(() => {
-    // Check if user has seen tutorial for this page
-    const isFirstVisit = localStorage.getItem("configurator-first-visit") === null;
+    // Check if user has seen tutorial for this specific page
+    const pageKey = `configurator-tutorial-${page}-seen`;
+    const hasSeenThisPage = localStorage.getItem(pageKey) === "true";
 
-    // Only show tutorial on first ever visit to the configurator
-    if (isFirstVisit && page === "van") {
-      localStorage.setItem("configurator-first-visit", "false");
+    // Auto-start tutorial on first visit to each page
+    if (!hasSeenThisPage) {
+      // Mark this page as seen
+      localStorage.setItem(pageKey, "true");
       
       // Wait for all target elements to exist before starting
       const waitForElements = () => {
@@ -136,7 +138,6 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
 
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
-      localStorage.setItem("configurator-tutorial-completed", "true");
     }
   };
 
