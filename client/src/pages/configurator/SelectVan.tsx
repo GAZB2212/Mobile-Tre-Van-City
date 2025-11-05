@@ -5,6 +5,7 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
+import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +82,7 @@ export default function SelectVan() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" data-testid="grid-vans">
                     {vans.map((van) => {
                       const firstImage = van.heroImage || van.images?.[0];
                       
@@ -199,6 +200,8 @@ export default function SelectVan() {
       </main>
 
       <Footer />
+      
+      <ConfiguratorTutorial page="van" />
 
       {/* Van Details Modal */}
       <Dialog open={!!modalVan} onOpenChange={(open) => !open && setModalVan(null)}>

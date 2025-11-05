@@ -21,14 +21,14 @@ const tutorialSteps: Record<string, Step[]> = {
       placement: "bottom",
     },
     {
-      target: "[data-testid='card-van-0']",
-      content: "Click on any van to view more details. You'll see the make, model, year, mileage, and full specifications.",
+      target: "[data-testid='grid-vans']",
+      content: "Browse through our available vans. Click on any van to view more details including make, model, year, mileage, and full specifications.",
       placement: "top",
     },
     {
-      target: "[data-testid='button-next']",
-      content: "Once you've selected a van, click Next to choose your tyre equipment kit.",
-      placement: "top",
+      target: "[data-testid='summary-container']",
+      content: "Your configuration summary shows here. As you make selections, you'll see the running total and what's included.",
+      placement: "left",
     },
   ],
   kit: [
@@ -39,14 +39,14 @@ const tutorialSteps: Record<string, Step[]> = {
       disableBeacon: true,
     },
     {
-      target: "[data-testid='card-kit-0']",
+      target: "[data-testid='grid-kits']",
       content: "Review what's included in each kit, the power output, and pricing. Select the one that fits your business needs.",
       placement: "top",
     },
     {
-      target: "[data-testid='button-next']",
-      content: "After selecting your kit, move on to add optional upgrades and extras.",
-      placement: "top",
+      target: "[data-testid='summary-container']",
+      content: "Your running total updates automatically as you select a kit. See what's included in your current selection.",
+      placement: "left",
     },
   ],
   upgrades: [
@@ -57,7 +57,7 @@ const tutorialSteps: Record<string, Step[]> = {
       disableBeacon: true,
     },
     {
-      target: ".grid.gap-3",
+      target: "[data-testid='section-upgrades']",
       content: "Browse through categories like air systems, equipment, branding, and comfort options. Select any items you need.",
       placement: "top",
     },
@@ -65,11 +65,6 @@ const tutorialSteps: Record<string, Step[]> = {
       target: "[data-testid='summary-container']",
       content: "Your running total updates automatically as you add upgrades. Review your selections here anytime.",
       placement: "left",
-    },
-    {
-      target: "[data-testid='button-next']",
-      content: "When you're happy with your upgrades, continue to explore financing options.",
-      placement: "top",
     },
   ],
   finance: [
@@ -80,14 +75,9 @@ const tutorialSteps: Record<string, Step[]> = {
       disableBeacon: true,
     },
     {
-      target: ".grid.gap-6",
-      content: "We offer Hire Purchase and Lease options. Compare monthly payments and terms to find what works for you.",
-      placement: "top",
-    },
-    {
-      target: "[data-testid='button-next']",
-      content: "Ready to request a quote? Click Next to submit your configuration to our team.",
-      placement: "top",
+      target: "[data-testid='summary-container']",
+      content: "Review your total cost and explore financing options. See your final configuration before requesting a quote.",
+      placement: "left",
     },
   ],
   quote: [
@@ -117,7 +107,27 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
     // Only show tutorial on first ever visit to the configurator
     if (isFirstVisit && page === "van") {
       localStorage.setItem("configurator-first-visit", "false");
-      setTimeout(() => setRun(true), 500); // Small delay for page to render
+      
+      // Wait for all target elements to exist before starting
+      const waitForElements = () => {
+        const steps = tutorialSteps[page] || [];
+        const allTargetsExist = steps.every(step => {
+          // Skip "body" target as it always exists
+          if (step.target === "body") return true;
+          // Check if element exists
+          return document.querySelector(step.target as string) !== null;
+        });
+
+        if (allTargetsExist) {
+          setRun(true);
+        } else {
+          // Keep checking every 100ms until elements load
+          setTimeout(waitForElements, 100);
+        }
+      };
+
+      // Start checking after initial delay for page render
+      setTimeout(waitForElements, 300);
     }
   }, [page]);
 
@@ -137,7 +147,27 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
 
   const startTutorial = () => {
     setStepIndex(0);
-    setRun(true);
+    
+    // Wait for all target elements to exist before starting
+    const waitForElements = () => {
+      const steps = tutorialSteps[page] || [];
+      const allTargetsExist = steps.every(step => {
+        // Skip "body" target as it always exists
+        if (step.target === "body") return true;
+        // Check if element exists
+        return document.querySelector(step.target as string) !== null;
+      });
+
+      if (allTargetsExist) {
+        setRun(true);
+      } else {
+        // Keep checking every 100ms until elements load
+        setTimeout(waitForElements, 100);
+      }
+    };
+
+    // Start checking immediately when manually triggered
+    waitForElements();
   };
 
   const steps = tutorialSteps[page] || [];

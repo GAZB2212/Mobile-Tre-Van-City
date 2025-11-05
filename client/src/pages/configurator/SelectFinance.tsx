@@ -5,6 +5,7 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
+import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -320,6 +321,8 @@ export default function SelectFinance() {
       </main>
 
       <Footer />
+      
+      <ConfiguratorTutorial page="finance" />
     </div>
   );
 }

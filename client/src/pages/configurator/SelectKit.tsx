@@ -5,6 +5,7 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
+import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +73,7 @@ export default function SelectKit() {
                   <LoadingSpinner size="lg" />
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-kits">
               {kits.map((kit) => (
                 <Card 
                   key={kit.id} 
@@ -146,6 +147,8 @@ export default function SelectKit() {
       </main>
 
       <Footer />
+      
+      <ConfiguratorTutorial page="kit" />
 
       {/* Kit Details Modal */}
       <Dialog open={!!modalKit} onOpenChange={(open) => !open && setModalKit(null)}>

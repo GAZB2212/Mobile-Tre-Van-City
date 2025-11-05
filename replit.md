@@ -40,6 +40,13 @@ Preferred communication style: Simple, everyday language.
 ### Business Logic
 - **Conversion Funnel**: Customer journey system guiding users through Van → Kit → Finance → Quote
 - **Configurator Flow**: Multi-step wizard with localStorage persistence via ConfiguratorProvider
+  - **Interactive Tutorial**: Step-by-step onboarding tour using react-joyride for new users
+    - Auto-starts on first visit to configurator (van selection page)
+    - Contextual guidance for each step (van → kit → upgrades → finance)
+    - Floating help button (bottom-right) to replay tutorial anytime
+    - LocalStorage persistence to track completion
+    - Skippable with progress indicator
+    - Styled to match application design system
   - **Equipment Compatibility Validation**: Van size-based equipment filtering with automatic compatibility enforcement
     - Primary detection: Uses selected van's specs.size field (LWB/MWB/SWB) for accurate filtering
     - Fallback detection: If no van selected, detects size from selected wrap/half wrap/graphic pack variants

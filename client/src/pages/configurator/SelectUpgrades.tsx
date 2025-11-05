@@ -5,6 +5,7 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
+import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -336,7 +337,7 @@ export default function SelectUpgrades() {
                   <LoadingSpinner size="lg" />
                 </div>
               ) : configuratorData ? (
-                <div className="space-y-6">
+                <div className="space-y-6" data-testid="section-upgrades">
                   {Object.entries(configuratorData.upgrades)
                     .sort(([categoryA], [categoryB]) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB))
                     .map(([category, upgrades]) => {
@@ -634,6 +635,8 @@ export default function SelectUpgrades() {
       </main>
       
       <Footer />
+      
+      <ConfiguratorTutorial page="upgrades" />
       
       <ImageGallery
         images={galleryImages}
