@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Shield } from "lucide-react";
 import logoImage from "@assets/Untitled design-51_1759240381746.png";
+import gajoLogo from "@assets/LOGO_1762356342150.png";
 
 export default function Footer() {
   const quickLinks = [
@@ -131,6 +132,23 @@ export default function Footer() {
                 Admin Login
               </Link>
             </div>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-primary-foreground/10 flex justify-center items-center">
+            <a 
+              href="https://www.gajocreative.co.uk" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              data-testid="link-gajo-creative"
+            >
+              <span className="text-primary-foreground/60 text-sm">Website created by</span>
+              <img 
+                src={gajoLogo} 
+                alt="Gajo Creative" 
+                className="h-8 w-auto"
+              />
+            </a>
           </div>
         </div>
       </div>
