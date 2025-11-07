@@ -16,7 +16,8 @@ import {
   LogOut,
   Calculator,
   GraduationCap,
-  BarChart3
+  BarChart3,
+  Image
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -114,6 +115,13 @@ export default function AdminDashboard() {
       icon: GraduationCap,
       href: "/admin/training-options",
       badge: "Training"
+    },
+    {
+      title: "Manage Gallery Items",
+      description: "Upload and manage gallery images and videos",
+      icon: Image,
+      href: "/admin/gallery-items",
+      badge: "Content"
     },
     {
       title: "View Quotes",
