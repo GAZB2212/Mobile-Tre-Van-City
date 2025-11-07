@@ -340,7 +340,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
               setSelectedFiles(files);
               setSelectedImages(previews);
             }}
-            maxFiles={10}
+            maxFiles={20}
           />
         </div>
 
