@@ -360,8 +360,11 @@ export class ObjectStorageService {
       },
     });
     
-    // Set ACL to public
-    await setObjectAclPolicy(file, { visibility: 'public' });
+    // Set ACL to public (system-owned for marketing assets)
+    await setObjectAclPolicy(file, { 
+      owner: process.env.SYSTEM_OBJECT_OWNER || 'system',
+      visibility: 'public' 
+    });
     
     // Return the backend proxy path (will be served through /objects/ endpoint)
     // Format: /objects/videos/filename (matches the storage location)

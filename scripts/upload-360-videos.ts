@@ -1,6 +1,7 @@
 import { Storage } from "@google-cloud/storage";
 import * as fs from "fs";
 import * as path from "path";
+import { setObjectAclPolicy } from "../server/objectAcl";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -71,8 +72,11 @@ async function uploadVideos() {
         },
       });
 
-      // Make the file publicly accessible
-      await file.makePublic();
+      // Set ACL to public using recommended approach (avoids public access prevention errors)
+      await setObjectAclPolicy(file, {
+        owner: process.env.SYSTEM_OBJECT_OWNER || 'system',
+        visibility: 'public'
+      });
 
       console.log(`✅ Uploaded ${videoFilename} to /${bucketName}/${destinationPath}`);
     } catch (error) {
