@@ -13,6 +13,7 @@ import {
   insertLeadSchema, 
   insertFinancePlanSchema,
   insertTrainingOptionSchema,
+  insertGalleryItemSchema,
   quoteStatuses,
   financeStatuses,
   buildStages,
@@ -1169,6 +1170,61 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete training option" });
+    }
+  });
+
+  // Gallery Items - Admin endpoints
+  app.get("/api/admin/gallery-items", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const items = await storage.getGalleryItemsAdmin();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch gallery items" });
+    }
+  });
+
+  app.post("/api/admin/gallery-items", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const itemData = insertGalleryItemSchema.parse(req.body);
+      const item = await storage.createGalleryItem(itemData);
+      res.json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to create gallery item" });
+    }
+  });
+
+  app.put("/api/admin/gallery-items/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const itemData = insertGalleryItemSchema.partial().parse(req.body);
+      const item = await storage.updateGalleryItem(req.params.id, itemData);
+      if (!item) {
+        return res.status(404).json({ error: "Gallery item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update gallery item" });
+    }
+  });
+
+  app.delete("/api/admin/gallery-items/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteGalleryItem(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Gallery item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete gallery item" });
+    }
+  });
+
+  // Gallery Items - Public endpoint
+  app.get("/api/gallery-items", async (req, res) => {
+    try {
+      const items = await storage.getGalleryItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch gallery items" });
     }
   });
 
