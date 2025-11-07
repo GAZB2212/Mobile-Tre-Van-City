@@ -190,6 +190,27 @@ export default function SelectUpgrades() {
     });
   }, [vanSize, configuratorData]);
 
+  // Auto-remove mutually exclusive air system upgrades on page load
+  // This handles cases where users have both selected from old localStorage or quotes
+  useEffect(() => {
+    if (!configuratorData) return;
+    
+    // Check if user has both mutually exclusive air system upgrades selected
+    const hasAllExclusiveItems = airSystemExclusiveIds.every(id => 
+      state.upgradeIds.includes(id)
+    );
+    
+    if (hasAllExclusiveItems) {
+      // Remove all but the first one (keep the PTO as default preference)
+      const toRemove = airSystemExclusiveIds.slice(1);
+      toRemove.forEach(id => {
+        if (state.upgradeIds.includes(id)) {
+          removeUpgrade(id);
+        }
+      });
+    }
+  }, [configuratorData]);
+
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
       ? Object.values(configuratorData.upgrades).flat().find(u => u.id === upgradeId)
