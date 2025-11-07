@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Car, Fuel, Gauge, Settings, Calendar, CheckCircle, Phone, Mail, Wrench } from "lucide-react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import SEO, { createProductStructuredData, createBreadcrumbStructuredData } from "@/components/SEO";
@@ -16,6 +26,7 @@ export default function VanDetails() {
   const [, setLocation] = useLocation();
   const { setVan } = useConfigurator();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const { data: van, isLoading, error } = useQuery<Van>({
     queryKey: ['/api/vans/slug', slug],
@@ -30,6 +41,10 @@ export default function VanDetails() {
   });
 
   const handleConfigureVan = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const confirmSelectVan = () => {
     if (van) {
       setVan(van.id);
       setLocation('/configurator/kit');
@@ -399,6 +414,36 @@ export default function VanDetails() {
           </div>
         </div>
       </section>
+
+      {/* Van Selection Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Van Selection</AlertDialogTitle>
+            <AlertDialogDescription>
+              {van && (
+                <>
+                  Do you want to select this <strong>{van.year} {van.make} {van.model}</strong> and proceed to the next step?
+                  <br /><br />
+                  You'll be able to choose your equipment kit and upgrades next.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-select-van">
+              No, Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSelectVan}
+              data-testid="button-confirm-select-van"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              Yes, Select This Van
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

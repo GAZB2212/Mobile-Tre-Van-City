@@ -237,7 +237,7 @@ export default function SelectVan() {
                         <Card 
                           key={van.id} 
                           className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${state.vanId === van.id ? 'ring-2 ring-accent' : ''}`}
-                          onClick={() => handleSelectVan(van.id)}
+                          onClick={() => setLocation(`/stock/${van.slug}`)}
                           data-testid={`card-van-${van.id}`}
                         >
                           {/* Van Image */}
