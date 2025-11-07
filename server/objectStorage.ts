@@ -379,7 +379,10 @@ export class ObjectStorageService {
       throw new ObjectNotFoundError();
     }
 
-    const parts = objectPath.slice(1).split("/");
+    // URL-decode the path to handle filenames with spaces
+    const decodedPath = decodeURIComponent(objectPath);
+    
+    const parts = decodedPath.slice(1).split("/");
     if (parts.length < 2) {
       throw new ObjectNotFoundError();
     }
