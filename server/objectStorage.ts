@@ -330,6 +330,46 @@ export class ObjectStorageService {
     return `/objects/upgrade-images/${uploadedFilename}`;
   }
 
+  // Upload video directly to public storage (backend proxy - no CORS)
+  async uploadVideoToPublicStorage(
+    fileBuffer: Buffer,
+    filename: string,
+    contentType: string
+  ): Promise<string> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+
+    // Use the first public path
+    const publicPath = publicPaths[0];
+    
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/videos/${safeFilename}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Upload directly from backend
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(fileBuffer, {
+      contentType,
+      metadata: {
+        contentType,
+      },
+    });
+    
+    // Set ACL to public
+    await setObjectAclPolicy(file, { visibility: 'public' });
+    
+    // Return the backend proxy path (will be served through /objects/ endpoint)
+    // Format: /objects/videos/filename (matches the storage location)
+    const pathParts = objectName.split('/');
+    const uploadedFilename = pathParts[pathParts.length - 1];
+    return `/objects/videos/${uploadedFilename}`;
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {
@@ -343,8 +383,8 @@ export class ObjectStorageService {
 
     const entityId = parts.slice(1).join("/");
     
-    // Check if this is a public image (van-images, product-images, or upgrade-images directory)
-    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/")) {
+    // Check if this is a public resource (van-images, product-images, upgrade-images, or videos directory)
+    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/") || entityId.startsWith("videos/")) {
       const publicPaths = this.getPublicObjectSearchPaths();
       if (publicPaths && publicPaths.length > 0) {
         const publicPath = publicPaths[0];
