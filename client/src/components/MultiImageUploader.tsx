@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, X, GripVertical, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import imageCompression from 'browser-image-compression';
 import {
   DndContext,
   closestCenter,
@@ -148,7 +149,7 @@ export function MultiImageUploader({
     };
   }, []);
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     const newFiles = Array.from(files);
@@ -158,10 +159,39 @@ export function MultiImageUploader({
     const maxAllowed = Math.min(combinedFiles.length, maxFiles);
     const limitedFiles = combinedFiles.slice(0, maxAllowed);
 
-    // Create preview URLs for all files
-    const previews = limitedFiles.map(file => URL.createObjectURL(file));
+    // Compress new images for better quality while reducing file size
+    const compressedFiles: File[] = [];
+    for (let i = 0; i < limitedFiles.length; i++) {
+      const file = limitedFiles[i];
+      
+      // Skip already compressed files (from selectedFiles)
+      if (selectedFiles.includes(file)) {
+        compressedFiles.push(file);
+        continue;
+      }
 
-    onFilesChange(limitedFiles, previews);
+      try {
+        const options = {
+          maxSizeMB: 3, // Higher quality than upgrade images (3MB vs 1MB)
+          maxWidthOrHeight: 2560, // Higher resolution for showcase images (2560px vs 1920px)
+          useWebWorker: true,
+          fileType: file.type,
+        };
+        
+        const compressedFile = await imageCompression(file, options);
+        console.log(`📊 Van image - Original: ${(file.size / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        compressedFiles.push(compressedFile);
+      } catch (error) {
+        console.error('Image compression failed:', error);
+        // Fallback to original file if compression fails
+        compressedFiles.push(file);
+      }
+    }
+
+    // Create preview URLs for all files
+    const previews = compressedFiles.map(file => URL.createObjectURL(file));
+
+    onFilesChange(compressedFiles, previews);
 
     if (combinedFiles.length > maxFiles) {
       toast({
