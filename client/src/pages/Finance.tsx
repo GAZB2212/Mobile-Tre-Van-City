@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, TrendingUp, FileText, ArrowRight, Calculator } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckCircle, TrendingUp, FileText, ArrowRight, Calculator, PoundSterling } from "lucide-react";
 import type { FinancePlan } from "@shared/schema";
 
 export default function Finance() {
@@ -14,9 +17,53 @@ export default function Finance() {
     queryKey: ['/api/finance-plans'],
   });
 
+  const [purchasePrice, setPurchasePrice] = useState<string>("35000");
+
   const formatAPR = (aprBps: number) => {
     return (aprBps / 100).toFixed(2) + '%';
   };
+
+  const formatPrice = (pence: number) => {
+    return `£${(pence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const calculateFinance = (plan: FinancePlan, purchasePricePence: number) => {
+    const depositAmount = Math.round(purchasePricePence * (plan.depositPercent / 100));
+    const balloonAmount = plan.balloonPercent 
+      ? Math.round(purchasePricePence * (plan.balloonPercent / 100))
+      : 0;
+    const amountToFinance = purchasePricePence - depositAmount;
+    const principal = amountToFinance - balloonAmount;
+    const termMonths = plan.termMonths;
+    
+    let monthlyPayment: number;
+    
+    if (plan.aprBps === 0) {
+      monthlyPayment = Math.round((amountToFinance - balloonAmount) / termMonths);
+    } else {
+      const monthlyRate = (plan.aprBps / 10000) / 12;
+      const numberOfPayments = termMonths;
+      
+      monthlyPayment = Math.round(
+        principal * 
+        (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+        (Math.pow(1 + monthlyRate, numberOfPayments) - 1)
+      );
+    }
+    
+    const totalRepayable = (monthlyPayment * termMonths) + depositAmount + balloonAmount;
+    
+    return {
+      depositAmount,
+      monthlyPayment,
+      balloonAmount,
+      totalRepayable,
+      termMonths
+    };
+  };
+
+  const purchasePricePence = Math.round(parseFloat(purchasePrice || "0") * 100);
+  const isValidPrice = purchasePricePence > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,6 +221,115 @@ export default function Finance() {
                 </Link>
               </Button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Finance Calculator */}
+      <section className="py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
+                <Calculator className="w-3 h-3 mr-1" />
+                Calculator
+              </Badge>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Finance Calculator</h2>
+              <p className="text-muted-foreground">
+                Enter your purchase price to see estimated monthly payments for each finance plan
+              </p>
+            </div>
+
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-lg">Purchase Price</CardTitle>
+                <CardDescription>Enter the total price of your van including all equipment</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative max-w-xs">
+                  <Label htmlFor="purchase-price" className="sr-only">Purchase Price</Label>
+                  <div className="relative">
+                    <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="purchase-price"
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={purchasePrice}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      className="pl-10"
+                      placeholder="35000"
+                      data-testid="input-purchase-price"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {isValidPrice && financePlans.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {financePlans.map((plan) => {
+                  const calc = calculateFinance(plan, purchasePricePence);
+                  return (
+                    <Card key={plan.id} className="hover-elevate" data-testid={`card-calculator-${plan.id}`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between mb-2">
+                          <Badge variant={plan.type === 'HP' ? 'default' : 'secondary'}>
+                            {plan.type === 'HP' ? 'Hire Purchase' : 'Lease'}
+                          </Badge>
+                          <Badge variant="outline" className="text-accent">
+                            {formatAPR(plan.aprBps)} APR
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-xl">{plan.name}</CardTitle>
+                        <CardDescription>{calc.termMonths} month term</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="p-4 bg-accent/5 rounded-md border border-accent/10">
+                            <div className="text-sm text-muted-foreground mb-1">Monthly Payment</div>
+                            <div className="text-2xl font-bold text-accent" data-testid={`text-monthly-${plan.id}`}>
+                              {formatPrice(calc.monthlyPayment)}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Deposit ({plan.depositPercent}%)</span>
+                              <span className="font-medium" data-testid={`text-deposit-${plan.id}`}>
+                                {formatPrice(calc.depositAmount)}
+                              </span>
+                            </div>
+                            
+                            {calc.balloonAmount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Balloon Payment ({plan.balloonPercent}%)</span>
+                                <span className="font-medium" data-testid={`text-balloon-${plan.id}`}>
+                                  {formatPrice(calc.balloonAmount)}
+                                </span>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-between text-sm pt-2 border-t">
+                              <span className="text-muted-foreground">Total Payable</span>
+                              <span className="font-medium" data-testid={`text-total-${plan.id}`}>
+                                {formatPrice(calc.totalRepayable)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {!isValidPrice && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Enter a purchase price above to see finance calculations</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
