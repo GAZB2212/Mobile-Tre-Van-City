@@ -196,6 +196,20 @@ export const trainingOptions = pgTable("training_options", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const galleryItems = pgTable("gallery_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  category: text("category").notNull(), // e.g., "Complete Builds", "Interior Layouts"
+  type: text("type").notNull(), // "image" or "video"
+  fileUrl: text("file_url").notNull(), // URL to the uploaded file in object storage
+  thumbnailUrl: text("thumbnail_url"), // Optional thumbnail for videos
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -261,6 +275,12 @@ export const insertTrainingOptionSchema = createInsertSchema(trainingOptions).om
   updatedAt: true,
 });
 
+export const insertGalleryItemSchema = createInsertSchema(galleryItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -287,3 +307,6 @@ export type FinancePlan = typeof financePlans.$inferSelect;
 
 export type InsertTrainingOption = z.infer<typeof insertTrainingOptionSchema>;
 export type TrainingOption = typeof trainingOptions.$inferSelect;
+
+export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
+export type GalleryItem = typeof galleryItems.$inferSelect;

@@ -6,7 +6,8 @@ import {
   type Quote, type InsertQuote,
   type Lead, type InsertLead,
   type FinancePlan, type InsertFinancePlan,
-  type TrainingOption, type InsertTrainingOption
+  type TrainingOption, type InsertTrainingOption,
+  type GalleryItem, type InsertGalleryItem
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -67,6 +68,14 @@ export interface IStorage {
   createTrainingOption(option: InsertTrainingOption): Promise<TrainingOption>;
   updateTrainingOption(id: string, option: Partial<InsertTrainingOption>): Promise<TrainingOption | undefined>;
   deleteTrainingOption(id: string): Promise<boolean>;
+
+  // Gallery Items
+  getGalleryItems(): Promise<GalleryItem[]>;
+  getGalleryItemsAdmin(): Promise<GalleryItem[]>; // Returns all items including unpublished for admin
+  getGalleryItem(id: string): Promise<GalleryItem | undefined>;
+  createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem>;
+  updateGalleryItem(id: string, item: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined>;
+  deleteGalleryItem(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1592,6 +1601,37 @@ export class MemStorage implements IStorage {
   async deleteTrainingOption(id: string): Promise<boolean> {
     return this.trainingOptions.delete(id);
   }
+
+  // Gallery Items
+  async getGalleryItems(): Promise<GalleryItem[]> {
+    return [];
+  }
+
+  async getGalleryItemsAdmin(): Promise<GalleryItem[]> {
+    return [];
+  }
+
+  async getGalleryItem(id: string): Promise<GalleryItem | undefined> {
+    return undefined;
+  }
+
+  async createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem> {
+    const newItem: GalleryItem = {
+      id: randomUUID(),
+      ...item,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    return newItem;
+  }
+
+  async updateGalleryItem(id: string, item: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined> {
+    return undefined;
+  }
+
+  async deleteGalleryItem(id: string): Promise<boolean> {
+    return false;
+  }
 }
 
 // Database Storage Implementation
@@ -1836,6 +1876,38 @@ export class DbStorage implements IStorage {
 
   async deleteTrainingOption(id: string): Promise<boolean> {
     const result = await db.delete(schema.trainingOptions).where(eq(schema.trainingOptions.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Gallery Items
+  async getGalleryItems(): Promise<GalleryItem[]> {
+    return db.select().from(schema.galleryItems).where(eq(schema.galleryItems.published, true)).orderBy(schema.galleryItems.sortOrder);
+  }
+
+  async getGalleryItemsAdmin(): Promise<GalleryItem[]> {
+    return db.select().from(schema.galleryItems).orderBy(schema.galleryItems.sortOrder);
+  }
+
+  async getGalleryItem(id: string): Promise<GalleryItem | undefined> {
+    const results = await db.select().from(schema.galleryItems).where(eq(schema.galleryItems.id, id));
+    return results[0];
+  }
+
+  async createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem> {
+    const results = await db.insert(schema.galleryItems).values(item).returning();
+    return results[0];
+  }
+
+  async updateGalleryItem(id: string, item: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined> {
+    const results = await db.update(schema.galleryItems)
+      .set({ ...item, updatedAt: new Date() })
+      .where(eq(schema.galleryItems.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteGalleryItem(id: string): Promise<boolean> {
+    const result = await db.delete(schema.galleryItems).where(eq(schema.galleryItems.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 }
