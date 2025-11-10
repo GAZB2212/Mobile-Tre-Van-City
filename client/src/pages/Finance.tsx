@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, TrendingUp, FileText, ArrowRight, Calculator, PoundSterling } from "lucide-react";
 import type { FinancePlan } from "@shared/schema";
 
@@ -19,9 +20,7 @@ export default function Finance() {
 
   const [purchasePrice, setPurchasePrice] = useState<string>("35000");
   const [customDeposit, setCustomDeposit] = useState<string>("3500");
-  const [customTerm, setCustomTerm] = useState<string>("60");
-  const [customBalloon, setCustomBalloon] = useState<string>("0");
-  const [selectedAPR, setSelectedAPR] = useState<string>("599");
+  const [customTerm, setCustomTerm] = useState<string>("36");
 
   const formatAPR = (aprBps: number) => {
     return (aprBps / 100).toFixed(2) + '%';
@@ -107,13 +106,11 @@ export default function Finance() {
   
   const customDepositPence = Math.round(parseFloat(customDeposit || "0") * 100);
   const customTermMonths = parseInt(customTerm || "0");
-  const customBalloonPence = Math.round(parseFloat(customBalloon || "0") * 100);
-  const customAPRBps = parseInt(selectedAPR || "0");
   
-  const isValidCustom = purchasePricePence > 0 && customDepositPence >= 0 && customTermMonths > 0 && customDepositPence <= purchasePricePence;
+  const isValidCustom = purchasePricePence > 0 && customDepositPence >= 0 && customTermMonths > 0 && customDepositPence < purchasePricePence;
   
   const customCalc = isValidCustom 
-    ? calculateCustomFinance(purchasePricePence, customDepositPence, customTermMonths, customBalloonPence, customAPRBps)
+    ? calculateCustomFinance(purchasePricePence, customDepositPence, customTermMonths, 0, 1200)
     : null;
 
   return (
@@ -285,102 +282,163 @@ export default function Finance() {
                 <Calculator className="w-3 h-3 mr-1" />
                 Calculator
               </Badge>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Finance Calculator</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Custom Finance Calculator</h2>
               <p className="text-muted-foreground">
-                Enter your purchase price to see estimated monthly payments for each finance plan
+                Calculate your payments with your own price and deposit at 12% APR
               </p>
             </div>
 
-            <Card className="mb-8">
+            <Card className="border-2">
               <CardHeader>
-                <CardTitle className="text-lg">Purchase Price</CardTitle>
-                <CardDescription>Enter the total price of your van including all equipment</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="relative max-w-xs">
-                  <Label htmlFor="purchase-price" className="sr-only">Purchase Price</Label>
-                  <div className="relative">
-                    <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="purchase-price"
-                      type="number"
-                      min="0"
-                      step="100"
-                      value={purchasePrice}
-                      onChange={(e) => setPurchasePrice(e.target.value)}
-                      className="pl-10"
-                      placeholder="35000"
-                      data-testid="input-purchase-price"
-                    />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                    <Calculator className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Finance Calculator</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Calculate your payments at 12% APR
+                    </p>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Total Amount Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-total" className="text-sm font-medium">
+                      Total Amount
+                    </Label>
+                    <div className="relative">
+                      <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="custom-total"
+                        type="number"
+                        placeholder="35000"
+                        value={purchasePrice}
+                        onChange={(e) => setPurchasePrice(e.target.value)}
+                        className="pl-9"
+                        min="0"
+                        data-testid="input-custom-total"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enter the total price
+                    </p>
+                  </div>
+
+                  {/* Deposit Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-deposit" className="text-sm font-medium">
+                      Deposit Amount
+                    </Label>
+                    <div className="relative">
+                      <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="custom-deposit"
+                        type="number"
+                        placeholder="0"
+                        value={customDeposit}
+                        onChange={(e) => setCustomDeposit(e.target.value)}
+                        className="pl-9"
+                        min="0"
+                        data-testid="input-custom-deposit"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enter your deposit amount
+                    </p>
+                  </div>
+
+                  {/* Term Length Selector */}
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="custom-term" className="text-sm font-medium">
+                      Finance Term
+                    </Label>
+                    <Select
+                      value={customTerm}
+                      onValueChange={setCustomTerm}
+                    >
+                      <SelectTrigger id="custom-term" data-testid="select-custom-term">
+                        <SelectValue placeholder="Select term length" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="12">1 Year (12 months)</SelectItem>
+                        <SelectItem value="24">2 Years (24 months)</SelectItem>
+                        <SelectItem value="36">3 Years (36 months)</SelectItem>
+                        <SelectItem value="48">4 Years (48 months)</SelectItem>
+                        <SelectItem value="60">5 Years (60 months)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Results */}
+                {customCalc ? (
+                  <div className="mt-6 pt-6 border-t space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Monthly Payment */}
+                      <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                        <p className="text-sm text-muted-foreground mb-1">Monthly Payment</p>
+                        <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-custom-monthly">
+                          {formatPrice(customCalc.monthlyPayment)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          for {customCalc.termMonths} months
+                        </p>
+                      </div>
+
+                      {/* Weekly Payment */}
+                      <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                        <p className="text-sm text-muted-foreground mb-1">Weekly Payment</p>
+                        <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-custom-weekly">
+                          {formatPrice(Math.round((customCalc.monthlyPayment * 12) / 52))}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          approximate weekly cost
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Additional Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Amount Financed</p>
+                        <p className="font-semibold" data-testid="text-custom-financed">
+                          {formatPrice(purchasePricePence - customDepositPence)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Interest</p>
+                        <p className="font-semibold" data-testid="text-custom-interest">
+                          {formatPrice(customCalc.totalRepayable - (purchasePricePence - customDepositPence))}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Repayable</p>
+                        <p className="font-semibold" data-testid="text-custom-repayable">
+                          {formatPrice(customCalc.totalRepayable)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-3 mt-4">
+                      <p className="text-xs text-muted-foreground">
+                        <strong>Representative Example:</strong> {formatPrice(purchasePricePence)} cash price, {formatPrice(customDepositPence)} deposit, 
+                        amount of credit {formatPrice(purchasePricePence - customDepositPence)}, {customCalc.termMonths} monthly payments of {formatPrice(customCalc.monthlyPayment)}, 
+                        total amount payable {formatPrice(customCalc.totalRepayable + customDepositPence)}, 12% APR representative.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6 pt-6 border-t text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Enter a valid price and deposit to calculate your payments
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-
-            {isValidPrice && financePlans.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {financePlans.map((plan) => {
-                  const calc = calculateFinance(plan, purchasePricePence);
-                  return (
-                    <Card key={plan.id} className="hover-elevate" data-testid={`card-calculator-${plan.id}`}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between mb-2">
-                          <Badge variant={plan.type === 'HP' ? 'default' : 'secondary'}>
-                            {plan.type === 'HP' ? 'Hire Purchase' : 'Lease'}
-                          </Badge>
-                          <Badge variant="outline" className="text-accent">
-                            {formatAPR(plan.aprBps)} APR
-                          </Badge>
-                        </div>
-                        <CardTitle className="text-xl">{plan.name}</CardTitle>
-                        <CardDescription>{calc.termMonths} month term</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="p-4 bg-accent/5 rounded-md border border-accent/10">
-                            <div className="text-sm text-muted-foreground mb-1">Monthly Payment</div>
-                            <div className="text-2xl font-bold text-accent" data-testid={`text-monthly-${plan.id}`}>
-                              {formatPrice(calc.monthlyPayment)}
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Deposit ({plan.depositPercent}%)</span>
-                              <span className="font-medium" data-testid={`text-deposit-${plan.id}`}>
-                                {formatPrice(calc.depositAmount)}
-                              </span>
-                            </div>
-                            
-                            {calc.balloonAmount > 0 && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Balloon Payment ({plan.balloonPercent}%)</span>
-                                <span className="font-medium" data-testid={`text-balloon-${plan.id}`}>
-                                  {formatPrice(calc.balloonAmount)}
-                                </span>
-                              </div>
-                            )}
-                            
-                            <div className="flex justify-between text-sm pt-2 border-t">
-                              <span className="text-muted-foreground">Total Payable</span>
-                              <span className="font-medium" data-testid={`text-total-${plan.id}`}>
-                                {formatPrice(calc.totalRepayable)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-
-            {!isValidPrice && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Enter a purchase price above to see finance calculations</p>
-              </div>
-            )}
           </div>
         </div>
       </section>
