@@ -188,9 +188,9 @@ export default function SelectUpgrades() {
         }
       }
     });
-  }, [vanSize, configuratorData]);
+  }, [vanSize, configuratorData, state.upgradeIds, removeUpgrade]);
 
-  // Auto-remove mutually exclusive air system upgrades on page load
+  // Auto-remove mutually exclusive air system upgrades whenever state changes
   // This handles cases where users have both selected from old localStorage or quotes
   useEffect(() => {
     if (!configuratorData) return;
@@ -209,7 +209,7 @@ export default function SelectUpgrades() {
         }
       });
     }
-  }, [configuratorData]);
+  }, [configuratorData, state.upgradeIds, removeUpgrade]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
