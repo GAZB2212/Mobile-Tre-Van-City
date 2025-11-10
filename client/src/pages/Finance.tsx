@@ -18,6 +18,10 @@ export default function Finance() {
   });
 
   const [purchasePrice, setPurchasePrice] = useState<string>("35000");
+  const [customDeposit, setCustomDeposit] = useState<string>("3500");
+  const [customTerm, setCustomTerm] = useState<string>("60");
+  const [customBalloon, setCustomBalloon] = useState<string>("0");
+  const [selectedAPR, setSelectedAPR] = useState<string>("599");
 
   const formatAPR = (aprBps: number) => {
     return (aprBps / 100).toFixed(2) + '%';
@@ -62,8 +66,55 @@ export default function Finance() {
     };
   };
 
+  const calculateCustomFinance = (
+    purchasePricePence: number,
+    depositPence: number,
+    termMonths: number,
+    balloonPence: number,
+    aprBps: number
+  ) => {
+    const amountToFinance = purchasePricePence - depositPence;
+    const principal = amountToFinance - balloonPence;
+    
+    let monthlyPayment: number;
+    
+    if (aprBps === 0) {
+      monthlyPayment = Math.round(principal / termMonths);
+    } else {
+      const monthlyRate = (aprBps / 10000) / 12;
+      const numberOfPayments = termMonths;
+      
+      monthlyPayment = Math.round(
+        principal * 
+        (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+        (Math.pow(1 + monthlyRate, numberOfPayments) - 1)
+      );
+    }
+    
+    const totalRepayable = (monthlyPayment * termMonths) + depositPence + balloonPence;
+    
+    return {
+      depositAmount: depositPence,
+      monthlyPayment,
+      balloonAmount: balloonPence,
+      totalRepayable,
+      termMonths
+    };
+  };
+
   const purchasePricePence = Math.round(parseFloat(purchasePrice || "0") * 100);
   const isValidPrice = purchasePricePence > 0;
+  
+  const customDepositPence = Math.round(parseFloat(customDeposit || "0") * 100);
+  const customTermMonths = parseInt(customTerm || "0");
+  const customBalloonPence = Math.round(parseFloat(customBalloon || "0") * 100);
+  const customAPRBps = parseInt(selectedAPR || "0");
+  
+  const isValidCustom = purchasePricePence > 0 && customDepositPence >= 0 && customTermMonths > 0 && customDepositPence <= purchasePricePence;
+  
+  const customCalc = isValidCustom 
+    ? calculateCustomFinance(purchasePricePence, customDepositPence, customTermMonths, customBalloonPence, customAPRBps)
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
