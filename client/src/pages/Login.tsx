@@ -59,7 +59,7 @@ export default function Login() {
       if (data.isAdmin) {
         setLocation("/admin");
       } else {
-        setLocation("/portal");
+        setLocation("/");
       }
     },
     onError: (error: any) => {

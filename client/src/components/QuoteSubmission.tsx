@@ -125,18 +125,12 @@ export default function QuoteSubmission({
     onSuccess: (data) => {
       toast({
         title: "Quote Submitted",
-        description: isAuthenticated 
-          ? "Your configuration has been saved. Track progress in your portal."
-          : "Thank you! We'll be in touch soon.",
+        description: "Thank you! We'll be in touch soon with your custom quote.",
       });
       localStorage.removeItem('configuratorState');
       queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
       onClose();
-      if (isAuthenticated) {
-        setLocation('/portal');
-      } else {
-        setLocation('/');
-      }
+      setLocation('/');
     },
     onError: (error: Error) => {
       toast({
