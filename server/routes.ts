@@ -64,6 +64,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/users", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const result = createUserSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid user data", errors: result.error.errors });
+      }
+
+      const { username, email, password, firstName, lastName, adminRole } = result.data;
+
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Check if email already exists (if provided)
+      if (email) {
+        const existingEmail = await storage.getUserByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({ message: "Email already exists" });
+        }
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create user with role
+      const newUser = await storage.createUser({
+        username,
+        email: email || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        passwordHash,
+        adminRole: adminRole || "none",
+        isAdmin: adminRole === "full",
+        profileImageUrl: null
+      });
+
+      const { passwordHash: _, ...safeUser } = newUser;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   app.patch("/api/admin/users/:id/role", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
       const { id } = req.params;
@@ -96,6 +143,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Update user role error:", error);
       res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Prevent users from deleting themselves
+      if (req.session.user?.id === id) {
+        return res.status(403).json({ message: "You cannot delete your own account" });
+      }
+      
+      const deleted = await storage.deleteUser(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 
