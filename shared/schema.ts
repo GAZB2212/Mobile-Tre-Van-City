@@ -3,6 +3,9 @@ import { pgTable, text, varchar, integer, boolean, timestamp, decimal, json, jso
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Admin role types
+export const adminRoles = ["none", "basic", "full"] as const;
+
 // Session storage table for Replit Auth
 export const sessions = pgTable(
   "sessions",
@@ -24,6 +27,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   isAdmin: boolean("is_admin").notNull().default(false),
+  adminRole: text("admin_role").notNull().default("none"), // "none", "basic", or "full"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -229,6 +233,11 @@ export const createUserSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   isAdmin: z.boolean().default(false),
+  adminRole: z.enum(adminRoles).default("none"),
+});
+
+export const updateUserRoleSchema = z.object({
+  adminRole: z.enum(adminRoles),
 });
 
 export const insertVanSchema = createInsertSchema(vans).omit({
@@ -282,10 +291,12 @@ export const insertGalleryItemSchema = createInsertSchema(galleryItems).omit({
 });
 
 // Types
+export type AdminRole = typeof adminRoles[number];
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type CreateUser = z.infer<typeof createUserSchema>;
+export type UpdateUserRole = z.infer<typeof updateUserRoleSchema>;
 
 export type InsertVan = z.infer<typeof insertVanSchema>;
 export type Van = typeof vans.$inferSelect;

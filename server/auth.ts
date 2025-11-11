@@ -14,6 +14,7 @@ declare module 'express-session' {
       id: string;
       username: string;
       isAdmin: boolean;
+      adminRole: string; // "none", "basic", or "full"
     };
   }
 }
@@ -87,6 +88,7 @@ export async function setupAuth(app: Express) {
         id: user.id,
         username: user.username,
         isAdmin: user.isAdmin,
+        adminRole: user.adminRole,
       };
 
       // Save session explicitly
@@ -134,6 +136,7 @@ export async function setupAuth(app: Express) {
         id: user.id,
         username: user.username,
         isAdmin: user.isAdmin,
+        adminRole: user.adminRole,
       };
 
       // Save session explicitly and also return session ID in response
@@ -246,7 +249,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   next();
 };
 
-// Middleware to check if user is admin
+// Middleware to check if user is admin (backwards compatibility - checks isAdmin flag)
 export const isAdmin: RequestHandler = async (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -266,6 +269,55 @@ export const isAdmin: RequestHandler = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Admin check error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Middleware to check if user has at least basic admin role (view-only access)
+export const isBasicAdmin: RequestHandler = async (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // Check if user has basic or full admin role
+  const allowedRoles = ["basic", "full"];
+  if (!allowedRoles.includes(req.session.user.adminRole)) {
+    return res.status(403).json({ message: "Forbidden - Admin access required" });
+  }
+
+  // Double-check with database
+  try {
+    const user = await storage.getUser(req.session.user.id);
+    if (!user || !allowedRoles.includes(user.adminRole)) {
+      return res.status(403).json({ message: "Forbidden - Admin access required" });
+    }
+    next();
+  } catch (error) {
+    console.error("Admin role check error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Middleware to check if user has full admin role (full access including modifications)
+export const isFullAdmin: RequestHandler = async (req, res, next) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // Check if user has full admin role
+  if (req.session.user.adminRole !== "full") {
+    return res.status(403).json({ message: "Forbidden - Full admin access required" });
+  }
+
+  // Double-check with database
+  try {
+    const user = await storage.getUser(req.session.user.id);
+    if (!user || user.adminRole !== "full") {
+      return res.status(403).json({ message: "Forbidden - Full admin access required" });
+    }
+    next();
+  } catch (error) {
+    console.error("Admin role check error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
