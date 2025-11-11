@@ -249,22 +249,22 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   next();
 };
 
-// Middleware to check if user is admin (backwards compatibility - checks isAdmin flag)
+// Middleware to check if user is admin (now checks for full admin role only)
 export const isAdmin: RequestHandler = async (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // Check session first
-  if (!req.session.user.isAdmin) {
-    return res.status(403).json({ message: "Forbidden - Admin access required" });
+  // Check if user has full admin role
+  if (req.session.user.adminRole !== "full") {
+    return res.status(403).json({ message: "Forbidden - Full admin access required" });
   }
 
   // Double-check with database
   try {
     const user = await storage.getUser(req.session.user.id);
-    if (!user || !user.isAdmin) {
-      return res.status(403).json({ message: "Forbidden - Admin access required" });
+    if (!user || user.adminRole !== "full") {
+      return res.status(403).json({ message: "Forbidden - Full admin access required" });
     }
     next();
   } catch (error) {

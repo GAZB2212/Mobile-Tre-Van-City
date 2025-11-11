@@ -4,7 +4,7 @@ import { z } from "zod";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin } from "./auth";
 import { 
   insertVanSchema, 
   insertKitSchema, 
@@ -14,6 +14,7 @@ import {
   insertFinancePlanSchema,
   insertTrainingOptionSchema,
   insertGalleryItemSchema,
+  updateUserRoleSchema,
   quoteStatuses,
   financeStatuses,
   buildStages,
@@ -44,6 +45,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ bucketName });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch storage config" });
+    }
+  });
+
+  // User management endpoints (for full admins only)
+  app.get("/api/admin/users", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      // Remove password hashes from response
+      const safeUsers = users.map(user => {
+        const { passwordHash, ...safeUser } = user;
+        return safeUser;
+      });
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get users error:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/role", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = updateUserRoleSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid role data", errors: result.error.errors });
+      }
+
+      const { adminRole } = result.data;
+      
+      // Update user role and also update isAdmin flag (only full admins get isAdmin=true)
+      const updatedUser = await storage.updateUser(id, { 
+        adminRole,
+        isAdmin: adminRole === "full"
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { passwordHash, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Update user role error:", error);
+      res.status(500).json({ message: "Failed to update user role" });
     }
   });
 
@@ -1292,7 +1338,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // Admin user is created automatically on startup
 
   // Admin endpoints for viewing quotes and leads
-  app.get("/api/admin/quotes", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/quotes", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quotes = await storage.getQuotes();
       res.json(quotes);
@@ -1301,7 +1347,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.get("/api/admin/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/quotes/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) {
@@ -1314,7 +1360,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Alias for consistency - both paths work
-  app.get("/api/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/quotes/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) {
@@ -1775,7 +1821,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.get("/api/admin/leads", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/leads", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const leads = await storage.getLeads();
       res.json(leads);
