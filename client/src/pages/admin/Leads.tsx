@@ -49,9 +49,9 @@ export default function AdminLeads() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Check if user is admin
+  // Check if user has admin role (basic or full)
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && (!user.adminRole || user.adminRole === "none")) {
       toast({
         title: "Access Denied",
         description: "Admin access required.",
@@ -67,7 +67,7 @@ export default function AdminLeads() {
   // Fetch leads data
   const { data: leads = [], isLoading: leadsLoading, error: leadsError } = useQuery<Lead[]>({
     queryKey: ["/api/admin/leads"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   if (isLoading) {
@@ -81,7 +81,7 @@ export default function AdminLeads() {
     );
   }
 
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") {
     return null;
   }
 

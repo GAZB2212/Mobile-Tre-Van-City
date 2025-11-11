@@ -65,7 +65,7 @@ export default function AdminAnalytics() {
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<AnalyticsData>({
     queryKey: ["/api/admin/analytics"],
-    enabled: !!user?.isAdmin,
+    enabled: user?.adminRole === "full",
   });
 
   const formatPrice = (pence: number): string => {
@@ -87,14 +87,14 @@ export default function AdminAnalytics() {
   }, [isAuthenticated, isLoading, toast]);
 
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && user.adminRole !== "full") {
       toast({
         title: "Access Denied",
-        description: "Admin access required.",
+        description: "Full admin access required.",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = "/admin/dashboard";
       }, 1000);
       return;
     }
@@ -111,7 +111,7 @@ export default function AdminAnalytics() {
     );
   }
 
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (!isAuthenticated || user?.adminRole !== "full") {
     return null;
   }
 

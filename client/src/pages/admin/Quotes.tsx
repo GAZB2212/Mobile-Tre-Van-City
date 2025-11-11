@@ -53,9 +53,9 @@ export default function AdminQuotes() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Check if user is admin
+  // Check if user has admin role (basic or full)
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && (!user.adminRole || user.adminRole === "none")) {
       toast({
         title: "Access Denied",
         description: "Admin access required.",
@@ -71,23 +71,23 @@ export default function AdminQuotes() {
   // Fetch quotes data
   const { data: quotes = [], isLoading: quotesLoading, error: quotesError } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   // Fetch vans, kits, and upgrades for reference data
   const { data: vans = [] } = useQuery<Van[]>({
     queryKey: ["/api/admin/vans"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   const { data: kits = [] } = useQuery<Kit[]>({
     queryKey: ["/api/admin/kits"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   const { data: upgrades = [] } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   if (isLoading) {
@@ -101,7 +101,7 @@ export default function AdminQuotes() {
     );
   }
 
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") {
     return null;
   }
 

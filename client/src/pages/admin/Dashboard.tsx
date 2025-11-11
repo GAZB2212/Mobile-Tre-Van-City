@@ -44,9 +44,9 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Check if user is admin
+  // Check if user has admin role (basic or full)
   useEffect(() => {
-    if (user && !user.isAdmin) {
+    if (user && (!user.adminRole || user.adminRole === "none")) {
       toast({
         title: "Access Denied",
         description: "Admin access required.",
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") {
     return null;
   }
 

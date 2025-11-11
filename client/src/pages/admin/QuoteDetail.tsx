@@ -157,27 +157,27 @@ export default function AdminQuoteDetail() {
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
-    enabled: !!user?.isAdmin && !!id,
+    enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
   });
 
   const { data: vans = [] } = useQuery<Van[]>({
     queryKey: ["/api/admin/vans"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   const { data: kits = [] } = useQuery<Kit[]>({
     queryKey: ["/api/admin/kits"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   const { data: upgrades = [] } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
-    enabled: !!user?.isAdmin,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
   const { data: financePlan } = useQuery<FinancePlan | null>({
     queryKey: [`/api/finance-plans/${quote?.financePlanId}`],
-    enabled: !!user?.isAdmin && !!quote?.financePlanId,
+    enabled: !!(user?.adminRole && user.adminRole !== "none") && !!quote?.financePlanId,
   });
 
   // Initialize form fields when quote loads
@@ -323,12 +323,12 @@ export default function AdminQuoteDetail() {
     },
   });
 
-  if (!user?.isAdmin) {
+  if (!user?.adminRole || user.adminRole === "none") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="py-12 text-center">
-            <p className="text-destructive">Access Denied - Admin only</p>
+            <p className="text-destructive">Access Denied - Admin access required</p>
           </CardContent>
         </Card>
       </div>

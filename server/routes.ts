@@ -67,6 +67,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/admin/users/:id/role", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // Prevent users from changing their own role
+      if (req.session.user?.id === id) {
+        return res.status(403).json({ message: "You cannot change your own admin role" });
+      }
+      
       const result = updateUserRoleSchema.safeParse(req.body);
       
       if (!result.success) {
