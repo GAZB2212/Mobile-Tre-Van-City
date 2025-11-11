@@ -79,11 +79,7 @@ export default function AdminUsers() {
   // Mutation to create user
   const createUserMutation = useMutation({
     mutationFn: async (userData: { username: string; password: string; email?: string; firstName?: string; lastName?: string; adminRole: string }) => {
-      return await apiRequest("/api/admin/users", {
-        method: "POST",
-        body: JSON.stringify(userData),
-        headers: { "Content-Type": "application/json" },
-      });
+      return await apiRequest("POST", "/api/admin/users", userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -112,11 +108,7 @@ export default function AdminUsers() {
   // Mutation to update user role
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, adminRole }: { userId: string; adminRole: string }) => {
-      return await apiRequest(`/api/admin/users/${userId}/role`, {
-        method: "PATCH",
-        body: JSON.stringify({ adminRole }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return await apiRequest("PATCH", `/api/admin/users/${userId}/role`, { adminRole });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -137,9 +129,7 @@ export default function AdminUsers() {
   // Mutation to delete user
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-      });
+      return await apiRequest("DELETE", `/api/admin/users/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
