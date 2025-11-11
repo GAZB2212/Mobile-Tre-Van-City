@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin } from "./auth";
 import { 
@@ -14,6 +15,7 @@ import {
   insertFinancePlanSchema,
   insertTrainingOptionSchema,
   insertGalleryItemSchema,
+  createUserSchema,
   updateUserRoleSchema,
   quoteStatuses,
   financeStatuses,
