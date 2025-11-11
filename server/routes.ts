@@ -232,8 +232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin only - list all quotes
-  app.get("/api/quotes", isAuthenticated, isAdmin, async (req, res) => {
+  // Admin only - list all quotes (basic admins can view)
+  app.get("/api/quotes", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quotes = await storage.getQuotes();
       res.json(quotes);
@@ -242,8 +242,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Secure quotes detail endpoint - admin only (must come after /completed route)
-  app.get("/api/quotes/:id", isAuthenticated, isAdmin, async (req, res) => {
+  // Secure quotes detail endpoint - admin only (basic admins can view)
+  app.get("/api/quotes/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) {

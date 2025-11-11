@@ -12,6 +12,7 @@ import {
   Wrench, 
   FileText, 
   Users, 
+  Shield,
   Settings,
   LogOut,
   Calculator,
@@ -73,71 +74,95 @@ export default function AdminDashboard() {
     return null;
   }
 
-  const adminItems = [
+  const allAdminItems = [
     {
       title: "Analytics Dashboard",
       description: "Track site performance and customer activity",
       icon: BarChart3,
       href: "/admin/analytics",
-      badge: "Analytics"
+      badge: "Analytics",
+      requiredRole: "full" as const
     },
     {
       title: "Manage Vans",
       description: "Add, edit, and manage van inventory",
       icon: Car,
       href: "/admin/vans",
-      badge: "Inventory"
+      badge: "Inventory",
+      requiredRole: "full" as const
     },
     {
       title: "Manage Kits",
       description: "Configure equipment packages and pricing",
       icon: Package,
       href: "/admin/kits",
-      badge: "Products"
+      badge: "Products",
+      requiredRole: "full" as const
     },
     {
       title: "Manage Upgrades",
       description: "Add and organize upgrade options",
       icon: Wrench,
       href: "/admin/upgrades",
-      badge: "Options"
+      badge: "Options",
+      requiredRole: "full" as const
     },
     {
       title: "Manage Finance Plans",
       description: "Configure financing options for customers",
       icon: Calculator,
       href: "/admin/finance-plans",
-      badge: "Finance"
+      badge: "Finance",
+      requiredRole: "full" as const
     },
     {
       title: "Manage Training Options",
       description: "Configure training programmes for configurator",
       icon: GraduationCap,
       href: "/admin/training-options",
-      badge: "Training"
+      badge: "Training",
+      requiredRole: "full" as const
     },
     {
       title: "Manage Gallery Items",
       description: "Upload and manage gallery images and videos",
       icon: Image,
       href: "/admin/gallery-items",
-      badge: "Content"
+      badge: "Content",
+      requiredRole: "full" as const
     },
     {
       title: "View Quotes",
       description: "Review customer quotes and requests",
       icon: FileText,
       href: "/admin/quotes",
-      badge: "Sales"
+      badge: "Sales",
+      requiredRole: "basic" as const
     },
     {
       title: "View Leads",
       description: "Manage customer inquiries and leads",
       icon: Users,
       href: "/admin/leads",
-      badge: "CRM"
+      badge: "CRM",
+      requiredRole: "basic" as const
+    },
+    {
+      title: "Manage Users",
+      description: "Assign roles and manage admin access",
+      icon: Shield,
+      href: "/admin/users",
+      badge: "Security",
+      requiredRole: "full" as const
     }
   ];
+
+  // Filter items based on user's admin role
+  const adminItems = allAdminItems.filter(item => {
+    if (!user?.adminRole) return false;
+    if (user.adminRole === "full") return true; // Full admins see everything
+    return item.requiredRole === "basic"; // Basic admins only see basic items
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -151,7 +176,9 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">Admin</Badge>
+              <Badge variant={user?.adminRole === "full" ? "default" : "secondary"}>
+                {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
+              </Badge>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/" data-testid="link-main-site">
                   <Settings className="w-4 h-4 mr-2" />

@@ -31,6 +31,7 @@ import AdminUpgrades from "@/pages/admin/Upgrades";
 import AdminQuotes from "@/pages/admin/Quotes";
 import AdminQuoteDetail from "@/pages/admin/QuoteDetail";
 import AdminLeads from "@/pages/admin/Leads";
+import AdminUsers from "@/pages/admin/Users";
 import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
 import AdminGalleryItems from "@/pages/admin/GalleryItems";
@@ -82,6 +83,7 @@ function Router() {
       <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
       <Route path="/admin/leads" component={AdminLeads} />
+      <Route path="/admin/users" component={AdminUsers} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
