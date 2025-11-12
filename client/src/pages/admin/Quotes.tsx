@@ -514,14 +514,12 @@ export default function AdminQuotes() {
 
                   {/* Action Buttons */}
                   <div className="mt-4 flex justify-end gap-3">
-                    {canEdit && (
-                      <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
-                        <Link href={`/admin/quotes/${quote.id}`}>
-                          <Wrench className="w-4 h-4 mr-2" />
-                          Manage Quote
-                        </Link>
-                      </Button>
-                    )}
+                    <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
+                      <Link href={`/admin/quotes/${quote.id}`}>
+                        <Wrench className="w-4 h-4 mr-2" />
+                        Manage Quote
+                      </Link>
+                    </Button>
                     <Button variant="outline" asChild data-testid={`button-build-sheet-${quote.id}`}>
                       <Link href={`/admin/quotes/${quote.id}/build-sheet`}>
                         <Printer className="w-4 h-4 mr-2" />

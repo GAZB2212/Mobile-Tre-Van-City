@@ -594,20 +594,18 @@ export default function AdminQuoteDetail() {
                 Quote #{quote.id.slice(0, 8).toUpperCase()}
               </h1>
               <p className="text-lg text-muted-foreground">
-                {canEdit ? "Manage customer quote and build progress" : "View customer quote details"}
+                Manage customer quote and build progress
               </p>
             </div>
-            {canEdit && (
-              <Button
-                onClick={handleSave}
-                disabled={updateMutation.isPending}
-                className="bg-accent hover:bg-accent/90"
-                data-testid="button-save"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {updateMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            )}
+            <Button
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+              className="bg-accent hover:bg-accent/90"
+              data-testid="button-save"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </div>
 
@@ -907,7 +905,7 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="build-stage">Current Build Stage</Label>
-                  <Select value={buildStage || "not_started"} onValueChange={(value) => setBuildStage(value === "not_started" ? "" : value)} disabled={!canEdit}>
+                  <Select value={buildStage || "not_started"} onValueChange={(value) => setBuildStage(value === "not_started" ? "" : value)}>
                     <SelectTrigger id="build-stage" data-testid="select-build-stage">
                       <SelectValue placeholder="Select build stage" />
                     </SelectTrigger>
@@ -994,7 +992,7 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="quote-status">Status</Label>
-                  <Select value={status} onValueChange={setStatus} disabled={!canEdit}>
+                  <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger id="quote-status" data-testid="select-quote-status">
                       <SelectValue />
                     </SelectTrigger>
@@ -1061,7 +1059,7 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="finance-status">Finance Application</Label>
-                  <Select value={financeStatus} onValueChange={setFinanceStatus} disabled={!canEdit}>
+                  <Select value={financeStatus} onValueChange={setFinanceStatus}>
                     <SelectTrigger id="finance-status" data-testid="select-finance-status">
                       <SelectValue />
                     </SelectTrigger>
@@ -1088,7 +1086,7 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="discount-type">Discount Type</Label>
-                  <Select value={discountType || "none"} onValueChange={(value: any) => setDiscountType(value === "none" ? "" : value)} disabled={!canEdit}>
+                  <Select value={discountType || "none"} onValueChange={(value: any) => setDiscountType(value === "none" ? "" : value)}>
                     <SelectTrigger id="discount-type" data-testid="select-discount-type">
                       <SelectValue placeholder="No discount" />
                     </SelectTrigger>
@@ -1113,7 +1111,6 @@ export default function AdminQuoteDetail() {
                       onChange={(e) => setDiscountValue(e.target.value)}
                       placeholder={discountType === "percentage" ? "e.g., 10" : "e.g., 50.00"}
                       data-testid="input-discount-value"
-                      disabled={!canEdit}
                     />
                     {discountType === "fixed" && (
                       <p className="text-xs text-muted-foreground mt-1">
@@ -1157,7 +1154,7 @@ export default function AdminQuoteDetail() {
                                   minute: '2-digit'
                                 })}
                               </span>
-                              {!isEditing && canEdit && (
+                              {!isEditing && (
                                 <div className="flex gap-1">
                                   <Button
                                     size="icon"
@@ -1232,31 +1229,29 @@ export default function AdminQuoteDetail() {
                 )}
                 
                 {/* Add New Note */}
-                {canEdit && (
-                  <div className="space-y-2">
-                    <Label htmlFor="new-admin-note">Add New Note</Label>
-                    <Textarea
-                      id="new-admin-note"
-                      value={newAdminNote}
-                      onChange={(e) => setNewAdminNote(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          if (newAdminNote.trim()) {
-                            handleSave();
-                            setNewAdminNote("");
-                          }
+                <div className="space-y-2">
+                  <Label htmlFor="new-admin-note">Add New Note</Label>
+                  <Textarea
+                    id="new-admin-note"
+                    value={newAdminNote}
+                    onChange={(e) => setNewAdminNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newAdminNote.trim()) {
+                          handleSave();
+                          setNewAdminNote("");
                         }
-                      }}
-                      placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
-                      rows={2}
-                      data-testid="textarea-new-admin-note"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Press Enter to save, Shift+Enter for new line
-                    </p>
-                  </div>
-                )}
+                      }
+                    }}
+                    placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
+                    rows={2}
+                    data-testid="textarea-new-admin-note"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Press Enter to save, Shift+Enter for new line
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -1292,7 +1287,7 @@ export default function AdminQuoteDetail() {
                                   minute: '2-digit'
                                 })}
                               </span>
-                              {!isEditing && canEdit && (
+                              {!isEditing && (
                                 <div className="flex gap-1">
                                   <Button
                                     size="icon"
@@ -1367,31 +1362,29 @@ export default function AdminQuoteDetail() {
                 )}
                 
                 {/* Add New Note */}
-                {canEdit && (
-                  <div className="space-y-2">
-                    <Label htmlFor="new-customer-note">Add New Note</Label>
-                    <Textarea
-                      id="new-customer-note"
-                      value={newCustomerNote}
-                      onChange={(e) => setNewCustomerNote(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          if (newCustomerNote.trim()) {
-                            handleSave();
-                            setNewCustomerNote("");
-                          }
+                <div className="space-y-2">
+                  <Label htmlFor="new-customer-note">Add New Note</Label>
+                  <Textarea
+                    id="new-customer-note"
+                    value={newCustomerNote}
+                    onChange={(e) => setNewCustomerNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newCustomerNote.trim()) {
+                          handleSave();
+                          setNewCustomerNote("");
                         }
-                      }}
-                      placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
-                      rows={2}
-                      data-testid="textarea-new-customer-note"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Press Enter to save, Shift+Enter for new line
-                    </p>
-                  </div>
-                )}
+                      }
+                    }}
+                    placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
+                    rows={2}
+                    data-testid="textarea-new-customer-note"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Press Enter to save, Shift+Enter for new line
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
