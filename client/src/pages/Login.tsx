@@ -55,8 +55,8 @@ export default function Login() {
         title: "Success",
         description: "Logged in successfully",
       });
-      // Redirect based on user role
-      if (data.isAdmin) {
+      // Redirect based on user role - basic and full admins go to admin panel
+      if (data.adminRole && data.adminRole !== "none") {
         setLocation("/admin");
       } else {
         setLocation("/");
