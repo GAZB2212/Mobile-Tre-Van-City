@@ -31,18 +31,22 @@ Preferred communication style: Simple, everyday language.
 - **Van Management**: CRUD for vehicle inventory.
 - **Equipment Configuration**: Modular kits and upgrades with compatibility validation based on van size (LWB/MWB/SWB) or wrap selection.
 - **Lead Capture**: Quote and lead tracking system.
-- **User Management**: Basic admin authentication.
+- **User Management**: Role-based admin authentication with three access levels:
+    - **None**: Regular users (no admin access, redirected to home page).
+    - **Basic Admin**: Customer-facing data access (quotes and leads). Can fully edit quotes (status, discounts, notes, configurations), view leads, and access build sheets.
+    - **Full Admin**: Complete system access including basic admin permissions plus user management, inventory (vans/kits/upgrades), analytics, finance plans, training options, gallery items, and privileged quote actions (send confirmation emails, delete quotes).
 - **Conversion Funnel**: Guides users through Van → Kit → Finance → Quote.
 - **Finance Plans**: Hire Purchase, Lease options with APR calculations.
 - **Pricing Engine**: Dynamic calculation with VAT handling.
 - **Build Sheet System**: Internal documentation for technicians, excluding pricing, including full specs, equipment, quantities, and build instructions.
 - **Staff-Driven Quote Workflow**:
-    - Staff review and modify customer quotes, applying discounts (percentage or fixed).
+    - All admins (basic and full) can review and modify customer quotes, applying discounts (percentage or fixed).
     - Real-time pricing updates and finance calculations for staff.
-    - Staff can edit quote configurations (van, kit, equipment, quantities) with an equipment editor organized by category and admin-defined sort order.
+    - All admins can edit quote configurations (van, kit, equipment, quantities) with an equipment editor organized by category and admin-defined sort order.
     - Server-side pricing security ensures all calculations (including discounts and VAT) are handled on the backend.
-    - Staff generate secure, one-time confirmation links for customers to accept quotes without login.
-    - Quote statuses: pending, deposit_taken, in_build, completed (cancellable by admin).
+    - Only full admins can generate secure, one-time confirmation links and send emails to customers.
+    - Only full admins can delete quotes.
+    - Quote statuses: pending, deposit_taken, in_build, completed (changeable by all admins).
 - **Equipment Ordering**: Admin interface to control display order of upgrades and variants within the configurator using a `sortOrder` field.
 - **Portfolio Gallery**: Database-driven system for showcasing builds with image/video support, categorization, and admin-controlled publishing and sorting.
 
