@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin CRUD endpoints for vans
-  app.get("/api/admin/vans", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/vans", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const vans = await storage.getVansAdmin();
       res.json(vans);
@@ -1017,7 +1017,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Admin CRUD endpoints for kits
-  app.get("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/kits", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const kits = await storage.getKitsAdmin();
       res.json(kits);
@@ -1101,7 +1101,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Admin CRUD endpoints for upgrades
-  app.get("/api/admin/upgrades", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/upgrades", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const upgrades = await storage.getUpgrades();
       res.json(upgrades);
@@ -1207,7 +1207,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Admin CRUD endpoints for finance plans
-  app.get("/api/admin/finance-plans", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/finance-plans", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const plans = await storage.getFinancePlans();
       res.json(plans);
