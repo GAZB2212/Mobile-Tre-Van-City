@@ -44,3 +44,57 @@ export function getImageUrl(imagePath: string | null | undefined): string {
 export async function initializeBucketName(): Promise<void> {
   // No longer needed - we use direct public URLs now
 }
+
+// Cookie consent utilities
+export interface CookieConsent {
+  version: number;
+  essential: boolean;
+  analytics: boolean;
+  marketing: boolean;
+  timestamp: string;
+}
+
+const COOKIE_CONSENT_KEY = 'cookie_consent';
+const COOKIE_CONSENT_VERSION = 1;
+
+export function getCookieConsent(): CookieConsent | null {
+  try {
+    const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (!stored) return null;
+    
+    const consent: CookieConsent = JSON.parse(stored);
+    
+    // Check if version matches
+    if (consent.version !== COOKIE_CONSENT_VERSION) {
+      return null;
+    }
+    
+    return consent;
+  } catch {
+    return null;
+  }
+}
+
+export function setCookieConsent(analytics: boolean, marketing: boolean): void {
+  const consent: CookieConsent = {
+    version: COOKIE_CONSENT_VERSION,
+    essential: true, // Always true
+    analytics,
+    marketing,
+    timestamp: new Date().toISOString(),
+  };
+  
+  localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent));
+}
+
+export function hasGivenConsent(): boolean {
+  return getCookieConsent() !== null;
+}
+
+export function acceptAllCookies(): void {
+  setCookieConsent(true, true);
+}
+
+export function rejectNonEssentialCookies(): void {
+  setCookieConsent(false, false);
+}

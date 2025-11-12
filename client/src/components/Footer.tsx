@@ -15,9 +15,9 @@ export default function Footer() {
   ];
 
   const legalLinks = [
-    { name: "Privacy Policy", href: "/legal/privacy" },
-    { name: "Terms & Conditions", href: "/legal/terms" },
-    { name: "Cookie Policy", href: "/legal/cookies" }
+    { name: "Privacy Policy", href: "/privacy-policy" },
+    { name: "Terms & Conditions", href: "/terms" },
+    { name: "Cookie Policy", href: "/cookie-policy" }
   ];
 
   const services = [
@@ -122,6 +122,16 @@ export default function Footer() {
                   {link.name}
                 </Link>
               ))}
+              <button
+                onClick={() => {
+                  localStorage.removeItem('cookie_consent');
+                  window.location.reload();
+                }}
+                className="text-primary-foreground/80 hover:text-accent transition-colors text-sm"
+                data-testid="footer-cookie-settings"
+              >
+                Cookie Settings
+              </button>
               <span className="text-primary-foreground/20">|</span>
               <Link
                 href="/login"

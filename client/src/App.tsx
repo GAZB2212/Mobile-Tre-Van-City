@@ -6,8 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfiguratorProvider } from "@/lib/ConfiguratorContext";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import LoadingScreen from "@/components/LoadingScreen";
-import { useEffect } from "react";
-import { initializeBucketName } from "@/lib/utils";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
+import { useState, useEffect } from "react";
+import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
@@ -38,6 +39,9 @@ import AdminGalleryItems from "@/pages/admin/GalleryItems";
 import AdminAnalytics from "@/pages/admin/Analytics";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsConditions from "@/pages/TermsConditions";
+import CookiePolicy from "@/pages/CookiePolicy";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -70,6 +74,10 @@ function Router() {
       <Route path="/login" component={Login} />
       {/* Quote confirmation (public) */}
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
+      {/* Legal pages */}
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsConditions} />
+      <Route path="/cookie-policy" component={CookiePolicy} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/analytics" component={AdminAnalytics} />
@@ -91,10 +99,21 @@ function Router() {
 }
 
 function App() {
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+
   // Initialize bucket name for image URLs on app startup
   useEffect(() => {
     initializeBucketName();
   }, []);
+
+  // Check if user has given cookie consent
+  useEffect(() => {
+    setShowCookieBanner(!hasGivenConsent());
+  }, []);
+
+  const handleConsent = () => {
+    setShowCookieBanner(false);
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -104,6 +123,7 @@ function App() {
           <ScrollRestoration />
           <Toaster />
           <Router />
+          {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
         </TooltipProvider>
       </ConfiguratorProvider>
     </QueryClientProvider>
