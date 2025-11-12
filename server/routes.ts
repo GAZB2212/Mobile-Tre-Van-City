@@ -1471,6 +1471,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         selectedUpgradeIds: z.array(z.string()).optional(),
         selectedUpgrades: z.record(z.number()).optional(),
         estSubtotal: z.number().int().optional(),
+        estDiscount: z.number().int().optional(),
         estVAT: z.number().int().optional(),
         estTotal: z.number().int().optional(),
       });

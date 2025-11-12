@@ -445,6 +445,9 @@ export default function AdminQuoteDetail() {
       }
     }
     
+    // Calculate current pricing to update stored values
+    const currentPricing = calculateAdjustedPrice();
+    
     const updates: any = {
       status,
       financeStatus,
@@ -453,6 +456,11 @@ export default function AdminQuoteDetail() {
       discountValue: discountValueInPence,
       selectedUpgradeIds,
       selectedUpgrades,
+      // Update stored pricing values to match recalculated prices
+      estSubtotal: currentPricing.subtotal,
+      estDiscount: currentPricing.discount,
+      estVAT: currentPricing.vat,
+      estTotal: currentPricing.total,
     };
     
     // Add new notes to history if provided
