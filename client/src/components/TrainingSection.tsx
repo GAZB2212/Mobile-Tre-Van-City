@@ -45,7 +45,7 @@ export default function TrainingSection() {
             return (
               <Card key={index} className="hover-elevate" data-testid={`card-training-feature-${index}`}>
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  <div className="w-12 h-12 bg-white dark:bg-white rounded-lg flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2" data-testid={`text-feature-title-${index}`}>
