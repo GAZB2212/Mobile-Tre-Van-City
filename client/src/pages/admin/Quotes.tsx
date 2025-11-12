@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useCanEdit } from "@/hooks/useCanEdit";
 import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -89,6 +90,9 @@ export default function AdminQuotes() {
     queryKey: ["/api/admin/upgrades"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
+
+  // Only full admins can edit quotes
+  const canEdit = useCanEdit();
 
   if (isLoading) {
     return (
@@ -510,12 +514,14 @@ export default function AdminQuotes() {
 
                   {/* Action Buttons */}
                   <div className="mt-4 flex justify-end gap-3">
-                    <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
-                      <Link href={`/admin/quotes/${quote.id}`}>
-                        <Wrench className="w-4 h-4 mr-2" />
-                        Manage Quote
-                      </Link>
-                    </Button>
+                    {canEdit && (
+                      <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
+                        <Link href={`/admin/quotes/${quote.id}`}>
+                          <Wrench className="w-4 h-4 mr-2" />
+                          Manage Quote
+                        </Link>
+                      </Button>
+                    )}
                     <Button variant="outline" asChild data-testid={`button-build-sheet-${quote.id}`}>
                       <Link href={`/admin/quotes/${quote.id}/build-sheet`}>
                         <Printer className="w-4 h-4 mr-2" />
