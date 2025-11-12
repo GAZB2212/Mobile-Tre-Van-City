@@ -22,9 +22,13 @@ declare module 'express-session' {
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
+  // Detect if running in production (Replit deployments or NODE_ENV=production)
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
+  
   // Use memory store for development, database for production
   let sessionStore;
-  if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+  if (isProduction && process.env.DATABASE_URL) {
+    console.log('🗄️ Using PostgreSQL session store for production');
     const pgStore = connectPg(session);
     sessionStore = new pgStore({
       conString: process.env.DATABASE_URL,
@@ -33,6 +37,7 @@ export function getSession() {
       tableName: "sessions",
     });
   } else {
+    console.log('💾 Using memory session store for development');
     // Use memorystore for development (more reliable than default MemoryStore)
     const MemoryStore = createMemoryStore(session);
     sessionStore = new MemoryStore({
@@ -47,7 +52,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Disable secure for dev - browser isn't accepting secure cookies
+      secure: isProduction, // Use secure cookies in production
       sameSite: 'lax',
       maxAge: sessionTtl,
     },
@@ -114,23 +119,33 @@ export async function setupAuth(app: Express) {
   // Login endpoint
   app.post("/api/auth/login", async (req, res) => {
     try {
+      console.log('🔐 Login attempt for:', req.body?.username);
+      
       const result = loginSchema.safeParse(req.body);
       if (!result.success) {
+        console.log('❌ Invalid credentials format:', result.error);
         return res.status(400).json({ message: "Invalid credentials format" });
       }
 
       const { username, password } = result.data;
+      
+      console.log('📝 Looking up user:', username);
       const user = await storage.getUserByUsername(username);
 
       if (!user) {
+        console.log('❌ User not found:', username);
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
+      console.log('🔑 Comparing password for:', username);
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
       if (!isValidPassword) {
+        console.log('❌ Invalid password for:', username);
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
+      console.log('✅ Password valid, creating session for:', username);
+      
       // Store user in session
       req.session.user = {
         id: user.id,
@@ -146,6 +161,8 @@ export async function setupAuth(app: Express) {
           return res.status(500).json({ message: "Could not create session" });
         }
 
+        console.log('✅ Session saved successfully for:', username);
+        
         // Return user without password hash AND include session ID
         const { passwordHash, ...userWithoutPassword } = user;
         res.json({
@@ -154,7 +171,8 @@ export async function setupAuth(app: Express) {
         });
       });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error (FULL):", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       res.status(500).json({ message: "Internal server error" });
     }
   });
