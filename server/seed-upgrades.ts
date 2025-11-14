@@ -208,7 +208,7 @@ const upgrades = [
     images: [],
     parentId: null,
     variantName: null,
-    published: false,
+    published: true,
   },
   {
     id: "van-interior-diamond-lwb-standard",
