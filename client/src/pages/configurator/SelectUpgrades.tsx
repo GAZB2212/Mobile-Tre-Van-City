@@ -202,14 +202,10 @@ export default function SelectUpgrades() {
     
     if (hasAllExclusiveItems) {
       // Remove all but the first one (keep the PTO as default preference)
-      const toRemove = airSystemExclusiveIds.slice(1);
-      toRemove.forEach(id => {
-        if (state.upgradeIds.includes(id)) {
-          removeUpgrade(id);
-        }
-      });
+      // Use atomic replace to remove the compressor and re-add the PTO
+      replaceUpgrades(['compressor-12hp-270l'], 'mounted-pto-air-system');
     }
-  }, [configuratorData, state.upgradeIds, removeUpgrade]);
+  }, [configuratorData, state.upgradeIds, replaceUpgrades]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
