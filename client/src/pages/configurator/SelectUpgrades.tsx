@@ -99,7 +99,7 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
 
 export default function SelectUpgrades() {
   const [, setLocation] = useLocation();
-  const { state, addUpgrade, removeUpgrade } = useConfigurator();
+  const { state, addUpgrade, removeUpgrade, replaceUpgrades } = useConfigurator();
   const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -223,28 +223,33 @@ export default function SelectUpgrades() {
         ? Object.values(configuratorData.upgrades).flat()
         : [];
       
-      // If this is a branding option, remove any other branding options first
+      const toRemove: string[] = [];
+      
+      // If this is a branding option, mark other branding options for removal
       if (upgrade && isBrandingOption(upgrade.name)) {
-        // Find and remove any other selected branding options
         state.upgradeIds.forEach(selectedId => {
           const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
           if (selectedUpgrade && isBrandingOption(selectedUpgrade.name) && selectedId !== upgradeId) {
-            removeUpgrade(selectedId);
+            toRemove.push(selectedId);
           }
         });
       }
       
-      // If this is a mutually exclusive air system upgrade, remove the other one
+      // If this is a mutually exclusive air system upgrade, mark the other one for removal
       if (isAirSystemExclusive(upgradeId)) {
-        // Find and remove the other mutually exclusive air system upgrade
         state.upgradeIds.forEach(selectedId => {
           if (isAirSystemExclusive(selectedId) && selectedId !== upgradeId) {
-            removeUpgrade(selectedId);
+            toRemove.push(selectedId);
           }
         });
       }
       
-      addUpgrade(upgradeId);
+      // Use atomic replace if we need to remove items, otherwise just add
+      if (toRemove.length > 0) {
+        replaceUpgrades(toRemove, upgradeId);
+      } else {
+        addUpgrade(upgradeId);
+      }
     }
   };
 
@@ -260,12 +265,14 @@ export default function SelectUpgrades() {
       ? Object.values(configuratorData.upgrades).flat()
       : [];
     
+    // Collect all items that need to be removed
+    const toRemove: string[] = [];
+    
     // Remove any previously selected variant from this parent
     const allVariants = allUpgrades.filter(u => u.parentId === parentId);
-    
     allVariants.forEach(v => {
       if (state.upgradeIds.includes(v.id)) {
-        removeUpgrade(v.id);
+        toRemove.push(v.id);
       }
     });
 
@@ -274,26 +281,30 @@ export default function SelectUpgrades() {
       const selectedVariant = allUpgrades.find(u => u.id === variantId);
       const parent = allUpgrades.find(u => u.id === parentId);
       
-      // If this is a branding option, remove any other branding options first
+      // If this is a branding option, mark other branding options for removal
       if (parent && isBrandingOption(parent.name)) {
         state.upgradeIds.forEach(selectedId => {
           const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
-          if (selectedUpgrade && isBrandingOption(selectedUpgrade.name)) {
-            removeUpgrade(selectedId);
+          if (selectedUpgrade && isBrandingOption(selectedUpgrade.name) && !toRemove.includes(selectedId)) {
+            toRemove.push(selectedId);
           }
         });
       }
       
-      // If this is a mutually exclusive air system upgrade, remove the other one
+      // If this is a mutually exclusive air system upgrade, mark the other one for removal
       if (isAirSystemExclusive(variantId)) {
         state.upgradeIds.forEach(selectedId => {
-          if (isAirSystemExclusive(selectedId) && selectedId !== variantId) {
-            removeUpgrade(selectedId);
+          if (isAirSystemExclusive(selectedId) && selectedId !== variantId && !toRemove.includes(selectedId)) {
+            toRemove.push(selectedId);
           }
         });
       }
       
-      addUpgrade(variantId);
+      // Use atomic replace to remove all items and add the new variant in one update
+      replaceUpgrades(toRemove, variantId);
+    } else if (toRemove.length > 0) {
+      // If no variant selected, just remove the old ones
+      toRemove.forEach(id => removeUpgrade(id));
     }
   };
 

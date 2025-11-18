@@ -25,6 +25,7 @@ interface ConfiguratorContextValue {
   setUpgrades: (upgradeIds: string[]) => void;
   addUpgrade: (upgradeId: string) => void;
   removeUpgrade: (upgradeId: string) => void;
+  replaceUpgrades: (toRemove: string[], toAdd: string) => void;
   setTrainingOptions: (trainingOptionIds: string[]) => void;
   addTrainingOption: (trainingOptionId: string) => void;
   removeTrainingOption: (trainingOptionId: string) => void;
@@ -127,6 +128,23 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const replaceUpgrades = (toRemove: string[], toAdd: string) => {
+    setState(prev => {
+      // Remove all items in toRemove array and add the new item in a single atomic update
+      let newUpgradeIds = prev.upgradeIds.filter(id => !toRemove.includes(id));
+      
+      // Prevent duplicates when adding
+      if (!newUpgradeIds.includes(toAdd)) {
+        newUpgradeIds = [...newUpgradeIds, toAdd];
+      }
+      
+      return {
+        ...prev,
+        upgradeIds: newUpgradeIds
+      };
+    });
+  };
+
   const setTrainingOptions = (trainingOptionIds: string[]) => {
     setState(prev => ({ ...prev, trainingOptionIds }));
   };
@@ -226,6 +244,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setUpgrades,
     addUpgrade,
     removeUpgrade,
+    replaceUpgrades,
     setTrainingOptions,
     addTrainingOption,
     removeTrainingOption,

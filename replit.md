@@ -81,3 +81,18 @@ Preferred communication style: Simple, everyday language.
 
 ### Vehicle Data Integration
 - **CheckCarDetails API**: Integrates with UK registration lookup for automated vehicle data population (make, model, year, mileage, specs) during van creation.
+
+## Technical Implementation Notes
+
+### State Management & React 18 Production Optimization
+- **Atomic State Updates**: The configurator uses a custom `replaceUpgrades` method in `ConfiguratorContext` to handle mutually exclusive upgrade selections (PTO vs Compressor) atomically. This prevents race conditions caused by React 18's aggressive state batching in production mode.
+- **Issue Fixed (November 2025)**: Production deployments were experiencing issues where mutually exclusive upgrades could both be selected simultaneously. The root cause was multiple `removeUpgrade` calls followed by `addUpgrade` being batched unpredictably. Fixed by implementing single atomic state updates via `replaceUpgrades(toRemove[], toAdd)`.
+
+### Database Seeding
+- Run `tsx server/seed-upgrades.ts` to manually reseed upgrade data after modifying `server/seed-upgrades.ts`
+- Parent items for variant groups MUST have `published: true` for child variants to display correctly in configurator dropdowns
+
+### Mutual Exclusivity Rules
+- **Air Systems**: PTO Air System (`mounted-pto-air-system`) and Electric Start Compressor (`compressor-12hp-270l`) cannot be selected together
+- **Branding**: Full Wrap, Half Wrap, and Graphic Pack options are mutually exclusive
+- Implementation: Frontend enforces rules via `handleUpgradeToggle` and `handleVariantSelect` with atomic state updates
