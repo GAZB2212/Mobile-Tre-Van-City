@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function Hero() {
   return (
-    <section className="relative bg-black py-16 sm:py-24 md:py-32 lg:py-40 overflow-hidden">
+    <section className="relative bg-black min-h-[70vh] sm:min-h-[80vh] py-24 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
       {/* Video Background */}
       <video 
         autoPlay 
@@ -23,14 +24,26 @@ export default function Hero() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-6 sm:mb-8 leading-tight text-white" data-testid="text-hero-headline">
               Building Your Dream Mobile Tyre Business
             </h1>
-            <Button 
-              size="lg" 
-              variant="default"
-              className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground border-accent font-semibold"
-              data-testid="button-learn-more"
-            >
-              Learn More
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/configurator/select-van">
+                <Button 
+                  size="lg" 
+                  variant="default"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground border-primary font-semibold"
+                  data-testid="button-configure-van"
+                >
+                  Configure Your Van
+                </Button>
+              </Link>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full sm:w-auto bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white border-white/30 font-semibold"
+                data-testid="button-learn-more"
+              >
+                Learn More
+              </Button>
+            </div>
           </div>
         </div>
       </div>
