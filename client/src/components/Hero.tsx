@@ -25,7 +25,7 @@ export default function Hero() {
               Building Your Dream Mobile Tyre Business
             </h1>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/configurator/select-van">
+              <Link href="/configurator/van">
                 <Button 
                   size="lg" 
                   variant="default"
