@@ -25,7 +25,7 @@ async function bootstrapAdmin() {
       await createUser({
         username: adminUsername,
         password: adminPassword,
-        email: "admin@mtvc.example.com",
+        email: "admin@northwestvanconversions.co.uk",
         firstName: "Admin",
         lastName: "User",
         isAdmin: true,

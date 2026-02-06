@@ -84,7 +84,7 @@ export default function Header() {
           <Link href="/" className="flex items-center flex-shrink-0" data-testid="link-home">
             <img 
               src={logoImage} 
-              alt="Mobile Tyre Van City" 
+              alt="Northwest Van Conversions" 
               className="h-20 sm:h-24 md:h-16 lg:h-24 xl:h-32 w-auto"
             />
           </Link>

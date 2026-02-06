@@ -121,8 +121,8 @@ export default function Contact() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <a href="mailto:sales@mobiletyrevancity.co.uk" className="text-lg font-semibold hover:text-accent transition-colors break-all">
-                      sales@mobiletyrevancity.co.uk
+                    <a href="mailto:sales@northwestvanconversions.co.uk" className="text-lg font-semibold hover:text-accent transition-colors break-all">
+                      sales@northwestvanconversions.co.uk
                     </a>
                     <p className="text-sm text-muted-foreground mt-1">We reply within 24 hours</p>
                   </CardContent>

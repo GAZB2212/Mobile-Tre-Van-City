@@ -882,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'User-Agent': 'MTVC-API/1.0',
+              'User-Agent': 'NVC-API/1.0',
               'Accept': '*/*'
             },
           });

@@ -65,7 +65,7 @@ export default function YouTubeSection() {
             <Button 
               size="lg" 
               className="bg-accent text-accent-foreground"
-              onClick={() => window.open('https://www.youtube.com/@mobiletyrevancity', '_blank')}
+              onClick={() => window.open('https://www.youtube.com/@northwestvanconversions', '_blank')}
               data-testid="button-youtube-channel"
             >
               <Youtube className="w-5 h-5 mr-2" />

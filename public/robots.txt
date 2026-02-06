@@ -11,4 +11,4 @@ Allow: /api/kits
 Allow: /api/configurator
 
 # Sitemap location
-Sitemap: https://tyrevancity.com/sitemap.xml
+Sitemap: https://northwestvanconversions.co.uk/sitemap.xml

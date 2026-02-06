@@ -38,7 +38,7 @@ export default function Footer() {
             <div className="mb-4">
               <img 
                 src={logoImage} 
-                alt="Mobile Tyre Van City" 
+                alt="Northwest Van Conversions" 
                 className="h-16 w-auto"
               />
             </div>
@@ -92,7 +92,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-2" data-testid="contact-email">
                 <Mail className="w-4 h-4" />
-                <span className="text-primary-foreground/80">sales@mobiletyrevancity.co.uk</span>
+                <span className="text-primary-foreground/80">sales@northwestvanconversions.co.uk</span>
               </div>
               <div className="flex items-start space-x-2" data-testid="contact-address">
                 <MapPin className="w-4 h-4 mt-0.5" />
@@ -109,7 +109,7 @@ export default function Footer() {
         <div className="border-t border-primary-foreground/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-primary-foreground/80 text-sm">
-              © 2024 Mobile Tyre Van City. All rights reserved.
+              © 2024 Northwest Van Conversions. All rights reserved.
             </div>
             <div className="flex flex-wrap justify-center items-center gap-4">
               {legalLinks.map((link) => (
