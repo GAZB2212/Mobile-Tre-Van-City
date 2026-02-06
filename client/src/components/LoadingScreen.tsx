@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logoPath from "@assets/Untitled design-51_1759240381746.png";
+import logoPath from "@assets/logo_17_1770396630370.png";
 
 export default function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(() => {

@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Shield } from "lucide-react";
-import logoImage from "@assets/Untitled design-51_1759240381746.png";
+import logoImage from "@assets/logo_17_1770396630370.png";
 import gajoLogo from "@assets/LOGO_1762356342150.png";
 
 export default function Footer() {
