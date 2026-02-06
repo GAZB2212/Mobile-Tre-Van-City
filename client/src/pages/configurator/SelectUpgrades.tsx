@@ -492,7 +492,7 @@ export default function SelectUpgrades() {
                                         )}
                                         {upgrade.popular && (
                                           <div className="flex justify-end">
-                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
+                                            <span className="text-red-600 dark:text-red-400 flex items-center gap-1 text-sm font-medium">
                                               <Star className="w-3 h-3 fill-current" />
                                               Popular Upgrade
                                             </span>
@@ -593,7 +593,7 @@ export default function SelectUpgrades() {
                                         ) : null}
                                         {parent.popular && (
                                           <div className="flex justify-end mb-2">
-                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
+                                            <span className="text-red-600 dark:text-red-400 flex items-center gap-1 text-sm font-medium">
                                               <Star className="w-3 h-3 fill-current" />
                                               Popular Upgrade
                                             </span>

@@ -399,8 +399,8 @@ export default function Configurator() {
                                             </label>
                                             {isPopular && (
                                               <div className="flex items-center gap-1 flex-shrink-0">
-                                                <Star className="h-4 w-4 fill-green-500 text-green-500" />
-                                                <span className="text-xs font-medium text-green-600">Popular upgrade</span>
+                                                <Star className="h-4 w-4 fill-red-500 text-red-500" />
+                                                <span className="text-xs font-medium text-red-600 dark:text-red-400">Popular upgrade</span>
                                               </div>
                                             )}
                                           </div>
@@ -463,8 +463,8 @@ export default function Configurator() {
                                           </Badge>
                                           {parent.popular && (
                                             <div className="flex items-center gap-1">
-                                              <Star className="h-4 w-4 fill-green-500 text-green-500" />
-                                              <span className="text-xs font-medium text-green-600">Popular upgrade</span>
+                                              <Star className="h-4 w-4 fill-red-500 text-red-500" />
+                                              <span className="text-xs font-medium text-red-600 dark:text-red-400">Popular upgrade</span>
                                             </div>
                                           )}
                                         </div>
