@@ -4,8 +4,8 @@ const features = [
   {
     icon: Shield,
     number: "01",
-    title: "FCA Authorised",
-    description: "Regulated finance provider offering flexible funding solutions for your mobile tyre business"
+    title: "Quality Assured",
+    description: "Professional van conversions built to the highest standards with premium materials"
   },
   {
     icon: Truck,

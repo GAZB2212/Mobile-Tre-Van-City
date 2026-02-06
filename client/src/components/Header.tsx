@@ -67,7 +67,6 @@ export default function Header() {
               </div>
             </div>
             <div className="flex items-center gap-4 text-muted-foreground">
-              <span className="hidden sm:inline">FCA Authorised Finance</span>
               {!isLoading && isAuthenticated && user?.isAdmin && (
                 <Link href="/admin" className="text-accent hover:text-accent/80 font-medium">
                   Admin

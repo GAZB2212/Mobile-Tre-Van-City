@@ -46,9 +46,9 @@ const steps = [
     number: "04",
     icon: CreditCard,
     title: "Choose Your Finance",
-    description: "Flexible funding solutions to suit your business needs. As an FCA authorised provider, we offer competitive hire purchase and leasing options to help spread the cost of your investment.",
+    description: "Flexible funding solutions to suit your business needs. We offer competitive hire purchase and leasing options to help spread the cost of your investment.",
     features: [
-      "FCA regulated finance",
+      "Finance options available",
       "Hire purchase available",
       "Flexible leasing options",
       "Competitive rates"

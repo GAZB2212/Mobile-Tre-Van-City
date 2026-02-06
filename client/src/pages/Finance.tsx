@@ -117,7 +117,7 @@ export default function Finance() {
     <div className="min-h-screen bg-background">
       <SEO 
         title="Van Finance Options - Flexible Payment Plans"
-        description="Spread the cost of your mobile tyre van with our competitive finance packages. FCA authorised. Hire purchase and lease options available with affordable monthly payments."
+        description="Spread the cost of your van conversion with our competitive finance packages. Hire purchase and lease options available with affordable monthly payments."
         canonical="/finance"
       />
       <Header />
@@ -126,9 +126,6 @@ export default function Finance() {
       <section className="bg-gradient-to-b from-card to-background border-b py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
-              FCA Authorised
-            </Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-finance-title">
               Flexible Finance Options
             </h1>
