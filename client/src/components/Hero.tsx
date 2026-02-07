@@ -16,7 +16,7 @@ export default function Hero() {
       />
       
       {/* Dark overlay for text readability - always visible */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/80 to-black/70 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-black/30 pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
