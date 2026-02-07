@@ -92,7 +92,7 @@ export default function StockCard({
         </div>
         
         <div className="mb-4">
-          <div className="text-2xl font-bold text-chart-2" data-testid={`text-price-${id}`}>
+          <div className="text-2xl font-bold text-white" data-testid={`text-price-${id}`}>
             {formatPrice(price)}
           </div>
           <div className="text-sm text-muted-foreground">
