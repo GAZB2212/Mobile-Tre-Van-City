@@ -102,7 +102,7 @@ export default function StockCard({
       </CardContent>
       
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 !border-2 !border-white bg-white text-white" asChild data-testid={`button-view-${id}`}>
+        <Button variant="outline" size="sm" className="flex-1 !border-2 !border-white text-white bg-transparent" asChild data-testid={`button-view-${id}`}>
           <Link href={`/stock/${slug}`}>
             <Eye className="w-4 h-4 mr-2" />
             View
@@ -110,7 +110,7 @@ export default function StockCard({
         </Button>
         <Button 
           size="sm" 
-          className="flex-1 bg-white text-white" 
+          className="flex-1 !border-2 !border-white text-white bg-transparent" 
           data-testid={`button-configure-${id}`}
           onClick={() => {
             setVan(id);
