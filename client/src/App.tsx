@@ -9,6 +9,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { useState, useEffect } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
+import PasswordGate from "@/components/PasswordGate";
 import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
@@ -119,11 +120,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ConfiguratorProvider>
         <TooltipProvider>
-          <LoadingScreen />
-          <ScrollRestoration />
-          <Toaster />
-          <Router />
-          {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
+          <PasswordGate>
+            <LoadingScreen />
+            <ScrollRestoration />
+            <Toaster />
+            <Router />
+            {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
+          </PasswordGate>
         </TooltipProvider>
       </ConfiguratorProvider>
     </QueryClientProvider>
