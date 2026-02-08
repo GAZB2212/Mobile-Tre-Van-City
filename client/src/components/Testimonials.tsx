@@ -43,7 +43,7 @@ export default function Testimonials() {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {testimonials.map((testimonial) => (
             <Card key={testimonial.id} className="hover-elevate bg-card" data-testid={`card-testimonial-${testimonial.id}`}>
               <CardContent className="p-6">

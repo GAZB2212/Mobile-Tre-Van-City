@@ -52,8 +52,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/10">
-      {/* Top Utility Bar */}
-      <div className="border-b border-white/10 bg-transparent">
+      {/* Top Utility Bar - hidden on small mobile */}
+      <div className="hidden sm:block border-b border-white/10 bg-transparent">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-10 text-xs">
             <div className="flex items-center gap-6 text-muted-foreground">
@@ -79,12 +79,14 @@ export default function Header() {
 
       {/* Main Header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between py-3 md:py-4 gap-3 md:gap-4">
-          <Link href="/" className="flex items-center flex-shrink-0" data-testid="link-home">
+        <div className="flex items-center justify-between py-2 md:py-4 gap-3 md:gap-4">
+          {/* Mobile spacer to balance hamburger and centre logo */}
+          <div className="w-10 lg:hidden" />
+          <Link href="/" className="flex items-center flex-shrink-0 lg:flex-grow-0" data-testid="link-home">
             <img 
               src={logoImage} 
               alt="Northwest Van Conversions" 
-              className="h-20 sm:h-24 md:h-16 lg:h-24 xl:h-32 w-auto"
+              className="h-12 sm:h-16 md:h-16 lg:h-24 xl:h-32 w-auto"
             />
           </Link>
 
@@ -102,18 +104,18 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
+          {/* Desktop buttons */}
+          <div className="hidden lg:flex items-center gap-3 md:gap-4 flex-shrink-0">
             <Button 
               variant="default"
               size="lg"
-              className="hidden lg:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold whitespace-nowrap text-sm xl:text-base px-4 xl:px-6"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold whitespace-nowrap text-sm xl:text-base px-4 xl:px-6"
               data-testid="button-configure"
               asChild
             >
               <Link href="/configurator/van">Configure Your Van</Link>
             </Button>
 
-            {/* Admin Authentication Section */}
             {!isLoading && isAuthenticated && user?.isAdmin && (
               <Button 
                 variant="ghost"
@@ -121,24 +123,23 @@ export default function Header() {
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
                 data-testid="button-logout"
-                className="hidden lg:flex"
               >
                 <LogOut className="w-4 h-4 mr-1" />
                 {logoutMutation.isPending ? "Logging out..." : "Logout"}
               </Button>
             )}
-            
-            {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden flex-shrink-0"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              data-testid="button-menu-toggle"
-            >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
           </div>
+            
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden flex-shrink-0"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            data-testid="button-menu-toggle"
+          >
+            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
         </div>
 
         {/* Mobile Navigation */}

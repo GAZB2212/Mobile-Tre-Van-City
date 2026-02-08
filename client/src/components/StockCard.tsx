@@ -67,17 +67,17 @@ export default function StockCard({
           <p className="text-sm text-muted-foreground">{title}</p>
         </div>
         
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4 mr-1" />
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
             {year}
           </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Gauge className="w-4 h-4 mr-1" />
+          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+            <Gauge className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
             {mileage.toLocaleString()}mi
           </div>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Fuel className="w-4 h-4 mr-1" />
+          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+            <Fuel className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
             {specs.fuel}
           </div>
         </div>

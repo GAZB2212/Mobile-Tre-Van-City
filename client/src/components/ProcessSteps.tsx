@@ -28,7 +28,7 @@ const services = [
 
 export default function ProcessSteps() {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-12 sm:py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-6 text-foreground" data-testid="text-process-title">

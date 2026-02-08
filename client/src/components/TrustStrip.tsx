@@ -23,7 +23,7 @@ const features = [
 
 export default function TrustStrip() {
   return (
-    <section className="py-12 bg-background">
+    <section className="py-8 sm:py-12 bg-background">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {features.map((feature, index) => (

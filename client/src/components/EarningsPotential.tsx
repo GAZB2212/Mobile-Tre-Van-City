@@ -75,14 +75,14 @@ export default function EarningsPotential() {
                 {revenueBreakdown.map((item, index) => (
                   <div 
                     key={index} 
-                    className="flex justify-between items-center pb-4 border-b last:border-0"
+                    className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 sm:gap-4 pb-4 border-b last:border-0"
                     data-testid={`item-revenue-${index}`}
                   >
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                       <span className="font-medium">{item.service}</span>
                     </div>
-                    <Badge variant="secondary" className="text-base font-semibold">
+                    <Badge variant="secondary" className="text-base font-semibold ml-8 sm:ml-0 w-fit">
                       {item.earnings}
                     </Badge>
                   </div>

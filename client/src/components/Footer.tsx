@@ -32,14 +32,14 @@ export default function Footer() {
   return (
     <footer className="bg-background text-foreground border-t border-border">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Company Info */}
-          <div className="lg:col-span-1">
+          <div className="col-span-2 lg:col-span-1">
             <div className="mb-4">
               <img 
                 src={logoImage} 
                 alt="Northwest Van Conversions" 
-                className="h-16 w-auto"
+                className="h-12 sm:h-16 w-auto"
               />
             </div>
             <p className="text-primary-foreground/80 mb-4">
@@ -92,7 +92,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-2" data-testid="contact-email">
                 <Mail className="w-4 h-4" />
-                <span className="text-primary-foreground/80">sales@northwestvanconversions.co.uk</span>
+                <span className="text-primary-foreground/80 break-all text-sm">sales@northwestvanconversions.co.uk</span>
               </div>
               <div className="flex items-start space-x-2" data-testid="contact-address">
                 <MapPin className="w-4 h-4 mt-0.5" />

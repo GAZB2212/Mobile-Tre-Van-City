@@ -79,7 +79,7 @@ export default function Stock() {
       {/* Filters */}
       <section className="border-b bg-card/50">
         <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-2 block">Make</label>
               <Select value={makeFilter} onValueChange={setMakeFilter}>
@@ -150,7 +150,7 @@ export default function Stock() {
               />
             </div>
 
-            <div className="flex items-end">
+            <div className="flex items-end col-span-2 md:col-span-1">
               <Button
                 variant="outline"
                 className="w-full !border-2 !border-accent text-accent hover:bg-accent/10"
