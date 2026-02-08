@@ -51,9 +51,9 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background">
+    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/10">
       {/* Top Utility Bar */}
-      <div className="border-b border-border/20 bg-card">
+      <div className="border-b border-white/10 bg-transparent">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-10 text-xs">
             <div className="flex items-center gap-6 text-muted-foreground">
