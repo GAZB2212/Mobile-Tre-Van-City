@@ -313,7 +313,7 @@ export default function SelectVan() {
                               
                               <Button 
                                 size="sm"
-                                className={`w-full ${state.vanId === van.id ? 'bg-accent text-accent-foreground' : 'bg-white !border-2 !border-accent text-accent'}`}
+                                className={`w-full ${state.vanId === van.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-white'}`}
                                 variant={state.vanId === van.id ? "default" : "outline"}
                                 data-testid={`button-select-van-${van.id}`}
                               >
@@ -331,7 +331,7 @@ export default function SelectVan() {
                     <Button 
                       variant="outline" 
                       size="lg"
-                      className="bg-white !border-2 !border-accent text-accent"
+                      className="!border-2 !border-accent text-white"
                       onClick={handleSkipVan}
                       data-testid="button-skip-van"
                     >
@@ -494,7 +494,7 @@ export default function SelectVan() {
                   </Button>
                   <Button 
                     variant="outline"
-                    className="bg-white !border-2 !border-accent text-accent"
+                    className="!border-2 !border-accent text-white"
                     onClick={() => setModalVan(null)}
                     data-testid={`modal-button-close-${modalVan.id}`}
                   >
