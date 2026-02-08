@@ -15,7 +15,7 @@ export default function PasswordGate({ children }: { children: React.ReactNode }
     fetch("/api/site-auth/status")
       .then(res => res.json())
       .then(data => setAuthenticated(data.authenticated))
-      .catch(() => setAuthenticated(true));
+      .catch(() => setAuthenticated(false));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
