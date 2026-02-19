@@ -27,28 +27,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
 
-  // Site password protection
-  app.post("/api/site-auth", (req, res) => {
-    const { password } = req.body;
-    const sitePassword = process.env.SITE_PASSWORD;
-    if (!sitePassword) {
-      return res.json({ authenticated: true });
-    }
-    if (password === sitePassword) {
-      (req.session as any).siteAuthenticated = true;
-      return res.json({ authenticated: true });
-    }
-    return res.status(401).json({ authenticated: false, message: "Incorrect password" });
-  });
-
-  app.get("/api/site-auth/status", (req, res) => {
-    const sitePassword = process.env.SITE_PASSWORD;
-    if (!sitePassword) {
-      return res.json({ authenticated: true });
-    }
-    return res.json({ authenticated: !!(req.session as any).siteAuthenticated });
-  });
-
   // Storage configuration endpoint - returns bucket name for frontend image URLs
   app.get("/api/storage/config", async (req, res) => {
     try {
@@ -904,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'User-Agent': 'NVC-API/1.0',
+              'User-Agent': 'MTVC-API/1.0',
               'Accept': '*/*'
             },
           });

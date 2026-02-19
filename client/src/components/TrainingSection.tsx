@@ -39,7 +39,7 @@ export default function TrainingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           {trainingFeatures.map((feature, index) => {
             const Icon = feature.icon;
             return (
@@ -62,7 +62,7 @@ export default function TrainingSection() {
 
         <div className="text-center">
           <Link href="/training" data-testid="link-training-details">
-            <Button size="lg" variant="outline" className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950" data-testid="button-learn-training">
+            <Button size="lg" variant="outline" className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-950" data-testid="button-learn-training">
               Learn More About Training
             </Button>
           </Link>

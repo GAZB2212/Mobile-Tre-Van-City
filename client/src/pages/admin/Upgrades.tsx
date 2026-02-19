@@ -1039,7 +1039,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   <div className="space-y-0.5">
                     <FormLabel>Popular Upgrade</FormLabel>
                     <p className="text-sm text-muted-foreground">
-                      Mark this upgrade as popular to show a red star indicator
+                      Mark this upgrade as popular to show a green star indicator
                     </p>
                   </div>
                   <FormControl>

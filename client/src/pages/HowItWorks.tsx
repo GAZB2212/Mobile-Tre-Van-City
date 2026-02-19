@@ -46,9 +46,9 @@ const steps = [
     number: "04",
     icon: CreditCard,
     title: "Choose Your Finance",
-    description: "Flexible funding solutions to suit your business needs. We offer competitive hire purchase and leasing options to help spread the cost of your investment.",
+    description: "Flexible funding solutions to suit your business needs. As an FCA authorised provider, we offer competitive hire purchase and leasing options to help spread the cost of your investment.",
     features: [
-      "Finance options available",
+      "FCA regulated finance",
       "Hire purchase available",
       "Flexible leasing options",
       "Competitive rates"
@@ -147,7 +147,7 @@ export default function HowItWorks() {
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl sm:text-4xl font-extrabold mb-4 text-foreground" data-testid="text-quality-title">
-                Why Choose Northwest Van Conversions
+                Why Choose Mobile Tyre Van City
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Quality, expertise, and attention to detail in every build

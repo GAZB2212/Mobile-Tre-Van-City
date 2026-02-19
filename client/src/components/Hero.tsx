@@ -3,7 +3,7 @@ import { Link } from "wouter";
 
 export default function Hero() {
   return (
-    <section className="relative bg-black min-h-[50vh] sm:min-h-[60vh] md:min-h-[70vh] lg:min-h-[80vh] py-16 sm:py-24 md:py-40 lg:py-48 overflow-hidden">
+    <section className="relative bg-black min-h-[70vh] sm:min-h-[80vh] py-24 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
       {/* Video Background */}
       <video 
         autoPlay 
@@ -16,12 +16,12 @@ export default function Hero() {
       />
       
       {/* Dark overlay for text readability - always visible */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/45 to-black/30 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/80 to-black/70 pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="max-w-2xl">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 sm:mb-8 leading-tight text-white" data-testid="text-hero-headline">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-6 sm:mb-8 leading-tight text-white" data-testid="text-hero-headline">
               Building Your Dream Mobile Tyre Business
             </h1>
             <div className="flex flex-col sm:flex-row gap-4">

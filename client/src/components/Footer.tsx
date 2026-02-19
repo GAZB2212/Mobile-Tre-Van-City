@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Shield } from "lucide-react";
-import logoImage from "@assets/logo_17_1770396630370.png";
+import logoImage from "@assets/Untitled design-51_1759240381746.png";
 import gajoLogo from "@assets/LOGO_1762356342150.png";
 
 export default function Footer() {
@@ -32,14 +32,14 @@ export default function Footer() {
   return (
     <footer className="bg-background text-foreground border-t border-border">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
-          <div className="col-span-2 lg:col-span-1">
+          <div className="lg:col-span-1">
             <div className="mb-4">
               <img 
                 src={logoImage} 
-                alt="Northwest Van Conversions" 
-                className="h-12 sm:h-16 w-auto"
+                alt="Mobile Tyre Van City" 
+                className="h-16 w-auto"
               />
             </div>
             <p className="text-primary-foreground/80 mb-4">
@@ -92,7 +92,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-2" data-testid="contact-email">
                 <Mail className="w-4 h-4" />
-                <span className="text-primary-foreground/80 break-all text-sm">sales@northwestvanconversions.co.uk</span>
+                <span className="text-primary-foreground/80">sales@mobiletyrevancity.co.uk</span>
               </div>
               <div className="flex items-start space-x-2" data-testid="contact-address">
                 <MapPin className="w-4 h-4 mt-0.5" />
@@ -109,7 +109,7 @@ export default function Footer() {
         <div className="border-t border-primary-foreground/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-primary-foreground/80 text-sm">
-              © 2024 Northwest Van Conversions. All rights reserved.
+              © 2024 Mobile Tyre Van City. All rights reserved.
             </div>
             <div className="flex flex-wrap justify-center items-center gap-4">
               {legalLinks.map((link) => (

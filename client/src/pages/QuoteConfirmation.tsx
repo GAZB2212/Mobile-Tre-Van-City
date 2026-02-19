@@ -472,7 +472,7 @@ export default function QuoteConfirmation() {
             </div>
           </div>
 
-          {/* Finance Disclaimers */}
+          {/* FCA-Compliant Finance Disclaimers */}
           {(quote as any).financePlan && (
             <Card className="mt-8 border-muted-foreground/20 bg-muted/30">
               <CardHeader>
@@ -487,6 +487,9 @@ export default function QuoteConfirmation() {
                 </p>
                 <p>
                   <strong>Credit Subject to Status:</strong> All finance is subject to status and income. Written quotation available on request. We act as a credit broker not a lender. We work with a number of carefully selected credit providers who may be able to offer you finance for your purchase. We are only able to offer finance products from these providers.
+                </p>
+                <p>
+                  <strong>Regulatory Information:</strong> We are regulated by the Financial Conduct Authority (FCA) for consumer credit activities. Our FCA registration can be verified on the FCA register.
                 </p>
                 <p>
                   <strong>Representative Example:</strong> The monthly payment and total amount payable shown are indicative only and based on the information provided. Your actual quote may vary depending on your personal circumstances and credit assessment. The APR (Annual Percentage Rate) represents the total cost of credit expressed as an annual percentage of the amount of credit.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logoPath from "@assets/logo_17_1770396630370.png";
+import logoPath from "@assets/Untitled design-51_1759240381746.png";
 
 export default function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(() => {
@@ -48,7 +48,7 @@ export default function LoadingScreen() {
     >
       <img 
         src={logoPath} 
-        alt="Northwest Van Conversions" 
+        alt="Tyre Van City" 
         className="w-48 h-48 md:w-64 md:h-64 mb-16 object-contain"
         data-testid="img-loading-logo"
       />

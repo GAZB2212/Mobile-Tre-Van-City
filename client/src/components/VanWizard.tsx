@@ -141,8 +141,8 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
     return (
       <div className="space-y-4">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
-            <Check className="w-5 h-5 text-red-600 dark:text-red-400" />
+          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+            <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{vehicleData.title}</h3>

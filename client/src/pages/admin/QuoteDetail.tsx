@@ -715,7 +715,7 @@ export default function AdminQuoteDetail() {
                 <div>
                   <Label>Equipment & Upgrades</Label>
                   <p className="text-xs text-muted-foreground mt-1 mb-3">
-                    Items with a red outline were originally selected by the customer
+                    Items with a green outline were originally selected by the customer
                   </p>
                   <div className="mt-2 space-y-4 max-h-96 overflow-y-auto border rounded-md p-4">
                     {upgradeCategories.map((category) => {
@@ -739,7 +739,7 @@ export default function AdminQuoteDetail() {
                             return (
                               <div 
                                 key={upgrade.id} 
-                                className={`flex items-start gap-3 p-2 rounded ${wasOriginallySelected ? 'border-2 border-red-500' : 'border-2 border-transparent'}`}
+                                className={`flex items-start gap-3 p-2 rounded ${wasOriginallySelected ? 'border-2 border-green-500' : 'border-2 border-transparent'}`}
                               >
                                 <Checkbox
                                   id={`upgrade-${upgrade.id}`}
@@ -794,7 +794,7 @@ export default function AdminQuoteDetail() {
                             return (
                               <div 
                                 key={parent.id} 
-                                className={`p-2 rounded ${wasOriginallySelected ? 'border-2 border-red-500' : 'border-2 border-transparent'}`}
+                                className={`p-2 rounded ${wasOriginallySelected ? 'border-2 border-green-500' : 'border-2 border-transparent'}`}
                               >
                                 <Label className="text-sm font-medium">{parent.name}</Label>
                                 {parent.description && (

@@ -376,7 +376,7 @@ export default function VanDetails() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Flexible finance options available to help spread the cost.
+                      Flexible finance options available from our FCA-authorized partners.
                     </p>
                     <Button
                       asChild

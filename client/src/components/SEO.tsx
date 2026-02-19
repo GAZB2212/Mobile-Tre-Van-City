@@ -15,12 +15,12 @@ export default function SEO({
   description,
   canonical,
   ogType = "website",
-  ogImage = "https://northwestvanconversions.co.uk/og-image.jpg",
+  ogImage = "https://tyrevancity.com/og-image.jpg",
   noindex = false,
   structuredData
 }: SEOProps) {
-  const fullTitle = `${title} | Northwest Van Conversions`;
-  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://northwestvanconversions.co.uk';
+  const fullTitle = `${title} | Tyre Van City`;
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tyrevancity.com';
   const currentUrl = typeof window !== 'undefined' ? window.location.href : siteUrl;
   const canonicalUrl = canonical ? `${siteUrl}${canonical}` : currentUrl;
 
@@ -34,7 +34,7 @@ export default function SEO({
       { property: 'og:type', content: ogType },
       { property: 'og:url', content: canonicalUrl },
       { property: 'og:image', content: ogImage },
-      { property: 'og:site_name', content: 'Northwest Van Conversions' },
+      { property: 'og:site_name', content: 'Tyre Van City' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: fullTitle },
       { name: 'twitter:description', content: description },
@@ -89,10 +89,10 @@ export default function SEO({
 export const organizationStructuredData = {
   "@context": "https://schema.org",
   "@type": "AutomotiveBusiness",
-  "name": "Northwest Van Conversions",
-  "description": "Premium van conversions and equipment specialists in the Northwest UK",
-  "url": "https://northwestvanconversions.co.uk",
-  "logo": "https://northwestvanconversions.co.uk/logo.png",
+  "name": "Tyre Van City",
+  "description": "Premium mobile tyre van conversions and equipment specialists in the UK",
+  "url": "https://tyrevancity.com",
+  "logo": "https://tyrevancity.com/logo.png",
   "contactPoint": {
     "@type": "ContactPoint",
     "telephone": "+44-XXXX-XXXXXX",
@@ -119,15 +119,15 @@ export function createProductStructuredData(van: {
   return {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": `${van.year} ${van.make} ${van.model} - Northwest Van Conversion`,
-    "description": van.description || `Professional van conversion based on ${van.year} ${van.make} ${van.model}`,
-    "image": van.image || "https://northwestvanconversions.co.uk/default-van.jpg",
+    "name": `${van.year} ${van.make} ${van.model} - Mobile Tyre Van Conversion`,
+    "description": van.description || `Professional mobile tyre van conversion based on ${van.year} ${van.make} ${van.model}`,
+    "image": van.image || "https://tyrevancity.com/default-van.jpg",
     "offers": {
       "@type": "Offer",
       "priceCurrency": "GBP",
       "price": van.price / 100,
       "availability": "https://schema.org/InStock",
-      "url": `https://northwestvanconversions.co.uk/stock/${van.id}`
+      "url": `https://tyrevancity.com/stock/${van.id}`
     },
     "brand": {
       "@type": "Brand",
@@ -144,7 +144,7 @@ export function createBreadcrumbStructuredData(items: Array<{ name: string; url:
       "@type": "ListItem",
       "position": index + 1,
       "name": item.name,
-      "item": `https://northwestvanconversions.co.uk${item.url}`
+      "item": `https://tyrevancity.com${item.url}`
     }))
   };
 }

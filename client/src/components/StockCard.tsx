@@ -67,17 +67,17 @@ export default function StockCard({
           <p className="text-sm text-muted-foreground">{title}</p>
         </div>
         
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
-          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Calendar className="w-4 h-4 mr-1" />
             {year}
           </div>
-          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-            <Gauge className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Gauge className="w-4 h-4 mr-1" />
             {mileage.toLocaleString()}mi
           </div>
-          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-            <Fuel className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Fuel className="w-4 h-4 mr-1" />
             {specs.fuel}
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function StockCard({
         </div>
         
         <div className="mb-4">
-          <div className="text-2xl font-bold text-white" data-testid={`text-price-${id}`}>
+          <div className="text-2xl font-bold text-chart-2" data-testid={`text-price-${id}`}>
             {formatPrice(price)}
           </div>
           <div className="text-sm text-muted-foreground">
@@ -102,7 +102,7 @@ export default function StockCard({
       </CardContent>
       
       <CardFooter className="p-4 pt-0 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 !border-2 !border-white text-white bg-transparent" asChild data-testid={`button-view-${id}`}>
+        <Button variant="outline" size="sm" className="flex-1 !border-2 !border-accent text-accent hover:bg-accent/10" asChild data-testid={`button-view-${id}`}>
           <Link href={`/stock/${slug}`}>
             <Eye className="w-4 h-4 mr-2" />
             View
@@ -110,7 +110,7 @@ export default function StockCard({
         </Button>
         <Button 
           size="sm" 
-          className="flex-1 !border-2 !border-white text-white bg-transparent" 
+          className="flex-1 bg-chart-3 hover:bg-chart-3/90 text-black" 
           data-testid={`button-configure-${id}`}
           onClick={() => {
             setVan(id);
