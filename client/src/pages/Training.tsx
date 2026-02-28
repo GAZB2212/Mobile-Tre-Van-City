@@ -124,7 +124,7 @@ export default function Training() {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/configurator/van">
-                <Button size="lg" data-testid="button-start-configurator">
+                <Button size="lg" className="border-green-600 font-semibold bg-[#8bc440e6] text-[#191919]" data-testid="button-start-configurator">
                   <ShieldCheck className="w-5 h-5 mr-2" />
                   Start Your Van Build
                 </Button>
