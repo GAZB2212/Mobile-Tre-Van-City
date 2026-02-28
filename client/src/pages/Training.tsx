@@ -156,15 +156,15 @@ export default function Training() {
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                     <span className="text-sm">Legal requirement for motorway operations</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                     <span className="text-sm">Essential for insurance coverage</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                     <span className="text-sm">Industry-recognized certification</span>
                   </li>
                 </ul>
@@ -290,8 +290,8 @@ export default function Training() {
           <div className="grid md:grid-cols-2 gap-8">
             <Card data-testid="card-benefits">
               <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <Award className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                  <Award className="w-6 h-6 text-accent" />
                 </div>
                 <CardTitle>Training Benefits</CardTitle>
               </CardHeader>
@@ -299,7 +299,7 @@ export default function Training() {
                 <ul className="space-y-3">
                   {trainingBenefits.map((benefit, index) => (
                     <li key={index} className="flex items-start gap-3" data-testid={`item-benefit-${index}`}>
-                      <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                       <span>{benefit}</span>
                     </li>
                   ))}
@@ -309,8 +309,8 @@ export default function Training() {
 
             <Card data-testid="card-requirements">
               <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-accent" />
                 </div>
                 <CardTitle>Entry Requirements</CardTitle>
               </CardHeader>
@@ -318,7 +318,7 @@ export default function Training() {
                 <ul className="space-y-3">
                   {requirements.map((requirement, index) => (
                     <li key={index} className="flex items-start gap-3" data-testid={`item-requirement-${index}`}>
-                      <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
                       <span>{requirement}</span>
                     </li>
                   ))}
@@ -344,8 +344,8 @@ export default function Training() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="hover-elevate" data-testid="card-full-certification">
               <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <FileText className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                  <FileText className="w-6 h-6 text-accent" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Full Certification</h3>
                 <p className="text-muted-foreground">
@@ -356,8 +356,8 @@ export default function Training() {
 
             <Card className="hover-elevate" data-testid="card-hands-on">
               <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <CarFront className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                  <CarFront className="w-6 h-6 text-accent" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Hands-On Practice</h3>
                 <p className="text-muted-foreground">
@@ -368,8 +368,8 @@ export default function Training() {
 
             <Card className="hover-elevate" data-testid="card-ongoing-support">
               <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-accent" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Ongoing Support</h3>
                 <p className="text-muted-foreground">
