@@ -222,8 +222,8 @@ export default function Training() {
               <Card key={index} className="hover-elevate" data-testid={`card-react-module-${index}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <span className="font-bold text-primary">{index + 1}</span>
+                    <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                      <span className="font-bold text-accent">{index + 1}</span>
                     </div>
                     <Badge variant="secondary" data-testid={`badge-react-duration-${index}`}>
                       <Clock className="w-3 h-3 mr-1" />
