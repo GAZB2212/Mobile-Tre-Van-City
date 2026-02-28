@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import Joyride, { Step, CallBackProps, STATUS } from "react-joyride";
 import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ConfiguratorTutorialProps {
   page: "van" | "kit" | "upgrades" | "training" | "finance" | "quote";
@@ -121,48 +128,60 @@ const tutorialSteps: Record<string, Step[]> = {
 export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
   const [run, setRun] = useState(false);
   const [isAutoStart, setIsAutoStart] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     // Check if user has seen tutorial for this specific page
     const pageKey = `configurator-tutorial-${page}-seen`;
     const hasSeenThisPage = localStorage.getItem(pageKey) === "true";
+    const hasDeclinedTutorial = localStorage.getItem("configurator-tutorial-declined") === "true";
 
-    console.log(`Tutorial check for ${page}:`, { hasSeenThisPage, pageKey });
+    console.log(`Tutorial check for ${page}:`, { hasSeenThisPage, pageKey, hasDeclinedTutorial });
 
-    // Auto-start tutorial on first visit to each page
-    if (!hasSeenThisPage) {
-      console.log(`Auto-starting tutorial for ${page} (first visit)`);
-      setIsAutoStart(true);
-      
-      // Wait for all target elements to exist before starting
-      const waitForElements = () => {
-        const steps = tutorialSteps[page] || [];
-        const allTargetsExist = steps.every(step => {
-          // Skip "body" target as it always exists
-          if (step.target === "body") return true;
-          // Check if element exists
-          const exists = document.querySelector(step.target as string) !== null;
-          if (!exists) {
-            console.log(`Waiting for element: ${step.target}`);
-          }
-          return exists;
-        });
-
-        if (allTargetsExist) {
-          console.log(`All elements ready for ${page} tutorial, starting...`);
-          setRun(true);
-        } else {
-          // Keep checking every 100ms until elements load
-          setTimeout(waitForElements, 100);
-        }
-      };
-
-      // Start checking after initial delay for page render
-      setTimeout(waitForElements, 500);
+    // Show prompt on first visit to the first page (van) if not seen and not declined
+    if (!hasSeenThisPage && !hasDeclinedTutorial) {
+      if (page === "van") {
+        setShowPrompt(true);
+      } else {
+        // For other pages, we still want to auto-start if they haven't seen it, 
+        // but only if they haven't globally declined
+        console.log(`Auto-starting tutorial for ${page} (first visit)`);
+        setIsAutoStart(true);
+        startTutorialCheck();
+      }
     } else {
-      console.log(`Skipping auto-start for ${page} (already seen)`);
+      console.log(`Skipping auto-start for ${page} (already seen or declined)`);
     }
   }, [page]);
+
+  const startTutorialCheck = () => {
+    // Wait for all target elements to exist before starting
+    const waitForElements = () => {
+      const steps = tutorialSteps[page] || [];
+      const allTargetsExist = steps.every(step => {
+        if (step.target === "body") return true;
+        return document.querySelector(step.target as string) !== null;
+      });
+
+      if (allTargetsExist) {
+        setRun(true);
+      } else {
+        setTimeout(waitForElements, 100);
+      }
+    };
+    setTimeout(waitForElements, 500);
+  };
+
+  const handleAcceptTutorial = () => {
+    setShowPrompt(false);
+    setIsAutoStart(true);
+    startTutorialCheck();
+  };
+
+  const handleDeclineTutorial = () => {
+    setShowPrompt(false);
+    localStorage.setItem("configurator-tutorial-declined", "true");
+  };
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status } = data;
@@ -215,6 +234,25 @@ export function ConfiguratorTutorial({ page }: ConfiguratorTutorialProps) {
 
   return (
     <>
+      <Dialog open={showPrompt} onOpenChange={setShowPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Welcome to the Configurator</DialogTitle>
+            <DialogDescription>
+              Would you like a quick tour of how to build your perfect mobile tyre van?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={handleDeclineTutorial}>
+              No thanks
+            </Button>
+            <Button onClick={handleAcceptTutorial}>
+              Start Tour
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Joyride
         steps={steps}
         run={run}
