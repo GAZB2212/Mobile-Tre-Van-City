@@ -55,12 +55,15 @@ export default function Login() {
         title: "Success",
         description: "Logged in successfully",
       });
-      // Redirect based on user role - basic and full admins go to admin panel
-      if (data.adminRole && data.adminRole !== "none") {
-        setLocation("/admin");
-      } else {
-        setLocation("/");
-      }
+      // Force a small delay to ensure session is settled before redirect
+      setTimeout(() => {
+        // Redirect based on user role - basic and full admins go to admin panel
+        if (data.adminRole && data.adminRole !== "none") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/";
+        }
+      }, 100);
     },
     onError: (error: any) => {
       toast({

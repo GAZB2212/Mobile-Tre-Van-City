@@ -25,6 +25,7 @@ const kitSchema = z.object({
   includes: z.array(z.string()).min(1, "At least one included item is required"),
   powerKw: z.string().min(1, "Power (kW) is required"),
   price: z.number().min(0, "Price must be positive"),
+  euroSixCompatible: z.boolean().default(false),
   images: z.array(z.string()).default([]),
   published: z.boolean().default(true),
 });
@@ -52,6 +53,7 @@ export default function AdminKits() {
       includes: [],
       powerKw: "",
       price: 0,
+      euroSixCompatible: false,
       images: [],
       published: true,
     },
@@ -204,6 +206,7 @@ export default function AdminKits() {
       includes: kit.includes || [],
       powerKw: kit.powerKw,
       price: parseInt(kit.price.toString()) / 100, // Convert from pence
+      euroSixCompatible: kit.euroSixCompatible,
       images: kit.images || [],
       published: kit.published,
     });
@@ -471,6 +474,28 @@ export default function AdminKits() {
 
                 <FormField
                   control={form.control}
+                  name="euroSixCompatible"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Euro 6 Compatible</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Select for Euro 6 vehicles (newer vans with smart alternators/split chargers)
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-kit-euro6"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="published"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between rounded-lg border p-4">
@@ -570,7 +595,7 @@ export default function AdminKits() {
                           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddInclude())}
                           data-testid="input-edit-kit-include"
                         />
-                        <Button type="button" onClick={handleAddInclude} data-testid="button-edit-add-include">
+                        <Button type="button" onClick={handleAddInclude} data-testid="button-add-include-edit">
                           Add
                         </Button>
                       </div>
@@ -616,7 +641,7 @@ export default function AdminKits() {
                                     }
                                   }}
                                   autoFocus
-                                  data-testid={`input-edit-dialog-item-${index}`}
+                                  data-testid={`input-edit-item-edit-${index}`}
                                 />
                                 <Button
                                   type="button"
@@ -624,7 +649,7 @@ export default function AdminKits() {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={handleSaveEditItem}
-                                  data-testid={`button-edit-save-item-${index}`}
+                                  data-testid={`button-save-item-edit-${index}`}
                                 >
                                   <Check className="h-4 w-4" />
                                 </Button>
@@ -634,7 +659,7 @@ export default function AdminKits() {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={handleCancelEditItem}
-                                  data-testid={`button-edit-cancel-item-${index}`}
+                                  data-testid={`button-cancel-item-edit-${index}`}
                                 >
                                   ×
                                 </Button>
@@ -648,7 +673,7 @@ export default function AdminKits() {
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={() => handleStartEditItem(index)}
-                                  data-testid={`button-edit-dialog-item-${index}`}
+                                  data-testid={`button-edit-item-edit-${index}`}
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -658,7 +683,7 @@ export default function AdminKits() {
                                   size="icon"
                                   className="h-8 w-8 text-destructive hover:text-destructive"
                                   onClick={() => handleRemoveInclude(index)}
-                                  data-testid={`button-edit-remove-include-${index}`}
+                                  data-testid={`button-remove-include-edit-${index}`}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -723,10 +748,29 @@ export default function AdminKits() {
                         data-testid="uploader-edit-kit-images"
                       />
                     </FormControl>
-                    <div className="text-sm text-muted-foreground">
-                      Upload product images to showcase the kit equipment
-                    </div>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="euroSixCompatible"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Euro 6 Compatible</FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        Select for Euro 6 vehicles (newer vans with smart alternators/split chargers)
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="switch-edit-kit-euro6"
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
@@ -775,120 +819,92 @@ export default function AdminKits() {
         </DialogContent>
       </Dialog>
 
-      {/* Kits Grid */}
-      <div className="grid gap-4">
-        {kits.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="w-12 h-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No equipment kits yet</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Create your first equipment kit to get started with the configurator.
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {kits.map((kit, index) => (
+          <Card key={kit.id} className="overflow-hidden flex flex-col">
+            <div className="aspect-video relative bg-muted group">
+              {kit.images?.[0] ? (
+                <img
+                  src={kit.images[0]}
+                  alt={kit.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Package className="w-12 h-12 text-muted-foreground/50" />
+                </div>
+              )}
+              <div className="absolute top-2 right-2 flex gap-1">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                  onClick={() => handleMoveKitUp(index)}
+                  disabled={index === 0}
+                  data-testid={`button-card-move-up-${kit.id}`}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                  onClick={() => handleMoveKitDown(index)}
+                  disabled={index === kits.length - 1}
+                  data-testid={`button-card-move-down-${kit.id}`}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{kit.name}</CardTitle>
+                <div className="flex gap-2">
+                  {!kit.published && (
+                    <Badge variant="outline">Unpublished</Badge>
+                  )}
+                  {kit.euroSixCompatible && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 no-default-hover-elevate">Euro 6</Badge>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-4">
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {kit.description}
               </p>
-              <Button onClick={() => setIsCreateDialogOpen(true)} data-testid="button-create-first-kit">
-                <Plus className="w-4 h-4 mr-2" />
-                Create First Kit
-              </Button>
+              <div className="flex items-center justify-between">
+                <div className="font-bold text-lg">{formatPrice(kit.price)}</div>
+                <div className="text-sm font-medium">{kit.powerKw}kW</div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleEditKit(kit)}
+                  data-testid={`button-edit-kit-card-${kit.id}`}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10"
+                  size="icon"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this kit?")) {
+                      deleteMutation.mutate(kit.id);
+                    }
+                  }}
+                  data-testid={`button-delete-kit-card-${kit.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          kits.map((kit: Kit, index: number) => (
-            <Card key={kit.id} className="hover-elevate">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex flex-col gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={() => handleMoveKitUp(index)}
-                        disabled={index === 0 || reorderMutation.isPending}
-                        data-testid={`button-move-kit-up-${kit.id}`}
-                      >
-                        <ChevronUp className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={() => handleMoveKitDown(index)}
-                        disabled={index === kits.length - 1 || reorderMutation.isPending}
-                        data-testid={`button-move-kit-down-${kit.id}`}
-                      >
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CardTitle className="text-lg">{kit.name}</CardTitle>
-                        {!kit.published && (
-                          <Badge variant="outline" data-testid={`badge-unpublished-${kit.id}`}>
-                            Unpublished
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{kit.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditKit(kit)}
-                      data-testid={`button-edit-kit-${kit.id}`}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(kit.id)}
-                      disabled={deleteMutation.isPending}
-                      data-testid={`button-delete-kit-${kit.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Power</Label>
-                    <p className="text-sm text-muted-foreground" data-testid={`text-kit-power-${kit.id}`}>
-                      {kit.powerKw} kW
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Price</Label>
-                    <p className="text-sm font-semibold" data-testid={`text-kit-price-${kit.id}`}>
-                      {formatPrice(parseInt(kit.price.toString()))}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Includes</Label>
-                    <p className="text-sm text-muted-foreground" data-testid={`text-kit-includes-${kit.id}`}>
-                      {kit.includes?.length || 0} items
-                    </p>
-                  </div>
-                </div>
-                {kit.includes && kit.includes.length > 0 && (
-                  <div className="mt-4">
-                    <Label className="text-sm font-medium">Included Items:</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {kit.includes.map((item, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {item}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
-        )}
+        ))}
       </div>
     </div>
   );
