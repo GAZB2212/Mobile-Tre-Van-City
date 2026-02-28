@@ -145,8 +145,8 @@ export default function Training() {
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             <Card className="border-primary/20" data-testid="card-react-overview">
               <CardHeader>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
+                  <ShieldCheck className="w-6 h-6 text-accent" />
                 </div>
                 <CardTitle className="text-2xl">REACT Training</CardTitle>
               </CardHeader>
