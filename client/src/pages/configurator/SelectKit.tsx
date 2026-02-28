@@ -38,8 +38,11 @@ export default function SelectKit() {
   // Filter kits based on van's Euro status
   const { filteredKits: kits, filterMessage } = useMemo(() => {
     if (!van?.euroStatus) {
-      // If no van selected or no euro status, show all kits
-      return { filteredKits: allKits, filterMessage: null };
+      // If no van selected or no euro status, show all kits sorted by sortOrder
+      return { 
+        filteredKits: [...allKits].sort((a, b) => a.sortOrder - b.sortOrder), 
+        filterMessage: null 
+      };
     }
 
     // Check if van is Euro 6
@@ -49,10 +52,10 @@ export default function SelectKit() {
     // Filter kits based on compatibility
     const filtered = allKits.filter(kit => kit.euroSixCompatible === isEuro6);
 
-    // If no kits match the filter, show all kits with a warning message
+    // If no kits match the filter, show all kits with a warning message (sorted by sortOrder)
     if (filtered.length === 0) {
       return {
-        filteredKits: allKits,
+        filteredKits: [...allKits].sort((a, b) => a.sortOrder - b.sortOrder),
         filterMessage: {
           type: 'warning' as const,
           title: `Limited ${van.euroStatus} Options Available`,
@@ -61,9 +64,9 @@ export default function SelectKit() {
       };
     }
 
-    // Return filtered kits with success message
+    // Return filtered kits with success message (sorted by sortOrder)
     return {
-      filteredKits: filtered,
+      filteredKits: filtered.sort((a, b) => a.sortOrder - b.sortOrder),
       filterMessage: {
         type: 'info' as const,
         title: `Showing ${van.euroStatus} Compatible Equipment`,
