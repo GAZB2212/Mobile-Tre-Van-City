@@ -34,7 +34,14 @@ async function bootstrapAdmin() {
       log(`⚠️  Default password: ${adminPassword}`);
       log(`⚠️  Please change the password after first login!`);
     } else {
-      log(`✅ Admin user exists: ${adminUsername}`);
+      // Ensure the admin user always has the correct role — fixes cases where
+      // the user was created with adminRole "none" in a previous deployment
+      if (existingAdmin.adminRole !== "full") {
+        await storage.updateUser(existingAdmin.id, { adminRole: "full" });
+        log(`✅ Admin role corrected to "full" for: ${adminUsername}`);
+      } else {
+        log(`✅ Admin user exists: ${adminUsername}`);
+      }
     }
   } catch (error) {
     console.error("❌ Failed to bootstrap admin user:", error);
