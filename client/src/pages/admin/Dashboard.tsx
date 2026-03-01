@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <item.icon className="w-5 h-5 text-primary" />
+                      <item.icon className="w-5 h-5 text-accent" />
                       <CardTitle className="text-lg">{item.title}</CardTitle>
                     </div>
                     <Badge variant="outline">{item.badge}</Badge>
