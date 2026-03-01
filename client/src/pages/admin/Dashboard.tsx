@@ -132,7 +132,7 @@ export default function AdminDashboard() {
       requiredRole: "full" as const
     },
     {
-      title: "View Quotes",
+      title: "View Completed Configurators",
       description: "Review customer quotes and requests",
       icon: FileText,
       href: "/admin/quotes",
