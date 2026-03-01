@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
 import { VanWizard } from "@/components/VanWizard";
@@ -21,8 +21,7 @@ import type { Van, InsertVan } from "@shared/schema";
 
 export default function AdminVans() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
-  const [editingVan, setEditingVan] = useState<Van | null>(null);
+  const [editingVanId, setEditingVanId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDialogTab, setEditDialogTab] = useState<string>("details");
@@ -32,6 +31,9 @@ export default function AdminVans() {
     queryKey: ['/api/admin/vans'],
   });
 
+  // Derive editingVan live from query cache so images update immediately after upload
+  const editingVan = vans.find(v => v.id === editingVanId) ?? null;
+
   // Create van mutation
   const createVanMutation = useMutation({
     mutationFn: async (vanData: InsertVan) => {
@@ -39,17 +41,16 @@ export default function AdminVans() {
       return response.json();
     },
     onSuccess: async (createdVan: Van) => {
-      console.log('Van created successfully:', createdVan);
       await queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       setIsCreateDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Van published to website! Redirecting...",
+        title: "Van created!",
+        description: "Add photos using the Images tab below.",
       });
-      // Redirect to the live van page on the website
-      setTimeout(() => {
-        navigate(`/stock/${createdVan.slug}`);
-      }, 1000);
+      // Open edit dialog straight onto the Images tab so photos can be added immediately
+      setEditingVanId(createdVan.id);
+      setEditDialogTab("images");
+      setIsEditDialogOpen(true);
     },
     onError: () => {
       toast({
@@ -68,7 +69,7 @@ export default function AdminVans() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
       setIsEditDialogOpen(false);
-      setEditingVan(null);
+      setEditingVanId(null);
       toast({
         title: "Success",
         description: "Van updated successfully.",
@@ -410,7 +411,7 @@ export default function AdminVans() {
                       size="sm"
                       className="flex-1"
                       onClick={() => {
-                        setEditingVan(van);
+                        setEditingVanId(van.id);
                         setEditDialogTab("details");
                         setIsEditDialogOpen(true);
                       }}
@@ -442,7 +443,7 @@ export default function AdminVans() {
         <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
           setIsEditDialogOpen(open);
           if (!open) {
-            setEditingVan(null);
+            setEditingVanId(null);
             setEditDialogTab("details");
           }
         }}>
