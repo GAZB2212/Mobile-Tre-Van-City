@@ -36,23 +36,24 @@ export default function SelectKit() {
   });
 
   const isEuro6Van = useMemo(() => {
-    if (!van?.euroStatus) return false;
-    return (
-      van.euroStatus.toLowerCase().includes('euro 6') ||
-      van.euroStatus.toLowerCase().includes('euro6')
-    );
+    if (!van?.euroStatus) return null; // null = unknown
+    const s = van.euroStatus.toLowerCase();
+    if (s.includes('euro 6') || s.includes('euro6')) return true;
+    return false; // known non-euro-6
   }, [van]);
 
-  // Show all kits — euro 6 compatible ones sorted first when van is euro 6
+  // Always show all kits in their fixed sortOrder (1, 2, 3, 4)
   const kits = useMemo(() => {
-    const sorted = [...allKits].sort((a, b) => a.sortOrder - b.sortOrder);
-    if (!isEuro6Van) return sorted;
-    // Put euro 6 compatible kits first, then non-compatible, preserving sortOrder within each group
-    return [
-      ...sorted.filter(k => k.euroSixCompatible),
-      ...sorted.filter(k => !k.euroSixCompatible),
-    ];
-  }, [allKits, isEuro6Van]);
+    return [...allKits].sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [allKits]);
+
+  // Determine if selecting this kit should trigger a warning
+  const kitNeedsWarning = (kit: Kit): boolean => {
+    if (isEuro6Van === null) return false; // unknown euro status — no warning
+    if (isEuro6Van && !kit.euroSixCompatible) return true;  // euro 6 van, non-euro 6 kit
+    if (!isEuro6Van && kit.euroSixCompatible) return true;  // non-euro 6 van, euro 6 kit
+    return false;
+  };
 
   const confirmSelectKit = (kitId: string) => {
     setKit(kitId);
@@ -60,8 +61,7 @@ export default function SelectKit() {
   };
 
   const handleSelectKit = (kit: Kit) => {
-    // If the van is euro 6 and the selected kit is NOT euro 6 compatible, warn first
-    if (isEuro6Van && !kit.euroSixCompatible) {
+    if (kitNeedsWarning(kit)) {
       setWarnKit(kit);
       return;
     }
@@ -113,16 +113,19 @@ export default function SelectKit() {
                 </div>
               ) : (
                 <>
-                  {/* Euro 6 notice banner */}
-                  {isEuro6Van && (
+                  {/* Euro status notice banner */}
+                  {isEuro6Van !== null && van && (
                     <div className="mb-6 p-4 rounded-md flex items-start gap-3 bg-accent/10 border border-accent/20">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-accent" />
                       <div className="flex-1">
                         <p className="font-medium text-sm">
-                          Showing Euro 6 Compatible Equipment First
+                          {isEuro6Van ? 'Your van has a Euro 6 engine' : 'Your van has a non-Euro 6 engine'}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Your {van?.make} {van?.model} has a Euro 6 engine. We've sorted compatible kits to the top. Other packs are still available but may require confirmation.
+                          {isEuro6Van
+                            ? `Your ${van.make} ${van.model} has a Euro 6 engine. Packs marked Euro 6 are fully compatible. Selecting a non-Euro 6 pack will show a compatibility notice.`
+                            : `Your ${van.make} ${van.model} has a non-Euro 6 engine. Packs not marked Euro 6 are fully compatible. Selecting a Euro 6 pack will show a compatibility notice.`
+                          }
                         </p>
                       </div>
                     </div>
@@ -130,7 +133,7 @@ export default function SelectKit() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-kits">
                     {kits.map((kit) => {
-                      const isIncompatible = isEuro6Van && !kit.euroSixCompatible;
+                      const isIncompatible = kitNeedsWarning(kit);
                       return (
                         <Card 
                           key={kit.id} 
@@ -221,7 +224,7 @@ export default function SelectKit() {
       
       <ConfiguratorTutorial page="kit" />
 
-      {/* Euro 6 Compatibility Warning Dialog */}
+      {/* Compatibility Warning Dialog */}
       <Dialog open={!!warnKit} onOpenChange={(open) => !open && setWarnKit(null)}>
         <DialogContent className="max-w-md" data-testid="dialog-euro6-warning">
           <DialogHeader>
@@ -230,13 +233,14 @@ export default function SelectKit() {
                 <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <DialogTitle className="text-xl" data-testid="text-euro6-warning-title">
-                Euro 6 Engine Detected
+                Compatibility Notice
               </DialogTitle>
             </div>
             <DialogDescription className="text-sm text-muted-foreground pt-1 leading-relaxed" data-testid="text-euro6-warning-description">
-              Your selected vehicle has a <strong className="text-foreground">Euro 6 engine</strong>. The <strong className="text-foreground">{warnKit?.name}</strong> pack is not designed for Euro 6 vehicles and may not be compatible.
-              <br /><br />
-              We recommend selecting a Euro 6 compatible pack to ensure your equipment works correctly.
+              {isEuro6Van
+                ? <>Your selected vehicle has a <strong className="text-foreground">Euro 6 engine</strong>. The <strong className="text-foreground">{warnKit?.name}</strong> pack is not designed for Euro 6 vehicles and may not be compatible. We recommend selecting a Euro 6 compatible pack.</>
+                : <>Your selected vehicle has a <strong className="text-foreground">non-Euro 6 engine</strong>. The <strong className="text-foreground">{warnKit?.name}</strong> pack is designed for Euro 6 vehicles and may not be compatible. We recommend selecting a non-Euro 6 pack.</>
+              }
             </DialogDescription>
           </DialogHeader>
 
