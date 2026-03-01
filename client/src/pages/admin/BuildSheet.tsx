@@ -7,8 +7,40 @@ import { ArrowLeft, Printer } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+
+function PrintCheckbox({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
+  return (
+    <label
+      htmlFor={id}
+      className="flex items-center gap-0 cursor-pointer select-none"
+      style={{ minWidth: 0 }}
+    >
+      {/* Screen: real checkbox hidden, custom square shown */}
+      <span className="print:hidden inline-flex items-center justify-center w-5 h-5 rounded border-2 border-foreground/50 flex-shrink-0 mr-3"
+        style={{ background: checked ? 'currentColor' : 'transparent' }}
+        onClick={() => onChange(!checked)}
+        aria-hidden="true"
+      >
+        {checked && (
+          <svg viewBox="0 0 12 12" className="w-3 h-3 text-background" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="2,6 5,9 10,3" />
+          </svg>
+        )}
+      </span>
+      <input
+        type="checkbox"
+        id={id}
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="sr-only"
+      />
+      {/* Print: always show an empty square the engineer can tick */}
+      <span className="hidden print:inline-block w-5 h-5 border-2 border-black mr-3 flex-shrink-0 align-middle" aria-hidden="true" />
+    </label>
+  );
+}
 
 export default function BuildSheet() {
   const params = useParams();
@@ -22,7 +54,27 @@ export default function BuildSheet() {
     isLoading: boolean;
   };
 
-  // Redirect to login if not authenticated
+  // Checked items stored in localStorage per quote
+  const storageKey = `buildsheet-checked-${quoteId}`;
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const setChecked = useCallback((itemKey: string, value: boolean) => {
+    setCheckedItems(prev => {
+      const next = { ...prev, [itemKey]: value };
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [storageKey]);
+
+  const isChecked = (key: string) => !!checkedItems[key];
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -30,14 +82,10 @@ export default function BuildSheet() {
         description: "You are logged out. Logging in again...",
         variant: "destructive",
       });
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 500);
-      return;
+      setTimeout(() => { window.location.href = "/login"; }, 500);
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Check if user has admin role (basic or full)
   useEffect(() => {
     if (user && (!user.adminRole || user.adminRole === "none")) {
       toast({
@@ -45,10 +93,7 @@ export default function BuildSheet() {
         description: "Admin access required.",
         variant: "destructive",
       });
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
-      return;
+      setTimeout(() => { window.location.href = "/"; }, 1000);
     }
   }, [user, toast]);
 
@@ -97,9 +142,7 @@ export default function BuildSheet() {
     return stage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => { window.print(); };
 
   if (isLoading || isLoadingQuotes) {
     return (
@@ -112,21 +155,14 @@ export default function BuildSheet() {
     );
   }
 
-  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") {
-    return null;
-  }
+  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
 
   if (!isLoadingQuotes && !quote) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-destructive">Quote not found</p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => setLocation("/admin/quotes")}
-            data-testid="button-back-to-quotes"
-          >
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/admin/quotes")} data-testid="button-back-to-quotes">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Quotes
           </Button>
@@ -135,18 +171,39 @@ export default function BuildSheet() {
     );
   }
 
-  // TypeScript guard: quote is guaranteed to be defined here
   if (!quote) return null;
 
   return (
     <>
+      {/* Print-override styles injected into head via a style tag */}
+      <style>{`
+        @media print {
+          body, html {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          * {
+            color: #000000 !important;
+            background: #ffffff !important;
+            border-color: #000000 !important;
+            box-shadow: none !important;
+          }
+          .print-checkbox-square {
+            display: inline-block !important;
+            width: 14px !important;
+            height: 14px !important;
+            border: 2px solid #000 !important;
+            margin-right: 10px !important;
+            flex-shrink: 0 !important;
+            vertical-align: middle !important;
+          }
+        }
+      `}</style>
+
+      {/* Nav bar — hidden on print */}
       <div className="no-print bg-background border-b p-4">
         <div className="container mx-auto flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => setLocation("/admin/quotes")}
-            data-testid="button-back"
-          >
+          <Button variant="ghost" onClick={() => setLocation("/admin/quotes")} data-testid="button-back">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Quotes
           </Button>
@@ -157,20 +214,20 @@ export default function BuildSheet() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl print:max-w-full">
+      <div className="container mx-auto px-4 py-8 max-w-4xl print:max-w-full print:px-0 print:py-4">
+
+        {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">
-            Van Build Sheet
-          </h1>
-          <p className="text-muted-foreground">
-            Quote Reference: {quote.id.substring(0, 8).toUpperCase()}
+          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Van Build Sheet</h1>
+          <p className="text-muted-foreground print:text-black">
+            Quote Reference: <strong>{quote.id.substring(0, 8).toUpperCase()}</strong>
           </p>
-          <p className="text-sm text-muted-foreground">
-            Date: {formatDate(quote.createdAt)}
-          </p>
+          <p className="text-sm text-muted-foreground print:text-black">Date: {formatDate(quote.createdAt)}</p>
         </div>
 
         <div className="space-y-6">
+
+          {/* Customer Info */}
           <Card>
             <CardHeader>
               <CardTitle>Customer Information</CardTitle>
@@ -178,59 +235,46 @@ export default function BuildSheet() {
             <CardContent className="space-y-2">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium" data-testid="text-customer-name">
-                    {quote.userName}
-                  </p>
+                  <p className="text-sm text-muted-foreground print:text-black">Name</p>
+                  <p className="font-medium" data-testid="text-customer-name">{quote.userName}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium" data-testid="text-customer-email">
-                    {quote.email}
-                  </p>
+                  <p className="text-sm text-muted-foreground print:text-black">Email</p>
+                  <p className="font-medium" data-testid="text-customer-email">{quote.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-medium" data-testid="text-customer-phone">
-                    {quote.phone}
-                  </p>
+                  <p className="text-sm text-muted-foreground print:text-black">Phone</p>
+                  <p className="font-medium" data-testid="text-customer-phone">{quote.phone}</p>
                 </div>
                 {quote.company && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Company</p>
-                    <p className="font-medium" data-testid="text-customer-company">
-                      {quote.company}
-                    </p>
+                    <p className="text-sm text-muted-foreground print:text-black">Company</p>
+                    <p className="font-medium" data-testid="text-customer-company">{quote.company}</p>
                   </div>
                 )}
               </div>
               {quote.notes && (
                 <div className="mt-4">
-                  <p className="text-sm text-muted-foreground">Customer Request Notes</p>
-                  <p className="text-sm" data-testid="text-customer-notes">
-                    {quote.notes}
-                  </p>
+                  <p className="text-sm text-muted-foreground print:text-black">Customer Request Notes</p>
+                  <p className="text-sm" data-testid="text-customer-notes">{quote.notes}</p>
                 </div>
               )}
               {quote.adminNotes && (
                 <div className="mt-4">
-                  <p className="text-sm text-muted-foreground font-semibold">Admin Notes (Internal)</p>
-                  <p className="text-sm whitespace-pre-wrap" data-testid="text-admin-notes">
-                    {quote.adminNotes}
-                  </p>
+                  <p className="text-sm font-semibold text-muted-foreground print:text-black">Admin Notes (Internal)</p>
+                  <p className="text-sm whitespace-pre-wrap" data-testid="text-admin-notes">{quote.adminNotes}</p>
                 </div>
               )}
               {quote.customerNotes && (
                 <div className="mt-4">
-                  <p className="text-sm text-muted-foreground font-semibold">Customer Notes</p>
-                  <p className="text-sm whitespace-pre-wrap" data-testid="text-customer-facing-notes">
-                    {quote.customerNotes}
-                  </p>
+                  <p className="text-sm font-semibold text-muted-foreground print:text-black">Customer Notes</p>
+                  <p className="text-sm whitespace-pre-wrap" data-testid="text-customer-facing-notes">{quote.customerNotes}</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Van Spec */}
           {van && (
             <Card>
               <CardHeader>
@@ -243,43 +287,31 @@ export default function BuildSheet() {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Mileage</p>
-                      <p className="font-medium" data-testid="text-van-mileage">
-                        {van.mileage.toLocaleString()} miles
-                      </p>
+                      <p className="text-muted-foreground print:text-black">Mileage</p>
+                      <p className="font-medium" data-testid="text-van-mileage">{van.mileage.toLocaleString()} miles</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Transmission</p>
-                      <p className="font-medium" data-testid="text-van-transmission">
-                        {van.specs.transmission}
-                      </p>
+                      <p className="text-muted-foreground print:text-black">Transmission</p>
+                      <p className="font-medium" data-testid="text-van-transmission">{van.specs.transmission}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Fuel Type</p>
-                      <p className="font-medium" data-testid="text-van-fuel">
-                        {van.specs.fuel}
-                      </p>
+                      <p className="text-muted-foreground print:text-black">Fuel Type</p>
+                      <p className="font-medium" data-testid="text-van-fuel">{van.specs.fuel}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Size/Body Type</p>
-                      <p className="font-medium" data-testid="text-van-size">
-                        {van.specs.size}
-                      </p>
+                      <p className="text-muted-foreground print:text-black">Size/Body Type</p>
+                      <p className="font-medium" data-testid="text-van-size">{van.specs.size}</p>
                     </div>
                     {van.specs.engine && (
                       <div>
-                        <p className="text-muted-foreground">Engine</p>
-                        <p className="font-medium" data-testid="text-van-engine">
-                          {van.specs.engine}
-                        </p>
+                        <p className="text-muted-foreground print:text-black">Engine</p>
+                        <p className="font-medium" data-testid="text-van-engine">{van.specs.engine}</p>
                       </div>
                     )}
                     {van.specs.doors && (
                       <div>
-                        <p className="text-muted-foreground">Doors</p>
-                        <p className="font-medium" data-testid="text-van-doors">
-                          {van.specs.doors}
-                        </p>
+                        <p className="text-muted-foreground print:text-black">Doors</p>
+                        <p className="font-medium" data-testid="text-van-doors">{van.specs.doors}</p>
                       </div>
                     )}
                   </div>
@@ -288,62 +320,87 @@ export default function BuildSheet() {
             </Card>
           )}
 
+          {/* Kit Items — with checkboxes */}
           {kit && (
             <Card>
               <CardHeader>
-                <CardTitle>Equipment Package - To Install</CardTitle>
+                <CardTitle>Equipment Package — Items to Install</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold" data-testid="text-kit-name">
-                    {kit.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground" data-testid="text-kit-description">
-                    {kit.description}
-                  </p>
-                  <div className="mt-3">
-                    <p className="text-sm font-semibold mb-2 text-foreground">Items to Install:</p>
-                    <ul className="list-disc list-inside space-y-1.5 text-sm">
-                      {kit.includes.map((item, idx) => (
-                        <li key={idx} className="font-medium" data-testid={`text-kit-includes-${idx}`}>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
+                  <div>
+                    <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
+                    <p className="text-sm text-muted-foreground print:text-black mt-0.5" data-testid="text-kit-description">{kit.description}</p>
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    {kit.includes.map((item, idx) => {
+                      const itemKey = `kit-${idx}`;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1 py-1.5 border-b last:border-0"
+                          data-testid={`row-kit-item-${idx}`}
+                        >
+                          <PrintCheckbox
+                            id={`checkbox-kit-${idx}`}
+                            checked={isChecked(itemKey)}
+                            onChange={v => setChecked(itemKey, v)}
+                          />
+                          <span
+                            className={`text-sm font-medium flex-1 ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                            data-testid={`text-kit-includes-${idx}`}
+                          >
+                            {item}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
+          {/* Upgrades — with checkboxes */}
           {upgrades.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Additional Equipment & Upgrades - To Install</CardTitle>
+                <CardTitle>Additional Equipment &amp; Upgrades — Items to Install</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-1">
                   {upgrades.map((upgrade) => {
                     const quantity = quote.selectedUpgrades?.[upgrade.id] || 1;
+                    const itemKey = `upgrade-${upgrade.id}`;
                     return (
                       <div
                         key={upgrade.id}
-                        className="border-b pb-3 last:border-0"
+                        className="flex items-start gap-1 py-2 border-b last:border-0"
+                        data-testid={`row-upgrade-${upgrade.id}`}
                       >
-                        <div className="flex items-start gap-2">
-                          {quantity > 1 && (
-                            <span className="font-bold text-accent text-lg">
-                              {quantity}×
-                            </span>
-                          )}
-                          <div className="flex-1">
-                            <p className="font-semibold" data-testid={`text-upgrade-name-${upgrade.id}`}>
+                        <PrintCheckbox
+                          id={`checkbox-upgrade-${upgrade.id}`}
+                          checked={isChecked(itemKey)}
+                          onChange={v => setChecked(itemKey, v)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            {quantity > 1 && (
+                              <span className="font-bold text-accent print:text-black text-base flex-shrink-0">
+                                {quantity}&times;
+                              </span>
+                            )}
+                            <p
+                              className={`font-semibold text-sm ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                              data-testid={`text-upgrade-name-${upgrade.id}`}
+                            >
                               {upgrade.name}
                             </p>
-                            <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-upgrade-description-${upgrade.id}`}>
-                              {upgrade.description}
-                            </p>
                           </div>
+                          <p className="text-sm text-muted-foreground print:text-black mt-0.5" data-testid={`text-upgrade-description-${upgrade.id}`}>
+                            {upgrade.description}
+                          </p>
                         </div>
                       </div>
                     );
@@ -353,6 +410,7 @@ export default function BuildSheet() {
             </Card>
           )}
 
+          {/* Build Status */}
           <Card>
             <CardHeader>
               <CardTitle>Build Status</CardTitle>
@@ -360,22 +418,20 @@ export default function BuildSheet() {
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-muted-foreground">Current Build Stage</p>
-                  <p className="text-lg font-semibold" data-testid="text-build-stage">
-                    {formatBuildStage(quote.buildStage)}
-                  </p>
+                  <p className="text-sm text-muted-foreground print:text-black">Current Build Stage</p>
+                  <p className="text-lg font-semibold" data-testid="text-build-stage">{formatBuildStage(quote.buildStage)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Quote Status</p>
+                  <p className="text-sm text-muted-foreground print:text-black">Quote Status</p>
                   <p className="font-medium" data-testid="text-quote-status">
                     {quote.status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
                   </p>
                 </div>
                 {quote.graphicsArtworkUrl && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Graphics Artwork</p>
-                    <p className="font-medium text-accent" data-testid="text-artwork-status">
-                      Artwork uploaded - See attached file
+                    <p className="text-sm text-muted-foreground print:text-black">Graphics Artwork</p>
+                    <p className="font-medium" data-testid="text-artwork-status">
+                      Artwork uploaded — See attached file
                     </p>
                   </div>
                 )}
@@ -384,16 +440,45 @@ export default function BuildSheet() {
           </Card>
         </div>
 
-        <div className="mt-8 p-4 bg-muted/50 rounded-lg print:mt-16">
-          <p className="text-sm font-semibold text-center mb-2">Build Team Instructions</p>
+        {/* Workshop instructions */}
+        <div className="mt-8 p-4 border rounded-md print:border-black">
+          <p className="text-sm font-bold mb-2">Build Team Instructions</p>
           <ul className="text-sm space-y-1 list-disc list-inside">
-            <li>This is a build specification sheet for internal use only</li>
             <li>Verify all equipment and parts are available before starting build</li>
             <li>Check vehicle condition and note any pre-existing damage</li>
+            <li>Tick each item above as it is fitted or installation is in progress</li>
             <li>Follow installation guides for all equipment packages</li>
             <li>Test all installed equipment before sign-off</li>
-            <li>Update build stage in system as work progresses</li>
+            <li>Update the build stage in the system as work progresses</li>
           </ul>
+
+          {/* Print-only signature line */}
+          <div className="hidden print:block mt-6 pt-4 border-t border-black">
+            <div className="grid grid-cols-2 gap-8 mt-2">
+              <div>
+                <p className="text-xs font-semibold mb-6">Engineer Name:</p>
+                <div className="border-b border-black h-px" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold mb-6">Signed &amp; Completed:</p>
+                <div className="border-b border-black h-px" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold mb-6">Date Started:</p>
+                <div className="border-b border-black h-px" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold mb-6">Date Completed:</p>
+                <div className="border-b border-black h-px" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Print-only footer */}
+        <div className="hidden print:block mt-6 text-center text-xs text-black border-t border-black pt-3">
+          <p>Mobile Tyre Van City &mdash; Internal Workshop Document &mdash; {formatDate(new Date())}</p>
+          <p>Quote Ref: {quote.id.substring(0, 8).toUpperCase()}</p>
         </div>
       </div>
     </>

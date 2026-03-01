@@ -333,13 +333,35 @@
   .no-print {
     display: none !important;
   }
-  
-  body {
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  
+
+  /* Force all text and backgrounds to black/white for legibility on paper */
+  * {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border-color: #cccccc !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Keep borders visible for card outlines */
+  .border, [class*="border"] {
+    border-color: #aaaaaa !important;
+  }
+
+  /* Strikethrough items should still show on print */
+  .print\:no-underline {
+    text-decoration: none !important;
+  }
+
   @page {
-    margin: 1cm;
+    margin: 1.5cm;
+    size: A4;
   }
 }
