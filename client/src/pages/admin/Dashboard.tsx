@@ -92,7 +92,7 @@ export default function AdminDashboard() {
       requiredRole: "full" as const
     },
     {
-      title: "Manage Kits",
+      title: "Manage Packs",
       description: "Configure equipment packages and pricing",
       icon: Package,
       href: "/admin/kits",
