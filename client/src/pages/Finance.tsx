@@ -117,7 +117,7 @@ export default function Finance() {
     <div className="min-h-screen bg-background">
       <SEO 
         title="Van Finance Options - Flexible Payment Plans"
-        description="Spread the cost of your mobile tyre van with our competitive finance packages. FCA authorised. Hire purchase and lease options available with affordable monthly payments."
+        description="Finance your new mobile tyre van with our flexible and competitive payment plans. Use our free finance calculator and get a quote today. We are an FCA authorised credit broker."
         canonical="/finance"
       />
       <Header />

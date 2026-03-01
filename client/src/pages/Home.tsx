@@ -19,8 +19,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="Premium Mobile Tyre Van Conversions UK"
-        description="Build your mobile tyre fitting business with our professional van conversions. Complete tyre equipment packages, REACT training included, finance options available. UK manufactured quality."
+        title="Custom-Built Mobile Tyre Vans UK | Nationwide Delivery"
+        description="Build your dream mobile tyre business with a custom-built van from Tyre Van City. We offer nationwide delivery, flexible finance, and complete, ready-to-earn conversion packages."
         canonical="/"
         structuredData={organizationStructuredData}
       />

@@ -59,7 +59,7 @@ export default function Stock() {
       <Header />
       <SEO 
         title="Mobile Tyre Van Stock - Ready to Go Conversions"
-        description="Browse our selection of professionally converted mobile tyre vans. All vehicles are fully equipped with tyre fitting equipment and ready for business. Finance options available."
+        description="Browse our current stock of ready-to-go mobile tyre vans. All vehicles are professionally converted, fully equipped, and available for nationwide delivery. Find your perfect van today."
         canonical="/stock"
       />
       {/* Hero Section */}

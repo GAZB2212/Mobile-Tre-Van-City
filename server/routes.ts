@@ -2606,6 +2606,82 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ============================================================
+  // SEO: 301 Permanent Redirects for domain migration
+  // ============================================================
+  const permanentRedirects: Record<string, string> = {
+    '/vans-1': '/stock',
+    '/vanfinance': '/finance',
+    '/info': '/configurator',
+    '/all-projects': '/gallery',
+  };
+
+  Object.entries(permanentRedirects).forEach(([from, to]) => {
+    app.get(from, (_req, res) => {
+      res.redirect(301, to);
+    });
+  });
+
+  // Redirect all old /vans/* URLs to /stock
+  app.get('/vans/*', (_req, res) => {
+    res.redirect(301, '/stock');
+  });
+
+  // ============================================================
+  // SEO: Dynamic XML Sitemap
+  // ============================================================
+  app.get('/sitemap.xml', async (_req, res) => {
+    try {
+      const SITE_URL = 'https://www.mobiletyrevancity.co.uk';
+      const today = new Date().toISOString().split('T')[0];
+
+      const staticPages = [
+        { url: '/', changefreq: 'weekly', priority: '1.0' },
+        { url: '/stock', changefreq: 'daily', priority: '0.9' },
+        { url: '/configurator', changefreq: 'monthly', priority: '0.9' },
+        { url: '/finance', changefreq: 'monthly', priority: '0.8' },
+        { url: '/training', changefreq: 'monthly', priority: '0.8' },
+        { url: '/gallery', changefreq: 'weekly', priority: '0.7' },
+        { url: '/about', changefreq: 'monthly', priority: '0.7' },
+        { url: '/contact', changefreq: 'monthly', priority: '0.6' },
+        { url: '/how-it-works', changefreq: 'monthly', priority: '0.6' },
+      ];
+
+      // Fetch all published vans dynamically
+      const vans = await storage.getVans();
+      const publishedVans = vans.filter(v => v.published && v.slug);
+
+      const staticEntries = staticPages.map(page => `
+  <url>
+    <loc>${SITE_URL}${page.url}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>`).join('');
+
+      const vanEntries = publishedVans.map(van => `
+  <url>
+    <loc>${SITE_URL}/stock/${van.slug}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`).join('');
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticEntries}
+${vanEntries}
+</urlset>`;
+
+      res.setHeader('Content-Type', 'application/xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.send(xml);
+    } catch (error) {
+      console.error('Sitemap error:', error);
+      res.status(500).send('Failed to generate sitemap');
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -69,7 +69,7 @@ export default function Contact() {
     <div className="min-h-screen bg-background">
       <SEO 
         title="Contact Us - Get In Touch"
-        description="Have questions about our mobile tyre van conversions? Contact us for expert advice on van conversions, equipment packages, training, and finance options. We're here to help you get started."
+        description="Get in touch with the Tyre Van City team. Contact us for a quote, ask a question about our van conversions, or visit our workshop in Bromborough, Wirral. Call 0151 203 8500."
         canonical="/contact"
       />
       <Header />

@@ -1,0 +1,273 @@
+Replit AI Prompt (V3 - Final): Implement Dynamic SEO & Migration Fixes
+
+Hello! I need you to act as an expert web developer and SEO specialist. Your task is to implement a series of critical SEO improvements and technical fixes to this website project to prepare it for a major site migration. The goal is to ensure that when the domain mobiletyrevancity.co.uk is pointed to this Replit project, there is zero loss of Google ranking and all SEO equity is transferred.
+
+A key requirement is that SEO metadata for individual van stock pages must be generated dynamically from the vehicle's data, as stock changes weekly. Please follow each instruction carefully.
+
+
+
+
+1. Global Site-Wide Changes
+
+These changes need to be applied across the entire website template or on every page.
+
+1.1. Update Header Contact Details:
+
+•
+In the top header bar only, the phone number is currently a placeholder 0800 123 4567. Please change this to the correct, real phone number: 0151 203 8500.
+
+•
+All other instances of the phone number and email address in the footer, CTA buttons, and on the Contact page are already correct and do not need to be changed.
+
+1.2. Implement Self-Referencing Canonical Tags:
+
+•
+On every single page of the site, you must add a self-referencing canonical tag in the <head> section. This tag should point to the page's own full URL. For example:
+
+•
+On the homepage (/), the tag should be: <link rel="canonical" href="https://www.mobiletyrevancity.co.uk/" />
+
+•
+On the stock page (/stock ), the tag should be: <link rel="canonical" href="https://www.mobiletyrevancity.co.uk/stock" />
+
+•
+On an individual van page like /stock/van-name, it should be dynamically generated: <link rel="canonical" href="https://www.mobiletyrevancity.co.uk/stock/van-name" />
+
+
+
+•
+IMPORTANT: Use the final domain https://www.mobiletyrevancity.co.uk for all canonical URLs, not the Replit preview URL.
+
+1.3. Add Meta Robots Tag:
+
+•
+On every page, ensure there is a meta robots tag in the <head> that allows indexing. The tag should be:
+<meta name="robots" content="index, follow">
+
+1.4. Add Open Graph & Twitter Card Meta Tags:
+
+•
+For every page, ensure the following Open Graph and Twitter card tags are present in the <head>, using the page's specific title, description, and a relevant image. This is crucial for social sharing.
+
+•
+<meta property="og:title" content="[Page Title Here]">
+
+•
+<meta property="og:description" content="[Page Meta Description Here]">
+
+•
+<meta property="og:url" content="[Full Page URL Here]">
+
+•
+<meta property="og:image" content="https://www.mobiletyrevancity.co.uk/og-image.jpg"> (You can use a default site-wide image )
+
+•
+<meta name="twitter:card" content="summary_large_image">
+
+
+
+
+
+
+2. Page-Specific SEO Improvements
+
+This section details the specific meta descriptions and title adjustments needed. Static pages will have fixed text, while dynamic pages (van stock) will use templates.
+
+2.1. Static Pages (Homepage, Finance, About, etc.)
+
+•
+Implement the following titles and meta descriptions for the main static pages. They are currently missing meta descriptions.
+
+Page
+Title
+Meta Description
+Homepage (/)
+Custom-Built Mobile Tyre Vans UK | Nationwide Delivery | Tyre Van City
+Build your dream mobile tyre business with a custom-built van from Tyre Van City. We offer nationwide delivery, flexible finance, and complete, ready-to-earn conversion packages.
+Stock (/stock)
+Mobile Tyre Van Stock - Ready to Go Conversions | Tyre Van City
+Browse our current stock of ready-to-go mobile tyre vans. All vehicles are professionally converted, fully equipped, and available for nationwide delivery. Find your perfect van today.
+Finance (/finance)
+Van Finance Options - Flexible Payment Plans | Tyre Van City
+Finance your new mobile tyre van with our flexible and competitive payment plans. Use our free finance calculator and get a quote today. We are an FCA authorised credit broker.
+Configurator (/configurator)
+Custom-Built Mobile Tyre Vans — Ready to Earn from Day One
+Design your perfect mobile tyre van with our interactive configurator. Choose your base van, equipment package, and custom upgrades to create a mobile workshop tailored to your business.
+Gallery (/gallery)
+Gallery - Van Conversion Portfolio | Tyre Van City
+Explore our portfolio of completed mobile tyre van conversions. See examples of our high-quality craftsmanship, custom branding, and professional equipment installations.
+Training (/training)
+Training Programme - REACT & Tyre Fitting Certification | Tyre Van City
+Get certified with our complete training programme. We offer both REACT motorway certification and professional tyre fitting courses to get your mobile business started safely and legally.
+About (/about)
+About Us - UK Mobile Tyre Van Conversion Specialists | Tyre Van City
+Learn more about Tyre Van City, the UK's leading mobile tyre van conversion specialists. Discover our mission, our build process, and our commitment to quality craftsmanship.
+Contact (/contact)
+Contact Us - Get In Touch | Tyre Van City
+Get in touch with the Tyre Van City team. Contact us for a quote, ask a question about our van conversions, or visit our workshop in Bromborough, Wirral. Call 0151 203 8500.
+
+
+
+
+2.2. Dynamic Van Pages (/stock/[van-slug])
+
+•
+The SEO meta tags for these pages must be generated automatically from the data for each specific van. Do not use static text.
+
+•
+Page Title Template: [Year] [Make] [Model] - Mobile Tyre Van | Tyre Van City
+
+•
+Meta Description Template: For sale: [Year] [Make] [Model]. A fully equipped mobile tyre van conversion with [Mileage] miles. [Transmission], [Fuel Type]. Finance available. Enquire now!
+
+
+
+
+3. Technical SEO Implementation
+
+This section covers the critical backend and configuration changes needed for the migration.
+
+3.1. Implement 301 Permanent Redirects:
+
+•
+This is the most important task. You need to configure the server to handle 301 permanent redirects. When the domain mobiletyrevancity.co.uk is live, any request for an old URL must be permanently redirected to its new equivalent.
+
+•
+Main Page Redirects:
+
+•
+Redirect /vans-1 to /stock
+
+•
+Redirect /vanfinance to /finance
+
+•
+Redirect /info to /configurator
+
+•
+Redirect /all-projects to /gallery
+
+
+
+•
+Old Van Stock Redirect Logic (Crucial):
+
+•
+The old site had van pages under the /vans/ directory. This entire directory no longer exists. Since stock rotates weekly, most of these old van URLs correspond to sold vehicles.
+
+•
+Implement a general rule: Any request for a URL path that starts with /vans/ should be permanently (301) redirected to the main /stock page.
+
+•
+This single rule will handle all old, indexed van pages from the previous site, sending users and search engine crawlers to the main stock page to see what is currently available. This is the correct approach for handling outdated, rotating product URLs.
+
+
+
+3.2. Implement Dynamic Schema Markup (Structured Data):
+
+•
+Individual Van Pages (/stock/[van-slug]): These pages are currently missing correct product/vehicle schema. Please add JSON-LD schema markup to the <head> of each van page template. The schema must be of type Vehicle and be populated dynamically with the specific van's data.
+
+•
+Dynamic Schema Template for a Van Page:
+
+JSON
+
+
+{
+  "@context": "https://schema.org",
+  "@type": "Vehicle",
+  "name": "[Dynamic Van Name, e.g., 2022 VAUXHALL MOVANO L3H2]",
+  "description": "[Dynamic Van Meta Description]",
+  "image": "[Dynamic URL of main van image]",
+  "brand": {
+    "@type": "Brand",
+    "name": "[Dynamic Make, e.g., VAUXHALL]"
+  },
+  "model": "[Dynamic Model, e.g., MOVANO L3H2]",
+  "vehicleModelDate": "[Dynamic Year, e.g., 2022]",
+  "mileageFromOdometer": {
+    "@type": "QuantitativeValue",
+    "value": [Dynamic Mileage, e.g., 54008],
+    "unitCode": "SMI"
+  },
+  "fuelType": "[Dynamic Fuel Type, e.g., DIESEL]",
+  "vehicleTransmission": "[Dynamic Transmission, e.g., Manual]",
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "GBP",
+    "price": "[Dynamic Price, e.g., 12995]",
+    "availability": "https://schema.org/InStock",
+    "url": "[Dynamic Full URL of the van page]"
+  }
+}
+
+
+
+
+
+
+
+•
+Homepage (/ ): The homepage has a basic AutomotiveBusiness schema. Please improve it by filling in the placeholder details.
+
+•
+Update this: "telephone":"+44-XXXX-XXXXXX" to "telephone":"+44-151-203-8500"
+
+•
+Update this: "address":{"@type":"PostalAddress","addressCountry":"GB"} to include the full address:
+
+JSON
+
+
+"address": {
+  "@type": "PostalAddress",
+  "streetAddress": "5-7 Bassendale Road",
+  "addressLocality": "Bromborough",
+  "addressRegion": "Wirral",
+  "postalCode": "CH62 3QL",
+  "addressCountry": "GB"
+}
+
+
+
+
+
+
+
+3.3. Create a robots.txt file:
+
+•
+In the root directory of the project, create a robots.txt file with the following content. This allows all search engines to crawl the site and tells them where to find the sitemap.
+
+Plain Text
+
+
+User-agent: *
+Allow: /
+
+Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
+
+
+
+
+
+3.4. Generate a Dynamic XML Sitemap:
+
+•
+The project needs to dynamically generate an sitemap.xml file at the root URL (/sitemap.xml ).
+
+•
+This sitemap must include the URLs of all public-facing static pages (homepage, stock, finance, etc.).
+
+•
+It must also automatically include the URL of every individual van page currently available in the /stock/ directory.
+
+•
+The sitemap should be automatically updated whenever a van is added or removed from the stock, ensuring Google always has an up-to-date list of your inventory.
+
+
+
+
+Thank you for your help. Please implement these changes so the site is fully prepared for the domain migration.
+

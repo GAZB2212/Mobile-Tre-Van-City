@@ -59,7 +59,7 @@ export default function Header() {
             <div className="flex items-center gap-6 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Phone className="w-3 h-3" />
-                <span>0800 123 4567</span>
+                <span>0151 203 8500</span>
               </div>
               <div className="hidden md:flex items-center gap-2">
                 <Clock className="w-3 h-3" />

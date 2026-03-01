@@ -105,7 +105,7 @@ export default function Training() {
       <Header />
       <SEO 
         title="Training Programme - REACT & Tyre Fitting Certification"
-        description="Comprehensive in-house training covering REACT motorway certification and professional tyre fitting. Full legal compliance, professional certification, and ongoing support included with every van."
+        description="Get certified with our complete training programme. We offer both REACT motorway certification and professional tyre fitting courses to get your mobile business started safely and legally."
         canonical="/training"
       />
       {/* Hero Section */}

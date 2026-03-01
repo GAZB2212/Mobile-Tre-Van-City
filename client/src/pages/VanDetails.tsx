@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Car, Fuel, Gauge, Settings, Calendar, CheckCircle, Phone, Mail, Wrench } from "lucide-react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
-import SEO, { createProductStructuredData, createBreadcrumbStructuredData } from "@/components/SEO";
+import SEO, { createVehicleStructuredData, createBreadcrumbStructuredData } from "@/components/SEO";
 import type { Van } from "@shared/schema";
 
 export default function VanDetails() {
@@ -87,24 +87,31 @@ export default function VanDetails() {
     { name: van.title, url: `/stock/${van.slug}` }
   ]);
 
-  const productData = createProductStructuredData({
-    id: van.id,
+  const vehicleData = createVehicleStructuredData({
     make: van.make,
     model: van.model,
     year: van.year,
     price: van.price,
-    image: van.heroImage || van.images[0]
+    mileage: van.mileage,
+    slug: van.slug,
+    heroImage: van.heroImage,
+    images: van.images,
+    specs: van.specs,
+    description: van.description || undefined,
   });
+
+  const vanTitle = `${van.year} ${van.make} ${van.model}`;
+  const vanDescription = `For sale: ${vanTitle}. A fully equipped mobile tyre van conversion${van.mileage ? ` with ${van.mileage.toLocaleString()} miles` : ''}. ${van.specs?.transmission || ''}, ${van.specs?.fuel || ''}. Finance available. Enquire now!`;
 
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title={`${van.title} - Mobile Tyre Van Conversion`}
-        description={`${van.year} ${van.make} ${van.model} mobile tyre van conversion. Fully equipped for mobile tyre fitting business. ${van.mileage ? `${van.mileage.toLocaleString()} miles.` : ''} Finance available.`}
+        title={`${vanTitle} - Mobile Tyre Van`}
+        description={vanDescription}
         canonical={`/stock/${van.slug}`}
         ogType="product"
         ogImage={van.heroImage || van.images[0]}
-        structuredData={[breadcrumbs, productData]}
+        structuredData={[breadcrumbs, vehicleData]}
       />
       {/* Header */}
       <section className="border-b bg-card">

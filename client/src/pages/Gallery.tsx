@@ -33,7 +33,7 @@ export default function Gallery() {
     <div className="min-h-screen bg-background">
       <SEO 
         title="Gallery - Van Conversion Portfolio"
-        description="Explore our collection of completed mobile tyre van conversions, interior layouts, equipment installations, and professional branding designs. See our quality craftsmanship."
+        description="Explore our portfolio of completed mobile tyre van conversions. See examples of our high-quality craftsmanship, custom branding, and professional equipment installations."
         canonical="/gallery"
       />
       <Header />

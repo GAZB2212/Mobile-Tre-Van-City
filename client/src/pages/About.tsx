@@ -35,7 +35,7 @@ export default function About() {
     <div className="min-h-screen bg-background">
       <SEO 
         title="About Us - UK Mobile Tyre Van Conversion Specialists"
-        description="Passionate about helping entrepreneurs start mobile tyre fitting businesses. Quality craftsmanship, industry expertise, and full support for your success. UK manufactured conversions."
+        description="Learn more about Tyre Van City, the UK's leading mobile tyre van conversion specialists. Discover our mission, our build process, and our commitment to quality craftsmanship."
         canonical="/about"
       />
       <Header />
