@@ -12,19 +12,19 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import type { Kit, Van } from "@shared/schema";
 
 export default function SelectKit() {
   const [, setLocation] = useLocation();
   const { state, setKit } = useConfigurator();
   const [modalKit, setModalKit] = useState<Kit | null>(null);
+  const [warnKit, setWarnKit] = useState<Kit | null>(null);
 
   const { data: allKits = [], isLoading } = useQuery<Kit[]>({
     queryKey: ['/api/kits'],
   });
 
-  // Fetch van data if van is selected
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
     queryFn: async () => {
@@ -35,49 +35,37 @@ export default function SelectKit() {
     enabled: !!state.vanId,
   });
 
-  // Filter kits based on van's Euro status
-  const { filteredKits: kits, filterMessage } = useMemo(() => {
-    if (!van?.euroStatus) {
-      // If no van selected or no euro status, show all kits sorted by sortOrder
-      return { 
-        filteredKits: [...allKits].sort((a, b) => a.sortOrder - b.sortOrder), 
-        filterMessage: null 
-      };
-    }
+  const isEuro6Van = useMemo(() => {
+    if (!van?.euroStatus) return false;
+    return (
+      van.euroStatus.toLowerCase().includes('euro 6') ||
+      van.euroStatus.toLowerCase().includes('euro6')
+    );
+  }, [van]);
 
-    // Check if van is Euro 6
-    const isEuro6 = van.euroStatus.toLowerCase().includes('euro 6') || 
-                   van.euroStatus.toLowerCase().includes('euro6');
+  // Show all kits — euro 6 compatible ones sorted first when van is euro 6
+  const kits = useMemo(() => {
+    const sorted = [...allKits].sort((a, b) => a.sortOrder - b.sortOrder);
+    if (!isEuro6Van) return sorted;
+    // Put euro 6 compatible kits first, then non-compatible, preserving sortOrder within each group
+    return [
+      ...sorted.filter(k => k.euroSixCompatible),
+      ...sorted.filter(k => !k.euroSixCompatible),
+    ];
+  }, [allKits, isEuro6Van]);
 
-    // Filter kits based on compatibility
-    const filtered = allKits.filter(kit => kit.euroSixCompatible === isEuro6);
-
-    // If no kits match the filter, show all kits with a warning message (sorted by sortOrder)
-    if (filtered.length === 0) {
-      return {
-        filteredKits: [...allKits].sort((a, b) => a.sortOrder - b.sortOrder),
-        filterMessage: {
-          type: 'warning' as const,
-          title: `Limited ${van.euroStatus} Options Available`,
-          description: `Your ${van.make} ${van.model} requires ${van.euroStatus} compatible equipment, but we currently have limited stock. Showing all available kits - please contact us to confirm compatibility.`
-        }
-      };
-    }
-
-    // Return filtered kits with success message (sorted by sortOrder)
-    return {
-      filteredKits: filtered.sort((a, b) => a.sortOrder - b.sortOrder),
-      filterMessage: {
-        type: 'info' as const,
-        title: `Showing ${van.euroStatus} Compatible Equipment`,
-        description: `Based on your ${van.make} ${van.model}'s emissions standard, we're showing kits specifically designed for ${van.euroStatus} vehicles.`
-      }
-    };
-  }, [allKits, van]);
-
-  const handleSelectKit = (kitId: string) => {
+  const confirmSelectKit = (kitId: string) => {
     setKit(kitId);
     setLocation('/configurator/upgrades');
+  };
+
+  const handleSelectKit = (kit: Kit) => {
+    // If the van is euro 6 and the selected kit is NOT euro 6 compatible, warn first
+    if (isEuro6Van && !kit.euroSixCompatible) {
+      setWarnKit(kit);
+      return;
+    }
+    confirmSelectKit(kit.id);
   };
 
   const formatPrice = (price: number) => {
@@ -125,89 +113,98 @@ export default function SelectKit() {
                 </div>
               ) : (
                 <>
-                  {/* Euro Status Filter Message */}
-                  {filterMessage && (
-                    <div className={`mb-6 p-4 rounded-md flex items-start gap-3 ${
-                      filterMessage.type === 'warning' 
-                        ? 'bg-destructive/10 border border-destructive/20' 
-                        : 'bg-accent/10 border border-accent/20'
-                    }`}>
-                      <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                        filterMessage.type === 'warning' ? 'text-destructive' : 'text-accent'
-                      }`} />
+                  {/* Euro 6 notice banner */}
+                  {isEuro6Van && (
+                    <div className="mb-6 p-4 rounded-md flex items-start gap-3 bg-accent/10 border border-accent/20">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-accent" />
                       <div className="flex-1">
                         <p className="font-medium text-sm">
-                          {filterMessage.title}
+                          Showing Euro 6 Compatible Equipment First
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {filterMessage.description}
+                          Your {van?.make} {van?.model} has a Euro 6 engine. We've sorted compatible kits to the top. Other packs are still available but may require confirmation.
                         </p>
                       </div>
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-kits">
-                    {kits.map((kit) => (
-                      <Card 
-                        key={kit.id} 
-                        className={`hover-elevate cursor-pointer ${state.kitId === kit.id ? 'ring-2 ring-accent' : ''}`}
-                        onClick={() => handleSelectKit(kit.id)}
-                        data-testid={`card-kit-${kit.id}`}
-                      >
-                        <CardHeader>
-                          <div className="flex items-start justify-between mb-2">
-                            <Badge variant="secondary" className="flex items-center gap-1" data-testid={`badge-kit-power-${kit.id}`}>
-                              <Zap className="w-3 h-3" />
-                              {kit.powerKw}kW
-                            </Badge>
-                            <p className="text-2xl font-bold text-accent" data-testid={`text-kit-price-${kit.id}`}>
-                              {formatPrice(kit.price)}
-                            </p>
-                          </div>
-                          <CardTitle className="text-xl" data-testid={`text-kit-name-${kit.id}`}>
-                            {kit.name}
-                          </CardTitle>
-                          <CardDescription data-testid={`text-kit-description-${kit.id}`}>
-                            {kit.description}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                              <Package className="w-4 h-4 text-accent" />
-                              <span>Includes:</span>
+                    {kits.map((kit) => {
+                      const isIncompatible = isEuro6Van && !kit.euroSixCompatible;
+                      return (
+                        <Card 
+                          key={kit.id} 
+                          className={`hover-elevate cursor-pointer ${state.kitId === kit.id ? 'ring-2 ring-accent' : ''} ${isIncompatible ? 'opacity-75' : ''}`}
+                          onClick={() => handleSelectKit(kit)}
+                          data-testid={`card-kit-${kit.id}`}
+                        >
+                          <CardHeader>
+                            <div className="flex items-start justify-between mb-2 gap-1 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="secondary" className="flex items-center gap-1" data-testid={`badge-kit-power-${kit.id}`}>
+                                  <Zap className="w-3 h-3" />
+                                  {kit.powerKw}kW
+                                </Badge>
+                                {kit.euroSixCompatible && (
+                                  <Badge className="bg-accent/20 text-accent border-accent/30" data-testid={`badge-euro6-${kit.id}`}>
+                                    Euro 6
+                                  </Badge>
+                                )}
+                                {isIncompatible && (
+                                  <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30" data-testid={`badge-incompatible-${kit.id}`}>
+                                    Non Euro 6
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-2xl font-bold text-accent" data-testid={`text-kit-price-${kit.id}`}>
+                                {formatPrice(kit.price)}
+                              </p>
                             </div>
-                            <ul className="space-y-1 ml-6">
-                              {kit.includes.map((item, idx) => (
-                                <li key={idx} className="text-sm text-muted-foreground list-disc" data-testid={`text-kit-includes-${kit.id}-${idx}`}>
-                                  {item}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="w-full mb-2"
-                            onClick={(e) => openModal(kit, e)}
-                            data-testid={`button-more-info-${kit.id}`}
-                          >
-                            <Info className="w-4 h-4 mr-2" />
-                            More Info
-                          </Button>
-                          
-                          <Button 
-                            className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
-                            variant={state.kitId === kit.id ? "default" : "outline"}
-                            data-testid={`button-select-kit-${kit.id}`}
-                          >
-                            {state.kitId === kit.id ? 'Selected' : 'Select Kit'}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <CardTitle className="text-xl" data-testid={`text-kit-name-${kit.id}`}>
+                              {kit.name}
+                            </CardTitle>
+                            <CardDescription data-testid={`text-kit-description-${kit.id}`}>
+                              {kit.description}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center gap-2 text-sm font-medium">
+                                <Package className="w-4 h-4 text-accent" />
+                                <span>Includes:</span>
+                              </div>
+                              <ul className="space-y-1 ml-6">
+                                {kit.includes.map((item, idx) => (
+                                  <li key={idx} className="text-sm text-muted-foreground list-disc" data-testid={`text-kit-includes-${kit.id}-${idx}`}>
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="w-full mb-2"
+                              onClick={(e) => openModal(kit, e)}
+                              data-testid={`button-more-info-${kit.id}`}
+                            >
+                              <Info className="w-4 h-4 mr-2" />
+                              More Info
+                            </Button>
+                            
+                            <Button 
+                              className={`w-full ${state.kitId === kit.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
+                              variant={state.kitId === kit.id ? "default" : "outline"}
+                              data-testid={`button-select-kit-${kit.id}`}
+                            >
+                              {state.kitId === kit.id ? 'Selected' : 'Select Kit'}
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -223,6 +220,48 @@ export default function SelectKit() {
       <Footer />
       
       <ConfiguratorTutorial page="kit" />
+
+      {/* Euro 6 Compatibility Warning Dialog */}
+      <Dialog open={!!warnKit} onOpenChange={(open) => !open && setWarnKit(null)}>
+        <DialogContent className="max-w-md" data-testid="dialog-euro6-warning">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <DialogTitle className="text-xl" data-testid="text-euro6-warning-title">
+                Euro 6 Engine Detected
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-sm text-muted-foreground pt-1 leading-relaxed" data-testid="text-euro6-warning-description">
+              Your selected vehicle has a <strong className="text-foreground">Euro 6 engine</strong>. The <strong className="text-foreground">{warnKit?.name}</strong> pack is not designed for Euro 6 vehicles and may not be compatible.
+              <br /><br />
+              We recommend selecting a Euro 6 compatible pack to ensure your equipment works correctly.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              className="w-full bg-accent text-accent-foreground"
+              onClick={() => setWarnKit(null)}
+              data-testid="button-euro6-go-back"
+            >
+              Choose a Different Pack
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => {
+                if (warnKit) confirmSelectKit(warnKit.id);
+                setWarnKit(null);
+              }}
+              data-testid="button-euro6-proceed-anyway"
+            >
+              I know what I'm doing — proceed anyway
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Kit Details Modal */}
       <Dialog open={!!modalKit} onOpenChange={(open) => !open && setModalKit(null)}>
@@ -317,7 +356,7 @@ export default function SelectKit() {
                   <Button
                     className="w-full bg-accent text-accent-foreground"
                     onClick={() => {
-                      handleSelectKit(modalKit.id);
+                      handleSelectKit(modalKit);
                       setModalKit(null);
                     }}
                     data-testid={`modal-button-select-kit-${modalKit.id}`}
