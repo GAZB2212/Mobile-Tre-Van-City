@@ -16,6 +16,7 @@ import { z } from "zod";
 import { Plus, Edit, Trash2, GraduationCap, X, PoundSterling } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TrainingOption } from "@shared/schema";
+import { AdminBackButton } from "@/components/AdminBackButton";
 
 const trainingOptionSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -173,7 +174,9 @@ export default function AdminTrainingOptions() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+      <AdminBackButton />
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-title">Training Options</h1>
@@ -445,5 +448,6 @@ export default function AdminTrainingOptions() {
           )}
       </div>
     </div>
+    </>
   );
 }

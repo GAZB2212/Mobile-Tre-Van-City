@@ -124,7 +124,7 @@ export default function AdminAnalytics() {
               <Button variant="ghost" size="sm" asChild data-testid="button-back-dashboard">
                 <Link href="/admin">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
+                  Back to Admin
                 </Link>
               </Button>
               <div>

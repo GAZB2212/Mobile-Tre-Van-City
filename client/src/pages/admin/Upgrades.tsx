@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { AdminBackButton } from "@/components/AdminBackButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1195,7 +1196,9 @@ export default function AdminUpgrades() {
   const allCategories = [...upgradeCategories];
 
   return (
-    <div className="space-y-6">
+    <>
+      <AdminBackButton />
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-upgrades-title">
@@ -1295,5 +1298,6 @@ export default function AdminUpgrades() {
         allUpgrades={upgrades}
       />
     </div>
+    </>
   );
 }

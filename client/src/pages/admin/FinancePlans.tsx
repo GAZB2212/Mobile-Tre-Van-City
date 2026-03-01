@@ -17,6 +17,7 @@ import { z } from "zod";
 import { Plus, Edit, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { FinancePlan } from "@shared/schema";
+import { AdminBackButton } from "@/components/AdminBackButton";
 
 const financePlanSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -138,7 +139,9 @@ export default function AdminFinancePlans() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+      <AdminBackButton />
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Finance Plans</h1>
@@ -662,5 +665,6 @@ export default function AdminFinancePlans() {
         )}
       </div>
     </div>
+    </>
   );
 }

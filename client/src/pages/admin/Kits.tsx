@@ -17,6 +17,7 @@ import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
+import { AdminBackButton } from "@/components/AdminBackButton";
 
 // Form validation schema
 const kitSchema = z.object({
@@ -244,7 +245,9 @@ export default function AdminKits() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+      <AdminBackButton />
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Equipment Kits</h1>
@@ -907,5 +910,6 @@ export default function AdminKits() {
         ))}
       </div>
     </div>
+    </>
   );
 }

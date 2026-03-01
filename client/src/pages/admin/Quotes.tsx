@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { AdminBackButton } from "@/components/AdminBackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -245,6 +246,7 @@ export default function AdminQuotes() {
 
   return (
     <div className="min-h-screen bg-background">
+      <AdminBackButton />
       <div className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

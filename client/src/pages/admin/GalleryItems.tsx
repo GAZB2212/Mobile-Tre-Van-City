@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AdminBackButton } from "@/components/AdminBackButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -211,7 +212,9 @@ export default function AdminGalleryItems() {
   };
 
   return (
-    <div className="p-6">
+    <>
+      <AdminBackButton />
+      <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-gallery-items-title">Gallery Items</h1>
@@ -477,5 +480,6 @@ export default function AdminGalleryItems() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

@@ -317,7 +317,7 @@ export default function AdminVans() {
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/admin" data-testid="link-back-to-dashboard">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Dashboard
+                  Back to Admin
                 </Link>
               </Button>
               <div>
