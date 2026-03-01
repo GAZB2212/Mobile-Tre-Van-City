@@ -63,10 +63,11 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
       setTransmission(data.specs.transmission);
       setSize(data.specs.size);
       setFuel(data.specs.fuel);
+      if (data.euroStatus) setEuroStatus(data.euroStatus);
       
       toast({
         title: "Vehicle found",
-        description: `Details loaded for ${data.make} ${data.model}`,
+        description: `Details loaded for ${data.make} ${data.model}${data.euroStatus ? ` (${data.euroStatus})` : ''}`,
       });
     } catch (error) {
       toast({
