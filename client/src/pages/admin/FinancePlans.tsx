@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { AdminSwitch } from "@/components/AdminSwitch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -323,7 +323,7 @@ export default function AdminFinancePlans() {
                         </FormDescription>
                       </div>
                       <FormControl>
-                        <Switch
+                        <AdminSwitch
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           data-testid="switch-published"
@@ -561,7 +561,7 @@ export default function AdminFinancePlans() {
                                   </FormDescription>
                                 </div>
                                 <FormControl>
-                                  <Switch
+                                  <AdminSwitch
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
                                     data-testid="switch-published-edit"

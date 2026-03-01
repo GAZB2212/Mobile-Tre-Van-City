@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { AdminSwitch } from "@/components/AdminSwitch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -342,7 +342,7 @@ export default function AdminTrainingOptions() {
                           </p>
                         </div>
                         <FormControl>
-                          <Switch
+                          <AdminSwitch
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             data-testid="switch-published"

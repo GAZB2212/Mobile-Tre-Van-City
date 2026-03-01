@@ -35,7 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { AdminSwitch } from "@/components/AdminSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -739,7 +739,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     </p>
                   </div>
                   <FormControl>
-                    <Switch
+                    <AdminSwitch
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-show-video"
@@ -758,7 +758,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     This equipment has multiple options (e.g., LWB/MWB)
                   </p>
                 </div>
-                <Switch
+                <AdminSwitch
                   checked={hasVariants}
                   onCheckedChange={(checked) => {
                     if (checked) {
@@ -1000,7 +1000,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     </p>
                   </div>
                   <FormControl>
-                    <Switch
+                    <AdminSwitch
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-upgrade-published"
@@ -1022,7 +1022,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     </p>
                   </div>
                   <FormControl>
-                    <Switch
+                    <AdminSwitch
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-allow-quantity"
@@ -1044,7 +1044,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     </p>
                   </div>
                   <FormControl>
-                    <Switch
+                    <AdminSwitch
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-popular-upgrade"

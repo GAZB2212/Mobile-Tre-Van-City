@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { AdminSwitch } from "@/components/AdminSwitch";
 import { Textarea } from "@/components/ui/textarea";
 import { Search, Sparkles } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -391,7 +391,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Switch
+          <AdminSwitch
             id="vatIncluded"
             name="vatIncluded"
             defaultChecked={van?.vatIncluded || false}
@@ -401,7 +401,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Switch
+          <AdminSwitch
             id="published"
             name="published"
             defaultChecked={van ? van.published !== false : true}
