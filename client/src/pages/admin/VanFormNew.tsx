@@ -36,6 +36,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const [transmission, setTransmission] = useState(van?.specs.transmission || 'Manual');
   const [size, setSize] = useState(van?.specs.size || 'MWB');
   const [fuel, setFuel] = useState(van?.specs.fuel || 'Diesel');
+  const [euroStatus, setEuroStatus] = useState(van?.euroStatus || '');
   const doorsRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -306,6 +307,20 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="euroStatus">Euro Emissions Standard</Label>
+            <Select name="euroStatus" value={euroStatus} onValueChange={setEuroStatus}>
+              <SelectTrigger data-testid="select-van-euro-status">
+                <SelectValue placeholder="Select Euro standard" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Euro 6">Euro 6</SelectItem>
+                <SelectItem value="Euro 5">Euro 5</SelectItem>
+                <SelectItem value="Euro 4">Euro 4</SelectItem>
+                <SelectItem value="Euro 3">Euro 3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label htmlFor="doors">Doors (optional)</Label>
             <Input

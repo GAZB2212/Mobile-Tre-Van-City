@@ -202,6 +202,7 @@ export default function AdminVans() {
       heroImage: imageUrls[0] || undefined,
       description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
+      euroStatus: (formData.get('euroStatus') as string) || undefined,
     };
 
     createVanMutation.mutate(vanData);
@@ -290,6 +291,7 @@ export default function AdminVans() {
       heroImage: allImages[0] || formData.get('heroImage') as string || undefined,
       description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
+      euroStatus: (formData.get('euroStatus') as string) || undefined,
     };
 
     updateVanMutation.mutate({ id: editingVan.id, data: vanData });
