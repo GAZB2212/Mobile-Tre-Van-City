@@ -412,6 +412,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const quote = await storage.createQuote(quoteData);
+
+      // Send confirmation email to customer + notification to admin (non-blocking)
+      try {
+        const { sendQuoteReceivedEmails } = await import('./email.js');
+        await sendQuoteReceivedEmails({
+          quote,
+          vanTitle: van?.title ?? null,
+          kitName: kit?.name ?? null,
+          upgradeNames: upgrades.filter(Boolean).map((u: any) => u.name),
+        });
+      } catch (emailErr) {
+        console.error('Failed to send quote received emails:', emailErr);
+      }
+
       res.status(201).json(quote);
     } catch (error) {
       if (error instanceof Error && error.name === 'ZodError') {
@@ -436,6 +450,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertLeadSchema.parse(req.body);
       const lead = await storage.createLead(validatedData);
+
+      // Send confirmation email to customer + notification to admin (non-blocking)
+      try {
+        const { sendLeadReceivedEmails } = await import('./email.js');
+        await sendLeadReceivedEmails(lead);
+      } catch (emailErr) {
+        console.error('Failed to send lead received emails:', emailErr);
+      }
+
       res.status(201).json(lead);
     } catch (error) {
       res.status(400).json({ error: "Invalid lead data" });
