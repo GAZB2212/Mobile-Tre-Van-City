@@ -1,48 +1,49 @@
-import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend';
 
 let connectionSettings: any;
 
 async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY
+    ? 'repl ' + process.env.REPL_IDENTITY
+    : process.env.WEB_REPL_RENEWAL
+    ? 'depl ' + process.env.WEB_REPL_RENEWAL
     : null;
 
   if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+    throw new Error('X-Replit-Token not found for repl/depl');
   }
 
   connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
+    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
     {
       headers: {
         'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
+        'X-Replit-Token': xReplitToken
       }
     }
   ).then(res => res.json()).then(data => data.items?.[0]);
 
-  if (!connectionSettings || (!connectionSettings.settings.api_key || !connectionSettings.settings.from_email)) {
-    throw new Error('SendGrid not connected');
+  if (!connectionSettings || !connectionSettings.settings.api_key) {
+    throw new Error('Resend not connected');
   }
-  return {apiKey: connectionSettings.settings.api_key, email: connectionSettings.settings.from_email};
+  return {
+    apiKey: connectionSettings.settings.api_key,
+    fromEmail: connectionSettings.settings.from_email,
+  };
 }
 
 // WARNING: Never cache this client.
 // Access tokens expire, so a new client must be created each time.
-// Always call this function again to get a fresh client.
-export async function getUncachableSendGridClient() {
-  const {apiKey, email} = await getCredentials();
-  sgMail.setApiKey(apiKey);
+export async function getUncachableResendClient() {
+  const { apiKey, fromEmail } = await getCredentials();
   return {
-    client: sgMail,
-    fromEmail: email
+    client: new Resend(apiKey),
+    fromEmail,
   };
 }
 
-// Send quote confirmation email to customer
+// ── Existing: send quote confirmation (admin manually triggers this) ──────────
 export async function sendQuoteConfirmationEmail({
   to,
   customerName,
@@ -60,12 +61,12 @@ export async function sendQuoteConfirmationEmail({
   discount?: number;
   customerNotes?: string;
 }) {
-  const { client, fromEmail } = await getUncachableSendGridClient();
+  const { client, fromEmail } = await getUncachableResendClient();
 
   const formattedTotal = `£${(totalPrice / 100).toLocaleString()}`;
   const savings = discount ? `£${(discount / 100).toLocaleString()}` : null;
 
-  const msg = {
+  await client.emails.send({
     to,
     from: fromEmail,
     subject: `Your Van Conversion Quote #${quoteId.slice(0, 8).toUpperCase()} is Ready`,
@@ -78,10 +79,11 @@ export async function sendQuoteConfirmationEmail({
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #f97316; color: white; padding: 30px; text-align: center; }
+    .header { background-color: #191919; color: white; padding: 30px; text-align: center; }
+    .header h1 { color: #8bc440; margin: 0; }
     .content { background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
     .price-box { background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; }
-    .button { display: inline-block; background-color: #f97316; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+    .button { display: inline-block; background-color: #8bc440; color: #191919; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
     .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
     .savings { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin: 15px 0; font-weight: bold; }
     .notes { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; }
@@ -90,73 +92,41 @@ export async function sendQuoteConfirmationEmail({
 <body>
   <div class="container">
     <div class="header">
-      <h1>Your Quote is Ready!</h1>
+      <h1>Mobile Tyre Van City</h1>
     </div>
-    
     <div class="content">
       <p>Hi ${customerName},</p>
-      
       <p>Thank you for requesting a quote for your mobile tyre van conversion. We've reviewed your configuration and are pleased to present your custom quote.</p>
-      
       <div class="price-box">
         <h2 style="margin-top: 0;">Quote #${quoteId.slice(0, 8).toUpperCase()}</h2>
         ${savings ? `<div class="savings">Special Discount Applied - You Save ${savings}!</div>` : ''}
-        <p style="font-size: 28px; font-weight: bold; color: #f97316; margin: 10px 0;">${formattedTotal}</p>
+        <p style="font-size: 28px; font-weight: bold; color: #8bc440; margin: 10px 0;">${formattedTotal}</p>
         <p style="color: #6b7280; margin: 0;">Including VAT</p>
       </div>
-      
       ${customerNotes ? `
       <div class="notes">
         <h3 style="margin-top: 0; color: #1e40af;">Note from our team:</h3>
         <p style="margin: 0; white-space: pre-wrap;">${customerNotes}</p>
       </div>
       ` : ''}
-      
       <p>To proceed with your order, please review and confirm your quote by clicking the button below:</p>
-      
       <div style="text-align: center;">
-        <a href="${confirmationUrl}" class="button">Review & Confirm Quote</a>
+        <a href="${confirmationUrl}" class="button">Review &amp; Confirm Quote</a>
       </div>
-      
       <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
         This confirmation link is for one-time use and will expire after confirmation.
       </p>
-      
-      <p>If you have any questions or need to discuss your quote, please don't hesitate to contact us.</p>
-      
-      <p>Best regards,<br>The Mobile Tyre Van Team</p>
+      <p>If you have any questions, please call us on <strong>0151 203 8500</strong>.</p>
+      <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
     </div>
-    
     <div class="footer">
-      <p>This email was sent regarding your quote request. If you didn't request this quote, please disregard this email.</p>
+      <p>If you didn't request this quote, please disregard this email.</p>
     </div>
   </div>
 </body>
-</html>
-    `,
-    text: `
-Hi ${customerName},
-
-Your Van Conversion Quote #${quoteId.slice(0, 8).toUpperCase()} is Ready!
-
-Total Price: ${formattedTotal} (Including VAT)
-${savings ? `Special Discount Applied - You Save ${savings}!` : ''}
-
-${customerNotes ? `Note from our team:\n${customerNotes}\n\n` : ''}
-
-To proceed with your order, please review and confirm your quote by visiting:
-${confirmationUrl}
-
-This confirmation link is for one-time use and will expire after confirmation.
-
-If you have any questions or need to discuss your quote, please don't hesitate to contact us.
-
-Best regards,
-The Mobile Tyre Van Team
-    `.trim(),
-  };
-
-  await client.send(msg);
+</html>`,
+    text: `Hi ${customerName},\n\nYour Van Conversion Quote #${quoteId.slice(0, 8).toUpperCase()} is Ready!\n\nTotal Price: ${formattedTotal} (Including VAT)\n${savings ? `Special Discount Applied - You Save ${savings}!\n` : ''}\n${customerNotes ? `Note from our team:\n${customerNotes}\n\n` : ''}To confirm your quote visit:\n${confirmationUrl}\n\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+  });
 }
 
 // ── Enquiry received: customer confirmation + admin notification ──────────────
@@ -181,7 +151,7 @@ export async function sendQuoteReceivedEmails({
   kitName?: string | null;
   upgradeNames?: string[];
 }) {
-  const { client, fromEmail } = await getUncachableSendGridClient();
+  const { client, fromEmail } = await getUncachableResendClient();
 
   const ref = quote.id.slice(0, 8).toUpperCase();
   const total = `£${(quote.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
@@ -191,8 +161,8 @@ export async function sendQuoteReceivedEmails({
   const brandGreen = '#8bc440';
   const brandDark = '#191919';
 
-  // ── 1. Customer confirmation ────────────────────────────────────────────────
-  const customerMsg = {
+  // 1. Customer confirmation
+  await client.emails.send({
     to: quote.email,
     from: fromEmail,
     subject: `We've received your enquiry – Ref #${ref}`,
@@ -226,12 +196,10 @@ export async function sendQuoteReceivedEmails({
     <div class="content">
       <p>Hi ${quote.userName},</p>
       <p>Thank you for completing our van configurator. We've received your enquiry and one of our team will be in touch within 24 hours to discuss your requirements.</p>
-
       <div class="ref-box">
         <p><strong>Your reference number:</strong> #${ref}</p>
         <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
       </div>
-
       <h3 style="margin-bottom: 8px;">Your Configuration Summary</h3>
       <table class="summary">
         ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
@@ -241,7 +209,6 @@ export async function sendQuoteReceivedEmails({
         <tr><td>VAT (20%)</td><td>${vat}</td></tr>
         <tr class="total-row"><td>Total</td><td>${total}</td></tr>
       </table>
-
       <p>If you have any questions in the meantime, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
       <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
     </div>
@@ -252,10 +219,10 @@ export async function sendQuoteReceivedEmails({
 </body>
 </html>`,
     text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades: ${upgradeNames.join(', ')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}\n\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
-  };
+  });
 
-  // ── 2. Admin notification ───────────────────────────────────────────────────
-  const adminMsg = {
+  // 2. Admin notification
+  await client.emails.send({
     to: fromEmail,
     from: fromEmail,
     subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
@@ -297,10 +264,7 @@ export async function sendQuoteReceivedEmails({
 </body>
 </html>`,
     text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades: ${upgradeNames.join(', ')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}`,
-  };
-
-  await client.send(customerMsg);
-  await client.send(adminMsg);
+  });
 }
 
 export async function sendLeadReceivedEmails(lead: {
@@ -310,14 +274,14 @@ export async function sendLeadReceivedEmails(lead: {
   phone?: string | null;
   message?: string | null;
 }) {
-  const { client, fromEmail } = await getUncachableSendGridClient();
+  const { client, fromEmail } = await getUncachableResendClient();
 
   const ref = lead.id.slice(0, 8).toUpperCase();
   const brandGreen = '#8bc440';
   const brandDark = '#191919';
 
-  // ── 1. Customer confirmation ────────────────────────────────────────────────
-  const customerMsg = {
+  // 1. Customer confirmation
+  await client.emails.send({
     to: lead.email,
     from: fromEmail,
     subject: `We've received your enquiry – Mobile Tyre Van City`,
@@ -361,10 +325,10 @@ export async function sendLeadReceivedEmails(lead: {
 </body>
 </html>`,
     text: `Hi ${lead.name},\n\nThank you for getting in touch. We've received your enquiry and will be in touch shortly.\n\nReference: #${ref}\n${lead.message ? `Your message: "${lead.message}"\n` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
-  };
+  });
 
-  // ── 2. Admin notification ───────────────────────────────────────────────────
-  const adminMsg = {
+  // 2. Admin notification
+  await client.emails.send({
     to: fromEmail,
     from: fromEmail,
     subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
@@ -396,8 +360,5 @@ export async function sendLeadReceivedEmails(lead: {
 </body>
 </html>`,
     text: `New enquiry\n\nName: ${lead.name}\nEmail: ${lead.email}\n${lead.phone ? `Phone: ${lead.phone}\n` : ''}Reference: #${ref}\n${lead.message ? `\nMessage:\n${lead.message}` : ''}`,
-  };
-
-  await client.send(customerMsg);
-  await client.send(adminMsg);
+  });
 }
