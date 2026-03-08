@@ -6,27 +6,30 @@ import { Image as ImageIcon, ArrowRight } from "lucide-react";
 import vanImage1 from "@assets/IMG_8800_1759504961672.jpg";
 import vanImage2 from "@assets/IMG_1129_1759504961672.jpg";
 import vanImage3 from "@assets/IMG_7127_1759504961672.jpg";
+import zenoVideo20 from "@assets/ZenoVideo 20_1759504716286.mp4";
+import zenoVideo14 from "@assets/ZenoVideo 14_1759504750775.mp4";
+import zenoVideo8 from "@assets/ZenoVideo 8_1759504750775.mp4";
 
 const designCategories = [
   {
     title: "360° Van Design Render",
     description: "Interactive 360-degree view of our professional mobile tyre van conversions",
     type: "video" as const,
-    videoSrc: "/media/ZenoVideo 20_1759504716286.mp4",
+    videoSrc: zenoVideo20,
     featured: true,
   },
   {
     title: "360° Van Design Render",
     description: "Complete rotating view showcasing premium equipment and interior layout",
     type: "video" as const,
-    videoSrc: "/media/ZenoVideo 14_1759504750775.mp4",
+    videoSrc: zenoVideo14,
     featured: false,
   },
   {
     title: "360° Van Design Render",
     description: "Full 360-degree render of a finished mobile tyre business setup",
     type: "video" as const,
-    videoSrc: "/media/ZenoVideo 8_1759504750775.mp4",
+    videoSrc: zenoVideo8,
     featured: false,
   },
   {
