@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import heroVideo from "@assets/website_hero_1772966773377.mp4";
 
 export default function Hero() {
   return (
@@ -12,7 +13,7 @@ export default function Hero() {
         playsInline
         preload="metadata"
         className="absolute inset-0 w-full h-full object-cover opacity-100"
-        src="/media/ZenoVideo 24_1759239850808.mp4"
+        src={heroVideo}
       />
       
       {/* Dark overlay for text readability - always visible */}
