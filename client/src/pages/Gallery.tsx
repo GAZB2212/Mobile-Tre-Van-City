@@ -5,9 +5,10 @@ import SEO from "@/components/SEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Image as ImageIcon, ArrowRight } from "lucide-react";
+import { Image as ImageIcon, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import type { GalleryItem } from "@shared/schema";
+import { GalleryVideoCard } from "@/components/GalleryVideoCard";
 
 interface GroupedGalleryItems {
   [category: string]: GalleryItem[];
@@ -83,23 +84,11 @@ export default function Gallery() {
                       >
                         <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
                           {item.type === 'video' ? (
-                            <>
-                              <video 
-                                src={item.fileUrl} 
-                                className="w-full h-full object-cover"
-                                muted
-                                loop
-                                playsInline
-                                preload="metadata"
-                                poster={item.thumbnailUrl || undefined}
-                              />
-                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20">
-                                <div className="w-12 h-12 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                  <Play className="w-6 h-6 text-accent-foreground ml-0.5" />
-                                </div>
-                                <Badge variant="secondary" className="text-xs">Video</Badge>
-                              </div>
-                            </>
+                            <GalleryVideoCard
+                              fileUrl={item.fileUrl}
+                              title={item.title}
+                              storedThumbnailUrl={item.thumbnailUrl}
+                            />
                           ) : (
                             <img 
                               src={item.fileUrl} 

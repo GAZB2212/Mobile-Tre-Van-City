@@ -3,8 +3,9 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Play, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, Image as ImageIcon } from "lucide-react";
 import type { GalleryItem } from "@shared/schema";
+import { GalleryVideoCard } from "@/components/GalleryVideoCard";
 
 export default function GalleryPreview() {
   const { data: items = [] } = useQuery<GalleryItem[]>({
@@ -37,23 +38,11 @@ export default function GalleryPreview() {
             <Card key={item.id} className="hover-elevate overflow-hidden" data-testid={`card-gallery-preview-${index}`}>
               <div className="aspect-video bg-muted relative overflow-hidden group">
                 {item.type === 'video' ? (
-                  <>
-                    <video
-                      src={item.fileUrl}
-                      className="w-full h-full object-cover"
-                      muted
-                      loop
-                      playsInline
-                      preload="metadata"
-                      poster={item.thumbnailUrl || undefined}
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20">
-                      <div className="w-12 h-12 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="w-6 h-6 text-accent-foreground ml-0.5" />
-                      </div>
-                      <Badge variant="secondary" className="text-xs">Video</Badge>
-                    </div>
-                  </>
+                  <GalleryVideoCard
+                    fileUrl={item.fileUrl}
+                    title={item.title}
+                    storedThumbnailUrl={item.thumbnailUrl}
+                  />
                 ) : (
                   <img
                     src={item.fileUrl}
