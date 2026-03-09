@@ -63,22 +63,40 @@ function FileUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
+  const inferMimeType = (file: File): string => {
+    if (file.type) return file.type;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const map: Record<string, string> = {
+      mov: "video/quicktime",
+      mp4: "video/mp4",
+      webm: "video/webm",
+      ogg: "video/ogg",
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp",
+    };
+    return map[ext ?? ""] || "application/octet-stream";
+  };
+
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
+      const contentType = inferMimeType(file);
       const res = await apiRequest("POST", "/api/objects/upload", {
         filename: file.name,
-        contentType: file.type,
+        contentType,
       });
       const { uploadURL, objectPath } = await res.json();
 
       await fetch(uploadURL, {
         method: "PUT",
         body: file,
-        headers: { "Content-Type": file.type },
+        headers: { "Content-Type": contentType },
       });
 
       onUploaded(`/objects/${objectPath}`);
@@ -416,7 +434,7 @@ export default function AdminGalleryItems() {
 
               <FileUploadField
                 label="File Upload"
-                accept={formData.type === "video" ? "video/*" : "image/*"}
+                accept={formData.type === "video" ? "video/mp4,video/quicktime,video/webm,video/ogg,.mp4,.mov,.webm,.ogg" : "image/*"}
                 currentUrl={formData.fileUrl}
                 onUploaded={(url) => setFormData((prev) => ({ ...prev, fileUrl: url }))}
                 testId="input-file-upload"
