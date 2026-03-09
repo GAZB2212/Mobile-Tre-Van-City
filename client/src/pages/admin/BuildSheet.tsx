@@ -202,7 +202,7 @@ export default function BuildSheet() {
 
       {/* Nav bar — hidden on print */}
       <div className="no-print bg-background border-b p-4">
-        <div className="container mx-auto flex items-center justify-between">
+        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
           <Button variant="ghost" onClick={() => setLocation("/admin/quotes")} data-testid="button-back">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Quotes

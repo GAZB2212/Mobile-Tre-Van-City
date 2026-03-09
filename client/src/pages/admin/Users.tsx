@@ -233,14 +233,14 @@ export default function AdminUsers() {
     <>
       <AdminBackButton />
       <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-page-title">User Management</h1>
           <p className="text-muted-foreground">Manage user roles and permissions</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-user">
+            <Button data-testid="button-create-user" className="flex-shrink-0">
               <UserPlus className="w-4 h-4 mr-2" />
               Create User
             </Button>

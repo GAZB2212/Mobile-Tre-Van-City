@@ -1227,7 +1227,7 @@ export default function AdminUpgrades() {
     <>
       <AdminBackButton />
       <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-upgrades-title">
             Upgrade Management
@@ -1236,7 +1236,7 @@ export default function AdminUpgrades() {
             Manage upgrade options and add-ons for mobile tyre services
           </p>
         </div>
-        <Button onClick={handleCreate} data-testid="button-create-upgrade">
+        <Button onClick={handleCreate} data-testid="button-create-upgrade" className="flex-shrink-0">
           <Plus className="h-4 w-4 mr-2" />
           Add Upgrade
         </Button>

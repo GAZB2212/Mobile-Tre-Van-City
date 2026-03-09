@@ -218,7 +218,7 @@ export default function AdminLeads() {
       <AdminBackButton />
       <div className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Users className="w-6 h-6" />
@@ -228,7 +228,7 @@ export default function AdminLeads() {
                 Track and manage customer inquiries and leads
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button 
                 variant="outline" 
                 onClick={handleExportLeads}
@@ -271,7 +271,7 @@ export default function AdminLeads() {
                 </div>
               </div>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-[180px]" data-testid="select-source-filter">
+                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-source-filter">
                   <SelectValue placeholder="Filter by source" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +284,7 @@ export default function AdminLeads() {
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-[180px]" data-testid="select-date-filter">
+                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-date-filter">
                   <SelectValue placeholder="Filter by date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -295,7 +295,7 @@ export default function AdminLeads() {
                 </SelectContent>
               </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]" data-testid="select-sort-leads">
+                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-sort-leads">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -309,7 +309,7 @@ export default function AdminLeads() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">

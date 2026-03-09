@@ -248,14 +248,14 @@ export default function AdminKits() {
     <>
       <AdminBackButton />
       <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Equipment Kits</h1>
           <p className="text-muted-foreground">Manage equipment packages for the configurator</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-kit">
+            <Button data-testid="button-create-kit" className="flex-shrink-0">
               <Plus className="w-4 h-4 mr-2" />
               Add Kit
             </Button>

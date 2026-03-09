@@ -177,7 +177,7 @@ export default function AdminTrainingOptions() {
     <>
       <AdminBackButton />
       <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-title">Training Options</h1>
           <p className="text-muted-foreground mt-1">Manage training programmes available in the configurator</p>

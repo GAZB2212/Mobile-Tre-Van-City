@@ -211,14 +211,14 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       <div className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold">Admin Dashboard</h1>
               <p className="text-muted-foreground">
                 Welcome back, {user?.firstName || user?.email}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Badge variant={user?.adminRole === "full" ? "default" : "secondary"}>
                 {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
               </Badge>
