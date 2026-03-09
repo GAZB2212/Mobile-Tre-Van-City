@@ -16,14 +16,20 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
   const modalVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    const v = thumbnailRef.current;
+    if (v) v.play().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const thumb = thumbnailRef.current;
     if (isModalOpen) {
-      const attempt = () => {
-        if (modalVideoRef.current) {
-          modalVideoRef.current.play().catch(() => {});
-        }
-      };
-      const timer = setTimeout(attempt, 100);
+      if (thumb) thumb.pause();
+      const timer = setTimeout(() => {
+        if (modalVideoRef.current) modalVideoRef.current.play().catch(() => {});
+      }, 100);
       return () => clearTimeout(timer);
+    } else {
+      if (thumb) thumb.play().catch(() => {});
     }
   }, [isModalOpen]);
 
@@ -38,16 +44,14 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
           ref={thumbnailRef}
           src={fileUrl}
           muted
+          loop
+          autoPlay
           playsInline
-          preload="metadata"
+          preload="auto"
           poster={storedThumbnailUrl || undefined}
           className="w-full h-full object-cover"
-          onLoadedMetadata={() => {
-            const v = thumbnailRef.current;
-            if (v) v.currentTime = v.duration > 1 ? 1 : 0.1;
-          }}
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/30 group-hover:bg-black/45 transition-colors">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20 group-hover:bg-black/35 transition-colors">
           <div className="w-14 h-14 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
             <Play className="w-7 h-7 text-accent-foreground ml-0.5" />
           </div>
