@@ -21,16 +21,16 @@ const VIDEO_LABELS: Record<string, { title: string; description: string }> = {
     description: "The full-width background video shown at the top of the homepage.",
   },
   render_video_1_url: {
-    title: "360° Render — Video 1 (Featured)",
-    description: "First 360° render shown in the Van Design Gallery section (featured card).",
+    title: "Realistic Video of Van Artwork Render — Video 1 (Featured)",
+    description: "First render video shown in the Van Design Gallery section (featured card).",
   },
   render_video_2_url: {
-    title: "360° Render — Video 2",
-    description: "Second 360° render shown in the Van Design Gallery section.",
+    title: "Realistic Video of Van Artwork Render — Video 2",
+    description: "Second render video shown in the Van Design Gallery section.",
   },
   render_video_3_url: {
-    title: "360° Render — Video 3",
-    description: "Third 360° render shown in the Van Design Gallery section.",
+    title: "Realistic Video of Van Artwork Render — Video 3",
+    description: "Third render video shown in the Van Design Gallery section.",
   },
 };
 

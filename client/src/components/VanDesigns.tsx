@@ -99,7 +99,7 @@ export default function VanDesigns() {
   ];
 
   const videoDesigns = renderVideos.map((src, i) => ({
-    title: "360° Van Design Render",
+    title: "Realistic Video of Van Artwork Render",
     description: i === 0
       ? "Interactive 360-degree view of our professional mobile tyre van conversions"
       : i === 1
