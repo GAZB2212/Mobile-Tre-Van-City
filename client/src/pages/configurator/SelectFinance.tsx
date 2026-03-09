@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ArrowLeft, Calculator, PoundSterling } from "lucide-react";
+import { ArrowRight, ArrowLeft, Calculator, PoundSterling, CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
 export default function SelectFinance() {
@@ -19,6 +20,8 @@ export default function SelectFinance() {
   const { state } = useConfigurator();
   const [termYears, setTermYears] = useState<number>(3);
   const [depositAmount, setDepositAmount] = useState<string>("");
+  const [vatRegistered, setVatRegistered] = useState<boolean>(false);
+  const [deferVat, setDeferVat] = useState<boolean>(false);
 
   // Fetch selected items to get their prices
   const { data: van } = useQuery<Van>({
@@ -66,24 +69,27 @@ export default function SelectFinance() {
   };
   
   // Calculate total from configurator (prices are in pence)
-  const configuratorTotal = useMemo(() => {
+  const pricing = useMemo(() => {
     const vanPrice = van?.price || 0;
     const kitPrice = kit?.price || 0;
     const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
     const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
-    
-    const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
-    const vat = Math.round(subtotal * 0.2);
-    const totalPence = subtotal + vat;
-    
-    // Convert from pence to pounds
-    return totalPence / 100;
+    const subtotalPence = vanPrice + kitPrice + upgradesTotal + trainingTotal;
+    const vatPence = Math.round(subtotalPence * 0.2);
+    return {
+      subtotal: subtotalPence / 100,
+      vat: vatPence / 100,
+      total: (subtotalPence + vatPence) / 100,
+    };
   }, [van, kit, upgrades, trainingOptions]);
-  
+
+  // The amount used for finance depends on whether the customer is deferring VAT
+  const financeBaseTotal = deferVat ? pricing.subtotal : pricing.total;
+
   // Calculate finance figures
   const financeCalculation = useMemo(() => {
     const deposit = parseFloat(depositAmount) || 0;
-    const total = configuratorTotal || 0;
+    const total = financeBaseTotal || 0;
     
     if (total <= 0 || deposit >= total) {
       return null;
@@ -114,7 +120,7 @@ export default function SelectFinance() {
       deposit,
       total,
     };
-  }, [configuratorTotal, depositAmount, termYears]);
+  }, [financeBaseTotal, depositAmount, termYears]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -158,23 +164,70 @@ export default function SelectFinance() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* VAT Registration */}
+                  <div className="mb-6 pb-6 border-b space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="vat-registered"
+                        checked={vatRegistered}
+                        onCheckedChange={(checked) => {
+                          setVatRegistered(!!checked);
+                          if (!checked) setDeferVat(false);
+                        }}
+                        data-testid="checkbox-vat-registered"
+                      />
+                      <Label htmlFor="vat-registered" className="text-sm font-medium cursor-pointer">
+                        Are you VAT registered?
+                      </Label>
+                    </div>
+
+                    {vatRegistered && (
+                      <div className="ml-7 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            id="defer-vat"
+                            checked={deferVat}
+                            onCheckedChange={(checked) => setDeferVat(!!checked)}
+                            data-testid="checkbox-defer-vat"
+                          />
+                          <Label htmlFor="defer-vat" className="text-sm font-medium cursor-pointer">
+                            Do you want to defer VAT for 3 months?
+                          </Label>
+                        </div>
+                        {deferVat && (
+                          <div className="flex items-start gap-2 bg-accent/5 border border-accent/20 rounded-md p-3">
+                            <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                            <p className="text-xs text-muted-foreground">
+                              VAT of <strong>{formatPrice(pricing.vat)}</strong> will be deferred and paid separately after 3 months. Your finance is calculated on the ex-VAT amount of <strong>{formatPrice(pricing.subtotal)}</strong>.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Total from Configurator */}
                     <div className="space-y-2">
                       <Label htmlFor="total" className="text-sm font-medium">
-                        Total Amount
+                        {deferVat ? "Finance Amount (ex-VAT)" : "Total Amount (inc-VAT)"}
                       </Label>
                       <div className="relative">
                         <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
                         <Input
                           id="total"
                           type="text"
-                          value={formatPrice(configuratorTotal)}
+                          value={formatPrice(financeBaseTotal)}
                           disabled
                           className="pl-9 bg-muted/50 font-bold text-lg text-foreground"
                           data-testid="input-total"
                         />
                       </div>
+                      {deferVat && (
+                        <p className="text-xs text-muted-foreground">
+                          VAT ({formatPrice(pricing.vat)}) deferred — payable after 3 months
+                        </p>
+                      )}
                     </div>
 
                     {/* Deposit Input */}
@@ -192,7 +245,7 @@ export default function SelectFinance() {
                           onChange={(e) => setDepositAmount(e.target.value)}
                           className="pl-9"
                           min="0"
-                          max={configuratorTotal}
+                          max={financeBaseTotal}
                           data-testid="input-deposit"
                         />
                       </div>
