@@ -53,7 +53,7 @@ export default function Hero() {
         className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
       >
-        <source src="/media/hero_vid_optimised.mp4" type="video/mp4" />
+        <source src="/media/website_hero_1772966773377.mp4" type="video/mp4" />
       </video>
 
       {/* Dark overlay for text readability */}
