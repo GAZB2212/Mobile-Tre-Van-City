@@ -322,3 +322,12 @@ export type TrainingOption = typeof trainingOptions.$inferSelect;
 
 export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
 export type GalleryItem = typeof galleryItems.$inferSelect;
+
+// Site settings table for storing configurable values like video URLs
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull().default(""),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
