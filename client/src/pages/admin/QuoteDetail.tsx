@@ -126,7 +126,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
 
 export default function AdminQuoteDetail() {
   const { id } = useParams();
@@ -136,7 +135,6 @@ export default function AdminQuoteDetail() {
   const canEdit = useCanEdit();
   
   const [status, setStatus] = useState("");
-  const [financeStatus, setFinanceStatus] = useState("");
   const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
@@ -196,7 +194,6 @@ export default function AdminQuoteDetail() {
   useEffect(() => {
     if (quote) {
       setStatus(quote.status || "new");
-      setFinanceStatus(quote.financeStatus || "pending");
       setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
       setCustomerConfirmed(quote.customerConfirmed ?? false);
       setVanRegistration(quote.vanRegistration ?? "");
@@ -514,7 +511,6 @@ export default function AdminQuoteDetail() {
     
     const updates: any = {
       status,
-      financeStatus,
       completedBuildStages,
       discountType: discountType || null,
       discountValue: discountValueInPence,
@@ -1259,32 +1255,6 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Finance Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PoundSterling className="w-5 h-5" />
-                  Finance Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="finance-status">Finance Application</Label>
-                  <Select value={financeStatus} onValueChange={setFinanceStatus}>
-                    <SelectTrigger id="finance-status" data-testid="select-finance-status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {financeStatuses.map((fs) => (
-                        <SelectItem key={fs} value={fs}>
-                          {fs.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Discount */}
             <Card>
