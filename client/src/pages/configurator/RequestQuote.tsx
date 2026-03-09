@@ -238,7 +238,7 @@ export default function RequestQuote() {
             </Button>
             
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 4: Request Your Quote
+              Step 5: Request Your Quote
             </h1>
             <p className="text-muted-foreground">
               Review your configuration and enter your details

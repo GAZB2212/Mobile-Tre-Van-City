@@ -310,7 +310,7 @@ export default function SelectUpgrades() {
   };
 
   const handleContinue = () => {
-    setLocation('/configurator/training');
+    setLocation('/configurator/finance');
   };
 
   const openGallery = (images: string[], title: string) => {

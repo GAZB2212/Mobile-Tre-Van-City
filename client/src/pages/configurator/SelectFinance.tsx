@@ -131,15 +131,15 @@ export default function SelectFinance() {
           <div className="mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => setLocation('/configurator/training')}
+              onClick={() => setLocation('/configurator/upgrades')}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Training
+              Back to Upgrades
             </Button>
             
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 5: Finance Options
+              Step 4: Finance Options
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Choose a finance plan or pay outright
@@ -348,7 +348,7 @@ export default function SelectFinance() {
               <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
                 <Button 
                   variant="outline" 
-                  onClick={() => setLocation('/configurator/training')}
+                  onClick={() => setLocation('/configurator/upgrades')}
                   data-testid="button-back-bottom"
                   className="w-full sm:w-auto !border-2 !border-accent text-accent hover:bg-accent/10"
                 >
