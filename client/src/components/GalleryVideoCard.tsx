@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Badge } from "@/components/ui/badge";
 import { Play } from "lucide-react";
 
@@ -56,6 +57,7 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-3xl p-2 sm:p-3 bg-black border-border">
+          <VisuallyHidden><DialogTitle>{title}</DialogTitle></VisuallyHidden>
           <video
             ref={modalVideoRef}
             src={fileUrl}

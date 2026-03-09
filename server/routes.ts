@@ -1321,10 +1321,41 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Gallery Items - Admin endpoints
+  function normalizeGalleryFileUrl(url: string): string {
+    if (!url) return url;
+    // Fix broken /objects/https:/ pattern created by old upload code
+    // Note: browsers normalize /objects/https:// to /objects/https:/ (single slash)
+    if (url.startsWith('/objects/https:') || url.startsWith('/objects/http:')) {
+      // Restore the double-slash after the scheme so new URL() can parse it
+      const rawGcs = url.replace(/^\/objects\//, '');
+      const gcsUrl = rawGcs.replace(/^(https?):\/([^/])/, '$1://$2');
+      try {
+        const parsed = new URL(gcsUrl);
+        const p = parsed.pathname;
+        const productMatch = p.match(/\/product-images\/([^?]+)/);
+        if (productMatch) return `/objects/product-images/${productMatch[1]}`;
+        const vanMatch = p.match(/\/van-images\/([^?]+)/);
+        if (vanMatch) return `/objects/van-images/${vanMatch[1]}`;
+        const upgradeMatch = p.match(/\/upgrade-images\/([^?]+)/);
+        if (upgradeMatch) return `/objects/upgrade-images/${upgradeMatch[1]}`;
+        const videosMatch = p.match(/\/videos\/([^?]+)/);
+        if (videosMatch) return `/objects/videos/${videosMatch[1]}`;
+        const uploadsMatch = p.match(/\/uploads\/([^?]+)/);
+        if (uploadsMatch) return `/objects/uploads/${uploadsMatch[1]}`;
+      } catch {}
+    }
+    return url;
+  }
+
   app.get("/api/admin/gallery-items", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const items = await storage.getGalleryItemsAdmin();
-      res.json(items);
+      const normalized = items.map(item => ({
+        ...item,
+        fileUrl: normalizeGalleryFileUrl(item.fileUrl),
+        thumbnailUrl: item.thumbnailUrl ? normalizeGalleryFileUrl(item.thumbnailUrl) : item.thumbnailUrl,
+      }));
+      res.json(normalized);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gallery items" });
     }
@@ -1369,7 +1400,12 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   app.get("/api/gallery-items", async (req, res) => {
     try {
       const items = await storage.getGalleryItems();
-      res.json(items);
+      const normalized = items.map(item => ({
+        ...item,
+        fileUrl: normalizeGalleryFileUrl(item.fileUrl),
+        thumbnailUrl: item.thumbnailUrl ? normalizeGalleryFileUrl(item.thumbnailUrl) : item.thumbnailUrl,
+      }));
+      res.json(normalized);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gallery items" });
     }

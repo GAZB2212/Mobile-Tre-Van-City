@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { getImageUrl } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,7 @@ function FileUploadField({
         headers: { "Content-Type": contentType },
       });
 
-      onUploaded(`/objects/${objectPath}`);
+      onUploaded(getImageUrl(objectPath));
       toast({ title: "Uploaded", description: `${file.name} uploaded successfully` });
     } catch {
       toast({ title: "Upload failed", description: "Could not upload file", variant: "destructive" });
