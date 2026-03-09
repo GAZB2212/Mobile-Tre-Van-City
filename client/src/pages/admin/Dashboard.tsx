@@ -14,7 +14,7 @@ import {
   FileText, 
   Users, 
   Shield,
-  Settings,
+  Globe,
   LogOut,
   Calculator,
   GraduationCap,
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
               </Badge>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/" data-testid="link-main-site">
-                  <Settings className="w-4 h-4 mr-2" />
+                  <Globe className="w-4 h-4 mr-2" />
                   Main Site
                 </Link>
               </Button>

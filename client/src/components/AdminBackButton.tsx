@@ -1,15 +1,21 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Globe } from "lucide-react";
 
 export function AdminBackButton() {
   return (
     <div className="border-b bg-background">
-      <div className="px-6 py-3">
+      <div className="px-6 py-3 flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild data-testid="button-back-to-admin">
           <Link href="/admin">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Admin
+          </Link>
+        </Button>
+        <Button variant="ghost" size="sm" asChild data-testid="button-view-main-site">
+          <Link href="/">
+            <Globe className="w-4 h-4 mr-2" />
+            View Main Site
           </Link>
         </Button>
       </div>

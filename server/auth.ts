@@ -50,6 +50,7 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Refresh session expiry on every active request
     cookie: {
       httpOnly: true,
       secure: isProduction, // Use secure cookies in production
