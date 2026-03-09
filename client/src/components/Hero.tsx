@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import heroPoster from "@assets/IMG_1103_1759503549443.jpg";
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -10,33 +9,40 @@ export default function Hero() {
     const video = videoRef.current;
     if (!video) return;
 
-    const attemptPlay = () => {
-      video.muted = true;
+    // Ensure muted (required for autoplay in all browsers)
+    video.muted = true;
+    video.volume = 0;
+
+    const tryPlay = () => {
       video.play().catch(() => {
-        // Autoplay blocked — try again on first user interaction
-        const onInteraction = () => {
+        // Some browsers still block — retry once the user touches/clicks anything
+        const retry = () => {
           video.play().catch(() => {});
-          document.removeEventListener("click", onInteraction);
-          document.removeEventListener("touchstart", onInteraction);
+          window.removeEventListener("pointerdown", retry);
+          window.removeEventListener("scroll", retry);
         };
-        document.addEventListener("click", onInteraction, { once: true });
-        document.addEventListener("touchstart", onInteraction, { once: true });
+        window.addEventListener("pointerdown", retry, { once: true });
+        window.addEventListener("scroll", retry, { once: true });
       });
     };
 
-    if (video.readyState >= 3) {
-      attemptPlay();
-    } else {
-      video.addEventListener("canplay", attemptPlay, { once: true });
-    }
+    // Try immediately, and also on every readiness event
+    video.load();
+    tryPlay();
+    video.addEventListener("loadedmetadata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+    video.addEventListener("canplaythrough", tryPlay);
 
     return () => {
-      video.removeEventListener("canplay", attemptPlay);
+      video.removeEventListener("loadedmetadata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      video.removeEventListener("canplaythrough", tryPlay);
     };
   }, []);
 
   return (
-    <section className="relative bg-black min-h-[70vh] sm:min-h-[80vh] py-24 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
+    <section className="relative bg-[#1a1a1a] min-h-[70vh] sm:min-h-[80vh] py-24 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
+      {/* Video Background */}
       <video
         ref={videoRef}
         autoPlay
@@ -44,10 +50,11 @@ export default function Hero() {
         muted
         playsInline
         preload="auto"
-        poster={heroPoster}
         className="absolute inset-0 w-full h-full object-cover"
-        src="/media/website_hero_1772966773377.mp4"
-      />
+        style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
+      >
+        <source src="/media/website_hero_1772966773377.mp4" type="video/mp4" />
+      </video>
 
       {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20 pointer-events-none" />

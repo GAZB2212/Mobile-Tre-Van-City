@@ -60,39 +60,43 @@ function AutoplayVideo({ src }: { src: string }) {
     const video = videoRef.current;
     if (!video) return;
 
-    const attemptPlay = () => {
-      video.muted = true;
+    video.muted = true;
+    video.volume = 0;
+
+    const tryPlay = () => {
       video.play().catch(() => {
-        const onInteraction = () => {
+        const retry = () => {
           video.play().catch(() => {});
+          window.removeEventListener("pointerdown", retry);
         };
-        document.addEventListener("click", onInteraction, { once: true });
-        document.addEventListener("touchstart", onInteraction, { once: true });
+        window.addEventListener("pointerdown", retry, { once: true });
       });
     };
 
-    if (video.readyState >= 3) {
-      attemptPlay();
-    } else {
-      video.addEventListener("canplay", attemptPlay, { once: true });
-    }
+    video.load();
+    tryPlay();
+    video.addEventListener("loadedmetadata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
 
     return () => {
-      video.removeEventListener("canplay", attemptPlay);
+      video.removeEventListener("loadedmetadata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
     };
   }, [src]);
 
   return (
     <video
       ref={videoRef}
-      src={src}
       className="w-full h-full object-cover"
       autoPlay
       muted
       loop
       playsInline
       preload="auto"
-    />
+      style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
+    >
+      <source src={src} type="video/mp4" />
+    </video>
   );
 }
 
