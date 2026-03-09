@@ -32,7 +32,7 @@ export default function TrainingSection() {
             Optional Professional Training
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-training-title">
-            Complete Training Programme Available
+            Complete Training Programme Available Soon
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="text-training-description">
             Add comprehensive REACT motorway certification and professional tyre fitting training to your order - everything you need to start earning from day one
