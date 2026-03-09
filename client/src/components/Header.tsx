@@ -31,13 +31,11 @@ export default function Header() {
     },
     onSuccess: () => {
       localStorage.removeItem('sessionId');
-      queryClient.clear();
-      window.location.href = "/";
+      window.location.href = "/login";
     },
     onError: () => {
       localStorage.removeItem('sessionId');
-      queryClient.clear();
-      window.location.href = "/";
+      window.location.href = "/login";
     },
   });
 

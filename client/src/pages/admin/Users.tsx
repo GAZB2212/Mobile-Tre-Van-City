@@ -65,7 +65,7 @@ export default function AdminUsers() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/admin/dashboard";
+        window.location.href = "/admin";
       }, 1000);
       return;
     }

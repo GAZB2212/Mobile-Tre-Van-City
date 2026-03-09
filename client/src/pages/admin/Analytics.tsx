@@ -94,7 +94,7 @@ export default function AdminAnalytics() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/admin/dashboard";
+        window.location.href = "/admin";
       }, 1000);
       return;
     }
