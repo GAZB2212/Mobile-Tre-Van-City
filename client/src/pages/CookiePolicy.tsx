@@ -32,7 +32,7 @@ export default function CookiePolicy() {
             <CardTitle className="text-4xl">Cookie Policy</CardTitle>
             <p className="text-muted-foreground">Last updated: November 2024</p>
           </CardHeader>
-          <CardContent className="space-y-6 prose prose-slate dark:prose-invert max-w-none">
+          <CardContent className="space-y-6 prose prose-invert max-w-none">
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-introduction">1. What Are Cookies</h2>
               <p>
