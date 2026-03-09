@@ -303,7 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/quotes/completed", async (req, res) => {
     try {
       const allQuotes = await storage.getQuotes();
-      const completedQuotes = allQuotes.filter(q => q.status === "completed");
+      const completedQuotes = allQuotes.filter(q => q.status === "completed" && q.featuredInPortfolio === true);
       res.json(completedQuotes);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch completed builds" });
@@ -1481,6 +1481,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         financeStatus: z.enum(financeStatuses).optional(),
         buildStage: z.enum(buildStages).nullable().optional(),
         completedBuildStages: z.array(z.string()).optional(),
+        featuredInPortfolio: z.boolean().optional(),
         graphicsArtworkUrl: z.string().url().or(z.literal('')).nullable().optional(),
         graphicsArtworkNotes: z.string().nullable().optional(),
         discountType: z.enum(['percentage', 'fixed']).nullable().optional(),

@@ -166,6 +166,7 @@ export const quotes = pgTable("quotes", {
   vanMileage: integer("van_mileage"), // Current van mileage for finance submission
   financeSentAt: timestamp("finance_sent_at"), // When finance submission email was last sent
   
+  featuredInPortfolio: boolean("featured_in_portfolio").notNull().default(false),
   status: text("status").notNull().default("pending"),
   buildStage: text("build_stage"),
   completedBuildStages: json("completed_build_stages").$type<string[]>().notNull().default([]),

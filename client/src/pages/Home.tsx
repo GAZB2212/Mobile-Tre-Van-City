@@ -6,7 +6,7 @@ import EarningsPotential from "@/components/EarningsPotential";
 import TrainingSection from "@/components/TrainingSection";
 import TrustStrip from "@/components/TrustStrip";
 import FeaturedStock from "@/components/FeaturedStock";
-import PreviouslyBuiltVans from "@/components/PreviouslyBuiltVans";
+import GalleryPreview from "@/components/GalleryPreview";
 import VanDesigns from "@/components/VanDesigns";
 import Testimonials from "@/components/Testimonials";
 import YouTubeSection from "@/components/YouTubeSection";
@@ -33,7 +33,7 @@ export default function Home() {
         <EarningsPotential />
         <TrainingSection />
         <FeaturedStock />
-        <PreviouslyBuiltVans />
+        <GalleryPreview />
         <VanDesigns />
         <Testimonials />
         <YouTubeSection />
