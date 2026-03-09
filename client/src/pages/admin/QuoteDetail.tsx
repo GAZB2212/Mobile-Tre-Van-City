@@ -493,7 +493,19 @@ export default function AdminQuoteDetail() {
     return false;
   };
 
+  const allBuildStagesDone = completedBuildStages.length === BUILD_STAGES.length;
+
   const handleSave = () => {
+    // Block saving as completed unless all build stages are ticked
+    if (status === "completed" && !allBuildStagesDone) {
+      toast({
+        title: "Build stages incomplete",
+        description: `Please tick all ${BUILD_STAGES.length} build stages before marking as Complete.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Convert discount value to pence based on type
     let discountValueInPence = null;
     if (discountValue) {
@@ -1195,7 +1207,20 @@ export default function AdminQuoteDetail() {
                 {/* Manual override dropdown */}
                 <div>
                   <Label htmlFor="quote-status" className="text-xs text-muted-foreground">Manual override</Label>
-                  <Select value={status} onValueChange={setStatus}>
+                  <Select
+                    value={status}
+                    onValueChange={(val) => {
+                      if (val === "completed" && !allBuildStagesDone) {
+                        toast({
+                          title: "Build stages incomplete",
+                          description: `Please tick all ${BUILD_STAGES.length} build stages in Build Stage Management before marking as Complete.`,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setStatus(val);
+                    }}
+                  >
                     <SelectTrigger id="quote-status" data-testid="select-quote-status" className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
