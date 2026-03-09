@@ -140,7 +140,6 @@ export default function AdminQuoteDetail() {
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
   const [newAdminNote, setNewAdminNote] = useState("");
-  const [newCustomerNote, setNewCustomerNote] = useState("");
   const [customerConfirmed, setCustomerConfirmed] = useState(false);
   const [vanRegistration, setVanRegistration] = useState("");
   const [vanMileage, setVanMileage] = useState("");
@@ -236,7 +235,6 @@ export default function AdminQuoteDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       // Clear note inputs after successful save
       setNewAdminNote("");
-      setNewCustomerNote("");
       toast({
         title: "Success",
         description: "Quote updated successfully",
@@ -530,9 +528,6 @@ export default function AdminQuoteDetail() {
     // Add new notes to history if provided
     if (newAdminNote.trim()) {
       updates.newAdminNote = newAdminNote.trim();
-    }
-    if (newCustomerNote.trim()) {
-      updates.newCustomerNote = newCustomerNote.trim();
     }
     
     // Explicitly include null values for van and kit to allow clearing
@@ -1087,19 +1082,6 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
-            {/* Quote Notes */}
-            {quote.notes && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Customer Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {quote.notes}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Right Column - Status Management */}
@@ -1451,138 +1433,6 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Customer Notes History */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Customer Notes
-                </CardTitle>
-                <CardDescription>Shown to customer in confirmation</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Note History */}
-                {quote?.customerNotesHistory && quote.customerNotesHistory.length > 0 && (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {quote.customerNotesHistory.map((note, index) => {
-                      const isEditing = editingNote?.noteType === 'customer' && editingNote?.timestamp === note.timestamp;
-                      
-                      return (
-                        <div key={index} className="p-3 rounded-lg bg-muted/50 border">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {note.author || 'Admin'}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(note.timestamp).toLocaleString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                              {!isEditing && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6"
-                                    onClick={() => setEditingNote({ noteType: 'customer', timestamp: note.timestamp, text: note.text })}
-                                    data-testid={`button-edit-customer-note-${index}`}
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6 text-destructive"
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this note?')) {
-                                        deleteNoteMutation.mutate({ noteType: 'customer', timestamp: note.timestamp });
-                                      }
-                                    }}
-                                    data-testid={`button-delete-customer-note-${index}`}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <Textarea
-                                value={editingNote.text}
-                                onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
-                                rows={3}
-                                data-testid="textarea-edit-customer-note"
-                              />
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    if (editingNote.text.trim()) {
-                                      editNoteMutation.mutate({
-                                        noteType: 'customer',
-                                        timestamp: editingNote.timestamp,
-                                        text: editingNote.text
-                                      });
-                                    }
-                                  }}
-                                  disabled={!editingNote.text.trim()}
-                                  data-testid="button-save-customer-note"
-                                >
-                                  <Check className="h-4 w-4 mr-1" />
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setEditingNote(null)}
-                                  data-testid="button-cancel-customer-note"
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm whitespace-pre-wrap">{note.text}</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                {/* Add New Note */}
-                <div className="space-y-2">
-                  <Label htmlFor="new-customer-note">Add New Note</Label>
-                  <Textarea
-                    id="new-customer-note"
-                    value={newCustomerNote}
-                    onChange={(e) => setNewCustomerNote(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (newCustomerNote.trim()) {
-                          handleSave();
-                          setNewCustomerNote("");
-                        }
-                      }
-                    }}
-                    placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
-                    rows={2}
-                    data-testid="textarea-new-customer-note"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Press Enter to save, Shift+Enter for new line
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Price Summary */}
             <Card>
@@ -1818,7 +1668,7 @@ export default function AdminQuoteDetail() {
                     {sendConfirmationMutation.isPending ? "Sending..." : "Send Spec Summary Email"}
                   </Button>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Sends the van, pack, upgrades, and price to {quote.email}. Any customer-facing notes you've added will be included.
+                    Sends the van, pack, upgrades, and price to {quote.email}.
                   </p>
                 </CardContent>
               </Card>
