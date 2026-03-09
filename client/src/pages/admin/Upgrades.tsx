@@ -75,6 +75,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   hasVariants: z.boolean().optional(),
   allowQuantity: z.boolean().optional(),
   popular: z.boolean().optional(),
+  exclusiveGroup: z.string().optional().nullable(),
 });
 
 type UpgradeFormData = z.infer<typeof upgradeFormSchema>;
@@ -272,6 +273,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       hasVariants: false,
       allowQuantity: false,
       popular: false,
+      exclusiveGroup: null,
     },
   });
 
@@ -319,6 +321,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         hasVariants: hasChildren,
         allowQuantity: upgrade.allowQuantity || false,
         popular: upgrade.popular || false,
+        exclusiveGroup: upgrade.exclusiveGroup || null,
       });
     } else {
       setHasVariants(false);
@@ -339,6 +342,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         hasVariants: false,
         allowQuantity: false,
         popular: false,
+        exclusiveGroup: null,
       });
     }
     // Only run when dialog opens/closes or upgrade ID changes, not on every allUpgrades change
@@ -411,6 +415,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               published: data.published,
               popular: data.popular || false,
               allowQuantity: data.allowQuantity || false,
+              exclusiveGroup: data.exclusiveGroup || null,
               sortOrder: index, // Add sortOrder based on position
             })
           )
@@ -500,6 +505,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               published: data.published,
               popular: data.popular || false,
               allowQuantity: data.allowQuantity || false,
+              exclusiveGroup: data.exclusiveGroup || null,
               sortOrder: index, // Add sortOrder based on position
             };
             
@@ -1050,6 +1056,28 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       data-testid="switch-popular-upgrade"
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="exclusiveGroup"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusive Group</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. air-system (leave blank if not exclusive)"
+                      {...field}
+                      value={field.value ?? ""}
+                      onChange={e => field.onChange(e.target.value || null)}
+                      data-testid="input-exclusive-group"
+                    />
+                  </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    Upgrades sharing the same group name cannot be selected together. Only one can be chosen at a time.
+                  </p>
                 </FormItem>
               )}
             />

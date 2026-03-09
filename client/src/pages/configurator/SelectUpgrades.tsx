@@ -118,19 +118,14 @@ export default function SelectUpgrades() {
     enabled: !!state.vanId,
   });
 
-  // Define mutually exclusive upgrade names (branding options)
-  const brandingOptions = ['Graphic Pack', 'Full Wrap', 'Half Wrap'];
-  
-  const isBrandingOption = (upgradeName: string) => {
-    return brandingOptions.some(option => upgradeName.toLowerCase().includes(option.toLowerCase()));
-  };
-
-  // Define mutually exclusive air system upgrade IDs
-  // PTO and Electric Start Compressor cannot be fitted at the same time
-  const airSystemExclusiveIds = ['mounted-pto-air-system', 'compressor-12hp-270l'];
-  
-  const isAirSystemExclusive = (upgradeId: string) => {
-    return airSystemExclusiveIds.includes(upgradeId);
+  // Get the exclusive group for an upgrade (checks parent if this is a variant)
+  const getExclusiveGroup = (upgrade: Upgrade, allUpgrades: Upgrade[]): string | null => {
+    if (upgrade.exclusiveGroup) return upgrade.exclusiveGroup;
+    if (upgrade.parentId) {
+      const parent = allUpgrades.find(u => u.id === upgrade.parentId);
+      if (parent?.exclusiveGroup) return parent.exclusiveGroup;
+    }
+    return null;
   };
 
   // Detect van size from selected van, or from selected wrap size as fallback
@@ -190,21 +185,30 @@ export default function SelectUpgrades() {
     });
   }, [vanSize, configuratorData, state.upgradeIds, removeUpgrade]);
 
-  // Auto-remove mutually exclusive air system upgrades whenever state changes
-  // This handles cases where users have both selected from old localStorage or quotes
+  // Auto-remove duplicate exclusive group members whenever state changes
+  // This handles cases where users load old localStorage or quote data with conflicts
   useEffect(() => {
     if (!configuratorData) return;
-    
-    // Check if user has both mutually exclusive air system upgrades selected
-    const hasAllExclusiveItems = airSystemExclusiveIds.every(id => 
-      state.upgradeIds.includes(id)
-    );
-    
-    if (hasAllExclusiveItems) {
-      // Remove all but the first one (keep the PTO as default preference)
-      // Use atomic replace to remove the compressor and re-add the PTO
-      replaceUpgrades(['compressor-12hp-270l'], 'mounted-pto-air-system');
-    }
+    const allUpgrades = Object.values(configuratorData.upgrades).flat();
+    const selected = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
+
+    // Group selected upgrades by their exclusive group
+    const groupMap = new Map<string, string[]>();
+    selected.forEach(u => {
+      const group = getExclusiveGroup(u, allUpgrades);
+      if (group) {
+        if (!groupMap.has(group)) groupMap.set(group, []);
+        groupMap.get(group)!.push(u.id);
+      }
+    });
+
+    // For any group with more than one member, keep only the first and remove the rest
+    groupMap.forEach((ids) => {
+      if (ids.length > 1) {
+        const [keep, ...toRemove] = ids;
+        replaceUpgrades(toRemove, keep);
+      }
+    });
   }, [configuratorData, state.upgradeIds, replaceUpgrades]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
@@ -221,23 +225,17 @@ export default function SelectUpgrades() {
       
       const toRemove: string[] = [];
       
-      // If this is a branding option, mark other branding options for removal
-      if (upgrade && isBrandingOption(upgrade.name)) {
-        state.upgradeIds.forEach(selectedId => {
-          const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
-          if (selectedUpgrade && isBrandingOption(selectedUpgrade.name) && selectedId !== upgradeId) {
-            toRemove.push(selectedId);
-          }
-        });
-      }
-      
-      // If this is a mutually exclusive air system upgrade, mark the other one for removal
-      if (isAirSystemExclusive(upgradeId)) {
-        state.upgradeIds.forEach(selectedId => {
-          if (isAirSystemExclusive(selectedId) && selectedId !== upgradeId) {
-            toRemove.push(selectedId);
-          }
-        });
+      // If this upgrade has an exclusive group, remove any other selected upgrade in the same group
+      if (upgrade) {
+        const group = getExclusiveGroup(upgrade, allUpgrades);
+        if (group) {
+          state.upgradeIds.forEach(selectedId => {
+            const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
+            if (selectedUpgrade && getExclusiveGroup(selectedUpgrade, allUpgrades) === group && selectedId !== upgradeId) {
+              toRemove.push(selectedId);
+            }
+          });
+        }
       }
       
       // Use atomic replace if we need to remove items, otherwise just add
@@ -275,25 +273,18 @@ export default function SelectUpgrades() {
     // Add the new variant
     if (variantId) {
       const selectedVariant = allUpgrades.find(u => u.id === variantId);
-      const parent = allUpgrades.find(u => u.id === parentId);
       
-      // If this is a branding option, mark other branding options for removal
-      if (parent && isBrandingOption(parent.name)) {
-        state.upgradeIds.forEach(selectedId => {
-          const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
-          if (selectedUpgrade && isBrandingOption(selectedUpgrade.name) && !toRemove.includes(selectedId)) {
-            toRemove.push(selectedId);
-          }
-        });
-      }
-      
-      // If this is a mutually exclusive air system upgrade, mark the other one for removal
-      if (isAirSystemExclusive(variantId)) {
-        state.upgradeIds.forEach(selectedId => {
-          if (isAirSystemExclusive(selectedId) && selectedId !== variantId && !toRemove.includes(selectedId)) {
-            toRemove.push(selectedId);
-          }
-        });
+      // If this variant (or its parent) has an exclusive group, remove any other selected member of that group
+      if (selectedVariant) {
+        const group = getExclusiveGroup(selectedVariant, allUpgrades);
+        if (group) {
+          state.upgradeIds.forEach(selectedId => {
+            const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
+            if (selectedUpgrade && getExclusiveGroup(selectedUpgrade, allUpgrades) === group && !toRemove.includes(selectedId)) {
+              toRemove.push(selectedId);
+            }
+          });
+        }
       }
       
       // Use atomic replace to remove all items and add the new variant in one update

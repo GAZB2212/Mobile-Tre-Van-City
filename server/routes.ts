@@ -2757,11 +2757,12 @@ ${vanEntries}
         // Insert upgrades
         for (const u of upgrades) {
           await client.query(
-            `INSERT INTO upgrades (id, name, category, description, price, created_at, updated_at, published, images, parent_id, variant_name, allow_quantity, sort_order, popular, video_url, detailed_info, show_video)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::json,$10,$11,$12,$13,$14,$15,$16,$17)`,
+            `INSERT INTO upgrades (id, name, category, description, price, created_at, updated_at, published, images, parent_id, variant_name, allow_quantity, sort_order, popular, video_url, detailed_info, show_video, exclusive_group)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::json,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
             [u.id, u.name, u.category, u.description, u.price, u.created_at, u.updated_at,
              u.published, JSON.stringify(u.images), u.parent_id, u.variant_name,
-             u.allow_quantity, u.sort_order, u.popular, u.video_url, u.detailed_info, u.show_video]
+             u.allow_quantity, u.sort_order, u.popular, u.video_url, u.detailed_info, u.show_video,
+             u.exclusive_group ?? null]
           );
         }
 
