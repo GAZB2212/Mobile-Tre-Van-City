@@ -15,6 +15,7 @@ import {
   Users, 
   Shield,
   Globe,
+  Settings,
   LogOut,
   Calculator,
   GraduationCap,
@@ -100,7 +101,7 @@ export default function AdminDashboard() {
     return null;
   }
 
-  const allAdminItems = [
+  const allManagementItems = [
     {
       title: "Analytics Dashboard",
       description: "Track site performance and customer activity",
@@ -166,22 +167,6 @@ export default function AdminDashboard() {
       requiredRole: "full" as const
     },
     {
-      title: "View Completed Configurators",
-      description: "Review customer quotes and requests",
-      icon: FileText,
-      href: "/admin/quotes",
-      badge: "Sales",
-      requiredRole: "basic" as const
-    },
-    {
-      title: "View Leads",
-      description: "Manage customer inquiries and leads",
-      icon: Users,
-      href: "/admin/leads",
-      badge: "CRM",
-      requiredRole: "basic" as const
-    },
-    {
       title: "Manage Users",
       description: "Assign roles and manage admin access",
       icon: Shield,
@@ -191,11 +176,35 @@ export default function AdminDashboard() {
     }
   ];
 
-  // Filter items based on user's admin role
-  const adminItems = allAdminItems.filter(item => {
+  const allLeadsItems = [
+    {
+      title: "Configurators",
+      description: "Review and manage all customer quote requests",
+      icon: FileText,
+      href: "/admin/quotes",
+      badge: "Sales",
+      requiredRole: "basic" as const
+    },
+    {
+      title: "Leads",
+      description: "Manage customer inquiries and contact form submissions",
+      icon: Users,
+      href: "/admin/leads",
+      badge: "CRM",
+      requiredRole: "basic" as const
+    },
+  ];
+
+  const managementItems = allManagementItems.filter(item => {
     if (!user?.adminRole) return false;
-    if (user.adminRole === "full") return true; // Full admins see everything
-    return item.requiredRole === "basic"; // Basic admins only see basic items
+    if (user.adminRole === "full") return true;
+    return item.requiredRole === "basic";
+  });
+
+  const leadsItems = allLeadsItems.filter(item => {
+    if (!user?.adminRole) return false;
+    if (user.adminRole === "full") return true;
+    return item.requiredRole === "basic";
   });
 
   return (
@@ -232,30 +241,72 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {adminItems.map((item) => (
-            <Card key={item.href} className="hover-elevate cursor-pointer transition-all">
-              <Link href={item.href} className="block h-full" data-testid={`link-admin-${item.href.split('/').pop()}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <item.icon className="w-5 h-5 text-accent" />
-                      <CardTitle className="text-lg">{item.title}</CardTitle>
-                    </div>
-                    <Badge variant="outline">{item.badge}</Badge>
-                  </div>
-                  <CardDescription>{item.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <span>Click to manage →</span>
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
-          ))}
-        </div>
+      <div className="container mx-auto px-4 py-8 space-y-10">
+        {/* Leads & CRM Section */}
+        {leadsItems.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-accent" />
+              Leads
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {leadsItems.map((item) => (
+                <Card key={item.href} className="hover-elevate cursor-pointer transition-all">
+                  <Link href={item.href} className="block h-full" data-testid={`link-admin-${item.href.split('/').pop()}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center space-x-2">
+                          <item.icon className="w-5 h-5 text-accent" />
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                        </div>
+                        <Badge variant="outline">{item.badge}</Badge>
+                      </div>
+                      <CardDescription>{item.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <span>Click to open →</span>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Site Management Section */}
+        {managementItems.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-accent" />
+              Site Management
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {managementItems.map((item) => (
+                <Card key={item.href} className="hover-elevate cursor-pointer transition-all">
+                  <Link href={item.href} className="block h-full" data-testid={`link-admin-${item.href.split('/').pop()}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center space-x-2">
+                          <item.icon className="w-5 h-5 text-accent" />
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                        </div>
+                        <Badge variant="outline">{item.badge}</Badge>
+                      </div>
+                      <CardDescription>{item.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <span>Click to manage →</span>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Card className="mt-8">
           <CardHeader>
