@@ -638,7 +638,7 @@ export default function SelectUpgrades() {
                       className="bg-accent text-accent-foreground w-full sm:w-auto"
                       data-testid="button-continue"
                     >
-                      Continue to Training
+                      Continue to Finance
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
