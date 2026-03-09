@@ -2794,6 +2794,67 @@ ${vanEntries}
     }
   });
 
+  // Public endpoint: get site settings (video URLs etc.)
+  app.get("/api/site-settings", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch site settings" });
+    }
+  });
+
+  // Admin endpoint: update a site setting
+  app.put("/api/admin/site-settings/:key", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const { value } = req.body;
+      if (typeof value !== "string") {
+        return res.status(400).json({ error: "value must be a string" });
+      }
+      await storage.setSiteSetting(key, value);
+      res.json({ success: true, key, value });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update site setting" });
+    }
+  });
+
+  // Admin endpoint: upload a video to object storage
+  app.post("/api/admin/upload-video", isAuthenticated, isAdmin, async (req, res) => {
+    const multer = await import("multer");
+    const upload = multer.default({ 
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
+    });
+
+    upload.single("file")(req, res, async (err: any) => {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(400).json({ error: "File upload failed" });
+      }
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file provided" });
+        }
+        const allowedTypes = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+        if (!allowedTypes.includes(req.file.mimetype.toLowerCase())) {
+          return res.status(400).json({ error: "Only video files are allowed" });
+        }
+        const { ObjectStorageService } = await import("./objectStorage");
+        const objectStorageService = new ObjectStorageService();
+        const url = await objectStorageService.uploadVideoToPublicStorage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+        res.json({ url });
+      } catch (error) {
+        console.error("Video upload error:", error);
+        res.status(500).json({ error: "Video upload failed" });
+      }
+    });
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

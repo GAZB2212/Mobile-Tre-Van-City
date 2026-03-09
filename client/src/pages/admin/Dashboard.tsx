@@ -20,7 +20,8 @@ import {
   GraduationCap,
   BarChart3,
   Image,
-  RefreshCw
+  RefreshCw,
+  Video
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -154,6 +155,14 @@ export default function AdminDashboard() {
       icon: Image,
       href: "/admin/gallery-items",
       badge: "Content",
+      requiredRole: "full" as const
+    },
+    {
+      title: "Manage Site Videos",
+      description: "Upload hero video and 360° render videos — changes go live instantly",
+      icon: Video,
+      href: "/admin/videos",
+      badge: "Videos",
       requiredRole: "full" as const
     },
     {

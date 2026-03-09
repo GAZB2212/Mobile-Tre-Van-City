@@ -1,21 +1,28 @@
 import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
+const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
+
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const { data: settings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/site-settings"],
+  });
+
+  const videoSrc = settings?.hero_video_url ?? DEFAULT_HERO_VIDEO;
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Ensure muted (required for autoplay in all browsers)
     video.muted = true;
     video.volume = 0;
 
     const tryPlay = () => {
       video.play().catch(() => {
-        // Some browsers still block — retry once the user touches/clicks anything
         const retry = () => {
           video.play().catch(() => {});
           window.removeEventListener("pointerdown", retry);
@@ -26,7 +33,6 @@ export default function Hero() {
       });
     };
 
-    // Try immediately, and also on every readiness event
     video.load();
     tryPlay();
     video.addEventListener("loadedmetadata", tryPlay);
@@ -38,13 +44,14 @@ export default function Hero() {
       video.removeEventListener("canplay", tryPlay);
       video.removeEventListener("canplaythrough", tryPlay);
     };
-  }, []);
+  }, [videoSrc]);
 
   return (
     <section className="relative bg-[#1a1a1a] min-h-[70vh] sm:min-h-[80vh] py-24 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
       {/* Video Background */}
       <video
         ref={videoRef}
+        key={videoSrc}
         autoPlay
         loop
         muted
@@ -53,7 +60,7 @@ export default function Hero() {
         className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
       >
-        <source src="/media/website_hero_1772966773377.mp4" type="video/mp4" />
+        <source src={videoSrc} type="video/mp4" />
       </video>
 
       {/* Dark overlay for text readability */}

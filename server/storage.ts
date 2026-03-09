@@ -7,7 +7,8 @@ import {
   type Lead, type InsertLead,
   type FinancePlan, type InsertFinancePlan,
   type TrainingOption, type InsertTrainingOption,
-  type GalleryItem, type InsertGalleryItem
+  type GalleryItem, type InsertGalleryItem,
+  type SiteSetting
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -78,6 +79,10 @@ export interface IStorage {
   createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem>;
   updateGalleryItem(id: string, item: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined>;
   deleteGalleryItem(id: string): Promise<boolean>;
+
+  // Site Settings
+  getSiteSettings(): Promise<Record<string, string>>;
+  setSiteSetting(key: string, value: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -1652,6 +1657,13 @@ export class MemStorage implements IStorage {
   async deleteGalleryItem(id: string): Promise<boolean> {
     return false;
   }
+
+  async getSiteSettings(): Promise<Record<string, string>> {
+    return {};
+  }
+
+  async setSiteSetting(key: string, value: string): Promise<void> {
+  }
 }
 
 // Database Storage Implementation
@@ -1942,6 +1954,17 @@ export class DbStorage implements IStorage {
   async deleteGalleryItem(id: string): Promise<boolean> {
     const result = await db.delete(schema.galleryItems).where(eq(schema.galleryItems.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async getSiteSettings(): Promise<Record<string, string>> {
+    const rows = await db.select().from(schema.siteSettings);
+    return Object.fromEntries(rows.map(r => [r.key, r.value]));
+  }
+
+  async setSiteSetting(key: string, value: string): Promise<void> {
+    await db.insert(schema.siteSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: schema.siteSettings.key, set: { value, updatedAt: new Date() } });
   }
 }
 

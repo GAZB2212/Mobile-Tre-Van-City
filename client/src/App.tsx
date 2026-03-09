@@ -37,6 +37,7 @@ import AdminFinancePlans from "@/pages/admin/FinancePlans";
 import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
 import AdminGalleryItems from "@/pages/admin/GalleryItems";
 import AdminAnalytics from "@/pages/admin/Analytics";
+import AdminVideos from "@/pages/admin/Videos";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
@@ -87,6 +88,7 @@ function Router() {
       <Route path="/admin/finance-plans" component={AdminFinancePlans} />
       <Route path="/admin/training-options" component={AdminTrainingOptions} />
       <Route path="/admin/gallery-items" component={AdminGalleryItems} />
+      <Route path="/admin/videos" component={AdminVideos} />
       <Route path="/admin/quotes" component={AdminQuotes} />
       <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
