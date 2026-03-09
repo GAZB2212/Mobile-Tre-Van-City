@@ -1,8 +1,9 @@
+import { useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Image as ImageIcon, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import vanImage1 from "@assets/IMG_8800_1759504961672.jpg";
 import vanImage2 from "@assets/IMG_1129_1759504961672.jpg";
 import vanImage3 from "@assets/IMG_7127_1759504961672.jpg";
@@ -52,6 +53,49 @@ const designCategories = [
   },
 ];
 
+function AutoplayVideo({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const attemptPlay = () => {
+      video.muted = true;
+      video.play().catch(() => {
+        const onInteraction = () => {
+          video.play().catch(() => {});
+        };
+        document.addEventListener("click", onInteraction, { once: true });
+        document.addEventListener("touchstart", onInteraction, { once: true });
+      });
+    };
+
+    if (video.readyState >= 3) {
+      attemptPlay();
+    } else {
+      video.addEventListener("canplay", attemptPlay, { once: true });
+    }
+
+    return () => {
+      video.removeEventListener("canplay", attemptPlay);
+    };
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className="w-full h-full object-cover"
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+    />
+  );
+}
+
 export default function VanDesigns() {
   return (
     <section className="py-16 md:py-24 bg-background">
@@ -70,8 +114,8 @@ export default function VanDesigns() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {designCategories.map((design, index) => (
-            <Card 
-              key={index} 
+            <Card
+              key={index}
               className={`hover-elevate overflow-hidden cursor-pointer ${
                 design.featured ? 'sm:col-span-2 lg:col-span-1' : ''
               }`}
@@ -79,31 +123,14 @@ export default function VanDesigns() {
             >
               <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
                 {design.type === 'video' && design.videoSrc ? (
-                  <video 
-                    src={design.videoSrc} 
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                  />
+                  <AutoplayVideo src={design.videoSrc} />
                 ) : design.type === 'image' && design.imageSrc ? (
-                  <img 
-                    src={design.imageSrc} 
+                  <img
+                    src={design.imageSrc}
                     alt={design.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <ImageIcon className="w-16 h-16 text-muted-foreground/50 group-hover:text-muted-foreground/70 transition-colors" />
-                      <Badge variant="secondary" className="text-xs">
-                        Gallery
-                      </Badge>
-                    </div>
-                  </div>
-                )}
+                ) : null}
                 {design.featured && (
                   <div className="absolute top-2 right-2">
                     <Badge className="bg-accent text-accent-foreground text-xs">
