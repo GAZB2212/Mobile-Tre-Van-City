@@ -42,6 +42,7 @@ import {
   Settings,
   ChevronDown,
   CheckCircle,
+  CheckCircle2,
   Pencil,
   Trash2,
   Check,
@@ -962,79 +963,93 @@ export default function AdminQuoteDetail() {
               </Collapsible>
             </Card>
 
-            {/* Build Progress Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wrench className="w-5 h-5" />
-                  Build Stage Management
-                </CardTitle>
-                <CardDescription>
-                  Tick off each stage as it's completed — stages can be done in any order
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {BUILD_STAGES.map((stage) => {
-                  const isComplete = completedBuildStages.includes(stage.id);
-                  const Icon = stage.icon;
-                  return (
-                    <div
-                      key={stage.id}
-                      className={cn(
-                        "flex items-center gap-3 py-2.5 px-3 rounded-md cursor-pointer select-none hover-elevate",
-                        isComplete ? "bg-accent/10" : "bg-muted/30"
-                      )}
-                      onClick={() => {
-                        if (!canEdit) return;
-                        setCompletedBuildStages(prev =>
-                          isComplete
-                            ? prev.filter(s => s !== stage.id)
-                            : [...prev, stage.id]
-                        );
-                      }}
-                      data-testid={`toggle-stage-${stage.id}`}
-                    >
-                      <Checkbox
-                        checked={isComplete}
-                        onCheckedChange={(checked) => {
-                          if (!canEdit) return;
-                          setCompletedBuildStages(prev =>
-                            checked
-                              ? [...prev, stage.id]
-                              : prev.filter(s => s !== stage.id)
-                          );
-                        }}
-                        data-testid={`checkbox-stage-${stage.id}`}
-                        disabled={!canEdit}
-                      />
-                      <Icon className={cn("w-4 h-4 flex-shrink-0", isComplete ? "text-accent" : "text-muted-foreground")} />
-                      <span className={cn("flex-1 text-sm font-medium", isComplete ? "text-foreground" : "text-muted-foreground")}>
-                        {stage.label}
-                      </span>
-                      {isComplete && (
-                        <Badge variant="secondary" className="text-xs">Done</Badge>
-                      )}
+            {/* Build Progress Management — only visible once in build or completed */}
+            {(status === "in_build" || status === "completed") && (
+              <Card className={status === "completed" ? "border-accent bg-accent/5" : ""}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wrench className="w-5 h-5" />
+                    Build Stage Management
+                  </CardTitle>
+                  {status === "in_build" && (
+                    <CardDescription>
+                      Tick off each stage as it's completed — stages can be done in any order
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {status === "completed" ? (
+                    <div className="flex flex-col items-center gap-3 py-6" data-testid="build-complete-banner">
+                      <CheckCircle2 className="w-12 h-12 text-accent" />
+                      <span className="text-xl font-bold text-accent">Complete</span>
+                      <span className="text-sm text-muted-foreground">All build stages finished — van delivered</span>
                     </div>
-                  );
-                })}
+                  ) : (
+                    <div className="space-y-1">
+                      {BUILD_STAGES.map((stage) => {
+                        const isComplete = completedBuildStages.includes(stage.id);
+                        const Icon = stage.icon;
+                        return (
+                          <div
+                            key={stage.id}
+                            className={cn(
+                              "flex items-center gap-3 py-2.5 px-3 rounded-md cursor-pointer select-none hover-elevate",
+                              isComplete ? "bg-accent/10" : "bg-muted/30"
+                            )}
+                            onClick={() => {
+                              if (!canEdit) return;
+                              setCompletedBuildStages(prev =>
+                                isComplete
+                                  ? prev.filter(s => s !== stage.id)
+                                  : [...prev, stage.id]
+                              );
+                            }}
+                            data-testid={`toggle-stage-${stage.id}`}
+                          >
+                            <Checkbox
+                              checked={isComplete}
+                              onCheckedChange={(checked) => {
+                                if (!canEdit) return;
+                                setCompletedBuildStages(prev =>
+                                  checked
+                                    ? [...prev, stage.id]
+                                    : prev.filter(s => s !== stage.id)
+                                );
+                              }}
+                              data-testid={`checkbox-stage-${stage.id}`}
+                              disabled={!canEdit}
+                            />
+                            <Icon className={cn("w-4 h-4 flex-shrink-0", isComplete ? "text-accent" : "text-muted-foreground")} />
+                            <span className={cn("flex-1 text-sm font-medium", isComplete ? "text-foreground" : "text-muted-foreground")}>
+                              {stage.label}
+                            </span>
+                            {isComplete && (
+                              <Badge variant="secondary" className="text-xs">Done</Badge>
+                            )}
+                          </div>
+                        );
+                      })}
 
-                <div className="pt-4 mt-2 border-t">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Overall Progress</span>
-                    <span className="font-semibold">
-                      {Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}% — {completedBuildStages.length} of {BUILD_STAGES.length} stages
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent transition-all duration-500"
-                      style={{ width: `${Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}%` }}
-                      data-testid="admin-progress-bar"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                      <div className="pt-4 mt-2 border-t">
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Overall Progress</span>
+                          <span className="font-semibold">
+                            {Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}% — {completedBuildStages.length} of {BUILD_STAGES.length} stages
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-accent transition-all duration-500"
+                            style={{ width: `${Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}%` }}
+                            data-testid="admin-progress-bar"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Customer Logos */}
             {quote.customerLogoUrls && quote.customerLogoUrls.length > 0 && (
@@ -1186,7 +1201,7 @@ export default function AdminQuoteDetail() {
                           Move to Build
                         </Button>
                       )}
-                      {status === "in_build" && (
+                      {status === "in_build" && completedBuildStages.length === BUILD_STAGES.length && (
                         <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("completed")} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
                           Mark as Completed
                         </Button>
