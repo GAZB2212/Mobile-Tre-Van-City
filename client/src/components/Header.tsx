@@ -30,19 +30,14 @@ export default function Header() {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({
-        title: "Success",
-        description: "Logged out successfully",
-      });
-      setLocation("/");
+      localStorage.removeItem('sessionId');
+      queryClient.clear();
+      window.location.href = "/";
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to logout",
-        variant: "destructive",
-      });
+      localStorage.removeItem('sessionId');
+      queryClient.clear();
+      window.location.href = "/";
     },
   });
 

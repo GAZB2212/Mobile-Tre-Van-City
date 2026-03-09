@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Car, 
   Package, 
@@ -219,7 +219,12 @@ export default function AdminDashboard() {
                   Main Site
                 </Link>
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => window.location.href = "/api/logout"} data-testid="button-logout">
+              <Button variant="ghost" size="sm" onClick={async () => {
+                try { await apiRequest("POST", "/api/auth/logout"); } catch {}
+                localStorage.removeItem('sessionId');
+                queryClient.clear();
+                window.location.href = "/";
+              }} data-testid="button-logout">
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
