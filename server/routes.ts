@@ -1806,6 +1806,69 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Send finance submission email to finance company
+  app.post("/api/admin/quotes/:id/send-finance", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Get finance company email from site settings
+      const settings = await storage.getSiteSettings();
+      const financeEmail = settings.finance_company_email || 'stephen.quinn@jigsawfinance.com';
+
+      // Fetch van, kit, upgrade details
+      const [van, kit, selectedUpgrades] = await Promise.all([
+        quote.vanId ? storage.getVan(quote.vanId) : Promise.resolve(null),
+        quote.kitId ? storage.getKit(quote.kitId) : Promise.resolve(null),
+        quote.selectedUpgradeIds && quote.selectedUpgradeIds.length > 0
+          ? Promise.all(quote.selectedUpgradeIds.map((uid: string) => storage.getUpgrade(uid)))
+          : Promise.resolve([]),
+      ]);
+
+      // Calculate discount
+      const totalWithVat = quote.estSubtotal + quote.estVAT;
+      let discount = 0;
+      if (quote.discountType && quote.discountValue) {
+        if (quote.discountType === 'percentage') {
+          discount = Math.round((totalWithVat * quote.discountValue) / 100);
+        } else {
+          discount = quote.discountValue;
+        }
+      }
+
+      const { sendFinanceSubmissionEmail } = await import('./email.js');
+      await sendFinanceSubmissionEmail({
+        financeCompanyEmail: financeEmail,
+        customerName: quote.userName,
+        customerPhone: quote.phone,
+        customerEmail: quote.email,
+        quoteId: quote.id,
+        vanTitle: van?.title ?? null,
+        vanRegistration: quote.vanRegistration ?? null,
+        vanMileage: quote.vanMileage ?? null,
+        kitName: kit?.name ?? null,
+        upgradeNames: selectedUpgrades.filter(Boolean).map((u: any) => u.name),
+        subtotal: quote.estSubtotal,
+        vat: quote.estVAT,
+        total: totalWithVat,
+        discount: discount > 0 ? discount : undefined,
+      });
+
+      // Record when finance email was sent
+      await storage.updateQuote(req.params.id, {
+        financeSentAt: new Date(),
+        status: 'awaiting_finance' as const,
+      } as any);
+
+      res.json({ success: true, sentTo: financeEmail });
+    } catch (error) {
+      console.error('Error sending finance email:', error);
+      res.status(500).json({ error: "Failed to send finance email" });
+    }
+  });
+
   // Public quote confirmation endpoint (no auth required)
   app.get("/api/quote/confirm/:token", async (req, res) => {
     try {

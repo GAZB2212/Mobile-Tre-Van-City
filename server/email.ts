@@ -232,6 +232,130 @@ export async function sendQuoteSpecSummaryEmail({
   });
 }
 
+// ── Finance submission email: sent to finance company by admin ────────────────
+export async function sendFinanceSubmissionEmail({
+  financeCompanyEmail,
+  customerName,
+  customerPhone,
+  customerEmail,
+  quoteId,
+  vanTitle,
+  vanRegistration,
+  vanMileage,
+  kitName,
+  upgradeNames,
+  subtotal,
+  vat,
+  total,
+  discount,
+}: {
+  financeCompanyEmail: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  quoteId: string;
+  vanTitle?: string | null;
+  vanRegistration?: string | null;
+  vanMileage?: number | null;
+  kitName?: string | null;
+  upgradeNames?: string[];
+  subtotal: number;
+  vat: number;
+  total: number;
+  discount?: number;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const ref = quoteId.slice(0, 8).toUpperCase();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+
+  const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const discountLine = discount && discount > 0
+    ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
+    : '';
+  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+
+  const emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 650px; margin: 0 auto; }
+    .header { background-color: ${brandDark}; padding: 28px 30px; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 24px; }
+    .header p { color: #ccc; margin: 4px 0 0; font-size: 13px; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
+    .section-title { font-size: 14px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid ${brandGreen}; padding-bottom: 6px; margin: 24px 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    td:first-child { color: #6b7280; width: 40%; font-weight: 500; }
+    .total-row td { font-weight: bold; font-size: 17px; border-top: 2px solid ${brandGreen}; border-bottom: none; }
+    .total-row td:last-child { color: ${brandGreen}; }
+    .footer { text-align: center; padding: 18px; color: #9ca3af; font-size: 12px; }
+    .ref-pill { display: inline-block; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 12px; font-family: monospace; font-size: 14px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>Finance Application – Ref <span style="color:${brandGreen};">#${ref}</span></p>
+    </div>
+    <div class="content">
+      <p>Please find below the details for a finance application from one of our customers who would like to proceed with a van conversion.</p>
+
+      <div class="section-title">Customer Details</div>
+      <table>
+        <tr><td>Name</td><td>${customerName}</td></tr>
+        <tr><td>Phone</td><td>${customerPhone}</td></tr>
+        <tr><td>Email</td><td><a href="mailto:${customerEmail}">${customerEmail}</a></td></tr>
+        <tr><td>Reference</td><td><span class="ref-pill">#${ref}</span></td></tr>
+      </table>
+
+      <div class="section-title">Vehicle Details</div>
+      <table>
+        ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
+        ${vanRegistration ? `<tr><td>Registration</td><td><strong>${vanRegistration.toUpperCase()}</strong></td></tr>` : ''}
+        ${vanMileage !== undefined && vanMileage !== null ? `<tr><td>Mileage</td><td>${vanMileage.toLocaleString('en-GB')} miles</td></tr>` : ''}
+      </table>
+
+      <div class="section-title">Conversion Specification</div>
+      <table>
+        ${kitName ? `<tr><td>Equipment Pack</td><td>${kitName}</td></tr>` : ''}
+        ${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `<tr><td>Upgrade</td><td>${u}</td></tr>`).join('') : ''}
+      </table>
+
+      <div class="section-title">Pricing</div>
+      <table>
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
+        ${discountLine}
+        <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
+        <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
+      </table>
+
+      <p style="margin-top:24px;">Please contact the customer directly to progress the finance application. If you have any questions, please reply to this email or call us on <strong>0151 203 8500</strong>.</p>
+      <p>Kind regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL<br>0151 203 8500</p>
+    </div>
+    <div class="footer">
+      Sent on behalf of Mobile Tyre Van City &bull; www.mobiletyrevancity.co.uk
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nPricing:\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+
+  await client.emails.send({
+    to: financeCompanyEmail,
+    from: fromEmail,
+    replyTo: [fromEmail],
+    subject: `Finance Application – ${customerName} – ${fmt(totalAfterDiscount)} – Ref #${ref}`,
+    html: emailHtml,
+    text: emailText,
+  });
+}
+
 // ── Enquiry received: customer confirmation + admin notification ──────────────
 
 export async function sendQuoteReceivedEmails({

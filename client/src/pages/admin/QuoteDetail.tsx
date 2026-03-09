@@ -150,7 +150,9 @@ export default function AdminQuoteDetail() {
   const [discountValue, setDiscountValue] = useState("");
   const [newAdminNote, setNewAdminNote] = useState("");
   const [newCustomerNote, setNewCustomerNote] = useState("");
-  const [confirmationUrl, setConfirmationUrl] = useState("");
+  const [customerConfirmed, setCustomerConfirmed] = useState(false);
+  const [vanRegistration, setVanRegistration] = useState("");
+  const [vanMileage, setVanMileage] = useState("");
   
   // Note editing state - stores { noteType, timestamp, text } when editing a note
   const [editingNote, setEditingNote] = useState<{ noteType: 'admin' | 'customer'; timestamp: string; text: string } | null>(null);
@@ -204,6 +206,9 @@ export default function AdminQuoteDetail() {
       setStatus(quote.status || "new");
       setFinanceStatus(quote.financeStatus || "pending");
       setBuildStage(quote.buildStage || "");
+      setCustomerConfirmed(quote.customerConfirmed ?? false);
+      setVanRegistration(quote.vanRegistration ?? "");
+      setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
       setDiscountType(quote.discountType as any || "");
       // Convert discount from pence to pounds for fixed amounts
       if (quote.discountValue) {
@@ -274,6 +279,44 @@ export default function AdminQuoteDetail() {
         title: "Error",
         description: "Failed to send summary email. Please try again.",
       });
+    },
+  });
+
+  const { data: siteSettings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/site-settings"],
+  });
+  const [financeEmailOverride, setFinanceEmailOverride] = useState("");
+  const defaultFinanceEmail = siteSettings?.finance_company_email ?? "stephen.quinn@jigsawfinance.com";
+  const financeEmail = financeEmailOverride || defaultFinanceEmail;
+
+  const saveFinanceEmailMutation = useMutation({
+    mutationFn: async (email: string) => {
+      return await apiRequest("PUT", `/api/admin/site-settings/finance_company_email`, { value: email });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/site-settings"] });
+      setFinanceEmailOverride("");
+      toast({ title: "Finance email saved", description: "Default finance company email updated." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save finance email." });
+    },
+  });
+
+  const sendFinanceMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/admin/quotes/${id}/send-finance`);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      toast({
+        title: "Sent to Finance Company",
+        description: `Application emailed to ${data?.sentTo ?? "the finance company"}.`,
+      });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to send finance email." });
     },
   });
 
@@ -485,6 +528,9 @@ export default function AdminQuoteDetail() {
       discountValue: discountValueInPence,
       selectedUpgradeIds,
       selectedUpgrades,
+      customerConfirmed,
+      vanRegistration: vanRegistration.trim() || null,
+      vanMileage: vanMileage.trim() ? parseInt(vanMileage.trim()) : null,
       // Update stored pricing values to match recalculated prices
       estSubtotal: currentPricing.subtotal,
       estDiscount: currentPricing.discount,
@@ -1614,6 +1660,126 @@ export default function AdminQuoteDetail() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Finance Submission Card */}
+            {canEdit && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PoundSterling className="w-5 h-5" />
+                    Finance Submission
+                  </CardTitle>
+                  <CardDescription>
+                    Send the full spec to the finance company
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {/* Step 1: Customer confirms */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 1 — Customer confirmation</Label>
+                    <div className="flex items-start gap-3 p-3 rounded-md border">
+                      <Checkbox
+                        id="customer-confirmed"
+                        checked={customerConfirmed}
+                        onCheckedChange={(v) => setCustomerConfirmed(!!v)}
+                        data-testid="checkbox-customer-confirmed"
+                      />
+                      <div className="flex-1">
+                        <label htmlFor="customer-confirmed" className="text-sm font-medium cursor-pointer select-none">
+                          Customer confirms the configurator
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Tick once the customer has verbally agreed their configuration and spec on the phone
+                        </p>
+                      </div>
+                    </div>
+                    {customerConfirmed && (
+                      <p className="text-xs text-accent font-medium">Confirmed — ready to submit to finance</p>
+                    )}
+                  </div>
+
+                  {/* Step 2: Vehicle details */}
+                  <div className="space-y-3">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 2 — Vehicle details</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="van-registration" className="text-sm">Van Registration</Label>
+                      <Input
+                        id="van-registration"
+                        placeholder="e.g. AB12 CDE"
+                        value={vanRegistration}
+                        onChange={(e) => setVanRegistration(e.target.value.toUpperCase())}
+                        className="font-mono uppercase"
+                        data-testid="input-van-registration"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="van-mileage" className="text-sm">Van Mileage</Label>
+                      <Input
+                        id="van-mileage"
+                        type="number"
+                        placeholder="e.g. 15000"
+                        value={vanMileage}
+                        onChange={(e) => setVanMileage(e.target.value)}
+                        data-testid="input-van-mileage"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Save changes above to store registration and mileage.</p>
+                  </div>
+
+                  {/* Step 3: Finance company email */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 3 — Finance company</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Finance company email"
+                        value={financeEmailOverride || defaultFinanceEmail}
+                        onChange={(e) => setFinanceEmailOverride(e.target.value)}
+                        className="text-sm"
+                        data-testid="input-finance-email"
+                      />
+                      {financeEmailOverride && financeEmailOverride !== defaultFinanceEmail && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => saveFinanceEmailMutation.mutate(financeEmailOverride)}
+                          disabled={saveFinanceEmailMutation.isPending}
+                          data-testid="button-save-finance-email"
+                        >
+                          Save
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Default: Jigsaw Finance (Stephen Quinn). Editing and saving will update the default for all quotes.
+                    </p>
+                  </div>
+
+                  {/* Step 4: Send button */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 4 — Send application</Label>
+                    <Button
+                      className="w-full bg-[#8bc440e6] text-[#191919] border-green-600"
+                      onClick={() => sendFinanceMutation.mutate()}
+                      disabled={!customerConfirmed || sendFinanceMutation.isPending}
+                      data-testid="button-send-finance"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {sendFinanceMutation.isPending ? "Sending..." : "Send to Finance Company"}
+                    </Button>
+                    {!customerConfirmed && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Tick "Customer confirms the configurator" to enable
+                      </p>
+                    )}
+                    {quote.financeSentAt && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Last sent: {new Date(quote.financeSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Send Spec Summary Email - Only for full admins */}
             {canEdit && (

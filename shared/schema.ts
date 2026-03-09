@@ -159,6 +159,12 @@ export const quotes = pgTable("quotes", {
   // Quote confirmation
   confirmationToken: text("confirmation_token").unique(), // Unique token for customer confirmation link
   confirmedAt: timestamp("confirmed_at"), // When customer confirmed the quote
+
+  // Finance submission
+  customerConfirmed: boolean("customer_confirmed").notNull().default(false), // Customer verbally confirmed their config
+  vanRegistration: text("van_registration"), // Specific van registration plate for finance submission
+  vanMileage: integer("van_mileage"), // Current van mileage for finance submission
+  financeSentAt: timestamp("finance_sent_at"), // When finance submission email was last sent
   
   status: text("status").notNull().default("pending"),
   buildStage: text("build_stage"),
