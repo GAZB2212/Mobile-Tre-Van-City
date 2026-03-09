@@ -1480,6 +1480,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         status: z.enum(quoteStatuses).optional(),
         financeStatus: z.enum(financeStatuses).optional(),
         buildStage: z.enum(buildStages).nullable().optional(),
+        completedBuildStages: z.array(z.string()).optional(),
         graphicsArtworkUrl: z.string().url().or(z.literal('')).nullable().optional(),
         graphicsArtworkNotes: z.string().nullable().optional(),
         discountType: z.enum(['percentage', 'fixed']).nullable().optional(),

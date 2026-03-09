@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  CheckCircle, 
+  CheckCircle2, 
   Circle,
   Wrench,
   FileImage,
@@ -15,10 +15,10 @@ import {
 import { cn } from "@/lib/utils";
 
 interface BuildProgressTrackerProps {
-  currentStage: string | null;
+  completedStages: string[];
 }
 
-const buildStages = [
+export const BUILD_STAGES = [
   { id: "graphics", label: "Graphics Design", icon: FileImage },
   { id: "electrical_systems", label: "Electrical Systems", icon: Zap },
   { id: "accessories", label: "Accessories", icon: Package },
@@ -28,32 +28,11 @@ const buildStages = [
   { id: "valet", label: "Valet & Completion", icon: Sparkles },
 ];
 
-export default function BuildProgressTracker({ currentStage }: BuildProgressTrackerProps) {
-  if (!currentStage) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench className="w-5 h-5" />
-            Build Progress
-          </CardTitle>
-          <CardDescription>
-            Your build will start soon
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Circle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              Build has not started yet. You'll see progress updates here once work begins.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const currentIndex = buildStages.findIndex(stage => stage.id === currentStage);
+export default function BuildProgressTracker({ completedStages }: BuildProgressTrackerProps) {
+  const completedCount = completedStages.length;
+  const totalCount = BUILD_STAGES.length;
+  const progressPercent = Math.round((completedCount / totalCount) * 100);
+  const allDone = completedCount === totalCount;
 
   return (
     <Card>
@@ -63,97 +42,65 @@ export default function BuildProgressTracker({ currentStage }: BuildProgressTrac
           Build Progress
         </CardTitle>
         <CardDescription>
-          Track your van conversion through each stage
+          {allDone
+            ? "All stages complete — van is ready"
+            : completedCount === 0
+            ? "Build has not started yet"
+            : "Track progress through each build stage"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-1">
-          {buildStages.map((stage, index) => {
-            const isCompleted = index < currentIndex;
-            const isCurrent = index === currentIndex;
-            const isUpcoming = index > currentIndex;
+        <div className="space-y-2">
+          {BUILD_STAGES.map((stage) => {
+            const isComplete = completedStages.includes(stage.id);
             const Icon = stage.icon;
 
             return (
-              <div key={stage.id} className="relative">
-                {/* Connecting line */}
-                {index < buildStages.length - 1 && (
-                  <div 
-                    className={cn(
-                      "absolute left-6 top-12 w-0.5 h-8 -ml-px",
-                      isCompleted ? "bg-accent" : "bg-border"
-                    )}
-                  />
+              <div
+                key={stage.id}
+                className={cn(
+                  "flex items-center gap-3 py-2.5 px-3 rounded-md",
+                  isComplete ? "bg-accent/10" : "bg-muted/30"
                 )}
-
-                {/* Stage row */}
-                <div 
-                  className={cn(
-                    "flex items-start gap-4 py-3 px-3 rounded-md transition-colors",
-                    isCurrent && "bg-accent/10"
+                data-testid={`stage-${stage.id}`}
+              >
+                <div className="flex-shrink-0">
+                  {isComplete ? (
+                    <CheckCircle2 className="w-5 h-5 text-accent" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-muted-foreground" />
                   )}
-                  data-testid={`stage-${stage.id}`}
-                >
-                  {/* Icon */}
-                  <div className="flex-shrink-0">
-                    {isCompleted ? (
-                      <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                        <CheckCircle className="w-6 h-6 text-accent" />
-                      </div>
-                    ) : isCurrent ? (
-                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center animate-pulse">
-                        <Icon className="w-6 h-6 text-accent-foreground" />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 pt-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 
-                        className={cn(
-                          "font-medium",
-                          isCompleted && "text-muted-foreground",
-                          isCurrent && "text-accent font-semibold",
-                          isUpcoming && "text-muted-foreground"
-                        )}
-                      >
-                        {stage.label}
-                      </h4>
-                      {isCurrent && (
-                        <Badge variant="outline" className="text-xs" data-testid="badge-current-stage">
-                          In Progress
-                        </Badge>
-                      )}
-                      {isCompleted && (
-                        <Badge variant="secondary" className="text-xs">
-                          Complete
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
                 </div>
+                <Icon className={cn("w-4 h-4 flex-shrink-0", isComplete ? "text-accent" : "text-muted-foreground")} />
+                <span
+                  className={cn(
+                    "flex-1 text-sm font-medium",
+                    isComplete ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {stage.label}
+                </span>
+                {isComplete && (
+                  <Badge variant="secondary" className="text-xs" data-testid={`badge-complete-${stage.id}`}>
+                    Done
+                  </Badge>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Progress Summary */}
-        <div className="mt-6 pt-4 border-t">
-          <div className="flex items-center justify-between text-sm">
+        <div className="mt-5 pt-4 border-t">
+          <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-muted-foreground">Overall Progress</span>
-            <span className="font-semibold">
-              {currentIndex + 1} of {buildStages.length} stages
+            <span className="font-semibold" data-testid="progress-percent">
+              {progressPercent}% &mdash; {completedCount} of {totalCount} stages
             </span>
           </div>
-          <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-            <div 
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
               className="h-full bg-accent transition-all duration-500"
-              style={{ width: `${((currentIndex + 1) / buildStages.length) * 100}%` }}
+              style={{ width: `${progressPercent}%` }}
               data-testid="progress-bar"
             />
           </div>

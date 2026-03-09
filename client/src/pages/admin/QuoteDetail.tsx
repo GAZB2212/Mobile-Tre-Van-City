@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,7 +51,7 @@ import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { upgradeCategories } from "@shared/schema";
-import BuildProgressTracker from "@/components/BuildProgressTracker";
+import BuildProgressTracker, { BUILD_STAGES } from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
@@ -126,15 +127,6 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
-const buildStages = [
-  "graphics",
-  "electrical_systems",
-  "accessories",
-  "emergency_lighting",
-  "tyre_equipment",
-  "final_checks",
-  "valet"
-] as const;
 
 export default function AdminQuoteDetail() {
   const { id } = useParams();
@@ -145,7 +137,7 @@ export default function AdminQuoteDetail() {
   
   const [status, setStatus] = useState("");
   const [financeStatus, setFinanceStatus] = useState("");
-  const [buildStage, setBuildStage] = useState("");
+  const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
   const [newAdminNote, setNewAdminNote] = useState("");
@@ -205,7 +197,7 @@ export default function AdminQuoteDetail() {
     if (quote) {
       setStatus(quote.status || "new");
       setFinanceStatus(quote.financeStatus || "pending");
-      setBuildStage(quote.buildStage || "");
+      setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
       setCustomerConfirmed(quote.customerConfirmed ?? false);
       setVanRegistration(quote.vanRegistration ?? "");
       setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
@@ -523,7 +515,7 @@ export default function AdminQuoteDetail() {
     const updates: any = {
       status,
       financeStatus,
-      buildStage: buildStage || null,
+      completedBuildStages,
       discountType: discountType || null,
       discountValue: discountValueInPence,
       selectedUpgradeIds,
@@ -982,31 +974,68 @@ export default function AdminQuoteDetail() {
                   Build Stage Management
                 </CardTitle>
                 <CardDescription>
-                  Update the current build stage to notify the customer of progress
+                  Tick off each stage as it's completed — stages can be done in any order
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="build-stage">Current Build Stage</Label>
-                  <Select value={buildStage || "not_started"} onValueChange={(value) => setBuildStage(value === "not_started" ? "" : value)}>
-                    <SelectTrigger id="build-stage" data-testid="select-build-stage">
-                      <SelectValue placeholder="Select build stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="not_started">Not Started</SelectItem>
-                      {buildStages.map((stage) => (
-                        <SelectItem key={stage} value={stage}>
-                          {stage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <CardContent className="space-y-1">
+                {BUILD_STAGES.map((stage) => {
+                  const isComplete = completedBuildStages.includes(stage.id);
+                  const Icon = stage.icon;
+                  return (
+                    <div
+                      key={stage.id}
+                      className={cn(
+                        "flex items-center gap-3 py-2.5 px-3 rounded-md cursor-pointer select-none hover-elevate",
+                        isComplete ? "bg-accent/10" : "bg-muted/30"
+                      )}
+                      onClick={() => {
+                        if (!canEdit) return;
+                        setCompletedBuildStages(prev =>
+                          isComplete
+                            ? prev.filter(s => s !== stage.id)
+                            : [...prev, stage.id]
+                        );
+                      }}
+                      data-testid={`toggle-stage-${stage.id}`}
+                    >
+                      <Checkbox
+                        checked={isComplete}
+                        onCheckedChange={(checked) => {
+                          if (!canEdit) return;
+                          setCompletedBuildStages(prev =>
+                            checked
+                              ? [...prev, stage.id]
+                              : prev.filter(s => s !== stage.id)
+                          );
+                        }}
+                        data-testid={`checkbox-stage-${stage.id}`}
+                        disabled={!canEdit}
+                      />
+                      <Icon className={cn("w-4 h-4 flex-shrink-0", isComplete ? "text-accent" : "text-muted-foreground")} />
+                      <span className={cn("flex-1 text-sm font-medium", isComplete ? "text-foreground" : "text-muted-foreground")}>
+                        {stage.label}
+                      </span>
+                      {isComplete && (
+                        <Badge variant="secondary" className="text-xs">Done</Badge>
+                      )}
+                    </div>
+                  );
+                })}
 
-                {/* Visual Progress Preview */}
-                <div className="pt-4 border-t">
-                  <div className="text-sm font-medium mb-3">Customer's View:</div>
-                  <BuildProgressTracker currentStage={buildStage || null} />
+                <div className="pt-4 mt-2 border-t">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Overall Progress</span>
+                    <span className="font-semibold">
+                      {Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}% — {completedBuildStages.length} of {BUILD_STAGES.length} stages
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all duration-500"
+                      style={{ width: `${Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}%` }}
+                      data-testid="admin-progress-bar"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
