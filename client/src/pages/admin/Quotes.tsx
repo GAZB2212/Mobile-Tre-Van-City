@@ -55,7 +55,9 @@ import {
   Wrench,
   StickyNote,
   PoundSterling,
-  Printer
+  Printer,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -70,6 +72,16 @@ export default function AdminQuotes() {
   const [dateFilter, setDateFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -286,10 +298,10 @@ export default function AdminQuotes() {
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <FileText className="w-6 h-6" />
-                Quote Management
+                Configurator Management
               </h1>
               <p className="text-muted-foreground">
-                Review and manage customer quotes
+                Review and manage customer configurators
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -315,9 +327,9 @@ export default function AdminQuotes() {
         {/* Filters */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Filter Quotes</CardTitle>
+            <CardTitle>Filter Configurators</CardTitle>
             <CardDescription>
-              Search and filter quotes by customer details or date
+              Search and filter configurators by customer details or date
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -384,7 +396,7 @@ export default function AdminQuotes() {
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Quotes</p>
+                  <p className="text-sm text-muted-foreground">Total Configurators</p>
                   <p className="text-2xl font-bold" data-testid="stat-total-quotes">{quotes.length}</p>
                 </div>
               </div>
@@ -449,145 +461,163 @@ export default function AdminQuotes() {
           <Card>
             <CardContent className="p-8 text-center">
               <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No quotes found</h3>
+              <h3 className="text-lg font-semibold mb-2">No configurators found</h3>
               <p className="text-muted-foreground">
                 {searchTerm || dateFilter !== "all" 
-                  ? "Try adjusting your filters to see more quotes."
-                  : "Customer quotes will appear here once they start using the configurator."
+                  ? "Try adjusting your filters to see more configurators."
+                  : "Customer configurators will appear here once they start using the configurator."
                 }
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {filteredQuotes.map((quote) => (
-              <Card key={quote.id} className="hover-elevate">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 flex-wrap">
-                        <UserIcon className="w-4 h-4" />
-                        {quote.userName}
+          <div className="space-y-2">
+            {filteredQuotes.map((quote) => {
+              const isExpanded = expandedIds.has(quote.id);
+              return (
+                <Card key={quote.id}>
+                  {/* Collapsed summary row — always visible, click to expand */}
+                  <button
+                    className="w-full text-left"
+                    onClick={() => toggleExpanded(quote.id)}
+                    data-testid={`button-expand-${quote.id}`}
+                  >
+                    <div className="flex items-center justify-between gap-4 px-4 py-3 hover-elevate rounded-md">
+                      {/* Left: name, company, status */}
+                      <div className="flex items-center gap-3 flex-wrap min-w-0">
+                        <UserIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-semibold text-sm truncate" data-testid={`text-name-${quote.id}`}>{quote.userName}</span>
                         {quote.company && (
-                          <Badge variant="secondary">{quote.company}</Badge>
+                          <Badge variant="secondary" className="shrink-0" data-testid={`text-company-${quote.id}`}>{quote.company}</Badge>
                         )}
                         <span
-                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(quote.status)}`}
+                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium shrink-0 ${getStatusBadgeClass(quote.status)}`}
                           data-testid={`status-badge-${quote.id}`}
                         >
                           {getStatusLabel(quote.status)}
                         </span>
-                      </CardTitle>
-                      <CardDescription className="mt-2">
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {quote.email}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {quote.phone}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatDate(quote.createdAt)}
-                          </span>
+                      </div>
+
+                      {/* Centre: phone & email */}
+                      <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground shrink-0">
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {quote.phone}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          {quote.email}
+                        </span>
+                      </div>
+
+                      {/* Right: total + chevron */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
+                        {isExpanded
+                          ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                          : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        }
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Expanded detail — only visible when open */}
+                  {isExpanded && (
+                    <CardContent className="pt-0 pb-4 px-4 border-t">
+                      {/* Mobile phone/email row */}
+                      <div className="flex md:hidden items-center gap-4 text-sm text-muted-foreground mb-4 mt-3 flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {quote.phone}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          {quote.email}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(quote.createdAt)}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                        {/* Van Selection */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Car className="w-4 h-4" />
+                            Van
+                          </div>
+                          <p className="text-sm text-muted-foreground">{getVanName(quote.vanId)}</p>
                         </div>
-                      </CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-foreground" data-testid={`quote-total-${quote.id}`}>
-                        {formatPrice(quote.estTotal)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        +VAT: {formatPrice(quote.estVAT)}
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Van Selection */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Car className="w-4 h-4" />
-                        Van
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {getVanName(quote.vanId)}
-                      </p>
-                    </div>
 
-                    {/* Kit Selection */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Package className="w-4 h-4" />
-                        Equipment Package
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {getKitName(quote.kitId)}
-                      </p>
-                    </div>
+                        {/* Kit Selection */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Package className="w-4 h-4" />
+                            Equipment Package
+                          </div>
+                          <p className="text-sm text-muted-foreground">{getKitName(quote.kitId)}</p>
+                        </div>
 
-                    {/* Upgrades */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Wrench className="w-4 h-4" />
-                        Upgrades ({quote.selectedUpgradeIds.length})
+                        {/* Upgrades */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Wrench className="w-4 h-4" />
+                            Upgrades ({quote.selectedUpgradeIds.length})
+                          </div>
+                          <p className="text-sm text-muted-foreground">{getUpgradeNames(quote.selectedUpgradeIds)}</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {getUpgradeNames(quote.selectedUpgradeIds)}
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Notes */}
-                  {quote.notes && (
-                    <div className="mt-4 p-3 bg-muted rounded-md">
-                      <div className="flex items-center gap-2 text-sm font-medium mb-2">
-                        <StickyNote className="w-4 h-4" />
-                        Customer Notes
+                      {/* Notes */}
+                      {quote.notes && (
+                        <div className="mt-4 p-3 bg-muted rounded-md">
+                          <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                            <StickyNote className="w-4 h-4" />
+                            Customer Notes
+                          </div>
+                          <p className="text-sm text-muted-foreground">{quote.notes}</p>
+                        </div>
+                      )}
+
+                      {/* Pricing Breakdown */}
+                      <div className="mt-4 p-3 border rounded-md">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>Subtotal:</span>
+                            <span>{formatPrice(quote.estSubtotal)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>VAT (20%):</span>
+                            <span>{formatPrice(quote.estVAT)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold border-t pt-1">
+                            <span>Total:</span>
+                            <span>{formatPrice(quote.estTotal)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">{quote.notes}</p>
-                    </div>
+
+                      {/* Action Buttons */}
+                      <div className="mt-4 flex justify-end gap-3 flex-wrap">
+                        <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
+                          <Link href={`/admin/quotes/${quote.id}`}>
+                            <Wrench className="w-4 h-4 mr-2" />
+                            Manage Configurator
+                          </Link>
+                        </Button>
+                        <Button variant="outline" asChild data-testid={`button-build-sheet-${quote.id}`}>
+                          <Link href={`/admin/quotes/${quote.id}/build-sheet`}>
+                            <Printer className="w-4 h-4 mr-2" />
+                            View Build Sheet
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
                   )}
-
-                  {/* Pricing Breakdown */}
-                  <div className="mt-4 p-3 border rounded-md">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>{formatPrice(quote.estSubtotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>VAT (20%):</span>
-                        <span>{formatPrice(quote.estVAT)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold border-t pt-1">
-                        <span>Total:</span>
-                        <span>{formatPrice(quote.estTotal)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="mt-4 flex justify-end gap-3">
-                    <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
-                      <Link href={`/admin/quotes/${quote.id}`}>
-                        <Wrench className="w-4 h-4 mr-2" />
-                        Manage Quote
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild data-testid={`button-build-sheet-${quote.id}`}>
-                      <Link href={`/admin/quotes/${quote.id}/build-sheet`}>
-                        <Printer className="w-4 h-4 mr-2" />
-                        View Build Sheet
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
