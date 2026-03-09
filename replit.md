@@ -24,8 +24,8 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express in TypeScript
 - **API Design**: RESTful
 - **ORM**: Drizzle ORM
-- **Database**: PostgreSQL (Neon serverless)
-- **Session Management**: Express sessions with PostgreSQL store
+- **Database**: PostgreSQL (Replit built-in, via `pg` / `drizzle-orm/node-postgres`)
+- **Session Management**: Express sessions — memory store in development, PostgreSQL (`connect-pg-simple`) in production
 
 ### Core Features
 - **Van Management**: CRUD for vehicle inventory.
@@ -53,8 +53,8 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### Database & Hosting
-- **Neon Database**: Serverless PostgreSQL.
-- **Drizzle Kit**: Database migrations.
+- **Replit PostgreSQL**: Built-in persistent PostgreSQL database (survives restarts and deployments).
+- **Drizzle Kit**: Database schema management (`npm run db:push`).
 
 ### UI & Styling
 - **Radix UI**: Accessible component primitives.
