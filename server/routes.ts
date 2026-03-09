@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
+import { pool } from "./db";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin } from "./auth";
@@ -2702,6 +2703,93 @@ ${vanEntries}
     } catch (error) {
       console.error('Sitemap error:', error);
       res.status(500).send('Failed to generate sitemap');
+    }
+  });
+
+  // One-time catalog sync endpoint: replaces production catalog data with dev data
+  app.post("/api/admin/sync-catalog", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const syncDataPath = path.join(process.cwd(), "server", "catalog-sync-data.json");
+      if (!fs.existsSync(syncDataPath)) {
+        return res.status(404).json({ error: "Sync data file not found" });
+      }
+      const syncData = JSON.parse(fs.readFileSync(syncDataPath, "utf-8"));
+      const { vans, kits, upgrades, training_options } = syncData;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        // Null out FK references in quotes so we can safely replace catalog
+        await client.query("UPDATE quotes SET van_id = NULL");
+        await client.query("UPDATE quotes SET kit_id = NULL");
+        await client.query("UPDATE quotes SET selected_upgrade_ids = '[]'::json");
+        await client.query("UPDATE quotes SET selected_upgrades = '[]'::json");
+        await client.query("UPDATE quotes SET training_option_ids = '[]'::json");
+
+        // Clear catalog tables (preserving quotes, leads, users)
+        await client.query("DELETE FROM training_options");
+        await client.query("DELETE FROM upgrades");
+        await client.query("DELETE FROM kits");
+        await client.query("DELETE FROM vans");
+
+        // Insert vans
+        for (const v of vans) {
+          await client.query(
+            `INSERT INTO vans (id, slug, title, make, model, year, mileage, price, vat_included, specs, images, hero_image, created_at, updated_at, published, description, euro_status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::json,$11::json,$12,$13,$14,$15,$16,$17)`,
+            [v.id, v.slug, v.title, v.make, v.model, v.year, v.mileage, v.price, v.vat_included,
+             JSON.stringify(v.specs), JSON.stringify(v.images), v.hero_image,
+             v.created_at, v.updated_at, v.published, v.description, v.euro_status]
+          );
+        }
+
+        // Insert kits
+        for (const k of kits) {
+          await client.query(
+            `INSERT INTO kits (id, name, description, includes, power_kw, price, created_at, updated_at, published, sort_order, images, euro_six_compatible)
+             VALUES ($1,$2,$3,$4::json,$5,$6,$7,$8,$9,$10,$11::json,$12)`,
+            [k.id, k.name, k.description, JSON.stringify(k.includes), k.power_kw, k.price,
+             k.created_at, k.updated_at, k.published, k.sort_order, JSON.stringify(k.images), k.euro_six_compatible]
+          );
+        }
+
+        // Insert upgrades
+        for (const u of upgrades) {
+          await client.query(
+            `INSERT INTO upgrades (id, name, category, description, price, created_at, updated_at, published, images, parent_id, variant_name, allow_quantity, sort_order, popular, video_url, detailed_info, show_video)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::json,$10,$11,$12,$13,$14,$15,$16,$17)`,
+            [u.id, u.name, u.category, u.description, u.price, u.created_at, u.updated_at,
+             u.published, JSON.stringify(u.images), u.parent_id, u.variant_name,
+             u.allow_quantity, u.sort_order, u.popular, u.video_url, u.detailed_info, u.show_video]
+          );
+        }
+
+        // Insert training options
+        for (const t of training_options) {
+          await client.query(
+            `INSERT INTO training_options (id, name, description, includes, price, published, created_at, updated_at, type, duration_days)
+             VALUES ($1,$2,$3,$4::json,$5,$6,$7,$8,$9,$10)`,
+            [t.id, t.name, t.description, JSON.stringify(t.includes), t.price, t.published,
+             t.created_at, t.updated_at, t.type, t.duration_days]
+          );
+        }
+
+        await client.query("COMMIT");
+        res.json({
+          success: true,
+          message: `Catalog sync complete`,
+          counts: { vans: vans.length, kits: kits.length, upgrades: upgrades.length, training_options: training_options.length }
+        });
+      } catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error("Sync catalog error:", error);
+      res.status(500).json({ error: String(error) });
     }
   });
 
