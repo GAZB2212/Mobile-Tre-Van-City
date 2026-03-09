@@ -90,7 +90,17 @@ export const upgradeCategories = [
 ] as const;
 
 // Quote status enums
-export const quoteStatuses = ["pending", "deposit_taken", "in_build", "completed", "cancelled"] as const;
+export const quoteStatuses = [
+  "new",              // Customer submitted, not yet called
+  "contacted",        // Staff called and went through configurator
+  "awaiting_deposit", // Customer happy, waiting for deposit payment
+  "awaiting_finance", // Sent to finance company, awaiting decision
+  "deposit_taken",    // Deposit received — ready for build
+  "finance_approved", // Finance company approved — ready for build
+  "in_build",         // Build underway, build sheet generated
+  "completed",        // Van built and delivered
+  "cancelled",        // Cancelled
+] as const;
 export const buildStages = ["graphics", "electrical_systems", "accessories", "emergency_lighting", "tyre_equipment", "final_checks", "valet"] as const;
 export const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
 export const discountTypes = ["percentage", "fixed"] as const;

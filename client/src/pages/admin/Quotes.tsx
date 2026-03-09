@@ -1,3 +1,33 @@
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case "new": return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
+    case "contacted": return "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300";
+    case "awaiting_deposit": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-800";
+    case "awaiting_finance": return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+    case "deposit_taken": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
+    case "finance_approved": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
+    case "in_build": return "bg-[#8bc440]/20 text-[#3a6a0a] dark:text-[#8bc440]";
+    case "completed": return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
+    case "cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+    default: return "bg-muted text-muted-foreground";
+  }
+}
+
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    new: "New",
+    contacted: "Contacted",
+    awaiting_deposit: "Awaiting Deposit",
+    awaiting_finance: "Finance Submitted",
+    deposit_taken: "Deposit Taken",
+    finance_approved: "Finance Approved",
+    in_build: "In Build",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+  return labels[status] ?? status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+}
+
 import { useAuth } from "@/hooks/useAuth";
 import { useCanEdit } from "@/hooks/useCanEdit";
 import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
@@ -38,6 +68,7 @@ export default function AdminQuotes() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
   // Redirect to login if not authenticated
@@ -172,7 +203,9 @@ export default function AdminQuotes() {
       else if (dateFilter === "week") matchesDate = daysDiff <= 7;
       else if (dateFilter === "month") matchesDate = daysDiff <= 30;
 
-      return matchesSearch && matchesDate;
+      const matchesStatus = statusFilter === "all" || quote.status === statusFilter;
+
+      return matchesSearch && matchesDate && matchesStatus;
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
@@ -301,8 +334,25 @@ export default function AdminQuotes() {
                   />
                 </div>
               </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[200px]" data-testid="select-status-filter">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="contacted">Contacted</SelectItem>
+                  <SelectItem value="awaiting_deposit">Awaiting Deposit</SelectItem>
+                  <SelectItem value="awaiting_finance">Finance Submitted</SelectItem>
+                  <SelectItem value="deposit_taken">Deposit Taken</SelectItem>
+                  <SelectItem value="finance_approved">Finance Approved</SelectItem>
+                  <SelectItem value="in_build">In Build</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-[180px]" data-testid="select-date-filter">
+                <SelectTrigger className="w-[160px]" data-testid="select-date-filter">
                   <SelectValue placeholder="Filter by date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -415,12 +465,18 @@ export default function AdminQuotes() {
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 flex-wrap">
                         <UserIcon className="w-4 h-4" />
                         {quote.userName}
                         {quote.company && (
                           <Badge variant="secondary">{quote.company}</Badge>
                         )}
+                        <span
+                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(quote.status)}`}
+                          data-testid={`status-badge-${quote.id}`}
+                        >
+                          {getStatusLabel(quote.status)}
+                        </span>
                       </CardTitle>
                       <CardDescription className="mt-2">
                         <div className="flex items-center gap-4 text-sm">

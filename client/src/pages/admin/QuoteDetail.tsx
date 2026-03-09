@@ -108,7 +108,23 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
   };
 }
 
-const quoteStatuses = ["pending", "under_review", "awaiting_confirmation", "confirmed", "in_progress", "completed", "cancelled"] as const;
+const quoteStatuses = [
+  "new", "contacted", "awaiting_deposit", "awaiting_finance",
+  "deposit_taken", "finance_approved", "in_build", "completed", "cancelled"
+] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "New",
+  contacted: "Contacted",
+  awaiting_deposit: "Awaiting Deposit",
+  awaiting_finance: "Finance Submitted",
+  deposit_taken: "Deposit Taken",
+  finance_approved: "Finance Approved",
+  in_build: "In Build",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
 const financeStatuses = ["pending", "approved", "declined", "more_info_needed"] as const;
 const buildStages = [
   "graphics",
@@ -185,7 +201,7 @@ export default function AdminQuoteDetail() {
   // Initialize form fields when quote loads
   useEffect(() => {
     if (quote) {
-      setStatus(quote.status || "pending");
+      setStatus(quote.status || "new");
       setFinanceStatus(quote.financeStatus || "pending");
       setBuildStage(quote.buildStage || "");
       setDiscountType(quote.discountType as any || "");
@@ -243,23 +259,36 @@ export default function AdminQuoteDetail() {
   const sendConfirmationMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", `/api/admin/quotes/${id}/send-confirmation`);
-      return response as unknown as { confirmationUrl: string; token: string; emailSent: boolean };
+      return response as unknown as { emailSent: boolean };
     },
-    onSuccess: (data) => {
-      setConfirmationUrl(data.confirmationUrl);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       toast({
-        title: "Email Sent Successfully!",
-        description: `Confirmation email sent to ${quote?.email}. The link is also available below for your reference.`,
+        title: "Spec Summary Sent",
+        description: `Configuration summary emailed to ${quote?.email}.`,
       });
     },
     onError: () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to send confirmation email. Please try again.",
+        description: "Failed to send summary email. Please try again.",
       });
+    },
+  });
+
+  const quickStatusMutation = useMutation({
+    mutationFn: async (newStatus: string) => {
+      return await apiRequest("PATCH", `/api/admin/quotes/${id}`, { status: newStatus });
+    },
+    onSuccess: (_, newStatus) => {
+      setStatus(newStatus);
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      toast({ title: "Status updated", description: `Moved to: ${STATUS_LABELS[newStatus] ?? newStatus}` });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update status." });
     },
   });
 
@@ -989,29 +1018,128 @@ export default function AdminQuoteDetail() {
 
           {/* Right Column - Status Management */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Quote Status */}
+            {/* Workflow Pipeline */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5" />
-                  Quote Status
+                  Workflow Status
                 </CardTitle>
+                <CardDescription>Current stage in the build journey</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
+                {/* Pipeline visual */}
+                {(() => {
+                  const pipelineStages = [
+                    { key: "new", label: "New" },
+                    { key: "contacted", label: "Contacted" },
+                    { key: "payment", label: "Payment / Finance" },
+                    { key: "in_build", label: "In Build" },
+                    { key: "completed", label: "Completed" },
+                  ];
+                  const paymentStatuses = ["awaiting_deposit", "awaiting_finance", "deposit_taken", "finance_approved"];
+                  const currentKey = status === "cancelled" ? null :
+                    paymentStatuses.includes(status) ? "payment" : status;
+                  const stageOrder = pipelineStages.map(s => s.key);
+                  const currentIdx = currentKey ? stageOrder.indexOf(currentKey) : -1;
+                  return (
+                    <div className="flex items-center gap-1 flex-wrap" data-testid="workflow-pipeline">
+                      {pipelineStages.map((stage, i) => {
+                        const isActive = stage.key === currentKey;
+                        const isPast = currentIdx > -1 && i < currentIdx;
+                        const isCancelled = status === "cancelled";
+                        return (
+                          <div key={stage.key} className="flex items-center gap-1">
+                            <div className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                              isCancelled ? "bg-destructive/10 text-destructive" :
+                              isActive ? "bg-accent text-accent-foreground" :
+                              isPast ? "bg-accent/20 text-accent" :
+                              "bg-muted text-muted-foreground"
+                            }`}>
+                              {isCancelled && i === 0 ? "Cancelled" : stage.label}
+                            </div>
+                            {i < pipelineStages.length - 1 && (
+                              <div className={`text-xs ${isPast && !isCancelled ? "text-accent" : "text-muted-foreground"}`}>→</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* Payment sub-status */}
+                {["awaiting_deposit", "awaiting_finance", "deposit_taken", "finance_approved"].includes(status) && (
+                  <div className="text-sm font-medium">
+                    Payment stage: <span className="text-accent">{STATUS_LABELS[status]}</span>
+                  </div>
+                )}
+
+                {/* Quick action buttons based on current status */}
+                {canEdit && status !== "completed" && status !== "cancelled" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Next Step</Label>
+                    <div className="flex flex-col gap-2">
+                      {status === "new" && (
+                        <Button size="sm" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-mark-contacted">
+                          Mark as Contacted
+                        </Button>
+                      )}
+                      {status === "contacted" && (
+                        <>
+                          <Button size="sm" onClick={() => quickStatusMutation.mutate("awaiting_deposit")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-deposit">
+                            Awaiting Deposit
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("awaiting_finance")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-finance">
+                            Submit to Finance
+                          </Button>
+                        </>
+                      )}
+                      {status === "awaiting_deposit" && (
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("deposit_taken")} disabled={quickStatusMutation.isPending} data-testid="button-deposit-taken">
+                          Confirm Deposit Taken
+                        </Button>
+                      )}
+                      {status === "awaiting_finance" && (
+                        <>
+                          <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("finance_approved")} disabled={quickStatusMutation.isPending} data-testid="button-finance-approved">
+                            Finance Approved
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
+                            Finance Declined
+                          </Button>
+                        </>
+                      )}
+                      {(status === "deposit_taken" || status === "finance_approved") && (
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("in_build")} disabled={quickStatusMutation.isPending} data-testid="button-move-to-build">
+                          Move to Build
+                        </Button>
+                      )}
+                      {status === "in_build" && (
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("completed")} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
+                          Mark as Completed
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual override dropdown */}
                 <div>
-                  <Label htmlFor="quote-status">Status</Label>
+                  <Label htmlFor="quote-status" className="text-xs text-muted-foreground">Manual override</Label>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger id="quote-status" data-testid="select-quote-status">
+                    <SelectTrigger id="quote-status" data-testid="select-quote-status" className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {quoteStatuses.map((s) => (
                         <SelectItem key={s} value={s}>
-                          {s.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                          {STATUS_LABELS[s] ?? s}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Save changes to apply manual override.</p>
                 </div>
               </CardContent>
             </Card>
@@ -1487,7 +1615,7 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Send Confirmation Email - Only for full admins */}
+            {/* Send Spec Summary Email - Only for full admins */}
             {canEdit && (
               <Card>
                 <CardHeader>
@@ -1496,10 +1624,10 @@ export default function AdminQuoteDetail() {
                     Send to Customer
                   </CardTitle>
                   <CardDescription>
-                    Email confirmation link to customer automatically
+                    Email the customer their van spec and agreed price — send after discussing on the phone
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <Button
                     onClick={() => sendConfirmationMutation.mutate()}
                     disabled={sendConfirmationMutation.isPending}
@@ -1507,39 +1635,11 @@ export default function AdminQuoteDetail() {
                     data-testid="button-send-confirmation"
                   >
                     <Send className="w-4 h-4 mr-2" />
-                    {sendConfirmationMutation.isPending ? "Sending Email..." : "Send Confirmation Email"}
+                    {sendConfirmationMutation.isPending ? "Sending..." : "Send Spec Summary Email"}
                   </Button>
-                  
-                  {(confirmationUrl || quote.confirmationToken) && (
-                    <div className="space-y-2">
-                      <Label>Confirmation Link (Reference)</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={confirmationUrl || `${window.location.origin}/quote/confirm/${quote.confirmationToken}`}
-                          readOnly
-                          className="font-mono text-xs"
-                          data-testid="input-confirmation-url"
-                        />
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => {
-                            navigator.clipboard.writeText(confirmationUrl || `${window.location.origin}/quote/confirm/${quote.confirmationToken}`);
-                            toast({
-                              title: "Copied!",
-                              description: "Link copied to clipboard",
-                            });
-                          }}
-                          data-testid="button-copy-link"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Email already sent to customer. This link is for your reference.
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Sends the van, pack, upgrades, and price to {quote.email}. Any customer-facing notes you've added will be included.
+                  </p>
                 </CardContent>
               </Card>
             )}

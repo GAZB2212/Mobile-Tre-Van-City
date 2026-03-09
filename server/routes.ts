@@ -1750,7 +1750,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  // Generate confirmation token, send email, and update quote to deposit_taken
+  // Send spec summary email to customer (admin triggered — no status change)
   app.post("/api/admin/quotes/:id/send-confirmation", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
@@ -1758,63 +1758,51 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         return res.status(404).json({ error: "Quote not found" });
       }
 
-      // Generate unique token
-      const crypto = await import('crypto');
-      const token = crypto.randomBytes(32).toString('hex');
+      // Fetch van, kit, upgrade details for the email
+      const [van, kit, selectedUpgrades] = await Promise.all([
+        quote.vanId ? storage.getVan(quote.vanId) : Promise.resolve(null),
+        quote.kitId ? storage.getKit(quote.kitId) : Promise.resolve(null),
+        quote.selectedUpgradeIds && quote.selectedUpgradeIds.length > 0
+          ? Promise.all(quote.selectedUpgradeIds.map((uid: string) => storage.getUpgrade(uid)))
+          : Promise.resolve([]),
+      ]);
 
-      // Update quote with token and status
-      const updated = await storage.updateQuote(req.params.id, {
-        confirmationToken: token,
-        status: 'deposit_taken' as const,
-      });
-
-      if (!updated) {
-        return res.status(500).json({ error: "Failed to update quote" });
-      }
-
-      // Generate confirmation URL
-      const confirmationUrl = `${req.protocol}://${req.get('host')}/quote/confirm/${token}`;
-
-      // Calculate discount for email - discount applies to total inc VAT
-      const totalWithVat = updated.estSubtotal + updated.estVAT;
+      // Calculate discount
+      const totalWithVat = quote.estSubtotal + quote.estVAT;
       let discount = 0;
-      if (updated.discountType && updated.discountValue) {
-        if (updated.discountType === 'percentage') {
-          // Percentage discount applies to total including VAT
-          discount = Math.round((totalWithVat * updated.discountValue) / 100);
+      if (quote.discountType && quote.discountValue) {
+        if (quote.discountType === 'percentage') {
+          discount = Math.round((totalWithVat * quote.discountValue) / 100);
         } else {
-          // Fixed amount discount
-          discount = updated.discountValue;
+          discount = quote.discountValue;
         }
       }
 
-      // Send confirmation email to customer
-      const { sendQuoteConfirmationEmail } = await import('./email.js');
-      // Get latest customer note from history
-      const customerNotesHistory = updated.customerNotesHistory || [];
-      const latestCustomerNote = customerNotesHistory.length > 0 
-        ? customerNotesHistory[customerNotesHistory.length - 1].text 
-        : undefined;
-      
-      await sendQuoteConfirmationEmail({
-        to: updated.email,
-        customerName: updated.userName,
-        quoteId: updated.id,
-        confirmationUrl,
-        totalPrice: discount > 0 ? totalWithVat - discount : updated.estTotal,
+      // Get latest customer-facing note
+      const customerNotesHistory = quote.customerNotesHistory || [];
+      const latestCustomerNote = customerNotesHistory.length > 0
+        ? customerNotesHistory[customerNotesHistory.length - 1].text
+        : null;
+
+      const { sendQuoteSpecSummaryEmail } = await import('./email.js');
+      await sendQuoteSpecSummaryEmail({
+        to: quote.email,
+        customerName: quote.userName,
+        quoteId: quote.id,
+        vanTitle: van?.title ?? null,
+        kitName: kit?.name ?? null,
+        upgradeNames: selectedUpgrades.filter(Boolean).map((u: any) => u.name),
+        subtotal: quote.estSubtotal,
+        vat: quote.estVAT,
+        total: totalWithVat,
         discount: discount > 0 ? discount : undefined,
-        customerNotes: latestCustomerNote,
+        customerNote: latestCustomerNote,
       });
 
-      res.json({ 
-        success: true, 
-        confirmationUrl,
-        emailSent: true,
-        token 
-      });
+      res.json({ success: true, emailSent: true });
     } catch (error) {
-      console.error('Error sending confirmation email:', error);
-      res.status(500).json({ error: "Failed to send confirmation email" });
+      console.error('Error sending spec summary email:', error);
+      res.status(500).json({ error: "Failed to send summary email" });
     }
   });
 

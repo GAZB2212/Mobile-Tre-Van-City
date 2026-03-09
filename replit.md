@@ -46,7 +46,7 @@ Preferred communication style: Simple, everyday language.
     - Server-side pricing security ensures all calculations (including discounts and VAT) are handled on the backend.
     - Only full admins can generate secure, one-time confirmation links and send emails to customers.
     - Only full admins can delete quotes.
-    - Quote statuses: pending, deposit_taken, in_build, completed (changeable by all admins).
+    - Quote statuses: new, contacted, awaiting_deposit, awaiting_finance, deposit_taken, finance_approved, in_build, completed, cancelled (changeable by all admins via quick action buttons or manual override).
 - **Equipment Ordering**: Admin interface to control display order of upgrades and variants within the configurator using a `sortOrder` field.
 - **Portfolio Gallery**: Database-driven system for showcasing builds with image/video support, categorization, and admin-controlled publishing and sorting.
 

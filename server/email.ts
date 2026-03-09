@@ -129,6 +129,109 @@ export async function sendQuoteConfirmationEmail({
   });
 }
 
+// ── Spec summary email: sent by admin after discussing with customer ──────────
+export async function sendQuoteSpecSummaryEmail({
+  to,
+  customerName,
+  quoteId,
+  vanTitle,
+  kitName,
+  upgradeNames,
+  subtotal,
+  vat,
+  total,
+  discount,
+  customerNote,
+}: {
+  to: string;
+  customerName: string;
+  quoteId: string;
+  vanTitle?: string | null;
+  kitName?: string | null;
+  upgradeNames?: string[];
+  subtotal: number;
+  vat: number;
+  total: number;
+  discount?: number;
+  customerNote?: string | null;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const ref = quoteId.slice(0, 8).toUpperCase();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+
+  const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const discountLine = discount && discount > 0
+    ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
+    : '';
+  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+
+  await client.emails.send({
+    to,
+    from: fromEmail,
+    subject: `Your Van Conversion Summary – Ref #${ref} – Mobile Tyre Van City`,
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
+    .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
+    .ref-box { background: #f3f4f6; border-left: 4px solid ${brandGreen}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    td:first-child { color: #6b7280; width: 40%; }
+    .total-row td { font-weight: bold; font-size: 18px; border-top: 2px solid ${brandGreen}; border-bottom: none; color: ${brandDark}; }
+    .total-row td:last-child { color: ${brandGreen}; }
+    .note-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>www.mobiletyrevancity.co.uk</p>
+    </div>
+    <div class="content">
+      <p>Hi ${customerName},</p>
+      <p>Thank you for speaking with us today. As discussed, please find below a summary of your configured mobile tyre van conversion.</p>
+      <div class="ref-box">
+        <p><strong>Reference:</strong> #${ref}</p>
+        <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
+      </div>
+      <h3 style="margin-bottom:8px;">Your Configuration</h3>
+      <table>
+        ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
+        ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
+        ${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `<tr><td>Upgrade</td><td>${u}</td></tr>`).join('') : ''}
+      </table>
+      <h3 style="margin-bottom:8px;">Pricing</h3>
+      <table>
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
+        ${discountLine}
+        <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
+        <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
+      </table>
+      ${customerNote ? `<div class="note-box"><strong>Note from our team:</strong><br>${customerNote}</div>` : ''}
+      <p>If you have any questions or would like to make changes, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
+      <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+    </div>
+    <div class="footer">
+      <p>If you did not request this summary, please disregard this email.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+  });
+}
+
 // ── Enquiry received: customer confirmation + admin notification ──────────────
 
 export async function sendQuoteReceivedEmails({
