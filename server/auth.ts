@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
@@ -174,6 +175,109 @@ export async function setupAuth(app: Express) {
     } catch (error) {
       console.error("❌ Login error (FULL):", error);
       console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Forgot password — generates token and sends reset email
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email.toLowerCase().trim());
+
+      // Always respond success to prevent user enumeration
+      if (!user) {
+        return res.json({ message: "If that email is registered, a reset link has been sent." });
+      }
+
+      // Generate secure token valid for 1 hour
+      const token = randomBytes(32).toString("hex");
+      const expiry = new Date(Date.now() + 60 * 60 * 1000);
+
+      await storage.updateUser(user.id, {
+        passwordResetToken: token,
+        passwordResetExpiry: expiry,
+      } as any);
+
+      const resetUrl = `${req.protocol}://${req.get("host")}/reset-password/${token}`;
+
+      try {
+        const { sendPasswordResetEmail } = await import("./email.js");
+        await sendPasswordResetEmail({
+          toEmail: user.email!,
+          firstName: user.firstName,
+          username: user.username,
+          resetUrl,
+        });
+      } catch (emailErr) {
+        console.error("Failed to send password reset email:", emailErr);
+      }
+
+      res.json({ message: "If that email is registered, a reset link has been sent." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Reset password — validates token and sets new password
+  app.post("/api/auth/reset-password/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+
+      if (!password || password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUserByResetToken(token);
+
+      if (!user || !user.passwordResetExpiry || new Date() > user.passwordResetExpiry) {
+        return res.status(400).json({ message: "This reset link is invalid or has expired." });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      await storage.updateUser(user.id, {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+      } as any);
+
+      res.json({ message: "Password updated successfully. You can now log in." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Change password (for logged-in users)
+  app.post("/api/auth/change-password", async (req, res) => {
+    if (!req.session.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword || newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!valid) return res.status(400).json({ message: "Current password is incorrect" });
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(user.id, { passwordHash } as any);
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

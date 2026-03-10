@@ -21,6 +21,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
 
   // Vans
   getVans(filters?: { make?: string; year?: number; maxPrice?: number; minPrice?: number; transmission?: string; size?: string }): Promise<Van[]>;
@@ -1311,6 +1312,10 @@ export class MemStorage implements IStorage {
     return this.users.delete(id);
   }
 
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.passwordResetToken === token);
+  }
+
   // Vans
   async getVans(filters?: { make?: string; year?: number; maxPrice?: number; minPrice?: number; transmission?: string; size?: string }): Promise<Van[]> {
     let vans = Array.from(this.vans.values()).filter(van => van.published);
@@ -1708,6 +1713,11 @@ export class DbStorage implements IStorage {
   async deleteUser(id: string): Promise<boolean> {
     const result = await db.delete(schema.users).where(eq(schema.users.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const result = await db.select().from(schema.users).where(eq(schema.users.passwordResetToken, token)).limit(1);
+    return result[0];
   }
 
   // Vans

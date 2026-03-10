@@ -82,11 +82,13 @@ export default function AdminUsers() {
     mutationFn: async (userData: { username: string; password: string; email?: string; firstName?: string; lastName?: string; adminRole: string }) => {
       return await apiRequest("POST", "/api/admin/users", userData);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "User Created",
-        description: "New user has been created successfully.",
+        description: variables.email
+          ? `Account created and login details sent to ${variables.email}.`
+          : "User created. No email provided — share the credentials manually.",
       });
       setIsCreateDialogOpen(false);
       // Reset form

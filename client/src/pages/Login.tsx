@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -151,6 +151,11 @@ export default function Login() {
               >
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
+              <div className="text-center">
+                <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="link-forgot-password">
+                  Forgot your password?
+                </Link>
+              </div>
             </form>
           </Form>
 

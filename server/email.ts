@@ -674,3 +674,67 @@ export async function sendNewUserWelcomeEmail({
     text: `Hi ${displayName},\n\nAn account has been created for you on the Mobile Tyre Van City portal.\n\nUsername: ${username}\nPassword: ${password}\n\nSign in at: ${loginUrl}\n\nFor your security, we recommend changing your password after your first login.\n\nIf you need help, call us on 0151 203 8500.\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
+
+export async function sendPasswordResetEmail({
+  toEmail,
+  firstName,
+  username,
+  resetUrl,
+}: {
+  toEmail: string;
+  firstName?: string | null;
+  username: string;
+  resetUrl: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+  const displayName = firstName || username;
+
+  await client.emails.send({
+    to: toEmail,
+    from: fromEmail,
+    subject: `Reset your Mobile Tyre Van City password`,
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
+    .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
+    .cta-btn { display: inline-block; background-color: ${brandGreen}; color: #191919; text-decoration: none; padding: 14px 32px; border-radius: 4px; font-weight: bold; font-size: 15px; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+    .url-box { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 12px 16px; margin: 16px 0; font-family: monospace; font-size: 12px; word-break: break-all; color: #374151; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>www.mobiletyrevancity.co.uk</p>
+    </div>
+    <div class="content">
+      <p>Hi ${displayName},</p>
+      <p>We received a request to reset the password for your account (<strong>${username}</strong>). Click the button below to set a new password.</p>
+      <p style="text-align:center;">
+        <a href="${resetUrl}" class="cta-btn">Reset My Password</a>
+      </p>
+      <p style="color:#6b7280; font-size:13px;">If the button doesn't work, copy and paste this link into your browser:</p>
+      <div class="url-box">${resetUrl}</div>
+      <p style="color:#6b7280; font-size:13px;"><strong>This link will expire in 1 hour.</strong> If you did not request a password reset, you can safely ignore this email — your password will not change.</p>
+      <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+    </div>
+    <div class="footer">
+      <p>If you need help, call us on 0151 203 8500.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: `Hi ${displayName},\n\nWe received a request to reset the password for your account (${username}).\n\nReset your password here:\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you did not request a password reset, you can safely ignore this email.\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+  });
+}
