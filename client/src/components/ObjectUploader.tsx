@@ -52,13 +52,17 @@ export function ObjectUploader({
       .use(AwsS3, {
         shouldUseMultipart: false,
         getUploadParameters: async (file) => {
+          const fileType = file.type ?? 'application/octet-stream';
           const result = await onGetUploadParameters({
             name: file.name || 'unnamed',
-            type: file.type ?? 'application/octet-stream',
+            type: fileType,
           });
           return {
             method: result.method,
             url: result.url,
+            headers: {
+              'Content-Type': fileType,
+            },
           };
         },
       })

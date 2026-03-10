@@ -442,13 +442,18 @@ export default function AdminGalleryItems() {
               />
 
               {formData.type === "video" && (
-                <FileUploadField
-                  label="Thumbnail (Optional)"
-                  accept="image/*"
-                  currentUrl={formData.thumbnailUrl}
-                  onUploaded={(url) => setFormData((prev) => ({ ...prev, thumbnailUrl: url }))}
-                  testId="input-thumbnail-upload"
-                />
+                <>
+                  <p className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2">
+                    Use MP4 format for best browser compatibility. MOV files (from iPhone) may not play in Chrome or Firefox — only Safari supports them.
+                  </p>
+                  <FileUploadField
+                    label="Thumbnail (Optional)"
+                    accept="image/*"
+                    currentUrl={formData.thumbnailUrl}
+                    onUploaded={(url) => setFormData((prev) => ({ ...prev, thumbnailUrl: url }))}
+                    testId="input-thumbnail-upload"
+                  />
+                </>
               )}
 
               <div className="space-y-2">

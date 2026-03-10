@@ -2559,11 +2559,21 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       
       // For videos, support range requests for streaming
       if (isVideo) {
+        const videoMimeTypes: Record<string, string> = {
+          '.mp4': 'video/mp4',
+          '.webm': 'video/webm',
+          '.ogg': 'video/ogg',
+          '.mov': 'video/quicktime',
+        };
+        const videoExt = (req.path.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+        const extContentType = videoMimeTypes[videoExt] || 'video/mp4';
+
         try {
           // Get file metadata
           const [metadata] = await objectFile.getMetadata();
           const fileSize = parseInt(metadata.size as string);
           const range = req.headers.range;
+          const resolvedContentType = metadata.contentType || extContentType;
           
           if (range) {
             // Parse range header
@@ -2582,7 +2592,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
             res.status(206);
             res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
             res.setHeader('Content-Length', chunkSize);
-            res.setHeader('Content-Type', metadata.contentType || 'video/mp4');
+            res.setHeader('Content-Type', resolvedContentType);
             res.setHeader('Accept-Ranges', 'bytes');
             
             // Stream the requested range with error handling
@@ -2600,7 +2610,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           } else {
             // No range request, send entire file
             res.setHeader('Content-Length', fileSize);
-            res.setHeader('Content-Type', metadata.contentType || 'video/mp4');
+            res.setHeader('Content-Type', resolvedContentType);
             res.setHeader('Accept-Ranges', 'bytes');
             
             const stream = objectFile.createReadStream();
