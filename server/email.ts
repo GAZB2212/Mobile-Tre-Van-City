@@ -461,7 +461,7 @@ export async function sendQuoteReceivedEmails({
 
   // 2. Admin notification
   await client.emails.send({
-    to: [fromEmail, ...INTERNAL_NOTIFY_EMAILS],
+    to: INTERNAL_NOTIFY_EMAILS,
     from: fromEmail,
     subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
     html: `<!DOCTYPE html>
@@ -567,7 +567,7 @@ export async function sendLeadReceivedEmails(lead: {
 
   // 2. Admin notification
   await client.emails.send({
-    to: [fromEmail, ...INTERNAL_NOTIFY_EMAILS],
+    to: INTERNAL_NOTIFY_EMAILS,
     from: fromEmail,
     subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
     html: `<!DOCTYPE html>
