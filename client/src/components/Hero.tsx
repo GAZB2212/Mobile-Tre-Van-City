@@ -90,14 +90,16 @@ export default function Hero() {
                   Configure Your Van
                 </Button>
               </Link>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white border-white/30 font-semibold"
-                data-testid="button-learn-more"
-              >
-                Learn More
-              </Button>
+              <Link href="/business-opportunity">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white border-white/30 font-semibold"
+                  data-testid="button-learn-more"
+                >
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
