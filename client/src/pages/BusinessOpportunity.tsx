@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "wouter";
+import heroImage from "@assets/Screenshot_2026-03-10_at_15.36.03_1773157556561.png";
 
 const stats = [
   {
@@ -100,8 +101,12 @@ export default function BusinessOpportunity() {
       <Header />
 
       {/* Hero */}
-      <section className="relative bg-[#1a1a1a] py-24 md:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-transparent to-transparent pointer-events-none" />
+      <section className="relative py-24 md:py-36 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/30" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
             <Badge className="mb-6 bg-accent/20 text-accent border-accent/30 text-sm">
