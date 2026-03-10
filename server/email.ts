@@ -600,3 +600,77 @@ export async function sendLeadReceivedEmails(lead: {
     text: `New enquiry\n\nName: ${lead.name}\nEmail: ${lead.email}\n${lead.phone ? `Phone: ${lead.phone}\n` : ''}Reference: #${ref}\n${lead.message ? `\nMessage:\n${lead.message}` : ''}`,
   });
 }
+
+export async function sendNewUserWelcomeEmail({
+  toEmail,
+  firstName,
+  username,
+  password,
+  loginUrl,
+}: {
+  toEmail: string;
+  firstName?: string | null;
+  username: string;
+  password: string;
+  loginUrl: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+  const displayName = firstName || username;
+
+  await client.emails.send({
+    to: toEmail,
+    from: fromEmail,
+    subject: `Your Mobile Tyre Van City account has been created`,
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
+    .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
+    .credentials-box { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 20px 24px; margin: 20px 0; }
+    .credentials-box table { width: 100%; border-collapse: collapse; }
+    .credentials-box td { padding: 6px 0; font-size: 15px; }
+    .credentials-box td:first-child { color: #6b7280; width: 38%; font-weight: 500; }
+    .credentials-box td:last-child { font-weight: bold; font-family: monospace; font-size: 15px; }
+    .cta-btn { display: inline-block; background-color: ${brandGreen}; color: #191919; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-weight: bold; font-size: 15px; margin: 16px 0; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>www.mobiletyrevancity.co.uk</p>
+    </div>
+    <div class="content">
+      <p>Hi ${displayName},</p>
+      <p>An account has been created for you on the Mobile Tyre Van City portal. You can use the details below to sign in.</p>
+      <div class="credentials-box">
+        <table>
+          <tr><td>Username</td><td>${username}</td></tr>
+          <tr><td>Password</td><td>${password}</td></tr>
+        </table>
+      </div>
+      <p style="text-align:center;">
+        <a href="${loginUrl}" class="cta-btn">Sign In Now</a>
+      </p>
+      <p style="color:#6b7280; font-size:13px;">For your security, we recommend changing your password after your first login. If you have any trouble accessing your account, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
+      <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+    </div>
+    <div class="footer">
+      <p>If you did not expect this email, please contact us immediately on 0151 203 8500.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: `Hi ${displayName},\n\nAn account has been created for you on the Mobile Tyre Van City portal.\n\nUsername: ${username}\nPassword: ${password}\n\nSign in at: ${loginUrl}\n\nFor your security, we recommend changing your password after your first login.\n\nIf you need help, call us on 0151 203 8500.\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+  });
+}

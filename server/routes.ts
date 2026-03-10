@@ -107,6 +107,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const { passwordHash: _, ...safeUser } = newUser;
+
+      // Send welcome email with login details if email was provided (non-blocking)
+      if (email) {
+        try {
+          const { sendNewUserWelcomeEmail } = await import('./email.js');
+          const loginUrl = `${req.protocol}://${req.get('host')}/login`;
+          await sendNewUserWelcomeEmail({
+            toEmail: email,
+            firstName: firstName || null,
+            username,
+            password,
+            loginUrl,
+          });
+        } catch (emailErr) {
+          console.error('Failed to send welcome email:', emailErr);
+        }
+      }
+
       res.status(201).json(safeUser);
     } catch (error) {
       console.error("Create user error:", error);
