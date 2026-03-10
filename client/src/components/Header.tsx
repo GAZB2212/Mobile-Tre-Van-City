@@ -50,10 +50,10 @@ export default function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-10 text-xs">
             <div className="flex items-center gap-6 text-muted-foreground">
-              <div className="flex items-center gap-2">
+              <a href="tel:01512038500" className="flex items-center gap-2 hover:text-foreground transition-colors" data-testid="link-phone-header">
                 <Phone className="w-3 h-3" />
                 <span>0151 203 8500</span>
-              </div>
+              </a>
               <div className="hidden md:flex items-center gap-2">
                 <Clock className="w-3 h-3" />
                 <span>Mon-Fri 9am-5:30pm</span>
