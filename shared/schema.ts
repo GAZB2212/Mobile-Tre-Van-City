@@ -349,3 +349,62 @@ export const siteSettings = pgTable("site_settings", {
 });
 
 export type SiteSetting = typeof siteSettings.$inferSelect;
+
+// ============================================================
+// Web Analytics Tables
+// ============================================================
+
+export const analyticsSessions = pgTable("analytics_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().unique(),
+  userAgent: text("user_agent"),
+  deviceType: varchar("device_type"), // mobile, tablet, desktop
+  browser: varchar("browser"),
+  os: varchar("os"),
+  ipHash: varchar("ip_hash"),
+  referrer: text("referrer"),
+  utmSource: varchar("utm_source"),
+  utmMedium: varchar("utm_medium"),
+  utmCampaign: varchar("utm_campaign"),
+  utmTerm: varchar("utm_term"),
+  utmContent: varchar("utm_content"),
+  entryPage: text("entry_page"),
+  exitPage: text("exit_page"),
+  pageCount: integer("page_count").default(1),
+  bounce: boolean("bounce").default(true),
+  durationSeconds: integer("duration_seconds"),
+  startedAt: timestamp("started_at").defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+}, (table) => [
+  index("idx_sessions_session_id").on(table.sessionId),
+  index("idx_sessions_started_at").on(table.startedAt),
+]);
+
+export const analyticsPageviews = pgTable("analytics_pageviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  url: text("url").notNull(),
+  title: text("title"),
+  referrer: text("referrer"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_pageviews_session").on(table.sessionId),
+  index("idx_pageviews_created").on(table.createdAt),
+]);
+
+export const analyticsEvents = pgTable("analytics_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  eventName: varchar("event_name").notNull(),
+  eventData: jsonb("event_data"),
+  url: text("url"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_events_session").on(table.sessionId),
+  index("idx_events_name").on(table.eventName),
+  index("idx_events_created").on(table.createdAt),
+]);
+
+export type AnalyticsSession = typeof analyticsSessions.$inferSelect;
+export type AnalyticsPageview = typeof analyticsPageviews.$inferSelect;
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -117,6 +118,7 @@ export default function RequestQuote() {
       queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
       setSubmitted(true);
       clearAll();
+      trackEvent("quote_submitted");
       toast({
         title: "Quote Requested!",
         description: "We'll contact you shortly with your custom quote.",

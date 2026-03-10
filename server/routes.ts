@@ -2140,6 +2140,265 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ============================================================
+  // Web Analytics Collection (public endpoints, no auth required)
+  // ============================================================
+
+  // Helper to hash IP for GDPR compliance
+  const hashIp = (ip: string): string => {
+    let hash = 0;
+    for (let i = 0; i < ip.length; i++) {
+      hash = ((hash << 5) - hash) + ip.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(16);
+  };
+
+  // POST /api/analytics/session - create or update a visitor session
+  app.post("/api/analytics/session", async (req, res) => {
+    try {
+      const { sessionId, userAgent, deviceType, browser, os, referrer, utmSource, utmMedium, utmCampaign, utmTerm, utmContent, entryPage } = req.body;
+      if (!sessionId) return res.json({ ok: false });
+
+      const ip = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
+      const ipHash = hashIp(ip);
+
+      // Upsert session
+      await pool.query(`
+        INSERT INTO analytics_sessions (session_id, user_agent, device_type, browser, os, ip_hash, referrer, utm_source, utm_medium, utm_campaign, utm_term, utm_content, entry_page, last_seen_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+        ON CONFLICT (session_id) DO UPDATE SET last_seen_at = NOW()
+      `, [sessionId, userAgent, deviceType, browser, os, ipHash, referrer, utmSource, utmMedium, utmCampaign, utmTerm, utmContent, entryPage]);
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Analytics session error:", error);
+      res.json({ ok: false });
+    }
+  });
+
+  // POST /api/analytics/pageview - record a page view
+  app.post("/api/analytics/pageview", async (req, res) => {
+    try {
+      const { sessionId, url, title, referrer } = req.body;
+      if (!sessionId || !url) return res.json({ ok: false });
+
+      await pool.query(`
+        INSERT INTO analytics_pageviews (session_id, url, title, referrer)
+        VALUES ($1, $2, $3, $4)
+      `, [sessionId, url, title, referrer]);
+
+      // Update session: increment page count, set bounce=false if more than 1 page, update exit page
+      await pool.query(`
+        UPDATE analytics_sessions
+        SET page_count = page_count + 1,
+            bounce = (page_count + 1 <= 1),
+            exit_page = $2,
+            last_seen_at = NOW(),
+            duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER
+        WHERE session_id = $1
+      `, [sessionId, url]);
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Analytics pageview error:", error);
+      res.json({ ok: false });
+    }
+  });
+
+  // POST /api/analytics/event - record a custom event
+  app.post("/api/analytics/event", async (req, res) => {
+    try {
+      const { sessionId, eventName, eventData, url } = req.body;
+      if (!sessionId || !eventName) return res.json({ ok: false });
+
+      await pool.query(`
+        INSERT INTO analytics_events (session_id, event_name, event_data, url)
+        VALUES ($1, $2, $3, $4)
+      `, [sessionId, eventName, JSON.stringify(eventData || {}), url]);
+
+      // Update session last seen
+      await pool.query(`
+        UPDATE analytics_sessions SET last_seen_at = NOW(), duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER WHERE session_id = $1
+      `, [sessionId]);
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Analytics event error:", error);
+      res.json({ ok: false });
+    }
+  });
+
+  // ============================================================
+  // Web Analytics Admin Query Endpoint
+  // ============================================================
+  app.get("/api/admin/analytics/web", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const cutoffStr = cutoff.toISOString();
+
+      // Overview stats
+      const [sessionsResult, pageviewsResult, avgDurationResult, bounceResult] = await Promise.all([
+        pool.query(`SELECT COUNT(*) as count FROM analytics_sessions WHERE started_at >= $1`, [cutoffStr]),
+        pool.query(`SELECT COUNT(*) as count FROM analytics_pageviews WHERE created_at >= $1`, [cutoffStr]),
+        pool.query(`SELECT AVG(duration_seconds) as avg FROM analytics_sessions WHERE started_at >= $1 AND duration_seconds IS NOT NULL`, [cutoffStr]),
+        pool.query(`SELECT COUNT(*) FILTER (WHERE bounce = true) as bounced, COUNT(*) as total FROM analytics_sessions WHERE started_at >= $1`, [cutoffStr]),
+      ]);
+
+      const totalSessions = parseInt(sessionsResult.rows[0].count);
+      const totalPageviews = parseInt(pageviewsResult.rows[0].count);
+      const avgDuration = Math.round(parseFloat(avgDurationResult.rows[0].avg) || 0);
+      const bounceData = bounceResult.rows[0];
+      const bounceRate = bounceData.total > 0 ? Math.round((bounceData.bounced / bounceData.total) * 100) : 0;
+
+      // Daily visitors (last N days)
+      const dailyResult = await pool.query(`
+        SELECT
+          DATE(started_at) as date,
+          COUNT(*) as sessions,
+          SUM(page_count) as pageviews
+        FROM analytics_sessions
+        WHERE started_at >= $1
+        GROUP BY DATE(started_at)
+        ORDER BY date ASC
+      `, [cutoffStr]);
+
+      // Traffic sources
+      const trafficResult = await pool.query(`
+        SELECT
+          CASE
+            WHEN utm_medium = 'cpc' OR utm_medium = 'paid' OR utm_medium = 'ppc' THEN 'Paid Search'
+            WHEN utm_source IS NOT NULL AND utm_source != '' THEN 'Campaign'
+            WHEN referrer IS NULL OR referrer = '' THEN 'Direct'
+            WHEN referrer ~* '(google\\.com|bing\\.com|yahoo\\.com|duckduckgo\\.com|baidu\\.com|yandex\\.com)' THEN 'Organic Search'
+            WHEN referrer ~* '(facebook\\.com|instagram\\.com|twitter\\.com|x\\.com|linkedin\\.com|tiktok\\.com|pinterest\\.com|reddit\\.com|youtube\\.com)' THEN 'Social'
+            ELSE 'Referral'
+          END as source,
+          COUNT(*) as count
+        FROM analytics_sessions
+        WHERE started_at >= $1
+        GROUP BY 1
+        ORDER BY count DESC
+      `, [cutoffStr]);
+
+      // Top pages
+      const topPagesResult = await pool.query(`
+        SELECT url, COUNT(*) as views, COUNT(DISTINCT session_id) as unique_visitors
+        FROM analytics_pageviews
+        WHERE created_at >= $1
+        GROUP BY url
+        ORDER BY views DESC
+        LIMIT 20
+      `, [cutoffStr]);
+
+      // Device breakdown
+      const devicesResult = await pool.query(`
+        SELECT COALESCE(device_type, 'Unknown') as device, COUNT(*) as count
+        FROM analytics_sessions
+        WHERE started_at >= $1
+        GROUP BY device_type
+        ORDER BY count DESC
+      `, [cutoffStr]);
+
+      // Browser breakdown
+      const browsersResult = await pool.query(`
+        SELECT COALESCE(browser, 'Unknown') as browser, COUNT(*) as count
+        FROM analytics_sessions
+        WHERE started_at >= $1
+        GROUP BY browser
+        ORDER BY count DESC
+        LIMIT 10
+      `, [cutoffStr]);
+
+      // OS breakdown
+      const osResult = await pool.query(`
+        SELECT COALESCE(os, 'Unknown') as os, COUNT(*) as count
+        FROM analytics_sessions
+        WHERE started_at >= $1
+        GROUP BY os
+        ORDER BY count DESC
+        LIMIT 10
+      `, [cutoffStr]);
+
+      // Top events
+      const eventsResult = await pool.query(`
+        SELECT event_name, COUNT(*) as count
+        FROM analytics_events
+        WHERE created_at >= $1
+        GROUP BY event_name
+        ORDER BY count DESC
+        LIMIT 15
+      `, [cutoffStr]);
+
+      // UTM Campaigns
+      const campaignsResult = await pool.query(`
+        SELECT
+          COALESCE(utm_source, 'unknown') as source,
+          COALESCE(utm_medium, 'unknown') as medium,
+          COALESCE(utm_campaign, 'unknown') as campaign,
+          COUNT(*) as sessions,
+          SUM(page_count) as pageviews,
+          AVG(duration_seconds)::INTEGER as avg_duration
+        FROM analytics_sessions
+        WHERE started_at >= $1 AND utm_source IS NOT NULL AND utm_source != ''
+        GROUP BY utm_source, utm_medium, utm_campaign
+        ORDER BY sessions DESC
+        LIMIT 20
+      `, [cutoffStr]);
+
+      // Recent sessions
+      const recentSessionsResult = await pool.query(`
+        SELECT session_id, device_type, browser, os, referrer, entry_page, exit_page, page_count, bounce, duration_seconds, utm_source, utm_medium, utm_campaign, started_at, last_seen_at
+        FROM analytics_sessions
+        ORDER BY started_at DESC
+        LIMIT 50
+      `);
+
+      // Top referrers
+      const referrersResult = await pool.query(`
+        SELECT
+          COALESCE(
+            CASE
+              WHEN referrer ~ '^https?://([^/]+)' THEN regexp_replace(referrer, '^https?://([^/?#]+).*', '\\1')
+              ELSE referrer
+            END,
+            'Direct'
+          ) as domain,
+          COUNT(*) as count
+        FROM analytics_sessions
+        WHERE started_at >= $1 AND referrer IS NOT NULL AND referrer != ''
+        GROUP BY 1
+        ORDER BY count DESC
+        LIMIT 15
+      `, [cutoffStr]);
+
+      res.json({
+        overview: {
+          totalSessions,
+          totalPageviews,
+          avgDuration,
+          bounceRate,
+          pagesPerSession: totalSessions > 0 ? Math.round((totalPageviews / totalSessions) * 10) / 10 : 0,
+        },
+        dailyStats: dailyResult.rows,
+        trafficSources: trafficResult.rows,
+        topPages: topPagesResult.rows,
+        devices: devicesResult.rows,
+        browsers: browsersResult.rows,
+        operatingSystems: osResult.rows,
+        topEvents: eventsResult.rows,
+        campaigns: campaignsResult.rows,
+        recentSessions: recentSessionsResult.rows,
+        topReferrers: referrersResult.rows,
+      });
+    } catch (error) {
+      console.error("Web analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch web analytics" });
+    }
+  });
+
   // Serve media files (videos, images) from attached_assets folder
   // Supports HTTP range requests for video streaming
   // Using /media/ to avoid conflicts with Vite's /assets/ in production builds

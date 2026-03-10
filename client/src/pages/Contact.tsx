@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -47,6 +48,7 @@ export default function Contact() {
     },
     onSuccess: () => {
       setSubmitted(true);
+      trackEvent("contact_form_submitted");
       toast({
         title: "Message Sent!",
         description: "We'll get back to you as soon as possible.",

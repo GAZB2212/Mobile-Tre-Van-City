@@ -7,6 +7,7 @@ import { ConfiguratorProvider } from "@/lib/ConfiguratorContext";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import LoadingScreen from "@/components/LoadingScreen";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { useState, useEffect } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import Home from "@/pages/Home";
@@ -124,7 +125,9 @@ function App() {
           <LoadingScreen />
           <ScrollRestoration />
           <Toaster />
-          <Router />
+          <AnalyticsProvider>
+            <Router />
+          </AnalyticsProvider>
           {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
         </TooltipProvider>
       </ConfiguratorProvider>
