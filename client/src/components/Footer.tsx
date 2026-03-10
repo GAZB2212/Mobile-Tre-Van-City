@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Shield } from "lucide-react";
+import { Phone, Mail, MapPin, Shield } from "lucide-react";
+import { SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
 import logoImage from "@assets/Untitled design-51_1759240381746.png";
 import gajoLogo from "@assets/LOGO_1762356342150.png";
 
@@ -45,10 +46,19 @@ export default function Footer() {
             <p className="text-primary-foreground/80 mb-4">
               UK's leading mobile tyre van conversion specialists. Custom-built solutions for your mobile tyre business.
             </p>
-            <div className="flex space-x-4">
-              <Facebook className="w-5 h-5 hover:text-accent cursor-pointer transition-colors" data-testid="link-facebook" />
-              <Twitter className="w-5 h-5 hover:text-accent cursor-pointer transition-colors" data-testid="link-twitter" />
-              <Linkedin className="w-5 h-5 hover:text-accent cursor-pointer transition-colors" data-testid="link-linkedin" />
+            <div className="flex gap-4">
+              <a href="https://www.facebook.com/mobiletyrevancity" target="_blank" rel="noopener noreferrer" aria-label="Facebook" data-testid="link-facebook" className="text-muted-foreground hover:text-accent transition-colors">
+                <SiFacebook className="w-5 h-5" />
+              </a>
+              <a href="https://www.instagram.com/mobiletyrevancity" target="_blank" rel="noopener noreferrer" aria-label="Instagram" data-testid="link-instagram" className="text-muted-foreground hover:text-accent transition-colors">
+                <SiInstagram className="w-5 h-5" />
+              </a>
+              <a href="https://www.tiktok.com/@mobiletyrevancity" target="_blank" rel="noopener noreferrer" aria-label="TikTok" data-testid="link-tiktok" className="text-muted-foreground hover:text-accent transition-colors">
+                <SiTiktok className="w-5 h-5" />
+              </a>
+              <a href="https://www.youtube.com/@mobiletyrevancity" target="_blank" rel="noopener noreferrer" aria-label="YouTube" data-testid="link-youtube" className="text-muted-foreground hover:text-accent transition-colors">
+                <SiYoutube className="w-5 h-5" />
+              </a>
             </div>
           </div>
 
