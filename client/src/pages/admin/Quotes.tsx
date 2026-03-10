@@ -200,10 +200,14 @@ export default function AdminQuotes() {
   // Filter and sort quotes
   const filteredQuotes = quotes
     .filter((quote) => {
+      const normalizedSearch = searchTerm.toLowerCase().replace(/^#/, '');
+      const shortId = quote.id.slice(0, 8).toUpperCase();
       const matchesSearch = 
-        quote.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        quote.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (quote.company && quote.company.toLowerCase().includes(searchTerm.toLowerCase()));
+        quote.userName.toLowerCase().includes(normalizedSearch) ||
+        quote.email.toLowerCase().includes(normalizedSearch) ||
+        (quote.company && quote.company.toLowerCase().includes(normalizedSearch)) ||
+        quote.id.toLowerCase().includes(normalizedSearch) ||
+        shortId.toLowerCase().includes(normalizedSearch);
 
       if (!quote.createdAt) return matchesSearch;
       const quoteDate = new Date(quote.createdAt);
@@ -338,7 +342,7 @@ export default function AdminQuotes() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by name, email, or company..."
+                    placeholder="Search by name, email, company or quote number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
