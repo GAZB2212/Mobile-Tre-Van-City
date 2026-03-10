@@ -2741,6 +2741,25 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // ============================================================
+  // SEO: robots.txt
+  // ============================================================
+  app.get('/robots.txt', (_req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(`User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /admin
+Disallow: /api/
+Disallow: /login
+Disallow: /portal/
+
+Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
+`);
+  });
+
+  // ============================================================
   // SEO: Dynamic XML Sitemap
   // ============================================================
   app.get('/sitemap.xml', async (_req, res) => {

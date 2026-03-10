@@ -3,22 +3,17 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
+import SEO from "@/components/SEO";
 
 export default function PrivacyPolicy() {
-  useEffect(() => {
-    document.title = "Privacy Policy | Mobile Tyre Van Conversions";
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        "content",
-        "Privacy policy for Mobile Tyre Van Conversions - how we collect, use, and protect your personal data."
-      );
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Privacy Policy"
+        description="Privacy policy for Mobile Tyre Van City — how we collect, use, and protect your personal data in compliance with UK GDPR."
+        canonical="/privacy-policy"
+        noindex={true}
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" asChild className="mb-6" data-testid="button-back-home">
           <Link href="/">

@@ -3,22 +3,17 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
+import SEO from "@/components/SEO";
 
 export default function TermsConditions() {
-  useEffect(() => {
-    document.title = "Terms and Conditions | Mobile Tyre Van Conversions";
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        "content",
-        "Terms and conditions for using Mobile Tyre Van Conversions services and website."
-      );
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Terms & Conditions"
+        description="Terms and conditions for using Mobile Tyre Van City's website and services."
+        canonical="/terms-conditions"
+        noindex={true}
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" asChild className="mb-6" data-testid="button-back-home">
           <Link href="/">

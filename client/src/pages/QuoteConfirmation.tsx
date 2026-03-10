@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { CheckCircle, Loader2, XCircle, MessageSquare, Truck, Wrench, PoundSterling, AlertCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import type { Quote } from "@shared/schema";
 
 export default function QuoteConfirmation() {
@@ -132,6 +133,12 @@ export default function QuoteConfirmation() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO
+        title="Confirm Your Quote"
+        description="Review and confirm your mobile tyre van configuration quote."
+        canonical="/quote-confirmation"
+        noindex={true}
+      />
       <Header />
       
       <main className="flex-1 container mx-auto px-4 py-8">

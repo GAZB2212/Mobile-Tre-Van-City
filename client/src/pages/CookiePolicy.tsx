@@ -3,22 +3,17 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
+import SEO from "@/components/SEO";
 
 export default function CookiePolicy() {
-  useEffect(() => {
-    document.title = "Cookie Policy | Mobile Tyre Van Conversions";
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        "content",
-        "Cookie policy for Mobile Tyre Van Conversions - how we use cookies and similar technologies."
-      );
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Cookie Policy"
+        description="Cookie policy for Mobile Tyre Van City — how we use cookies and similar technologies on our website."
+        canonical="/cookie-policy"
+        noindex={true}
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" asChild className="mb-6" data-testid="button-back-home">
           <Link href="/">
