@@ -12,27 +12,16 @@ interface GalleryVideoCardProps {
 
 export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: GalleryVideoCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [thumbnailError, setThumbnailError] = useState(false);
   const [modalError, setModalError] = useState(false);
-  const thumbnailRef = useRef<HTMLVideoElement>(null);
   const modalVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const v = thumbnailRef.current;
-    if (v) v.play().catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const thumb = thumbnailRef.current;
     if (isModalOpen) {
       setModalError(false);
-      if (thumb) thumb.pause();
       const timer = setTimeout(() => {
         if (modalVideoRef.current) modalVideoRef.current.play().catch(() => {});
       }, 100);
       return () => clearTimeout(timer);
-    } else {
-      if (thumb) thumb.play().catch(() => {});
     }
   }, [isModalOpen]);
 
@@ -45,24 +34,16 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
         onClick={() => setIsModalOpen(true)}
         data-testid="button-play-video"
       >
-        {thumbnailError || (isMov && !storedThumbnailUrl) ? (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted/50">
-            <VideoOff className="w-10 h-10 text-muted-foreground/50" />
-            <span className="text-xs text-muted-foreground text-center px-4">Click to play</span>
-          </div>
-        ) : (
-          <video
-            ref={thumbnailRef}
-            src={fileUrl}
-            muted
-            loop
-            autoPlay
-            playsInline
-            preload={storedThumbnailUrl ? "none" : "metadata"}
-            poster={storedThumbnailUrl || undefined}
+        {storedThumbnailUrl ? (
+          <img
+            src={storedThumbnailUrl}
+            alt={title}
             className="w-full h-full object-cover"
-            onError={() => setThumbnailError(true)}
           />
+        ) : (
+          <div className="w-full h-full bg-muted/60 flex items-center justify-center">
+            <VideoOff className="w-10 h-10 text-muted-foreground/40" />
+          </div>
         )}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20 group-hover:bg-black/35 transition-colors">
           <div className="w-14 h-14 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">

@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -40,46 +39,14 @@ const IMAGE_DESIGNS = [
 ];
 
 function AutoplayVideo({ src }: { src: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.muted = true;
-    video.volume = 0;
-
-    const tryPlay = () => {
-      video.play().catch(() => {
-        const retry = () => {
-          video.play().catch(() => {});
-          window.removeEventListener("pointerdown", retry);
-        };
-        window.addEventListener("pointerdown", retry, { once: true });
-      });
-    };
-
-    video.load();
-    tryPlay();
-    video.addEventListener("loadedmetadata", tryPlay);
-    video.addEventListener("canplay", tryPlay);
-
-    return () => {
-      video.removeEventListener("loadedmetadata", tryPlay);
-      video.removeEventListener("canplay", tryPlay);
-    };
-  }, [src]);
-
   return (
     <video
-      ref={videoRef}
-      key={src}
       className="w-full h-full object-cover"
       autoPlay
       muted
       loop
       playsInline
-      preload="auto"
+      preload="none"
       style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
     >
       <source src={src} type="video/mp4" />
