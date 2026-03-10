@@ -10,8 +10,8 @@ export default function EarningsPotential() {
   const benefits = [
     {
       icon: PoundSterling,
-      title: "Up to £800 Per Day",
-      description: "Our busiest customers report daily earnings of up to £800 during peak periods",
+      title: "Up to £1,200 Per Day",
+      description: "Our busiest customers report daily turnover of up to £1,200 during peak periods",
     },
     {
       icon: Clock,
@@ -90,7 +90,7 @@ export default function EarningsPotential() {
               </div>
               <div className="mt-6 p-4 bg-accent/5 rounded-lg border border-accent/20">
                 <p className="text-sm text-muted-foreground text-center">
-                  <span className="font-semibold text-foreground">Real Results:</span> Our busiest customers report earning up to £800 per day during peak periods with multiple jobs and fleet services
+                  <span className="font-semibold text-foreground">Real Results:</span> Our busiest customers report daily turnover of up to £1,200 during peak periods with multiple jobs and fleet services
                 </p>
               </div>
             </CardContent>
