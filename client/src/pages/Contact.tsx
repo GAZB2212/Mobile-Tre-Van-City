@@ -68,9 +68,10 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="Contact Us - Get In Touch"
-        description="Get in touch with the Tyre Van City team. Contact us for a quote, ask a question about our van conversions, or visit our workshop in Bromborough, Wirral. Call 0151 203 8500."
+        title="Contact Mobile Tyre Van City | 0151 203 8500 | Wirral, UK"
+        description="Contact Mobile Tyre Van City for a quote on your mobile tyre van conversion. Call us on 0151 203 8500 or visit our workshop at 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL."
         canonical="/contact"
+        keywords="contact mobile tyre van city, tyre van city phone number, mobile tyre van quote, Wirral van conversion contact"
       />
       <Header />
 

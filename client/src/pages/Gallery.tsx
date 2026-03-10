@@ -33,9 +33,10 @@ export default function Gallery() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="Gallery - Van Conversion Portfolio"
-        description="Explore our portfolio of completed mobile tyre van conversions. See examples of our high-quality craftsmanship, custom branding, and professional equipment installations."
+        title="Mobile Tyre Van Gallery | Conversion Portfolio & Build Photos"
+        description="Explore our portfolio of completed mobile tyre van conversions. See real build photos, custom branding, and professional equipment installations from Mobile Tyre Van City."
         canonical="/gallery"
+        keywords="mobile tyre van gallery, tyre van conversion photos, van conversion portfolio, mobile tyre van branding, custom van conversion UK"
       />
       <Header />
 

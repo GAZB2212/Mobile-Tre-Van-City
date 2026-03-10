@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import SEO from "@/components/SEO";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ConfiguratorStepper from "@/components/ConfiguratorStepper";
@@ -220,6 +221,12 @@ export default function Configurator() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Build Your Mobile Tyre Van | Online Van Configurator"
+        description="Use our step-by-step configurator to spec your ideal mobile tyre van. Choose your van, equipment kit, upgrades, and finance options. Get an instant quote — no obligation."
+        canonical="/configurator"
+        keywords="mobile tyre van configurator, custom tyre van builder, design mobile tyre van, tyre van quote, build mobile tyre van online"
+      />
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">

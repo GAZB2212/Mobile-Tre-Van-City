@@ -78,9 +78,10 @@ export default function HowItWorks() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="How It Works - Van Conversion Process"
-        description="Build your perfect mobile tyre van in 4 simple steps: Choose your van, select your equipment kit, add custom upgrades, and arrange flexible finance. Full build service with in-house team."
+        title="How It Works | Mobile Tyre Van Build Process Explained"
+        description="See how we build your mobile tyre van in 4 simple steps: choose your van, select your equipment kit, add custom upgrades, arrange finance. UK-built, in-house team, nationwide delivery."
         canonical="/how-it-works"
+        keywords="how mobile tyre van works, tyre van build process, custom van conversion steps, mobile tyre van build UK"
       />
       <Header />
       

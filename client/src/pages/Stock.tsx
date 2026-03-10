@@ -58,9 +58,10 @@ export default function Stock() {
     <div className="min-h-screen bg-background">
       <Header />
       <SEO 
-        title="Mobile Tyre Van Stock - Ready to Go Conversions"
-        description="Browse our current stock of ready-to-go mobile tyre vans. All vehicles are professionally converted, fully equipped, and available for nationwide delivery. Find your perfect van today."
+        title="Mobile Tyre Vans For Sale | Buy Ready-to-Go Conversions UK"
+        description="Browse our stock of mobile tyre vans for sale. Professionally converted, fully equipped, and available with nationwide UK delivery. View prices, specs, and finance options. Call 0151 203 8500."
         canonical="/stock"
+        keywords="mobile tyre van for sale, buy mobile tyre van, tyre van for sale UK, mobile tyre fitting van, used mobile tyre van, tyre van conversion for sale"
       />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-card to-background border-b">

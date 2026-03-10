@@ -116,9 +116,10 @@ export default function Finance() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="Van Finance Options - Flexible Payment Plans"
-        description="Finance your new mobile tyre van with our flexible and competitive payment plans. Use our free finance calculator and get a quote today. We are an FCA authorised credit broker."
+        title="Mobile Tyre Van Finance | Flexible Payment Plans UK"
+        description="Finance your mobile tyre van with our flexible, competitive payment plans. Use our free finance calculator to see monthly payments. FCA authorised credit broker. Apply online or call 0151 203 8500."
         canonical="/finance"
+        keywords="mobile tyre van finance, van finance UK, tyre van hire purchase, mobile tyre van payment plans, van conversion finance, FCA authorised credit broker"
       />
       <Header />
 

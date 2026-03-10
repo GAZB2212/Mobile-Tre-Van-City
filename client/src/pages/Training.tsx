@@ -104,9 +104,10 @@ export default function Training() {
     <div className="min-h-screen">
       <Header />
       <SEO 
-        title="Training Programme - REACT & Tyre Fitting Certification"
-        description="Get certified with our complete training programme. We offer both REACT motorway certification and professional tyre fitting courses to get your mobile business started safely and legally."
+        title="Mobile Tyre Fitting Training | REACT & Tyre Certification UK"
+        description="Get fully certified to operate your mobile tyre business. We offer professional tyre fitting courses and REACT motorway certification. Start legally and safely. Based in Wirral, training UK-wide."
         canonical="/training"
+        keywords="mobile tyre fitting training, REACT motorway certification, tyre fitting course UK, mobile tyre technician training, tyre fitting qualification"
       />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-background py-16 px-4">

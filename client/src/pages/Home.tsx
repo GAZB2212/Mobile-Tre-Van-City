@@ -13,16 +13,17 @@ import YouTubeSection from "@/components/YouTubeSection";
 import CTASection from "@/components/CTASection";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
-import SEO, { organizationStructuredData } from "@/components/SEO";
+import SEO, { organizationStructuredData, homeFaqStructuredData } from "@/components/SEO";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="Custom-Built Mobile Tyre Vans UK | Nationwide Delivery"
-        description="Build your dream mobile tyre business with a custom-built van from Tyre Van City. We offer nationwide delivery, flexible finance, and complete, ready-to-earn conversion packages."
+        title="Mobile Tyre Van Conversions UK | Custom-Built & Ready to Earn"
+        description="UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped with professional tyre fitting equipment. Nationwide delivery. Finance available. Call 0151 203 8500."
         canonical="/"
-        structuredData={organizationStructuredData}
+        keywords="mobile tyre van, tyre van conversion, mobile tyre fitting van, mobile tyre van for sale, tyre van city, mobile tyre business, van conversion UK"
+        structuredData={[organizationStructuredData, homeFaqStructuredData]}
       />
       <Header />
       <main>

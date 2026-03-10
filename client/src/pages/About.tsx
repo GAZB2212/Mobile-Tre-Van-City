@@ -34,9 +34,10 @@ export default function About() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="About Us - UK Mobile Tyre Van Conversion Specialists"
-        description="Learn more about Tyre Van City, the UK's leading mobile tyre van conversion specialists. Discover our mission, our build process, and our commitment to quality craftsmanship."
+        title="About Mobile Tyre Van City | UK Van Conversion Specialists"
+        description="Meet the team behind Mobile Tyre Van City — the UK's leading specialists in mobile tyre van conversions. Based in Wirral, we build fully-equipped tyre vans with nationwide delivery."
         canonical="/about"
+        keywords="about mobile tyre van city, tyre van conversion specialists UK, van conversion company Wirral, MTVC"
       />
       <Header />
 
