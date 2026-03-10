@@ -3,6 +3,15 @@ import { Resend } from 'resend';
 let connectionSettings: any;
 
 async function getCredentials() {
+  // Prefer the directly-stored API key (works with verified domain)
+  if (process.env.RESEND_API_KEY) {
+    return {
+      apiKey: process.env.RESEND_API_KEY,
+      fromEmail: 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>',
+    };
+  }
+
+  // Fallback: use Replit connector
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -29,7 +38,6 @@ async function getCredentials() {
   }
   return {
     apiKey: connectionSettings.settings.api_key,
-    // Always use the verified domain regardless of connector setting
     fromEmail: 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>',
   };
 }
