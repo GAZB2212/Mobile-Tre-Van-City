@@ -4,8 +4,9 @@ import SEO from "@/components/SEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Award, Users, Wrench, ArrowRight } from "lucide-react";
+import { CheckCircle, Award, Users, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+import logoImg from "@assets/Untitled_design-36_1773155683674.png";
 
 export default function About() {
   const values = [
@@ -76,8 +77,12 @@ export default function About() {
                   a mobile workshop, a business card, and the foundation of an entrepreneur's livelihood.
                 </p>
               </div>
-              <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 rounded-lg flex items-center justify-center">
-                <Wrench className="w-24 h-24 text-muted-foreground/30" />
+              <div className="aspect-video rounded-lg overflow-hidden bg-black flex items-center justify-center">
+                <img
+                  src={logoImg}
+                  alt="Mobile Tyre Van City logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
           </div>
