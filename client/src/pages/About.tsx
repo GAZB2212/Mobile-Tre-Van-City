@@ -4,7 +4,7 @@ import SEO from "@/components/SEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Award, Users, ArrowRight } from "lucide-react";
+import { CheckCircle, Award, Users, Wrench, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import logoImg from "@assets/Untitled_design-36_1773155683674.png";
 

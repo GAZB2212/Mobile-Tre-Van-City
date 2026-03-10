@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import logoPath from "@assets/Untitled design-51_1759240381746.png";
 
+const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
+
 export default function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -16,6 +18,37 @@ export default function LoadingScreen() {
     "Choose your upgrades",
     "Choose your finance"
   ];
+
+  useEffect(() => {
+    // Fetch site settings immediately and inject a preload link for the hero video
+    // so the browser starts buffering it during the splash screen
+    fetch("/api/site-settings")
+      .then((r) => r.json())
+      .then((settings: Record<string, string>) => {
+        const videoUrl = settings?.hero_video_url ?? DEFAULT_HERO_VIDEO;
+        const existing = document.querySelector(`link[data-hero-preload]`);
+        if (!existing) {
+          const link = document.createElement("link");
+          link.rel = "preload";
+          link.as = "video";
+          link.href = videoUrl;
+          link.setAttribute("data-hero-preload", "true");
+          document.head.appendChild(link);
+        }
+      })
+      .catch(() => {
+        // Preload default as fallback
+        const existing = document.querySelector(`link[data-hero-preload]`);
+        if (!existing) {
+          const link = document.createElement("link");
+          link.rel = "preload";
+          link.as = "video";
+          link.href = DEFAULT_HERO_VIDEO;
+          link.setAttribute("data-hero-preload", "true");
+          document.head.appendChild(link);
+        }
+      });
+  }, []);
 
   useEffect(() => {
     if (!isVisible) return;

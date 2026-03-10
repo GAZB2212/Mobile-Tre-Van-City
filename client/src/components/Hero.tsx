@@ -7,6 +7,7 @@ const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const currentSrcRef = useRef<string>("");
 
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/site-settings"],
@@ -20,6 +21,15 @@ export default function Hero() {
 
     video.muted = true;
     video.volume = 0;
+
+    // Only reload if src actually changed
+    if (currentSrcRef.current === videoSrc) {
+      video.play().catch(() => {});
+      return;
+    }
+    currentSrcRef.current = videoSrc;
+
+    video.src = videoSrc;
 
     const tryPlay = () => {
       video.play().catch(() => {
@@ -51,7 +61,6 @@ export default function Hero() {
       {/* Video Background */}
       <video
         ref={videoRef}
-        key={videoSrc}
         autoPlay
         loop
         muted
@@ -59,9 +68,7 @@ export default function Hero() {
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
-      >
-        <source src={videoSrc} type="video/mp4" />
-      </video>
+      />
 
       {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20 pointer-events-none" />
