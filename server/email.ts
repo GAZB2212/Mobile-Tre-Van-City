@@ -29,7 +29,8 @@ async function getCredentials() {
   }
   return {
     apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email,
+    // Always use the verified domain regardless of connector setting
+    fromEmail: 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>',
   };
 }
 
