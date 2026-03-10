@@ -70,13 +70,10 @@ export default function Stock() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-stock-title">
               Ready-to-Go Mobile Tyre Vans
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground">
-              Browse our selection of professionally converted mobile tyre service vans. All vehicles are fully equipped and ready for business.
-            </p>
+            <p className="text-lg sm:text-xl text-muted-foreground">Browse our selection of vans. All vans are ready to be equipped  for your business.</p>
           </div>
         </div>
       </section>
-
       {/* Filters */}
       <section className="border-b bg-card/50">
         <div className="container mx-auto px-4 py-6">
@@ -177,7 +174,6 @@ export default function Stock() {
           </div>
         </div>
       </section>
-
       {/* Van Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
@@ -290,7 +286,6 @@ export default function Stock() {
           )}
         </div>
       </section>
-
       {/* CTA Section */}
       <section className="py-16 bg-card border-t">
         <div className="container mx-auto px-4">
