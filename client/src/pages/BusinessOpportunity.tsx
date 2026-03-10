@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
   MapPin,
-  Smartphone,
   Package,
   Globe,
   Truck,
@@ -59,12 +58,6 @@ const included = [
     title: "Tyre Supply",
     description:
       "We connect you with our established tyre supplier network so you get trade pricing from the start. No searching for suppliers, no upfront stock headaches — just order what you need, when you need it.",
-  },
-  {
-    icon: Smartphone,
-    title: "The Technology",
-    description:
-      "Booking system, job management, invoicing and customer communications — we set up the software that keeps your business running smoothly so you can focus on fitting tyres, not paperwork.",
   },
   {
     icon: Globe,
