@@ -12,6 +12,7 @@ import Testimonials from "@/components/Testimonials";
 import YouTubeSection from "@/components/YouTubeSection";
 import CTASection from "@/components/CTASection";
 import FAQ from "@/components/FAQ";
+import HomeEnquiryForm from "@/components/HomeEnquiryForm";
 import Footer from "@/components/Footer";
 import SEO, { organizationStructuredData, homeFaqStructuredData } from "@/components/SEO";
 
@@ -39,6 +40,7 @@ export default function Home() {
         <Testimonials />
         <YouTubeSection />
         <FAQ />
+        <HomeEnquiryForm />
         <CTASection />
       </main>
       <Footer />
