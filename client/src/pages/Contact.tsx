@@ -112,7 +112,7 @@ export default function Contact() {
                     <a href="tel:01512038500" className="text-lg font-semibold hover:text-accent transition-colors">
                       0151 203 8500
                     </a>
-                    <p className="text-sm text-muted-foreground mt-1">Mon-Fri 8am-6pm</p>
+                    <p className="text-sm text-muted-foreground mt-1">Mon-Fri 9am-5:30pm</p>
                   </CardContent>
                 </Card>
 
@@ -158,11 +158,11 @@ export default function Contact() {
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Monday - Friday</span>
-                        <span className="font-semibold">8:00 - 18:00</span>
+                        <span className="font-semibold">9:00 - 17:30</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Saturday</span>
-                        <span className="font-semibold">9:00 - 13:00</span>
+                        <span className="font-semibold">Closed</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Sunday</span>

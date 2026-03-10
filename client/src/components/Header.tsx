@@ -56,7 +56,7 @@ export default function Header() {
               </div>
               <div className="hidden md:flex items-center gap-2">
                 <Clock className="w-3 h-3" />
-                <span>Mon-Fri 8am-6pm</span>
+                <span>Mon-Fri 9am-5:30pm</span>
               </div>
             </div>
             <div className="flex items-center gap-4 text-muted-foreground">

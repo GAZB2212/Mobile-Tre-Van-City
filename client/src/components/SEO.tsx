@@ -108,7 +108,7 @@ export const organizationStructuredData = {
       "@type": "OpeningHoursSpecification",
       "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
       "opens": "09:00",
-      "closes": "17:00"
+      "closes": "17:30"
     }
   ],
   "contactPoint": {
