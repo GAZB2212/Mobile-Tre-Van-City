@@ -2505,6 +2505,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Cache GCS file metadata to avoid repeated getMetadata() calls for every video range request
+  const videoMetadataCache = new Map<string, { size: number; contentType: string; cachedAt: number }>();
+  const VIDEO_METADATA_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
   // Referenced from blueprint: javascript_object_storage - protected file uploading
   // Handle CORS preflight for images and videos
   app.options("/objects/:objectPath(*)", (req, res) => {
@@ -2569,11 +2573,23 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         const extContentType = videoMimeTypes[videoExt] || 'video/mp4';
 
         try {
-          // Get file metadata
-          const [metadata] = await objectFile.getMetadata();
-          const fileSize = parseInt(metadata.size as string);
+          // Use cached metadata to avoid hitting GCS API on every range request
+          const cacheKey = req.path;
+          const cached = videoMetadataCache.get(cacheKey);
+          let fileSize: number;
+          let resolvedContentType: string;
+
+          if (cached && (Date.now() - cached.cachedAt) < VIDEO_METADATA_TTL_MS) {
+            fileSize = cached.size;
+            resolvedContentType = cached.contentType;
+          } else {
+            const [metadata] = await objectFile.getMetadata();
+            fileSize = parseInt(metadata.size as string);
+            resolvedContentType = metadata.contentType || extContentType;
+            videoMetadataCache.set(cacheKey, { size: fileSize, contentType: resolvedContentType, cachedAt: Date.now() });
+          }
+
           const range = req.headers.range;
-          const resolvedContentType = metadata.contentType || extContentType;
           
           if (range) {
             // Parse range header

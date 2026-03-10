@@ -58,7 +58,7 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
             loop
             autoPlay
             playsInline
-            preload="auto"
+            preload={storedThumbnailUrl ? "none" : "metadata"}
             poster={storedThumbnailUrl || undefined}
             className="w-full h-full object-cover"
             onError={() => setThumbnailError(true)}
