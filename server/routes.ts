@@ -1884,8 +1884,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         customerEmail: quote.email,
         quoteId: quote.id,
         vanTitle: van?.title ?? null,
-        vanRegistration: quote.vanRegistration ?? null,
-        vanMileage: quote.vanMileage ?? null,
+        vanRegistration: req.body.vanRegistration !== undefined ? req.body.vanRegistration : (quote.vanRegistration ?? null),
+        vanMileage: req.body.vanMileage !== undefined ? req.body.vanMileage : (quote.vanMileage ?? null),
         kitName: kit?.name ?? null,
         upgradeNames: selectedUpgrades.filter(Boolean).map((u: any) => u.name),
         subtotal: quote.estSubtotal,
@@ -1894,11 +1894,14 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         discount: discount > 0 ? discount : undefined,
       });
 
-      // Record when finance email was sent
-      await storage.updateQuote(req.params.id, {
+      // Record when finance email was sent and persist reg/mileage if provided
+      const financeUpdates: any = {
         financeSentAt: new Date(),
         status: 'awaiting_finance' as const,
-      } as any);
+      };
+      if (req.body.vanRegistration !== undefined) financeUpdates.vanRegistration = req.body.vanRegistration;
+      if (req.body.vanMileage !== undefined) financeUpdates.vanMileage = req.body.vanMileage;
+      await storage.updateQuote(req.params.id, financeUpdates);
 
       res.json({ success: true, sentTo: financeEmail });
     } catch (error) {

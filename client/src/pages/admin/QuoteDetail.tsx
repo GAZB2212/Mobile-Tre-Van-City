@@ -293,7 +293,10 @@ export default function AdminQuoteDetail() {
 
   const sendFinanceMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/admin/quotes/${id}/send-finance`);
+      return await apiRequest("POST", `/api/admin/quotes/${id}/send-finance`, {
+        vanRegistration: vanRegistration.trim() || null,
+        vanMileage: vanMileage.trim() ? parseInt(vanMileage.trim()) : null,
+      });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
