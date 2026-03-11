@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { AdminSwitch } from "@/components/AdminSwitch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +29,7 @@ const kitSchema = z.object({
   powerKw: z.string().min(1, "Power (kW) is required"),
   price: z.number().min(0, "Price must be positive"),
   euroSixCompatible: z.boolean().default(false),
-  serviceType: z.enum(kitServiceTypes).default("all"),
+  serviceType: z.array(z.enum(kitServiceTypes)).min(1, "Select at least one service type").default(["car", "commercial", "hybrid"]),
   images: z.array(z.string()).default([]),
   published: z.boolean().default(true),
 });
@@ -58,7 +58,7 @@ export default function AdminKits() {
       powerKw: "",
       price: 0,
       euroSixCompatible: false,
-      serviceType: "all" as const,
+      serviceType: ["car", "commercial", "hybrid"] as const,
       images: [],
       published: true,
     },
@@ -212,7 +212,7 @@ export default function AdminKits() {
       powerKw: kit.powerKw,
       price: parseInt(kit.price.toString()) / 100, // Convert from pence
       euroSixCompatible: kit.euroSixCompatible,
-      serviceType: (kit.serviceType as typeof kitServiceTypes[number]) || "all",
+      serviceType: (Array.isArray(kit.serviceType) ? kit.serviceType : ["car", "commercial", "hybrid"]) as typeof kitServiceTypes[number][],
       images: kit.images || [],
       published: kit.published,
     });
@@ -465,21 +465,33 @@ export default function AdminKits() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Service Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-kit-service-type">
-                            <SelectValue placeholder="Select service type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="all">All (Car, Van &amp; Commercial)</SelectItem>
-                          <SelectItem value="car">Car &amp; Van Tyres</SelectItem>
-                          <SelectItem value="commercial">Commercial Vehicles</SelectItem>
-                          <SelectItem value="hybrid">Hybrid (Both)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="text-sm text-muted-foreground">
-                        Controls which customers see this kit during configuration
+                      <div className="grid grid-cols-3 gap-3 pt-1">
+                        {([
+                          { value: "car", label: "Car & Van" },
+                          { value: "commercial", label: "Commercial" },
+                          { value: "hybrid", label: "Hybrid" },
+                        ] as const).map(({ value, label }) => {
+                          const checked = (field.value as string[])?.includes(value) ?? false;
+                          return (
+                            <label
+                              key={value}
+                              className={`flex items-center gap-2 p-3 rounded-md border cursor-pointer hover-elevate ${checked ? "border-accent bg-accent/10" : "border-border"}`}
+                              data-testid={`checkbox-service-type-create-${value}`}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(c) => {
+                                  const current = (field.value as string[]) ?? [];
+                                  field.onChange(c ? [...current, value] : current.filter(t => t !== value));
+                                }}
+                              />
+                              <span className="text-sm">{label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Select all that apply — controls which customers see this kit
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -776,21 +788,33 @@ export default function AdminKits() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Service Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-edit-kit-service-type">
-                          <SelectValue placeholder="Select service type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="all">All (Car, Van &amp; Commercial)</SelectItem>
-                        <SelectItem value="car">Car &amp; Van Tyres</SelectItem>
-                        <SelectItem value="commercial">Commercial Vehicles</SelectItem>
-                        <SelectItem value="hybrid">Hybrid (Both)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="text-sm text-muted-foreground">
-                      Controls which customers see this kit during configuration
+                    <div className="grid grid-cols-3 gap-3 pt-1">
+                      {([
+                        { value: "car", label: "Car & Van" },
+                        { value: "commercial", label: "Commercial" },
+                        { value: "hybrid", label: "Hybrid" },
+                      ] as const).map(({ value, label }) => {
+                        const checked = (field.value as string[])?.includes(value) ?? false;
+                        return (
+                          <label
+                            key={value}
+                            className={`flex items-center gap-2 p-3 rounded-md border cursor-pointer hover-elevate ${checked ? "border-accent bg-accent/10" : "border-border"}`}
+                            data-testid={`checkbox-service-type-edit-${value}`}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(c) => {
+                                const current = (field.value as string[]) ?? [];
+                                field.onChange(c ? [...current, value] : current.filter(t => t !== value));
+                              }}
+                            />
+                            <span className="text-sm">{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Select all that apply — controls which customers see this kit
                     </div>
                     <FormMessage />
                   </FormItem>

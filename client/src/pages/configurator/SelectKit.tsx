@@ -18,7 +18,6 @@ import type { Kit, Van } from "@shared/schema";
 export default function SelectKit() {
   const [, setLocation] = useLocation();
   const { state, setKit } = useConfigurator();
-  const activeServiceType = state.serviceType ?? "all";
   const [modalKit, setModalKit] = useState<Kit | null>(null);
   const [warnKit, setWarnKit] = useState<Kit | null>(null);
 
@@ -46,14 +45,17 @@ export default function SelectKit() {
   // Always show all kits in their fixed sortOrder (1, 2, 3, 4)
   const kits = useMemo(() => {
     const sorted = [...allKits].sort((a, b) => a.sortOrder - b.sortOrder);
-    // Filter by service type: show kits tagged "all" plus kits matching the selected service type
+    // If no service type selected, show all kits
+    if (!state.serviceType) return sorted;
+    // Filter: show kit if its serviceType array includes the customer's chosen type
     return sorted.filter(kit => {
-      const kitType = kit.serviceType ?? "all";
-      if (kitType === "all") return true;
-      if (activeServiceType === "all") return true;
-      return kitType === activeServiceType;
+      const kitTypes: string[] = Array.isArray(kit.serviceType)
+        ? kit.serviceType
+        : ["car", "commercial", "hybrid"]; // fallback for legacy data
+      if (kitTypes.length === 0 || kitTypes.length === 3) return true; // effectively "all"
+      return kitTypes.includes(state.serviceType!);
     });
-  }, [allKits, activeServiceType]);
+  }, [allKits, state.serviceType]);
 
   // Determine if selecting this kit should trigger a warning
   const kitNeedsWarning = (kit: Kit): boolean => {
