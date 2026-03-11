@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { pool } from "./db";
