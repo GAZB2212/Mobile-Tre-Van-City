@@ -18,6 +18,7 @@ import type { Kit, Van } from "@shared/schema";
 export default function SelectKit() {
   const [, setLocation] = useLocation();
   const { state, setKit } = useConfigurator();
+  const activeServiceType = state.serviceType ?? "all";
   const [modalKit, setModalKit] = useState<Kit | null>(null);
   const [warnKit, setWarnKit] = useState<Kit | null>(null);
 
@@ -44,8 +45,15 @@ export default function SelectKit() {
 
   // Always show all kits in their fixed sortOrder (1, 2, 3, 4)
   const kits = useMemo(() => {
-    return [...allKits].sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [allKits]);
+    const sorted = [...allKits].sort((a, b) => a.sortOrder - b.sortOrder);
+    // Filter by service type: show kits tagged "all" plus kits matching the selected service type
+    return sorted.filter(kit => {
+      const kitType = kit.serviceType ?? "all";
+      if (kitType === "all") return true;
+      if (activeServiceType === "all") return true;
+      return kitType === activeServiceType;
+    });
+  }, [allKits, activeServiceType]);
 
   // Determine if selecting this kit should trigger a warning
   const kitNeedsWarning = (kit: Kit): boolean => {
@@ -90,15 +98,15 @@ export default function SelectKit() {
           <div className="mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => setLocation('/configurator/van')}
+              onClick={() => setLocation('/configurator/service-type')}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Van Selection
+              Back to Service Type
             </Button>
             
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 2: Choose Your Equipment Kit
+              Step 3: Choose Your Equipment Kit
             </h1>
             <p className="text-muted-foreground">
               Select the perfect equipment package for your mobile tyre business
@@ -131,6 +139,18 @@ export default function SelectKit() {
                     </div>
                   )}
 
+                  {kits.length === 0 && (
+                    <div className="py-12 text-center rounded-md border border-dashed" data-testid="empty-kits">
+                      <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                      <p className="font-medium mb-1">No kits available</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        No equipment kits are currently available for your selected service type.
+                      </p>
+                      <Button variant="outline" size="sm" onClick={() => setLocation('/configurator/service-type')}>
+                        Change Service Type
+                      </Button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-kits">
                     {kits.map((kit) => {
                       const isIncompatible = kitNeedsWarning(kit);

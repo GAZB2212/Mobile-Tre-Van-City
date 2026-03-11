@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { KitServiceType } from '@shared/schema';
 
 export interface ConfiguratorState {
   vanId: string | null;
+  serviceType: KitServiceType | null;
   kitId: string | null;
   upgradeIds: string[];
   trainingOptionIds: string[];
@@ -21,6 +23,7 @@ export interface ConfiguratorState {
 interface ConfiguratorContextValue {
   state: ConfiguratorState;
   setVan: (vanId: string | null) => void;
+  setServiceType: (serviceType: KitServiceType | null) => void;
   setKit: (kitId: string | null) => void;
   setUpgrades: (upgradeIds: string[]) => void;
   addUpgrade: (upgradeId: string) => void;
@@ -34,15 +37,17 @@ interface ConfiguratorContextValue {
   setPricingSnapshot: (pricing: ConfiguratorState['pricingSnapshot']) => void;
   clearAll: () => void;
   resetFromVan: () => void;
+  resetFromServiceType: () => void;
   resetFromKit: () => void;
   resetFromUpgrades: () => void;
   resetFromFinance: () => void;
 }
 
-const STORAGE_KEY = 'configurator:v1';
+const STORAGE_KEY = 'configurator:v2';
 
 const defaultState: ConfiguratorState = {
   vanId: null,
+  serviceType: null,
   kitId: null,
   upgradeIds: [],
   trainingOptionIds: [],
@@ -82,6 +87,21 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       vanId,
+      serviceType: null,
+      kitId: null,
+      upgradeIds: [],
+      trainingOptionIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const setServiceType = (serviceType: KitServiceType | null) => {
+    // Clear downstream selections when service type changes
+    setState(prev => ({
+      ...prev,
+      serviceType,
       kitId: null,
       upgradeIds: [],
       trainingOptionIds: [],
@@ -200,6 +220,19 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   const resetFromVan = () => {
     setState(prev => ({
       ...prev,
+      serviceType: null,
+      kitId: null,
+      upgradeIds: [],
+      trainingOptionIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const resetFromServiceType = () => {
+    setState(prev => ({
+      ...prev,
       kitId: null,
       upgradeIds: [],
       trainingOptionIds: [],
@@ -240,6 +273,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   const value: ConfiguratorContextValue = {
     state,
     setVan,
+    setServiceType,
     setKit,
     setUpgrades,
     addUpgrade,
@@ -253,6 +287,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setPricingSnapshot,
     clearAll,
     resetFromVan,
+    resetFromServiceType,
     resetFromKit,
     resetFromUpgrades,
     resetFromFinance,

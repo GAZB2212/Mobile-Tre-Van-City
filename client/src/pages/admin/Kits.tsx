@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { AdminSwitch } from "@/components/AdminSwitch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +18,7 @@ import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
+import { kitServiceTypes } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
 
 // Form validation schema
@@ -27,6 +29,7 @@ const kitSchema = z.object({
   powerKw: z.string().min(1, "Power (kW) is required"),
   price: z.number().min(0, "Price must be positive"),
   euroSixCompatible: z.boolean().default(false),
+  serviceType: z.enum(kitServiceTypes).default("all"),
   images: z.array(z.string()).default([]),
   published: z.boolean().default(true),
 });
@@ -55,6 +58,7 @@ export default function AdminKits() {
       powerKw: "",
       price: 0,
       euroSixCompatible: false,
+      serviceType: "all" as const,
       images: [],
       published: true,
     },
@@ -208,6 +212,7 @@ export default function AdminKits() {
       powerKw: kit.powerKw,
       price: parseInt(kit.price.toString()) / 100, // Convert from pence
       euroSixCompatible: kit.euroSixCompatible,
+      serviceType: (kit.serviceType as typeof kitServiceTypes[number]) || "all",
       images: kit.images || [],
       published: kit.published,
     });
@@ -453,6 +458,33 @@ export default function AdminKits() {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="serviceType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Service Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-kit-service-type">
+                            <SelectValue placeholder="Select service type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">All (Car, Van &amp; Commercial)</SelectItem>
+                          <SelectItem value="car">Car &amp; Van Tyres</SelectItem>
+                          <SelectItem value="commercial">Commercial Vehicles</SelectItem>
+                          <SelectItem value="hybrid">Hybrid (Both)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="text-sm text-muted-foreground">
+                        Controls which customers see this kit during configuration
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -737,6 +769,33 @@ export default function AdminKits() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="serviceType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-kit-service-type">
+                          <SelectValue placeholder="Select service type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all">All (Car, Van &amp; Commercial)</SelectItem>
+                        <SelectItem value="car">Car &amp; Van Tyres</SelectItem>
+                        <SelectItem value="commercial">Commercial Vehicles</SelectItem>
+                        <SelectItem value="hybrid">Hybrid (Both)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="text-sm text-muted-foreground">
+                      Controls which customers see this kit during configuration
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

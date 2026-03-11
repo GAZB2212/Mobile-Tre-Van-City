@@ -80,12 +80,12 @@ export default function SelectVan() {
 
   const handleSelectVan = (vanId: string) => {
     setVan(vanId);
-    setLocation('/configurator/kit');
+    setLocation('/configurator/service-type');
   };
 
   const handleSkipVan = () => {
     setVan(null);
-    setLocation('/configurator/kit');
+    setLocation('/configurator/service-type');
   };
 
   const openModal = (van: Van, e: React.MouseEvent) => {

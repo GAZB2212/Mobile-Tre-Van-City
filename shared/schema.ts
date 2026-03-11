@@ -60,6 +60,9 @@ export const vans = pgTable("vans", {
   published: boolean("published").notNull().default(true),
 });
 
+export const kitServiceTypes = ["all", "car", "commercial", "hybrid"] as const;
+export type KitServiceType = typeof kitServiceTypes[number];
+
 export const kits = pgTable("kits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -68,6 +71,7 @@ export const kits = pgTable("kits", {
   powerKw: decimal("power_kw").notNull(),
   price: integer("price").notNull(), // in pence
   euroSixCompatible: boolean("euro_six_compatible").notNull().default(false), // True for Euro 6 compatible kits
+  serviceType: varchar("service_type").notNull().default("all"), // "all" | "car" | "commercial" | "hybrid"
   images: json("images").$type<string[]>().notNull().default([]),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),

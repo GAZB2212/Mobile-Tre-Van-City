@@ -21,6 +21,7 @@ import HowItWorks from "@/pages/HowItWorks";
 import Training from "@/pages/Training";
 import BusinessOpportunity from "@/pages/BusinessOpportunity";
 import SelectVan from "@/pages/configurator/SelectVan";
+import SelectServiceType from "@/pages/configurator/SelectServiceType";
 import SelectKit from "@/pages/configurator/SelectKit";
 import SelectUpgrades from "@/pages/configurator/SelectUpgrades";
 import SelectTraining from "@/pages/configurator/SelectTraining";
@@ -71,6 +72,7 @@ function Router() {
       </Route>
       {/* Conversion funnel routes */}
       <Route path="/configurator/van" component={SelectVan} />
+      <Route path="/configurator/service-type" component={SelectServiceType} />
       <Route path="/configurator/kit" component={SelectKit} />
       <Route path="/configurator/upgrades" component={SelectUpgrades} />
       <Route path="/configurator/training" component={SelectTraining} />

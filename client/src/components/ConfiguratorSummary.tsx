@@ -167,7 +167,12 @@ export function ConfiguratorSummary() {
                 Select a van to start
               </Badge>
             )}
-            {state.vanId && !state.kitId && (
+            {state.vanId && !state.serviceType && (
+              <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-service-type">
+                Select your service type
+              </Badge>
+            )}
+            {state.vanId && state.serviceType && !state.kitId && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-kit">
                 Select an equipment kit
               </Badge>
