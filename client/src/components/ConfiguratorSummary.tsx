@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { Car, Package, Wrench, GraduationCap } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
@@ -15,7 +17,35 @@ const formatPrice = (pence: number): string => {
 };
 
 export function ConfiguratorSummary() {
-  const { state } = useConfigurator();
+  const { state, setCustomVanValue, setVanReg } = useConfigurator();
+
+  // Local input state for own van price and reg (synced to context)
+  const [vanPriceStr, setVanPriceStr] = useState(
+    state.customVanValue ? (state.customVanValue / 100).toFixed(0) : ""
+  );
+  const [vanRegStr, setVanRegStr] = useState(state.vanReg ?? "");
+
+  // Sync context → local when context changes externally (e.g. clearAll)
+  useEffect(() => {
+    setVanPriceStr(state.customVanValue ? (state.customVanValue / 100).toFixed(0) : "");
+  }, [state.customVanValue]);
+
+  useEffect(() => {
+    setVanRegStr(state.vanReg ?? "");
+  }, [state.vanReg]);
+
+  const handleVanPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9.]/g, '');
+    setVanPriceStr(raw);
+    const num = parseFloat(raw);
+    setCustomVanValue(!isNaN(num) && num > 0 ? Math.round(num * 100) : null);
+  };
+
+  const handleVanRegChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase();
+    setVanRegStr(val);
+    setVanReg(val.trim() || null);
+  };
 
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
@@ -49,7 +79,6 @@ export function ConfiguratorSummary() {
   const total = subtotal + vat;
 
   const hasItems = vanPrice > 0 || kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0;
-  const hasVan = !!state.vanId || !!state.customVanDescription;
 
   return (
     <Card className="sticky top-[180px] sm:top-[200px] xl:top-[220px] z-10 max-h-[calc(100vh-200px)] overflow-y-auto" data-testid="summary-container">
@@ -57,8 +86,10 @@ export function ConfiguratorSummary() {
         <CardTitle className="text-base sm:text-lg">Configuration Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!hasItems && (
-          <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-no-selections">
+
+        {/* "Start configuring" message only shown when a catalog van is selected but nothing else chosen */}
+        {!hasItems && !!state.vanId && (
+          <p className="text-sm text-muted-foreground text-center py-2" data-testid="text-no-selections">
             Start configuring to see your total
           </p>
         )}
@@ -79,18 +110,16 @@ export function ConfiguratorSummary() {
               </div>
             )}
 
-            {!van && state.customVanDescription && (
+            {!van && state.customVanValue && state.customVanValue > 0 && (
               <div className="flex items-start gap-2">
                 <Car className="w-4 h-4 text-accent mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" data-testid="text-summary-custom-van-name">
-                    {state.customVanDescription}
+                  <p className="text-sm font-medium truncate" data-testid="text-summary-own-van-label">
+                    Own van
                   </p>
-                  {state.customVanValue && (
-                    <p className="text-sm text-muted-foreground" data-testid="text-summary-custom-van-price">
-                      {formatPrice(state.customVanValue)}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground" data-testid="text-summary-own-van-price">
+                    {formatPrice(state.customVanValue)}
+                  </p>
                 </div>
               </div>
             )}
@@ -179,23 +208,51 @@ export function ConfiguratorSummary() {
               </div>
             </div>
 
-            {!hasVan && (
-              <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-van">
-                Select a van to start
-              </Badge>
-            )}
-            {hasVan && !state.serviceType && (
+            {state.vanId && !state.serviceType && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-service-type">
                 Select your service type
               </Badge>
             )}
-            {hasVan && state.serviceType === 'car' && !state.kitId && (
+            {state.vanId && state.serviceType === 'car' && !state.kitId && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-kit">
                 Select an equipment kit
               </Badge>
             )}
           </>
         )}
+
+        {/* Own van price + reg inputs — always visible when no catalog van is selected */}
+        {!state.vanId && (
+          <div className="space-y-3 pt-1">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Add van price
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">£</span>
+                <Input
+                  className="pl-7"
+                  placeholder="Optional"
+                  value={vanPriceStr}
+                  onChange={handleVanPriceChange}
+                  data-testid="input-summary-van-price"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Add van reg
+              </label>
+              <Input
+                placeholder="e.g. AB12 CDE"
+                value={vanRegStr}
+                onChange={handleVanRegChange}
+                data-testid="input-summary-van-reg"
+              />
+            </div>
+          </div>
+        )}
+
       </CardContent>
     </Card>
   );

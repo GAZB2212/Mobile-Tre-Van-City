@@ -35,6 +35,8 @@ export default function RequestQuote() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
+  const ownVanPricePence = (!state.vanId && state.customVanValue) ? state.customVanValue : 0;
+
   const { data: van, isLoading: isLoadingVan } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
     enabled: !!state.vanId,
@@ -86,7 +88,7 @@ export default function RequestQuote() {
       // Calculate pricing including upgrades and training with quantities
       let subtotal = 0;
       if (van) subtotal += van.price;
-      if (!van && state.customVanValue) subtotal += state.customVanValue;
+      if (!van) subtotal += ownVanPricePence;
       if (kit) subtotal += kit.price;
       upgrades.forEach(upgrade => {
         const quantity = selectedUpgrades[upgrade.id] || 1;
@@ -102,8 +104,8 @@ export default function RequestQuote() {
       const quoteData = {
         ...formData,
         vanId: state.vanId,
-        customVanDescription: state.customVanDescription ?? undefined,
-        customVanValue: state.customVanValue ?? undefined,
+        customVanValue: ownVanPricePence > 0 ? ownVanPricePence : undefined,
+        vanRegistration: state.vanReg ?? undefined,
         kitId: state.kitId ?? undefined,
         selectedUpgradeIds: state.upgradeIds,
         selectedUpgrades: selectedUpgrades,
@@ -151,7 +153,7 @@ export default function RequestQuote() {
   const calculateTotal = () => {
     let subtotal = 0;
     if (van) subtotal += van.price;
-    if (!van && state.customVanValue) subtotal += state.customVanValue;
+    if (!van) subtotal += ownVanPricePence;
     if (kit) subtotal += kit.price;
     upgrades.forEach(upgrade => {
       subtotal += upgrade.price * 1; // Quantity is always 1 for now
@@ -387,19 +389,15 @@ export default function RequestQuote() {
                     </div>
                   )}
 
-                  {!van && state.customVanDescription && (
+                  {!van && ownVanPricePence > 0 && (
                     <div className="flex items-start gap-3">
                       <Truck className="w-5 h-5 text-accent mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-medium text-sm">Van (custom)</p>
-                        <p className="text-sm text-muted-foreground" data-testid="text-summary-custom-van">
-                          {state.customVanDescription}
+                        <p className="font-medium text-sm">Own van</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-summary-own-van">
+                          {formatPrice(ownVanPricePence)}
+                          {state.vanReg && <span className="ml-2 font-medium">{state.vanReg}</span>}
                         </p>
-                        {state.customVanValue && (
-                          <p className="text-sm font-medium" data-testid="text-summary-custom-van-price">
-                            {formatPrice(state.customVanValue)}
-                          </p>
-                        )}
                       </div>
                     </div>
                   )}
