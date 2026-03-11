@@ -17,9 +17,9 @@ app.use(express.urlencoded({ extended: false }));
 async function bootstrapAdmin() {
   const adminUsername = process.env.ADMIN_USERNAME || "admin";
   const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-  
+  const explicitPassword = !!process.env.ADMIN_PASSWORD;
+
   try {
-    // Check if admin user already exists
     const existingAdmin = await storage.getUserByUsername(adminUsername);
     if (!existingAdmin) {
       await createUser({
@@ -31,14 +31,19 @@ async function bootstrapAdmin() {
         isAdmin: true,
       });
       log(`✅ Admin user created: ${adminUsername}`);
-      log(`⚠️  Default password: ${adminPassword}`);
-      log(`⚠️  Please change the password after first login!`);
     } else {
-      // Ensure the admin user always has the correct role — fixes cases where
-      // the user was created with adminRole "none" in a previous deployment
+      // Ensure the admin user always has the correct role
       if (existingAdmin.adminRole !== "full") {
-        await storage.updateUser(existingAdmin.id, { adminRole: "full" });
+        await storage.updateUser(existingAdmin.id, { adminRole: "full", isAdmin: true });
         log(`✅ Admin role corrected to "full" for: ${adminUsername}`);
+      }
+
+      // If ADMIN_PASSWORD env var is explicitly set, sync the password hash
+      if (explicitPassword) {
+        const bcrypt = await import("bcryptjs");
+        const newHash = await bcrypt.hash(adminPassword, 10);
+        await storage.updateUser(existingAdmin.id, { passwordHash: newHash });
+        log(`✅ Admin password updated from ADMIN_PASSWORD env var`);
       } else {
         log(`✅ Admin user exists: ${adminUsername}`);
       }
