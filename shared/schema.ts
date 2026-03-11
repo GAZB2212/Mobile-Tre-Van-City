@@ -81,6 +81,7 @@ export const kits = pgTable("kits", {
 
 // Upgrade categories enum
 export const upgradeCategories = [
+  "commercial",
   "air-systems",
   "equipment", 
   "branding",
@@ -92,8 +93,7 @@ export const upgradeCategories = [
   "storage",
   "safety",
   "power",
-  "accessories",
-  "commercial"
+  "accessories"
 ] as const;
 
 // Quote status enums
