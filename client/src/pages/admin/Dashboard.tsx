@@ -108,7 +108,7 @@ export default function AdminDashboard() {
       icon: BarChart3,
       href: "/admin/analytics",
       badge: "Analytics",
-      requiredRole: "full" as const
+      requiredRole: "basic" as const
     },
     {
       title: "Manage Vans",

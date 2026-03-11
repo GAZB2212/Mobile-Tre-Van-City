@@ -93,7 +93,7 @@ export default function AdminAnalytics() {
 
   const { data: businessAnalytics, isLoading: businessLoading } = useQuery<BusinessAnalytics>({
     queryKey: ["/api/admin/analytics"],
-    enabled: user?.adminRole === "full",
+    enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
   const { data: webAnalytics, isLoading: webLoading, refetch: refetchWeb } = useQuery<WebAnalytics>({
@@ -103,7 +103,7 @@ export default function AdminAnalytics() {
       if (!res.ok) throw new Error("Failed to fetch web analytics");
       return res.json();
     },
-    enabled: user?.adminRole === "full",
+    enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
   const formatPrice = (pence: number): string => {
@@ -118,8 +118,8 @@ export default function AdminAnalytics() {
   }, [isAuthenticated, isLoading, toast]);
 
   useEffect(() => {
-    if (user && user.adminRole !== "full") {
-      toast({ title: "Access Denied", description: "Full admin access required.", variant: "destructive" });
+    if (user && (!user.adminRole || user.adminRole === "none")) {
+      toast({ title: "Access Denied", description: "Admin access required.", variant: "destructive" });
       setTimeout(() => { window.location.href = "/admin"; }, 1000);
     }
   }, [user, toast]);
@@ -135,7 +135,7 @@ export default function AdminAnalytics() {
     );
   }
 
-  if (!isAuthenticated || user?.adminRole !== "full") return null;
+  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
 
   const isWebLoading = webLoading;
 

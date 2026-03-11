@@ -2046,7 +2046,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Analytics endpoint
-  app.get("/api/admin/analytics", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/analytics", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const [quotes, leads, vans] = await Promise.all([
         storage.getQuotes(),
@@ -2256,7 +2256,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // ============================================================
   // Web Analytics Admin Query Endpoint
   // ============================================================
-  app.get("/api/admin/analytics/web", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/analytics/web", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const days = parseInt(req.query.days as string) || 30;
       const cutoff = new Date();
