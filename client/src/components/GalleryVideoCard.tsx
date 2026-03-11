@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Badge } from "@/components/ui/badge";
-import { Play, VideoOff } from "lucide-react";
+import { Play, Film, VideoOff } from "lucide-react";
 
 interface GalleryVideoCardProps {
   fileUrl: string;
@@ -43,11 +43,11 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-muted/60 flex items-center justify-center">
-            <VideoOff className="w-10 h-10 text-muted-foreground/40" />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900">
+            <Film className="w-12 h-12 text-neutral-600" />
           </div>
         )}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20 group-hover:bg-black/35 transition-colors">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/25 group-hover:bg-black/40 transition-colors">
           <div className="w-14 h-14 rounded-full bg-accent/90 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
             <Play className="w-7 h-7 text-accent-foreground ml-0.5" />
           </div>
