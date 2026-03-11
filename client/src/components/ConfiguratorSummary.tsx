@@ -8,6 +8,62 @@ import { Input } from "@/components/ui/input";
 import { Car, Package, Wrench, GraduationCap } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
+function OwnVanDetails({
+  vanPriceStr,
+  vanRegStr,
+  onPriceChange,
+  onRegChange,
+}: {
+  vanPriceStr: string;
+  vanRegStr: string;
+  onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRegChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const [open, setOpen] = useState(() => !!(vanPriceStr || vanRegStr));
+
+  return (
+    <div className="pt-1">
+      <button
+        type="button"
+        className="w-full text-left text-xs font-semibold uppercase tracking-wide text-accent hover-elevate px-0 py-1"
+        onClick={() => setOpen(v => !v)}
+        data-testid="button-toggle-van-details"
+      >
+        {open ? 'Hide van details' : 'Want to add van details?'}
+      </button>
+
+      <div className={`overflow-hidden transition-all duration-200 ${open ? 'mt-3 space-y-3' : 'h-0'}`}>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Van price
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">£</span>
+            <Input
+              className="pl-7"
+              placeholder="Optional"
+              value={vanPriceStr}
+              onChange={onPriceChange}
+              data-testid="input-summary-van-price"
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Van reg
+          </label>
+          <Input
+            placeholder="e.g. AB12 CDE"
+            value={vanRegStr}
+            onChange={onRegChange}
+            data-testid="input-summary-van-reg"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const formatPrice = (pence: number): string => {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -221,36 +277,14 @@ export function ConfiguratorSummary() {
           </>
         )}
 
-        {/* Own van price + reg inputs — always visible when no catalog van is selected */}
+        {/* Own van price + reg inputs — collapsible, shown when no catalog van is selected */}
         {!state.vanId && (
-          <div className="space-y-3 pt-1">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Add van price
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">£</span>
-                <Input
-                  className="pl-7"
-                  placeholder="Optional"
-                  value={vanPriceStr}
-                  onChange={handleVanPriceChange}
-                  data-testid="input-summary-van-price"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Add van reg
-              </label>
-              <Input
-                placeholder="e.g. AB12 CDE"
-                value={vanRegStr}
-                onChange={handleVanRegChange}
-                data-testid="input-summary-van-reg"
-              />
-            </div>
-          </div>
+          <OwnVanDetails
+            vanPriceStr={vanPriceStr}
+            vanRegStr={vanRegStr}
+            onPriceChange={handleVanPriceChange}
+            onRegChange={handleVanRegChange}
+          />
         )}
 
       </CardContent>
