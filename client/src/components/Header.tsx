@@ -62,9 +62,10 @@ export default function Header() {
             </div>
             <div className="flex items-center gap-4 text-muted-foreground">
               <span className="hidden sm:inline">FCA Authorised Finance</span>
-              {!isLoading && isAuthenticated && user?.isAdmin && (
-                <Link href="/admin" className="text-accent hover:text-accent/80 font-medium">
-                  Admin
+              {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
+                <Link href="/admin" className="text-accent hover:text-accent/80 font-medium flex items-center gap-1" data-testid="link-admin-header">
+                  <Shield className="w-3 h-3" />
+                  {user.adminRole === "full" ? "Admin" : "Basic Admin"}
                 </Link>
               )}
             </div>
@@ -109,7 +110,7 @@ export default function Header() {
             </Button>
 
             {/* Admin Authentication Section */}
-            {!isLoading && isAuthenticated && user?.isAdmin && (
+            {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
               <Button 
                 variant="ghost"
                 size="sm"
@@ -162,12 +163,12 @@ export default function Header() {
               </Button>
 
               {/* Mobile Admin Authentication */}
-              {!isLoading && isAuthenticated && user?.isAdmin && (
+              {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
                 <div className="pt-4 border-t space-y-2">
                   <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
                     <Link href="/admin" data-testid="mobile-link-admin">
                       <Shield className="w-4 h-4 mr-2" />
-                      Admin Panel
+                      {user.adminRole === "full" ? "Admin Panel" : "Basic Admin Panel"}
                     </Link>
                   </Button>
                   <Button 

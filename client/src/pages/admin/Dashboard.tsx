@@ -219,9 +219,11 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Badge variant={user?.adminRole === "full" ? "default" : "secondary"}>
-                {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
-              </Badge>
+              <Link href="/admin">
+                <Badge variant={user?.adminRole === "full" ? "default" : "secondary"} className="cursor-pointer">
+                  {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
+                </Badge>
+              </Link>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/" data-testid="link-main-site">
                   <Globe className="w-4 h-4 mr-2" />
