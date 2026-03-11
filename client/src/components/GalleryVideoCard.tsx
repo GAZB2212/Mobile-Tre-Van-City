@@ -38,6 +38,8 @@ export function GalleryVideoCard({ fileUrl, title, storedThumbnailUrl }: Gallery
           <img
             src={storedThumbnailUrl}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         ) : (
