@@ -75,6 +75,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   hasVariants: z.boolean().optional(),
   allowQuantity: z.boolean().optional(),
   popular: z.boolean().optional(),
+  forCommercial: z.boolean().optional(),
   exclusiveGroup: z.string().optional().nullable(),
 });
 
@@ -273,6 +274,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       hasVariants: false,
       allowQuantity: false,
       popular: false,
+      forCommercial: false,
       exclusiveGroup: null,
     },
   });
@@ -321,6 +323,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         hasVariants: hasChildren,
         allowQuantity: upgrade.allowQuantity || false,
         popular: upgrade.popular || false,
+        forCommercial: upgrade.forCommercial || false,
         exclusiveGroup: upgrade.exclusiveGroup || null,
       });
     } else {
@@ -342,6 +345,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         hasVariants: false,
         allowQuantity: false,
         popular: false,
+        forCommercial: false,
         exclusiveGroup: null,
       });
     }
@@ -1054,6 +1058,28 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       checked={field.value}
                       onCheckedChange={field.onChange}
                       data-testid="switch-popular-upgrade"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="forCommercial"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Commercial / Hybrid Only</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Only show this upgrade to customers who selected a Commercial or Hybrid service type
+                    </p>
+                  </div>
+                  <FormControl>
+                    <AdminSwitch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-for-commercial"
                     />
                   </FormControl>
                 </FormItem>

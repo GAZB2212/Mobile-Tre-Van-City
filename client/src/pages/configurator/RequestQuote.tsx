@@ -101,7 +101,7 @@ export default function RequestQuote() {
       const quoteData = {
         ...formData,
         vanId: state.vanId,
-        kitId: state.kitId!,
+        kitId: state.kitId ?? undefined,
         selectedUpgradeIds: state.upgradeIds,
         selectedUpgrades: selectedUpgrades,
         trainingOptionIds: state.trainingOptionIds,
@@ -200,7 +200,8 @@ export default function RequestQuote() {
     );
   }
 
-  if (!state.kitId) {
+  // Commercial customers skip kit selection — only block car/van customers without a kit
+  if (!state.kitId && state.serviceType !== "commercial") {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />

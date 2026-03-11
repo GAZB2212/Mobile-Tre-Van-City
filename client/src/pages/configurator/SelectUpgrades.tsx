@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -112,6 +112,22 @@ export default function SelectUpgrades() {
     queryKey: ['/api/configurator/data'],
   });
 
+  const isCommercial = state.serviceType === "commercial";
+
+  // Filter upgrades by service type:
+  // - Commercial customers see all upgrades (regular + commercial-specific)
+  // - Car/van customers only see upgrades where forCommercial is false
+  const filteredUpgrades = useMemo<Record<string, Upgrade[]>>(() => {
+    if (!configuratorData) return {};
+    if (isCommercial) return configuratorData.upgrades;
+    const result: Record<string, Upgrade[]> = {};
+    for (const [cat, ups] of Object.entries(configuratorData.upgrades)) {
+      const visible = ups.filter(u => !(u as any).forCommercial);
+      if (visible.length > 0) result[cat] = visible;
+    }
+    return result;
+  }, [configuratorData, isCommercial]);
+
   // Fetch selected van if vanId exists
   const { data: selectedVan } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
@@ -141,7 +157,7 @@ export default function SelectUpgrades() {
     // Fallback: Detect from selected wrap if no van selected
     if (!configuratorData) return null;
     
-    const allUpgrades = Object.values(configuratorData.upgrades).flat();
+    const allUpgrades = Object.values(filteredUpgrades).flat();
     const selectedUpgrades = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
     
     // Check if any selected upgrade is a wrap/half wrap/graphic pack variant
@@ -165,7 +181,7 @@ export default function SelectUpgrades() {
   useEffect(() => {
     if (!vanSize || !configuratorData) return;
     
-    const allUpgrades = Object.values(configuratorData.upgrades).flat();
+    const allUpgrades = Object.values(filteredUpgrades).flat();
     const selectedUpgrades = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
     
     // Check if any selected interior wall is incompatible with the van size
@@ -189,7 +205,7 @@ export default function SelectUpgrades() {
   // This handles cases where users load old localStorage or quote data with conflicts
   useEffect(() => {
     if (!configuratorData) return;
-    const allUpgrades = Object.values(configuratorData.upgrades).flat();
+    const allUpgrades = Object.values(filteredUpgrades).flat();
     const selected = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
 
     // Group selected upgrades by their exclusive group
@@ -213,14 +229,14 @@ export default function SelectUpgrades() {
 
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
-      ? Object.values(configuratorData.upgrades).flat().find(u => u.id === upgradeId)
+      ? Object.values(filteredUpgrades).flat().find(u => u.id === upgradeId)
       : null;
     
     if (state.upgradeIds.includes(upgradeId)) {
       removeUpgrade(upgradeId);
     } else {
       const allUpgrades = configuratorData?.upgrades 
-        ? Object.values(configuratorData.upgrades).flat()
+        ? Object.values(filteredUpgrades).flat()
         : [];
       
       const toRemove: string[] = [];
@@ -256,7 +272,7 @@ export default function SelectUpgrades() {
 
   const handleVariantSelect = (parentId: string, variantId: string | null) => {
     const allUpgrades = configuratorData?.upgrades 
-      ? Object.values(configuratorData.upgrades).flat()
+      ? Object.values(filteredUpgrades).flat()
       : [];
     
     // Collect all items that need to be removed
@@ -334,18 +350,20 @@ export default function SelectUpgrades() {
           <div className="mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => setLocation('/configurator/kit')}
+              onClick={() => setLocation(isCommercial ? '/configurator/service-type' : '/configurator/kit')}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Kit Selection
+              {isCommercial ? 'Back to Service Type' : 'Back to Kit Selection'}
             </Button>
             
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 3: Add Upgrades & Extras
+              {isCommercial ? 'Step 3: Configure Your Commercial Setup' : 'Step 4: Add Upgrades & Extras'}
             </h1>
             <p className="text-muted-foreground">
-              Enhance your van with additional features and equipment upgrades
+              {isCommercial
+                ? 'Select the commercial equipment and extras for your van conversion'
+                : 'Enhance your van with additional features and equipment upgrades'}
             </p>
           </div>
 
@@ -357,7 +375,7 @@ export default function SelectUpgrades() {
                 </div>
               ) : configuratorData ? (
                 <div className="space-y-6" data-testid="section-upgrades">
-                  {Object.entries(configuratorData.upgrades)
+                  {Object.entries(filteredUpgrades)
                     .sort(([categoryA], [categoryB]) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB))
                     .map(([category, upgrades]) => {
                     // Sort upgrades by sortOrder before grouping
@@ -626,7 +644,7 @@ export default function SelectUpgrades() {
                   <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-6">
                     <Button 
                       variant="outline" 
-                      onClick={() => setLocation('/configurator/kit')}
+                      onClick={() => setLocation(isCommercial ? '/configurator/service-type' : '/configurator/kit')}
                       data-testid="button-back-bottom"
                       className="w-full sm:w-auto !border-2 !border-accent text-accent hover:bg-accent/10"
                     >
