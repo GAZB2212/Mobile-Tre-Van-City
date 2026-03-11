@@ -35,7 +35,6 @@ export default function AdminUsers() {
 
   // Form states
   const [newUsername, setNewUsername] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newFirstName, setNewFirstName] = useState("");
   const [newLastName, setNewLastName] = useState("");
@@ -79,21 +78,18 @@ export default function AdminUsers() {
 
   // Mutation to create user
   const createUserMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string; email?: string; firstName?: string; lastName?: string; adminRole: string }) => {
+    mutationFn: async (userData: { username: string; email: string; firstName?: string; lastName?: string; adminRole: string }) => {
       return await apiRequest("POST", "/api/admin/users", userData);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "User Created",
-        description: variables.email
-          ? `Account created and login details sent to ${variables.email}.`
-          : "User created. No email provided — share the credentials manually.",
+        description: `Set-password link sent to ${variables.email}. They'll be prompted to choose their own password.`,
       });
       setIsCreateDialogOpen(false);
       // Reset form
       setNewUsername("");
-      setNewPassword("");
       setNewEmail("");
       setNewFirstName("");
       setNewLastName("");
@@ -200,19 +196,18 @@ export default function AdminUsers() {
   };
 
   const handleCreateUser = () => {
-    if (!newUsername || !newPassword) {
-      toast({
-        title: "Missing Fields",
-        description: "Username and password are required.",
-        variant: "destructive",
-      });
+    if (!newUsername) {
+      toast({ title: "Missing Fields", description: "Username is required.", variant: "destructive" });
+      return;
+    }
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      toast({ title: "Missing Fields", description: "A valid email address is required to send the set-password link.", variant: "destructive" });
       return;
     }
 
     createUserMutation.mutate({
       username: newUsername,
-      password: newPassword,
-      email: newEmail || undefined,
+      email: newEmail,
       firstName: newFirstName || undefined,
       lastName: newLastName || undefined,
       adminRole: newAdminRole,
@@ -251,7 +246,7 @@ export default function AdminUsers() {
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
               <DialogDescription>
-                Add a new user account with specific role and permissions.
+                Enter the user's details. They'll receive an email to set their own password.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -266,18 +261,7 @@ export default function AdminUsers() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  data-testid="input-password"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Address *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -286,6 +270,7 @@ export default function AdminUsers() {
                   placeholder="john@example.com"
                   data-testid="input-email"
                 />
+                <p className="text-xs text-muted-foreground">A set-password link will be emailed to this address.</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">

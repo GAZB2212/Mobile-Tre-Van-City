@@ -249,8 +249,7 @@ export const loginSchema = z.object({
 
 export const createUserSchema = z.object({
   username: z.string().min(3),
-  password: z.string().min(6),
-  email: z.string().email().optional(),
+  email: z.string().email({ message: "A valid email is required to send the set-password link" }),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   isAdmin: z.boolean().default(false),

@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user data", errors: result.error.errors });
       }
 
-      const { username, email, password, firstName, lastName, adminRole } = result.data;
+      const { username, email, firstName, lastName, adminRole } = result.data;
 
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(username);
@@ -83,46 +83,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
 
-      // Check if email already exists (if provided)
-      if (email) {
-        const existingEmail = await storage.getUserByEmail(email);
-        if (existingEmail) {
-          return res.status(400).json({ message: "Email already exists" });
-        }
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already in use" });
       }
 
-      // Hash password
-      const passwordHash = await bcrypt.hash(password, 10);
+      // Generate a random secure placeholder password (user will set their own)
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
 
-      // Create user with role
+      // Generate a set-password token (valid for 24 hours)
+      const setPasswordToken = crypto.randomBytes(32).toString('hex');
+      const setPasswordExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      // Create user with role and token
       const newUser = await storage.createUser({
         username,
-        email: email || null,
+        email,
         firstName: firstName || null,
         lastName: lastName || null,
         passwordHash,
         adminRole: adminRole || "none",
         isAdmin: adminRole === "full",
-        profileImageUrl: null
+        profileImageUrl: null,
+        passwordResetToken: setPasswordToken,
+        passwordResetExpiry: setPasswordExpiry,
       });
 
       const { passwordHash: _, ...safeUser } = newUser;
 
-      // Send welcome email with login details if email was provided (non-blocking)
-      if (email) {
-        try {
-          const { sendNewUserWelcomeEmail } = await import('./email.js');
-          const loginUrl = `${req.protocol}://${req.get('host')}/login`;
-          await sendNewUserWelcomeEmail({
-            toEmail: email,
-            firstName: firstName || null,
-            username,
-            password,
-            loginUrl,
-          });
-        } catch (emailErr) {
-          console.error('Failed to send welcome email:', emailErr);
-        }
+      // Send set-password invitation email (non-blocking)
+      try {
+        const { sendNewUserSetPasswordEmail } = await import('./email.js');
+        const setPasswordUrl = `${req.protocol}://${req.get('host')}/reset-password/${setPasswordToken}`;
+        await sendNewUserSetPasswordEmail({
+          toEmail: email,
+          firstName: firstName || null,
+          username,
+          setPasswordUrl,
+        });
+      } catch (emailErr) {
+        console.error('Failed to send set-password email:', emailErr);
       }
 
       res.status(201).json(safeUser);

@@ -675,6 +675,81 @@ export async function sendNewUserWelcomeEmail({
   });
 }
 
+export async function sendNewUserSetPasswordEmail({
+  toEmail,
+  firstName,
+  username,
+  setPasswordUrl,
+}: {
+  toEmail: string;
+  firstName?: string | null;
+  username: string;
+  setPasswordUrl: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+  const displayName = firstName || username;
+
+  await client.emails.send({
+    to: toEmail,
+    from: fromEmail,
+    subject: `You've been set up on Mobile Tyre Van City — set your password`,
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
+    .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
+    .info-box { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 20px 24px; margin: 20px 0; }
+    .info-box table { width: 100%; border-collapse: collapse; }
+    .info-box td { padding: 6px 0; font-size: 15px; }
+    .info-box td:first-child { color: #6b7280; width: 38%; font-weight: 500; }
+    .info-box td:last-child { font-weight: bold; }
+    .cta-btn { display: inline-block; background-color: ${brandGreen}; color: #191919; text-decoration: none; padding: 14px 32px; border-radius: 4px; font-weight: bold; font-size: 16px; margin: 20px 0; }
+    .expiry-note { color: #6b7280; font-size: 13px; margin-top: 0; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>www.mobiletyrevancity.co.uk</p>
+    </div>
+    <div class="content">
+      <p>Hi ${displayName},</p>
+      <p>You've been set up as an admin on the <strong>Mobile Tyre Van City</strong> portal. To get started, you'll need to set your own password using the button below.</p>
+      <div class="info-box">
+        <table>
+          <tr><td>Username</td><td>${username}</td></tr>
+        </table>
+      </div>
+      <p style="text-align:center;">
+        <a href="${setPasswordUrl}" class="cta-btn">Set Your Password</a>
+      </p>
+      <p class="expiry-note">This link will expire in <strong>24 hours</strong>. If you weren't expecting this email, you can ignore it safely — no account access will be granted without setting a password.</p>
+      <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+      <p style="word-break:break-all; font-size:13px; color:#6b7280;">${setPasswordUrl}</p>
+      <p>If you have any trouble, call us on <strong>0151 203 8500</strong> or reply to this email.</p>
+      <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+    </div>
+    <div class="footer">
+      <p>If you did not expect this email, please contact us on 0151 203 8500.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: `Hi ${displayName},\n\nYou've been set up as an admin on the Mobile Tyre Van City portal.\n\nYour username is: ${username}\n\nTo activate your account, please set your password here:\n${setPasswordUrl}\n\nThis link expires in 24 hours.\n\nIf you need help, call us on 0151 203 8500.\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+  });
+}
+
 export async function sendPasswordResetEmail({
   toEmail,
   firstName,
