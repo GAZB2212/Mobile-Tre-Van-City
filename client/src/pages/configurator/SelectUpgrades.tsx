@@ -35,8 +35,28 @@ interface UpgradeGroup {
   variants: Upgrade[];
 }
 
+// Human-readable labels for upgrade categories
+const CATEGORY_LABELS: Record<string, string> = {
+  "air-systems": "Air Systems",
+  "air-system": "Air Systems",
+  "equipment": "Equipment",
+  "equipment-options": "Equipment Options",
+  "branding": "Branding",
+  "security": "Security",
+  "lighting": "Lighting",
+  "business": "Business",
+  "technology": "Technology",
+  "comfort": "Comfort",
+  "storage": "Storage",
+  "safety": "Safety",
+  "power": "Power",
+  "accessories": "Accessories",
+  "commercial": "Commercial / Hybrid",
+};
+
 // Define preferred category order
 const CATEGORY_ORDER = [
+  'commercial',
   'air-systems',
   'air-system',
   'equipment',
@@ -414,8 +434,8 @@ export default function SelectUpgrades() {
                     return (
                       <Card key={category}>
                         <CardHeader>
-                          <CardTitle className="text-lg capitalize">
-                            {category.replace('-', ' ')} Options
+                          <CardTitle className="text-lg">
+                            {CATEGORY_LABELS[category] ?? category.replace(/-/g, ' ')} Options
                           </CardTitle>
                           {category === 'comfort' && vanSize && (
                             <p className="text-sm text-muted-foreground mt-2">

@@ -64,6 +64,23 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// Human-readable labels for upgrade categories
+const CATEGORY_LABELS: Record<string, string> = {
+  "air-systems": "Air Systems",
+  "equipment": "Equipment",
+  "branding": "Branding",
+  "security": "Security",
+  "lighting": "Lighting",
+  "business": "Business",
+  "technology": "Technology",
+  "comfort": "Comfort",
+  "storage": "Storage",
+  "safety": "Safety",
+  "power": "Power",
+  "accessories": "Accessories",
+  "commercial": "Commercial / Hybrid",
+};
+
 // Form validation schema - extend shared schema for price conversion
 const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   price: z.string().optional(),
@@ -633,7 +650,15 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === "commercial") {
+                        form.setValue("forCommercial", true);
+                      }
+                    }}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger data-testid="select-upgrade-category">
                         <SelectValue placeholder="Select a category" />
@@ -642,7 +667,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                     <SelectContent>
                       {upgradeCategories.map((category: string) => (
                         <SelectItem key={category} value={category}>
-                          {category}
+                          {CATEGORY_LABELS[category] ?? category}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1291,8 +1316,8 @@ export default function AdminUpgrades() {
               <AccordionItem key={category} value={category} className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-semibold capitalize">
-                      {category.replace('-', ' ')}
+                    <h2 className="text-xl font-semibold">
+                      {CATEGORY_LABELS[category] ?? category.replace(/-/g, ' ')}
                     </h2>
                     <Badge variant="secondary">{categoryUpgrades.length}</Badge>
                   </div>
