@@ -142,6 +142,8 @@ export const quotes = pgTable("quotes", {
   phone: text("phone").notNull(),
   company: text("company"),
   vanId: varchar("van_id").references(() => vans.id),
+  customVanDescription: text("custom_van_description"), // Free-text van details when not in system
+  customVanValue: integer("custom_van_value"), // Van purchase price in pence (custom van only)
   kitId: varchar("kit_id").references(() => kits.id),
   selectedUpgradeIds: json("selected_upgrade_ids").$type<string[]>().notNull().default([]),
   selectedUpgrades: json("selected_upgrades").$type<Record<string, number>>().notNull().default({}),

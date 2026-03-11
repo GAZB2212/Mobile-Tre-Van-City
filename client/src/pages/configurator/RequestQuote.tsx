@@ -86,6 +86,7 @@ export default function RequestQuote() {
       // Calculate pricing including upgrades and training with quantities
       let subtotal = 0;
       if (van) subtotal += van.price;
+      if (!van && state.customVanValue) subtotal += state.customVanValue;
       if (kit) subtotal += kit.price;
       upgrades.forEach(upgrade => {
         const quantity = selectedUpgrades[upgrade.id] || 1;
@@ -101,6 +102,8 @@ export default function RequestQuote() {
       const quoteData = {
         ...formData,
         vanId: state.vanId,
+        customVanDescription: state.customVanDescription ?? undefined,
+        customVanValue: state.customVanValue ?? undefined,
         kitId: state.kitId ?? undefined,
         selectedUpgradeIds: state.upgradeIds,
         selectedUpgrades: selectedUpgrades,
@@ -148,6 +151,7 @@ export default function RequestQuote() {
   const calculateTotal = () => {
     let subtotal = 0;
     if (van) subtotal += van.price;
+    if (!van && state.customVanValue) subtotal += state.customVanValue;
     if (kit) subtotal += kit.price;
     upgrades.forEach(upgrade => {
       subtotal += upgrade.price * 1; // Quantity is always 1 for now
@@ -379,6 +383,23 @@ export default function RequestQuote() {
                         <p className="text-sm font-medium" data-testid="text-summary-van-price">
                           {formatPrice(van.price)}
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!van && state.customVanDescription && (
+                    <div className="flex items-start gap-3">
+                      <Truck className="w-5 h-5 text-accent mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">Van (custom)</p>
+                        <p className="text-sm text-muted-foreground" data-testid="text-summary-custom-van">
+                          {state.customVanDescription}
+                        </p>
+                        {state.customVanValue && (
+                          <p className="text-sm font-medium" data-testid="text-summary-custom-van-price">
+                            {formatPrice(state.customVanValue)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -31,13 +31,37 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal, X, HelpCircle } from "lucide-react";
 import type { Van } from "@shared/schema";
 
 export default function SelectVan() {
   const [, setLocation] = useLocation();
-  const { state, setVan } = useConfigurator();
+  const { state, setVan, setCustomVan } = useConfigurator();
   const [modalVan, setModalVan] = useState<Van | null>(null);
+
+  // Custom van form state
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customDescription, setCustomDescription] = useState("");
+  const [customPriceStr, setCustomPriceStr] = useState("");
+
+  // Pre-fill form if a custom van was previously entered
+  useEffect(() => {
+    if (state.customVanDescription) {
+      setShowCustomForm(true);
+      setCustomDescription(state.customVanDescription);
+      if (state.customVanValue !== null) {
+        setCustomPriceStr((state.customVanValue / 100).toFixed(0));
+      }
+    }
+  }, []);
+
+  const handleConfirmCustomVan = () => {
+    const value = parseFloat(customPriceStr.replace(/[^0-9.]/g, ''));
+    if (!customDescription.trim() || isNaN(value) || value <= 0) return;
+    setCustomVan(customDescription.trim(), Math.round(value * 100));
+    setLocation('/configurator/service-type');
+  };
   
   const [filterMake, setFilterMake] = useState<string>("all");
   const [filterModel, setFilterModel] = useState<string>("all");
@@ -326,6 +350,76 @@ export default function SelectVan() {
                       );
                     }))}
                   </div>
+
+                  {/* Can't find your van section */}
+                  <Card className={`border-2 transition-colors ${showCustomForm ? 'border-accent/60' : 'border-dashed border-muted-foreground/30'} ${state.customVanDescription && !showCustomForm ? 'border-accent' : ''}`}>
+                    <CardContent className="p-5">
+                      <button
+                        type="button"
+                        className="w-full flex items-center justify-between gap-3 text-left"
+                        onClick={() => setShowCustomForm(v => !v)}
+                        data-testid="button-toggle-custom-van"
+                      >
+                        <div className="flex items-center gap-3">
+                          <HelpCircle className="w-5 h-5 text-accent shrink-0" />
+                          <div>
+                            <p className="font-semibold text-sm">Can't find your van listed above?</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {state.customVanDescription
+                                ? `Using: ${state.customVanDescription}`
+                                : 'Enter your van details and estimated value to include it in your quote'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-accent font-medium shrink-0">
+                          {showCustomForm ? 'Hide' : 'Enter details'}
+                        </span>
+                      </button>
+
+                      {showCustomForm && (
+                        <div className="mt-4 space-y-4 pt-4 border-t border-border">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium" htmlFor="custom-van-description">
+                              Van make, model &amp; year
+                            </label>
+                            <Input
+                              id="custom-van-description"
+                              placeholder="e.g. Ford Transit Custom 2023"
+                              value={customDescription}
+                              onChange={e => setCustomDescription(e.target.value)}
+                              data-testid="input-custom-van-description"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium" htmlFor="custom-van-price">
+                              Estimated van value (£)
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">£</span>
+                              <Input
+                                id="custom-van-price"
+                                className="pl-7"
+                                placeholder="e.g. 28000"
+                                value={customPriceStr}
+                                onChange={e => setCustomPriceStr(e.target.value.replace(/[^0-9.]/g, ''))}
+                                data-testid="input-custom-van-price"
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">This will be included in your quote total</p>
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={handleConfirmCustomVan}
+                            disabled={!customDescription.trim() || !customPriceStr || parseFloat(customPriceStr) <= 0}
+                            data-testid="button-confirm-custom-van"
+                          >
+                            Continue with this van
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
 
                   <div className="flex justify-center">
                     <Button 

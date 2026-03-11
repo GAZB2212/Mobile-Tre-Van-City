@@ -3,6 +3,8 @@ import type { KitServiceType } from '@shared/schema';
 
 export interface ConfiguratorState {
   vanId: string | null;
+  customVanDescription: string | null;
+  customVanValue: number | null; // in pence
   serviceType: KitServiceType | null;
   kitId: string | null;
   upgradeIds: string[];
@@ -23,6 +25,7 @@ export interface ConfiguratorState {
 interface ConfiguratorContextValue {
   state: ConfiguratorState;
   setVan: (vanId: string | null) => void;
+  setCustomVan: (description: string, valueInPence: number) => void;
   setServiceType: (serviceType: KitServiceType | null) => void;
   setKit: (kitId: string | null) => void;
   setUpgrades: (upgradeIds: string[]) => void;
@@ -43,10 +46,12 @@ interface ConfiguratorContextValue {
   resetFromFinance: () => void;
 }
 
-const STORAGE_KEY = 'configurator:v2';
+const STORAGE_KEY = 'configurator:v3';
 
 const defaultState: ConfiguratorState = {
   vanId: null,
+  customVanDescription: null,
+  customVanValue: null,
   serviceType: null,
   kitId: null,
   upgradeIds: [],
@@ -83,10 +88,29 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   const setVan = (vanId: string | null) => {
-    // Clear downstream selections when van changes
+    // Clear downstream selections and custom van when a listed van is selected
     setState(prev => ({
       ...prev,
       vanId,
+      customVanDescription: null,
+      customVanValue: null,
+      serviceType: null,
+      kitId: null,
+      upgradeIds: [],
+      trainingOptionIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    }));
+  };
+
+  const setCustomVan = (description: string, valueInPence: number) => {
+    // Set a custom (unlisted) van and clear downstream selections
+    setState(prev => ({
+      ...prev,
+      vanId: null,
+      customVanDescription: description,
+      customVanValue: valueInPence,
       serviceType: null,
       kitId: null,
       upgradeIds: [],
@@ -220,6 +244,8 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   const resetFromVan = () => {
     setState(prev => ({
       ...prev,
+      customVanDescription: null,
+      customVanValue: null,
       serviceType: null,
       kitId: null,
       upgradeIds: [],
@@ -273,6 +299,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   const value: ConfiguratorContextValue = {
     state,
     setVan,
+    setCustomVan,
     setServiceType,
     setKit,
     setUpgrades,

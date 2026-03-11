@@ -39,7 +39,7 @@ export function ConfiguratorSummary() {
     enabled: state.trainingOptionIds.length > 0,
   });
 
-  const vanPrice = van?.price || 0;
+  const vanPrice = van?.price || state.customVanValue || 0;
   const kitPrice = kit?.price || 0;
   const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
@@ -49,6 +49,7 @@ export function ConfiguratorSummary() {
   const total = subtotal + vat;
 
   const hasItems = vanPrice > 0 || kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0;
+  const hasVan = !!state.vanId || !!state.customVanDescription;
 
   return (
     <Card className="sticky top-[180px] sm:top-[200px] xl:top-[220px] z-10 max-h-[calc(100vh-200px)] overflow-y-auto" data-testid="summary-container">
@@ -74,6 +75,22 @@ export function ConfiguratorSummary() {
                   <p className="text-sm text-muted-foreground" data-testid="text-summary-van-price">
                     {formatPrice(van.price)}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {!van && state.customVanDescription && (
+              <div className="flex items-start gap-2">
+                <Car className="w-4 h-4 text-accent mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" data-testid="text-summary-custom-van-name">
+                    {state.customVanDescription}
+                  </p>
+                  {state.customVanValue && (
+                    <p className="text-sm text-muted-foreground" data-testid="text-summary-custom-van-price">
+                      {formatPrice(state.customVanValue)}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -162,17 +179,17 @@ export function ConfiguratorSummary() {
               </div>
             </div>
 
-            {!state.vanId && (
+            {!hasVan && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-van">
                 Select a van to start
               </Badge>
             )}
-            {state.vanId && !state.serviceType && (
+            {hasVan && !state.serviceType && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-service-type">
                 Select your service type
               </Badge>
             )}
-            {state.vanId && state.serviceType && !state.kitId && (
+            {hasVan && state.serviceType === 'car' && !state.kitId && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-kit">
                 Select an equipment kit
               </Badge>
