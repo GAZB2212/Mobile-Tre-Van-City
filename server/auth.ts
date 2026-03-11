@@ -132,7 +132,12 @@ export async function setupAuth(app: Express) {
       const { username, password } = result.data;
       
       console.log('📝 Looking up user:', username);
-      const user = await storage.getUserByUsername(username);
+      let user = await storage.getUserByUsername(username);
+
+      // Also try email if username lookup failed
+      if (!user && username.includes('@')) {
+        user = await storage.getUserByEmail(username.toLowerCase().trim());
+      }
 
       if (!user) {
         console.log('❌ User not found:', username);
