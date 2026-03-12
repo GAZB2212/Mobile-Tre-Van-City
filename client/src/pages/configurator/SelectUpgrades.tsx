@@ -437,6 +437,8 @@ export default function SelectUpgrades() {
                       ...filteredGroups.map(g => ({ type: 'group' as const, sortOrder: g.parent.sortOrder, data: g })),
                       ...standalone.map(u => ({ type: 'standalone' as const, sortOrder: u.sortOrder, data: u }))
                     ].sort((a, b) => a.sortOrder - b.sortOrder);
+
+                    if (allItems.length === 0) return null;
                     
                     return (
                       <Card key={category}>
