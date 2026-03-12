@@ -1622,7 +1622,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       // If configuration OR discount fields changed, recalculate pricing server-side
       const needsRecalculation = 'vanId' in validatedData || 'kitId' in validatedData || 
                                   'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData ||
-                                  'discountType' in validatedData || 'discountValue' in validatedData;
+                                  'discountType' in validatedData || 'discountValue' in validatedData ||
+                                  'customVanValue' in validatedData;
       
       if (needsRecalculation) {
         const quote = await storage.getQuote(req.params.id);
@@ -1632,6 +1633,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         
         // Get the configuration (use updated values or fall back to existing)
         const vanId = 'vanId' in validatedData ? validatedData.vanId : quote.vanId;
+        const customVanValue = 'customVanValue' in validatedData ? validatedData.customVanValue : (quote as any).customVanValue;
         const kitId = 'kitId' in validatedData ? validatedData.kitId : quote.kitId;
         const selectedUpgradeIds = validatedData.selectedUpgradeIds || quote.selectedUpgradeIds || [];
         const selectedUpgrades = validatedData.selectedUpgrades || quote.selectedUpgrades || {};
@@ -1642,12 +1644,15 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         // Recalculate base pricing (before discount)
         let baseSubtotal = 0;
         
-        // Add van price
+        // Add van price — either a system van lookup or a custom van value
         if (vanId) {
           const van = await storage.getVan(vanId);
           if (van) {
             baseSubtotal += van.price;
           }
+        } else if (customVanValue) {
+          // Custom/off-website van — value stored in pence directly
+          baseSubtotal += customVanValue;
         }
         
         // Add kit price
