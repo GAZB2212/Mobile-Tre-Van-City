@@ -377,77 +377,58 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   next();
 };
 
-// Middleware to check if user is admin (now checks for full admin role only)
+// Helper: refresh session role from DB and update session if it changed
+async function refreshSessionRole(req: any): Promise<{ id: string; adminRole: string; isAdmin: boolean } | null> {
+  try {
+    const user = await storage.getUser(req.session.user.id);
+    if (!user) return null;
+    // Update session if role has changed so subsequent requests use fresh data
+    if (req.session.user.adminRole !== user.adminRole || req.session.user.isAdmin !== user.isAdmin) {
+      req.session.user.adminRole = user.adminRole;
+      req.session.user.isAdmin = user.isAdmin;
+      req.session.save(() => {}); // fire-and-forget save
+    }
+    return { id: user.id, adminRole: user.adminRole, isAdmin: user.isAdmin };
+  } catch {
+    return null;
+  }
+}
+
+// Middleware to check if user is admin (full admin only) — always validates against DB
 export const isAdmin: RequestHandler = async (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-
-  // Check if user has full admin role
-  if (req.session.user.adminRole !== "full") {
+  const fresh = await refreshSessionRole(req);
+  if (!fresh || fresh.adminRole !== "full") {
     return res.status(403).json({ message: "Forbidden - Full admin access required" });
   }
-
-  // Double-check with database
-  try {
-    const user = await storage.getUser(req.session.user.id);
-    if (!user || user.adminRole !== "full") {
-      return res.status(403).json({ message: "Forbidden - Full admin access required" });
-    }
-    next();
-  } catch (error) {
-    console.error("Admin check error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  next();
 };
 
-// Middleware to check if user has at least basic admin role (view-only access)
+// Middleware to check if user has at least basic admin role — always validates against DB
 export const isBasicAdmin: RequestHandler = async (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-
-  // Check if user has basic or full admin role
+  const fresh = await refreshSessionRole(req);
   const allowedRoles = ["basic", "full"];
-  if (!allowedRoles.includes(req.session.user.adminRole)) {
+  if (!fresh || !allowedRoles.includes(fresh.adminRole)) {
     return res.status(403).json({ message: "Forbidden - Admin access required" });
   }
-
-  // Double-check with database
-  try {
-    const user = await storage.getUser(req.session.user.id);
-    if (!user || !allowedRoles.includes(user.adminRole)) {
-      return res.status(403).json({ message: "Forbidden - Admin access required" });
-    }
-    next();
-  } catch (error) {
-    console.error("Admin role check error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  next();
 };
 
-// Middleware to check if user has full admin role (full access including modifications)
+// Middleware to check if user has full admin role (alias of isAdmin)
 export const isFullAdmin: RequestHandler = async (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-
-  // Check if user has full admin role
-  if (req.session.user.adminRole !== "full") {
+  const fresh = await refreshSessionRole(req);
+  if (!fresh || fresh.adminRole !== "full") {
     return res.status(403).json({ message: "Forbidden - Full admin access required" });
   }
-
-  // Double-check with database
-  try {
-    const user = await storage.getUser(req.session.user.id);
-    if (!user || user.adminRole !== "full") {
-      return res.status(403).json({ message: "Forbidden - Full admin access required" });
-    }
-    next();
-  } catch (error) {
-    console.error("Admin role check error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  next();
 };
 
 // Helper function to hash passwords
