@@ -625,7 +625,7 @@ export default function AdminQuoteDetail() {
 
   // Calculate saved finance info from quote.financeInputs (deposit in pence, term in months)
   const calculateSavedFinance = () => {
-    if (!quote?.financeInputs?.deposit || !quote?.financeInputs?.term) return null;
+    if (quote?.financeInputs?.deposit === undefined || quote?.financeInputs?.deposit === null || !quote?.financeInputs?.term) return null;
     const depositAmount = quote.financeInputs.deposit; // pence
     const termMonths = quote.financeInputs.term;
     const principal = pricing.total - depositAmount;
@@ -644,7 +644,7 @@ export default function AdminQuoteDetail() {
   const editorTermMonths = editorTermYears * 12;
   const editorPrincipal = pricing.total - editorDepositPence;
   const editorFinanceInfo = (() => {
-    if (!editorDepositAmount || editorPrincipal <= 0) return null;
+    if (editorPrincipal <= 0) return null;
     const monthlyRate = FINANCE_APR / 12;
     const pv = Math.pow(1 + monthlyRate, editorTermMonths);
     const monthlyPayment = Math.round((editorPrincipal * monthlyRate * pv) / (pv - 1));
@@ -1552,7 +1552,7 @@ export default function AdminQuoteDetail() {
                     Finance Calculator
                   </CardTitle>
                   <CardDescription>
-                    HP at 10.9% APR — set deposit and term to calculate payments
+                    HP at 10.9% APR — set term to calculate payments (deposit optional)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
