@@ -487,7 +487,7 @@ export default function AdminQuoteDetail() {
   };
 
   const handleQuantityChange = (upgradeId: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (!Number.isFinite(quantity) || quantity < 1) return;
     setSelectedUpgrades({ ...selectedUpgrades, [upgradeId]: quantity });
   };
 
@@ -554,13 +554,15 @@ export default function AdminQuoteDetail() {
     }
 
     // Convert discount value to pence based on type
-    let discountValueInPence = null;
+    let discountValueInPence: number | null = null;
     if (discountValue) {
       if (discountType === "percentage") {
-        discountValueInPence = parseInt(discountValue);
+        const parsed = parseInt(discountValue);
+        if (Number.isFinite(parsed)) discountValueInPence = parsed;
       } else if (discountType === "fixed") {
         // Convert pounds to pence
-        discountValueInPence = Math.round(parseFloat(discountValue) * 100);
+        const parsed = Math.round(parseFloat(discountValue) * 100);
+        if (Number.isFinite(parsed)) discountValueInPence = parsed;
       }
     }
     
@@ -568,10 +570,10 @@ export default function AdminQuoteDetail() {
     const currentPricing = calculateAdjustedPrice();
     
     const updates: any = {
-      status,
-      serviceType: serviceType || null,
+      status: (quoteStatuses as readonly string[]).includes(status) ? status : "new",
+      serviceType: (serviceType === 'car' || serviceType === 'commercial' || serviceType === 'hybrid') ? serviceType : null,
       completedBuildStages,
-      discountType: discountType || null,
+      discountType: (discountType === 'percentage' || discountType === 'fixed') ? discountType : null,
       discountValue: discountValueInPence,
       selectedUpgradeIds,
       selectedUpgrades,

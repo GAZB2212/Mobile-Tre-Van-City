@@ -1569,6 +1569,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           term: z.number().optional(),
           balloon: z.number().optional(),
         }).nullable().optional(),
+        // Van registration and mileage (for finance submissions)
+        vanRegistration: z.string().nullable().optional(),
+        vanMileage: z.number().int().nullable().optional(),
+        // Customer confirmation flag
+        customerConfirmed: z.boolean().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
@@ -1707,8 +1712,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       res.json(updated);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('PATCH /api/admin/quotes/:id Zod validation failed. Body keys:', Object.keys(req.body), 'Errors:', JSON.stringify(error.errors));
         return res.status(400).json({ error: "Invalid update data", details: error.errors });
       }
+      console.error('PATCH /api/admin/quotes/:id unexpected error:', error);
       res.status(500).json({ error: "Failed to update quote" });
     }
   });
@@ -1878,7 +1885,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Send finance submission email to finance company
-  app.post("/api/admin/quotes/:id/send-finance", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/quotes/:id/send-finance", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) {
