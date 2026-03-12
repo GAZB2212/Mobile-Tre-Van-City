@@ -1557,6 +1557,9 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         estDiscount: z.number().int().optional(),
         estVAT: z.number().int().optional(),
         estTotal: z.number().int().optional(),
+        // Custom van (off-website) fields
+        customVanDescription: z.string().nullable().optional(),
+        customVanValue: z.number().int().nullable().optional(),
         // Finance overrides
         financePlanId: z.string().nullable().optional(),
         financeInputs: z.object({

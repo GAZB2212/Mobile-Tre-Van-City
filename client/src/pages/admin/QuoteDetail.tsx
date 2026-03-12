@@ -170,6 +170,10 @@ export default function AdminQuoteDetail() {
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
   const [editorTermYears, setEditorTermYears] = useState<number>(3);
 
+  // Custom van state (for vans not in the system)
+  const [customVanDescription, setCustomVanDescription] = useState<string>("");
+  const [customVanValue, setCustomVanValue] = useState<string>("");
+
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
@@ -211,8 +215,12 @@ export default function AdminQuoteDetail() {
       }
       // Notes are now in history format, no need to set them here
       
-      // Set current configuration
-      setSelectedVanId(quote.vanId || null);
+      // Initialize custom van fields
+      setCustomVanDescription(quote.customVanDescription ?? "");
+      setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
+
+      // Set current configuration — use "custom" sentinel when no system van but custom details exist
+      setSelectedVanId(quote.vanId || (quote.customVanDescription ? "custom" : null));
       setSelectedKitId(quote.kitId || null);
       setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setSelectedUpgrades(quote.selectedUpgrades || {});
@@ -478,14 +486,16 @@ export default function AdminQuoteDetail() {
   };
 
   const recalculatePricing = () => {
-    const selectedVan = vans.find(v => v.id === selectedVanId);
+    const selectedVan = selectedVanId !== "custom" ? vans.find(v => v.id === selectedVanId) : null;
     const selectedKit = kits.find(k => k.id === selectedKitId);
     
     let subtotal = 0;
     
-    // Add van price
+    // Add van price — either system van or custom van value
     if (selectedVan) {
       subtotal += selectedVan.price;
+    } else if (selectedVanId === "custom" && customVanValue) {
+      subtotal += Math.round(parseFloat(customVanValue) * 100);
     }
     
     // Add kit price
@@ -574,7 +584,16 @@ export default function AdminQuoteDetail() {
     }
     
     // Explicitly include null values for van and kit to allow clearing
-    updates.vanId = selectedVanId;
+    // When "custom" is selected, send vanId: null but include custom van details
+    if (selectedVanId === "custom") {
+      updates.vanId = null;
+      updates.customVanDescription = customVanDescription.trim() || null;
+      updates.customVanValue = customVanValue ? Math.round(parseFloat(customVanValue) * 100) : null;
+    } else {
+      updates.vanId = selectedVanId;
+      updates.customVanDescription = null;
+      updates.customVanValue = null;
+    }
     updates.kitId = selectedKitId;
     
     updateMutation.mutate(updates);
@@ -748,14 +767,21 @@ export default function AdminQuoteDetail() {
                 <CollapsibleContent>
                   <CardContent className="space-y-6">
                 {/* Van Selection */}
-                <div>
+                <div className="space-y-3">
                   <Label htmlFor="van-select">Van</Label>
-                  <Select value={selectedVanId || "none"} onValueChange={(v) => setSelectedVanId(v === "none" ? null : v)}>
+                  <Select
+                    value={selectedVanId || "none"}
+                    onValueChange={(v) => {
+                      if (v === "none") { setSelectedVanId(null); setCustomVanDescription(""); setCustomVanValue(""); }
+                      else setSelectedVanId(v);
+                    }}
+                  >
                     <SelectTrigger id="van-select" data-testid="select-van">
                       <SelectValue placeholder="Select van" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No van selected</SelectItem>
+                      <SelectItem value="custom">Custom / Off-website van</SelectItem>
                       {vans.filter(v => v.published).map((van) => (
                         <SelectItem key={van.id} value={van.id}>
                           {van.year} {van.make} {van.model} - £{(van.price / 100).toLocaleString()}
@@ -763,6 +789,40 @@ export default function AdminQuoteDetail() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {/* Custom van fields — shown only when custom is selected */}
+                  {selectedVanId === "custom" && (
+                    <div className="rounded-md border p-4 space-y-3 bg-muted/30">
+                      <p className="text-xs text-muted-foreground font-medium">Enter the customer's van details below. The cost will be included in the quote total.</p>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="custom-van-description" className="text-sm">Make, Model &amp; Year</Label>
+                        <Input
+                          id="custom-van-description"
+                          placeholder="e.g. 2022 Ford Transit Custom 280 L1"
+                          value={customVanDescription}
+                          onChange={(e) => setCustomVanDescription(e.target.value)}
+                          data-testid="input-custom-van-description"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="custom-van-value" className="text-sm">Van Cost (£)</Label>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="custom-van-value"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            className="pl-9"
+                            value={customVanValue}
+                            onChange={(e) => setCustomVanValue(e.target.value)}
+                            data-testid="input-custom-van-value"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Kit Selection */}
