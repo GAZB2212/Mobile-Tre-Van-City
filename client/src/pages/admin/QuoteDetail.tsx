@@ -49,7 +49,7 @@ import {
   XCircle,
   Calculator
 } from "lucide-react";
-import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
+import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { upgradeCategories } from "@shared/schema";
@@ -166,11 +166,9 @@ export default function AdminQuoteDetail() {
   // Configuration editor collapse state
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState(true);
 
-  // Finance editor state
-  const [editorPlanId, setEditorPlanId] = useState<string>("");
-  const [editorDeposit, setEditorDeposit] = useState<string>("");
-  const [editorTerm, setEditorTerm] = useState<string>("");
-  const [editorBalloon, setEditorBalloon] = useState<string>("");
+  // Finance editor state (deposit in £ pounds, term in years 1-5)
+  const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
+  const [editorTermYears, setEditorTermYears] = useState<number>(3);
 
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
@@ -189,16 +187,6 @@ export default function AdminQuoteDetail() {
 
   const { data: upgrades = [] } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
-    enabled: !!(user?.adminRole && user.adminRole !== "none"),
-  });
-
-  const { data: financePlan } = useQuery<FinancePlan | null>({
-    queryKey: [`/api/finance-plans/${quote?.financePlanId}`],
-    enabled: !!(user?.adminRole && user.adminRole !== "none") && !!quote?.financePlanId,
-  });
-
-  const { data: allFinancePlans = [] } = useQuery<FinancePlan[]>({
-    queryKey: ["/api/finance-plans"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
@@ -236,23 +224,13 @@ export default function AdminQuoteDetail() {
       setOriginalSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setOriginalSelectedUpgrades(quote.selectedUpgrades || {});
 
-      // Initialize finance editor from saved values
-      setEditorPlanId(quote.financePlanId || "");
-      setEditorDeposit(quote.financeInputs?.deposit !== undefined ? String(quote.financeInputs.deposit) : "");
-      setEditorTerm(quote.financeInputs?.term !== undefined ? String(quote.financeInputs.term) : "");
-      setEditorBalloon(quote.financeInputs?.balloon !== undefined ? String(quote.financeInputs.balloon) : "");
+      // Initialize finance editor (deposit stored in pence, convert to £; term stored in months, convert to years)
+      const depositPence = quote.financeInputs?.deposit;
+      setEditorDepositAmount(depositPence !== undefined && depositPence !== null ? String(depositPence / 100) : "");
+      const termMonths = quote.financeInputs?.term;
+      setEditorTermYears(termMonths ? Math.round(termMonths / 12) : 3);
     }
   }, [quote]);
-
-  // When allFinancePlans loads after the quote, fill missing editor fields with plan defaults
-  useEffect(() => {
-    if (!editorPlanId || allFinancePlans.length === 0) return;
-    const plan = allFinancePlans.find(p => p.id === editorPlanId);
-    if (!plan) return;
-    setEditorDeposit(prev => prev !== "" ? prev : String(plan.depositPercent));
-    setEditorTerm(prev => prev !== "" ? prev : String(plan.termMonths));
-    setEditorBalloon(prev => prev !== "" ? prev : String(plan.balloonPercent ?? 0));
-  }, [editorPlanId, allFinancePlans]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Quote>) => {
@@ -341,20 +319,20 @@ export default function AdminQuoteDetail() {
 
   const saveFinanceMutation = useMutation({
     mutationFn: async () => {
-      const selectedPlan = allFinancePlans.find(p => p.id === editorPlanId);
+      const depositPence = editorDepositAmount !== "" ? Math.round(parseFloat(editorDepositAmount) * 100) : 0;
+      const termMonths = editorTermYears * 12;
       return await apiRequest("PATCH", `/api/admin/quotes/${id}`, {
-        financePlanId: editorPlanId || null,
-        financeInputs: selectedPlan ? {
-          deposit: editorDeposit !== "" ? parseFloat(editorDeposit) : selectedPlan.depositPercent,
-          term: editorTerm !== "" ? parseInt(editorTerm) : selectedPlan.termMonths,
-          balloon: editorBalloon !== "" ? parseFloat(editorBalloon) : (selectedPlan.balloonPercent ?? 0),
-        } : null,
+        financePlanId: null,
+        financeInputs: {
+          deposit: depositPence,
+          term: termMonths,
+          balloon: 0,
+        },
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/finance-plans/${editorPlanId}`] });
-      toast({ title: "Finance updated", description: "Finance plan and terms saved." });
+      toast({ title: "Finance updated", description: "Finance settings saved." });
     },
     onError: () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to save finance settings." });
@@ -642,114 +620,37 @@ export default function AdminQuoteDetail() {
 
   const pricing = calculateAdjustedPrice();
 
-  // Calculate monthly finance payments if finance plan selected
-  const calculateFinancePayments = () => {
-    if (!financePlan || !quote) return null;
+  // Fixed APR for finance calculations
+  const FINANCE_APR = 0.109; // 10.9%
 
-    const total = pricing.total; // Total price after discount and VAT
-    
-    // Get deposit from quote.financeInputs or use default from plan
-    const depositPercent = quote.financeInputs?.deposit !== undefined 
-      ? quote.financeInputs.deposit 
-      : financePlan.depositPercent;
-    const depositAmount = Math.round((total * depositPercent) / 100);
-    
-    // Get term from quote.financeInputs or use default from plan
-    const termMonths = quote.financeInputs?.term || financePlan.termMonths;
-    
-    // Get balloon from quote.financeInputs or use default from plan
-    const balloonPercent = quote.financeInputs?.balloon !== undefined
-      ? quote.financeInputs.balloon
-      : (financePlan.balloonPercent || 0);
-    const balloonAmount = Math.round((total * balloonPercent) / 100);
-    
-    // Calculate amount to finance (after deposit, before balloon)
-    const amountToFinance = total - depositAmount;
-    
-    // Calculate monthly interest rate from APR in basis points
-    const aprDecimal = financePlan.aprBps / 10000; // Convert basis points to decimal
-    const monthlyRate = aprDecimal / 12;
-    
-    // Calculate monthly payment using amortization formula
-    let monthlyPayment: number;
-    
-    if (monthlyRate === 0) {
-      // No interest - still need to account for balloon as future value
-      const amountToAmortize = amountToFinance - balloonAmount;
-      monthlyPayment = Math.round(amountToAmortize / termMonths);
-    } else {
-      // Standard amortization formula, adjusted for balloon
-      const presentValueFactor = Math.pow(1 + monthlyRate, termMonths);
-      const balloonPV = balloonAmount / presentValueFactor;
-      const amountToAmortize = amountToFinance - balloonPV;
-      
-      monthlyPayment = Math.round(
-        (amountToAmortize * monthlyRate * presentValueFactor) / (presentValueFactor - 1)
-      );
-    }
-    
-    return {
-      depositAmount,
-      depositPercent,
-      monthlyPayment,
-      termMonths,
-      balloonAmount,
-      balloonPercent,
-      total,
-      planName: financePlan.name,
-      planType: financePlan.type,
-      apr: financePlan.aprBps / 10000 * 100, // Convert basis points to percentage (595 → 5.95%)
-    };
+  // Calculate saved finance info from quote.financeInputs (deposit in pence, term in months)
+  const calculateSavedFinance = () => {
+    if (!quote?.financeInputs?.deposit || !quote?.financeInputs?.term) return null;
+    const depositAmount = quote.financeInputs.deposit; // pence
+    const termMonths = quote.financeInputs.term;
+    const principal = pricing.total - depositAmount;
+    if (principal <= 0 || termMonths <= 0) return null;
+    const monthlyRate = FINANCE_APR / 12;
+    const pv = Math.pow(1 + monthlyRate, termMonths);
+    const monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+    const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+    return { depositAmount, termMonths, monthlyPayment, weeklyPayment, principal };
   };
 
-  const financeInfo = calculateFinancePayments();
+  const financeInfo = calculateSavedFinance();
 
-  // Live calculator for the finance editor using local state values
-  const calculateEditorFinance = () => {
-    const plan = allFinancePlans.find(p => p.id === editorPlanId);
-    if (!plan) return null;
-
-    const total = pricing.total;
-
-    const depositPercent = editorDeposit !== "" ? parseFloat(editorDeposit) : plan.depositPercent;
-    const termMonths = editorTerm !== "" ? parseInt(editorTerm) : plan.termMonths;
-    const balloonPercent = editorBalloon !== "" ? parseFloat(editorBalloon) : (plan.balloonPercent ?? 0);
-
-    const depositAmount = Math.round((total * depositPercent) / 100);
-    const balloonAmount = Math.round((total * balloonPercent) / 100);
-    const amountToFinance = total - depositAmount;
-
-    const aprDecimal = plan.aprBps / 10000;
-    const monthlyRate = aprDecimal / 12;
-
-    let monthlyPayment: number;
-    if (monthlyRate === 0 || termMonths <= 0) {
-      const amountToAmortize = amountToFinance - balloonAmount;
-      monthlyPayment = termMonths > 0 ? Math.round(amountToAmortize / termMonths) : 0;
-    } else {
-      const presentValueFactor = Math.pow(1 + monthlyRate, termMonths);
-      const balloonPV = balloonAmount / presentValueFactor;
-      const amountToAmortize = amountToFinance - balloonPV;
-      monthlyPayment = Math.round(
-        (amountToAmortize * monthlyRate * presentValueFactor) / (presentValueFactor - 1)
-      );
-    }
-
-    return {
-      depositAmount,
-      depositPercent,
-      monthlyPayment,
-      termMonths,
-      balloonAmount,
-      balloonPercent,
-      total,
-      planName: plan.name,
-      planType: plan.type,
-      apr: plan.aprBps / 10000 * 100,
-    };
-  };
-
-  const editorFinanceInfo = calculateEditorFinance();
+  // Live calculation for the editor
+  const editorDepositPence = editorDepositAmount !== "" ? Math.round(parseFloat(editorDepositAmount) * 100) : 0;
+  const editorTermMonths = editorTermYears * 12;
+  const editorPrincipal = pricing.total - editorDepositPence;
+  const editorFinanceInfo = (() => {
+    if (!editorDepositAmount || editorPrincipal <= 0) return null;
+    const monthlyRate = FINANCE_APR / 12;
+    const pv = Math.pow(1 + monthlyRate, editorTermMonths);
+    const monthlyPayment = Math.round((editorPrincipal * monthlyRate * pv) / (pv - 1));
+    const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+    return { monthlyPayment, weeklyPayment, termMonths: editorTermMonths, depositPence: editorDepositPence };
+  })();
 
   return (
     <div className="min-h-screen bg-background">
@@ -1608,41 +1509,33 @@ export default function AdminQuoteDetail() {
                   </div>
                 )}
                 
-                {/* Finance Calculations */}
+                {/* Finance Summary (if saved) */}
                 {financeInfo && (
                   <>
                     <Separator className="my-4" />
                     <div className="space-y-2 pt-2">
-                      <div className="text-sm font-semibold text-accent">
-                        {financeInfo.planName} ({financeInfo.planType})
-                      </div>
+                      <div className="text-sm font-semibold text-accent">Finance (HP — 10.9% APR)</div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Deposit ({financeInfo.depositPercent}%)</span>
+                        <span className="text-muted-foreground">Deposit</span>
                         <span className="font-medium">
-                          £{(financeInfo.depositAmount / 100).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Monthly Payment</span>
-                        <span className="font-bold text-accent">
-                          £{(financeInfo.monthlyPayment / 100).toLocaleString()}/mo
+                          £{(financeInfo.depositAmount / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Term</span>
                         <span className="font-medium">{financeInfo.termMonths} months</span>
                       </div>
-                      {financeInfo.balloonAmount > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Final Payment ({financeInfo.balloonPercent}%)</span>
-                          <span className="font-medium">
-                            £{(financeInfo.balloonAmount / 100).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-xs text-muted-foreground pt-1">
-                        <span>APR</span>
-                        <span>{financeInfo.apr.toFixed(2)}%</span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Monthly payment</span>
+                        <span className="font-bold text-accent">
+                          £{(financeInfo.monthlyPayment / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}/mo
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Weekly (approx.)</span>
+                        <span className="font-medium">
+                          £{(financeInfo.weeklyPayment / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}/wk
+                        </span>
                       </div>
                     </div>
                   </>
@@ -1659,115 +1552,82 @@ export default function AdminQuoteDetail() {
                     Finance Calculator
                   </CardTitle>
                   <CardDescription>
-                    Select a plan and adjust terms to calculate monthly payments
+                    HP at 10.9% APR — set deposit and term to calculate payments
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Plan selector */}
+                  {/* Deposit in £ */}
                   <div className="space-y-1.5">
-                    <Label className="text-sm">Finance Plan</Label>
+                    <Label className="text-sm">Deposit Amount (£)</Label>
+                    <div className="relative">
+                      <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        min="0"
+                        step="100"
+                        placeholder="0"
+                        value={editorDepositAmount}
+                        onChange={e => setEditorDepositAmount(e.target.value)}
+                        className="pl-9"
+                        data-testid="input-editor-deposit"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Term selector */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Finance Term</Label>
                     <Select
-                      value={editorPlanId || "__none__"}
-                      onValueChange={(val) => {
-                        const planId = val === "__none__" ? "" : val;
-                        setEditorPlanId(planId);
-                        // Pre-fill with the new plan's defaults on plan change
-                        const newPlan = allFinancePlans.find(p => p.id === planId);
-                        if (newPlan) {
-                          setEditorDeposit(String(newPlan.depositPercent));
-                          setEditorTerm(String(newPlan.termMonths));
-                          setEditorBalloon(String(newPlan.balloonPercent ?? 0));
-                        } else {
-                          setEditorDeposit("");
-                          setEditorTerm("");
-                          setEditorBalloon("");
-                        }
-                      }}
+                      value={String(editorTermYears)}
+                      onValueChange={val => setEditorTermYears(parseInt(val))}
                     >
-                      <SelectTrigger data-testid="select-finance-plan">
-                        <SelectValue placeholder="Select a plan..." />
+                      <SelectTrigger data-testid="select-editor-term">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">No finance plan</SelectItem>
-                        {allFinancePlans.filter(p => p.published).map(plan => (
-                          <SelectItem key={plan.id} value={plan.id}>
-                            {plan.name} — {plan.type} · {(plan.aprBps / 100).toFixed(2)}% APR
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="1">1 Year (12 months)</SelectItem>
+                        <SelectItem value="2">2 Years (24 months)</SelectItem>
+                        <SelectItem value="3">3 Years (36 months)</SelectItem>
+                        <SelectItem value="4">4 Years (48 months)</SelectItem>
+                        <SelectItem value="5">5 Years (60 months)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {editorPlanId && (
-                    <>
-                      {/* Override inputs */}
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Deposit %</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="1"
-                            placeholder={String(allFinancePlans.find(p => p.id === editorPlanId)?.depositPercent ?? "")}
-                            value={editorDeposit}
-                            onChange={e => setEditorDeposit(e.target.value)}
-                            data-testid="input-editor-deposit"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Term (months)</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            step="1"
-                            placeholder={String(allFinancePlans.find(p => p.id === editorPlanId)?.termMonths ?? "")}
-                            value={editorTerm}
-                            onChange={e => setEditorTerm(e.target.value)}
-                            data-testid="input-editor-term"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-sm">Balloon %</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="1"
-                            placeholder={String(allFinancePlans.find(p => p.id === editorPlanId)?.balloonPercent ?? "0")}
-                            value={editorBalloon}
-                            onChange={e => setEditorBalloon(e.target.value)}
-                            data-testid="input-editor-balloon"
-                          />
-                        </div>
+                  {/* Live result */}
+                  {editorFinanceInfo ? (
+                    <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Deposit</span>
+                        <span className="font-medium">
+                          £{(editorFinanceInfo.depositPence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                        </span>
                       </div>
-
-                      {/* Live calculation result */}
-                      {editorFinanceInfo && (
-                        <div className="rounded-md border p-3 space-y-2 bg-muted/30">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Deposit ({editorFinanceInfo.depositPercent}%)</span>
-                            <span className="font-medium">£{(editorFinanceInfo.depositAmount / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}</span>
-                          </div>
-                          {editorFinanceInfo.balloonPercent > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Balloon ({editorFinanceInfo.balloonPercent}%)</span>
-                              <span className="font-medium">£{(editorFinanceInfo.balloonAmount / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between text-sm border-t pt-2 mt-1">
-                            <span className="text-muted-foreground">Monthly payment × {editorFinanceInfo.termMonths}</span>
-                            <span className="text-lg font-bold text-accent">
-                              £{(editorFinanceInfo.monthlyPayment / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>APR</span>
-                            <span>{editorFinanceInfo.apr.toFixed(2)}%</span>
-                          </div>
-                        </div>
-                      )}
-                    </>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Term</span>
+                        <span className="font-medium">{editorFinanceInfo.termMonths} months</span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t pt-2 mt-1">
+                        <span className="text-muted-foreground">Monthly payment</span>
+                        <span className="text-lg font-bold text-accent">
+                          £{(editorFinanceInfo.monthlyPayment / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Weekly (approx.)</span>
+                        <span className="font-medium">
+                          £{(editorFinanceInfo.weeklyPayment / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                        <span>APR</span>
+                        <span>10.9%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      Enter a deposit amount to calculate payments
+                    </p>
                   )}
 
                   <Button

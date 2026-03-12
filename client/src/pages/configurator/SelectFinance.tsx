@@ -96,7 +96,7 @@ export default function SelectFinance() {
     }
     
     const principal = total - deposit;
-    const annualRate = 0.12; // 12% APR
+    const annualRate = 0.109; // 10.9% APR
     const monthlyRate = annualRate / 12;
     const numberOfPayments = termYears * 12;
     
@@ -158,7 +158,7 @@ export default function SelectFinance() {
                     <div>
                       <CardTitle className="text-xl">Finance Calculator</CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Calculate your payments at 12% APR
+                        Calculate your payments at 10.9% APR
                       </p>
                     </div>
                   </div>
@@ -330,7 +330,7 @@ export default function SelectFinance() {
                         <p className="text-xs text-muted-foreground">
                           <strong>Representative Example:</strong> {formatPrice(financeCalculation.total)} cash price, {formatPrice(financeCalculation.deposit)} deposit, 
                           amount of credit {formatPrice(financeCalculation.principal)}, {termYears * 12} monthly payments of {formatPriceDecimal(financeCalculation.monthlyPayment)}, 
-                          total amount payable {formatPrice(financeCalculation.totalRepayable + financeCalculation.deposit)}, 12% APR representative.
+                          total amount payable {formatPrice(financeCalculation.totalRepayable + financeCalculation.deposit)}, 10.9% APR representative.
                         </p>
                       </div>
                     </div>
