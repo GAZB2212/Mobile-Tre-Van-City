@@ -852,14 +852,10 @@ export default function AdminQuoteDetail() {
                   )}
                 </div>
 
-                {/* Kit Selection */}
+                {/* Kit Selection — only for car/van customers (not commercial or hybrid) */}
+                {(serviceType === null || serviceType === "car") && (
                 <div className="space-y-1.5">
                   <Label htmlFor="kit-select">Equipment Kit</Label>
-                  {serviceType && (
-                    <p className="text-xs text-muted-foreground">
-                      Showing kits compatible with <strong>{serviceType === "car" ? "Car / Van" : serviceType === "commercial" ? "Commercial" : "Hybrid"}</strong>. All kits are available regardless.
-                    </p>
-                  )}
                   <Select value={selectedKitId || "none"} onValueChange={(v) => setSelectedKitId(v === "none" ? null : v)}>
                     <SelectTrigger id="kit-select" data-testid="select-kit">
                       <SelectValue placeholder="Select kit" />
@@ -868,26 +864,15 @@ export default function AdminQuoteDetail() {
                       <SelectItem value="none">No kit selected</SelectItem>
                       {kits
                         .filter(k => k.published)
-                        .sort((a, b) => {
-                          // Put serviceType-matching kits first
-                          if (!serviceType) return 0;
-                          const aMatch = Array.isArray(a.serviceType) && a.serviceType.includes(serviceType);
-                          const bMatch = Array.isArray(b.serviceType) && b.serviceType.includes(serviceType);
-                          if (aMatch && !bMatch) return -1;
-                          if (!aMatch && bMatch) return 1;
-                          return 0;
-                        })
-                        .map((kit) => {
-                          const compatible = !serviceType || (Array.isArray(kit.serviceType) && kit.serviceType.includes(serviceType));
-                          return (
-                            <SelectItem key={kit.id} value={kit.id}>
-                              {kit.name} - £{(kit.price / 100).toLocaleString()}{!compatible && " (other type)"}
-                            </SelectItem>
-                          );
-                        })}
+                        .map((kit) => (
+                          <SelectItem key={kit.id} value={kit.id}>
+                            {kit.name} - £{(kit.price / 100).toLocaleString()}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
+                )}
 
                 {/* Upgrades Selection - Organized by Category */}
                 <div>
