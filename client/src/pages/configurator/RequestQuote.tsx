@@ -103,6 +103,7 @@ export default function RequestQuote() {
 
       const quoteData = {
         ...formData,
+        serviceType: state.serviceType ?? undefined,
         vanId: state.vanId,
         customVanValue: ownVanPricePence > 0 ? ownVanPricePence : undefined,
         vanRegistration: state.vanReg ?? undefined,

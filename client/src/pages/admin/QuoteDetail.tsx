@@ -170,6 +170,9 @@ export default function AdminQuoteDetail() {
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
   const [editorTermYears, setEditorTermYears] = useState<number>(3);
 
+  // Service type (car / commercial / hybrid) — determines customer's path
+  const [serviceType, setServiceType] = useState<"car" | "commercial" | "hybrid" | null>(null);
+
   // Custom van state (for vans not in the system)
   const [customVanDescription, setCustomVanDescription] = useState<string>("");
   const [customVanValue, setCustomVanValue] = useState<string>("");
@@ -215,6 +218,9 @@ export default function AdminQuoteDetail() {
       }
       // Notes are now in history format, no need to set them here
       
+      // Initialize service type
+      setServiceType((quote.serviceType as any) ?? null);
+
       // Initialize custom van fields
       setCustomVanDescription(quote.customVanDescription ?? "");
       setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
@@ -563,6 +569,7 @@ export default function AdminQuoteDetail() {
     
     const updates: any = {
       status,
+      serviceType: serviceType || null,
       completedBuildStages,
       discountType: discountType || null,
       discountValue: discountValueInPence,
@@ -766,6 +773,26 @@ export default function AdminQuoteDetail() {
                 </CardHeader>
                 <CollapsibleContent>
                   <CardContent className="space-y-6">
+                {/* Service Type */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="service-type-select">Customer Type</Label>
+                  <p className="text-xs text-muted-foreground">Change this if the customer chose the wrong path in the configurator.</p>
+                  <Select
+                    value={serviceType || "none"}
+                    onValueChange={(v) => setServiceType(v === "none" ? null : v as "car" | "commercial" | "hybrid")}
+                  >
+                    <SelectTrigger id="service-type-select" data-testid="select-service-type">
+                      <SelectValue placeholder="Not set" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not set</SelectItem>
+                      <SelectItem value="car">Car / Van (personal)</SelectItem>
+                      <SelectItem value="commercial">Commercial Vehicle</SelectItem>
+                      <SelectItem value="hybrid">Hybrid / Both</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Van Selection */}
                 <div className="space-y-3">
                   <Label htmlFor="van-select">Van</Label>
@@ -826,19 +853,38 @@ export default function AdminQuoteDetail() {
                 </div>
 
                 {/* Kit Selection */}
-                <div>
+                <div className="space-y-1.5">
                   <Label htmlFor="kit-select">Equipment Kit</Label>
+                  {serviceType && (
+                    <p className="text-xs text-muted-foreground">
+                      Showing kits compatible with <strong>{serviceType === "car" ? "Car / Van" : serviceType === "commercial" ? "Commercial" : "Hybrid"}</strong>. All kits are available regardless.
+                    </p>
+                  )}
                   <Select value={selectedKitId || "none"} onValueChange={(v) => setSelectedKitId(v === "none" ? null : v)}>
                     <SelectTrigger id="kit-select" data-testid="select-kit">
                       <SelectValue placeholder="Select kit" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No kit selected</SelectItem>
-                      {kits.filter(k => k.published).map((kit) => (
-                        <SelectItem key={kit.id} value={kit.id}>
-                          {kit.name} - £{(kit.price / 100).toLocaleString()}
-                        </SelectItem>
-                      ))}
+                      {kits
+                        .filter(k => k.published)
+                        .sort((a, b) => {
+                          // Put serviceType-matching kits first
+                          if (!serviceType) return 0;
+                          const aMatch = Array.isArray(a.serviceType) && a.serviceType.includes(serviceType);
+                          const bMatch = Array.isArray(b.serviceType) && b.serviceType.includes(serviceType);
+                          if (aMatch && !bMatch) return -1;
+                          if (!aMatch && bMatch) return 1;
+                          return 0;
+                        })
+                        .map((kit) => {
+                          const compatible = !serviceType || (Array.isArray(kit.serviceType) && kit.serviceType.includes(serviceType));
+                          return (
+                            <SelectItem key={kit.id} value={kit.id}>
+                              {kit.name} - £{(kit.price / 100).toLocaleString()}{!compatible && " (other type)"}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>

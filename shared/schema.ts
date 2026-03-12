@@ -142,6 +142,7 @@ export const quotes = pgTable("quotes", {
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   company: text("company"),
+  serviceType: text("service_type").$type<KitServiceType>(), // Customer's chosen path: "car", "commercial", or "hybrid"
   vanId: varchar("van_id").references(() => vans.id),
   customVanDescription: text("custom_van_description"), // Free-text van details when not in system
   customVanValue: integer("custom_van_value"), // Van purchase price in pence (custom van only)

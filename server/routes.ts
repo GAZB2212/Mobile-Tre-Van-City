@@ -1548,6 +1548,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         // New note text to append to history
         newAdminNote: z.string().optional(),
         newCustomerNote: z.string().optional(),
+        // Service type (car / commercial / hybrid)
+        serviceType: z.enum(["car", "commercial", "hybrid"]).nullable().optional(),
         // Configuration fields
         vanId: z.string().nullable().optional(),
         kitId: z.string().nullable().optional(),
