@@ -244,6 +244,16 @@ export default function AdminQuoteDetail() {
     }
   }, [quote]);
 
+  // When allFinancePlans loads after the quote, fill missing editor fields with plan defaults
+  useEffect(() => {
+    if (!editorPlanId || allFinancePlans.length === 0) return;
+    const plan = allFinancePlans.find(p => p.id === editorPlanId);
+    if (!plan) return;
+    setEditorDeposit(prev => prev !== "" ? prev : String(plan.depositPercent));
+    setEditorTerm(prev => prev !== "" ? prev : String(plan.termMonths));
+    setEditorBalloon(prev => prev !== "" ? prev : String(plan.balloonPercent ?? 0));
+  }, [editorPlanId, allFinancePlans]);
+
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Quote>) => {
       return await apiRequest("PATCH", `/api/admin/quotes/${id}`, data);
@@ -334,11 +344,11 @@ export default function AdminQuoteDetail() {
       const selectedPlan = allFinancePlans.find(p => p.id === editorPlanId);
       return await apiRequest("PATCH", `/api/admin/quotes/${id}`, {
         financePlanId: editorPlanId || null,
-        financeInputs: {
-          deposit: editorDeposit !== "" ? parseFloat(editorDeposit) : selectedPlan?.depositPercent,
-          term: editorTerm !== "" ? parseInt(editorTerm) : selectedPlan?.termMonths,
-          balloon: editorBalloon !== "" ? parseFloat(editorBalloon) : (selectedPlan?.balloonPercent ?? 0),
-        },
+        financeInputs: selectedPlan ? {
+          deposit: editorDeposit !== "" ? parseFloat(editorDeposit) : selectedPlan.depositPercent,
+          term: editorTerm !== "" ? parseInt(editorTerm) : selectedPlan.termMonths,
+          balloon: editorBalloon !== "" ? parseFloat(editorBalloon) : (selectedPlan.balloonPercent ?? 0),
+        } : null,
       });
     },
     onSuccess: () => {
@@ -1657,20 +1667,28 @@ export default function AdminQuoteDetail() {
                   <div className="space-y-1.5">
                     <Label className="text-sm">Finance Plan</Label>
                     <Select
-                      value={editorPlanId}
+                      value={editorPlanId || "__none__"}
                       onValueChange={(val) => {
-                        setEditorPlanId(val);
-                        // Reset overrides when plan changes
-                        setEditorDeposit("");
-                        setEditorTerm("");
-                        setEditorBalloon("");
+                        const planId = val === "__none__" ? "" : val;
+                        setEditorPlanId(planId);
+                        // Pre-fill with the new plan's defaults on plan change
+                        const newPlan = allFinancePlans.find(p => p.id === planId);
+                        if (newPlan) {
+                          setEditorDeposit(String(newPlan.depositPercent));
+                          setEditorTerm(String(newPlan.termMonths));
+                          setEditorBalloon(String(newPlan.balloonPercent ?? 0));
+                        } else {
+                          setEditorDeposit("");
+                          setEditorTerm("");
+                          setEditorBalloon("");
+                        }
                       }}
                     >
                       <SelectTrigger data-testid="select-finance-plan">
                         <SelectValue placeholder="Select a plan..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No finance plan</SelectItem>
+                        <SelectItem value="__none__">No finance plan</SelectItem>
                         {allFinancePlans.filter(p => p.published).map(plan => (
                           <SelectItem key={plan.id} value={plan.id}>
                             {plan.name} — {plan.type} · {(plan.aprBps / 100).toFixed(2)}% APR
