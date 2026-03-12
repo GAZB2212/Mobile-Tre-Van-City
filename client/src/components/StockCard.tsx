@@ -114,7 +114,7 @@ export default function StockCard({
           data-testid={`button-configure-${id}`}
           onClick={() => {
             setVan(id);
-            setLocation('/configurator/kit');
+            setLocation('/configurator/service-type');
           }}
         >
           <Settings className="w-4 h-4 mr-2" />

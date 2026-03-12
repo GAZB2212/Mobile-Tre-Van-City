@@ -47,7 +47,7 @@ export default function VanDetails() {
   const confirmSelectVan = () => {
     if (van) {
       setVan(van.id);
-      setLocation('/configurator/kit');
+      setLocation('/configurator/service-type');
     }
   };
 
