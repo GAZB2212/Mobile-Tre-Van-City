@@ -135,14 +135,21 @@ export default function SelectUpgrades() {
   const isCommercial = state.serviceType === "commercial";
 
   // Filter upgrades by service type:
-  // - Commercial customers see all upgrades (regular + commercial-specific)
+  // - Commercial customers see all upgrades except carOnly ones (regular + commercial-specific)
   // - Car/van customers only see upgrades where forCommercial is false
   const filteredUpgrades = useMemo<Record<string, Upgrade[]>>(() => {
     if (!configuratorData) return {};
-    if (isCommercial) return configuratorData.upgrades;
+    if (isCommercial) {
+      const result: Record<string, Upgrade[]> = {};
+      for (const [cat, ups] of Object.entries(configuratorData.upgrades)) {
+        const visible = ups.filter(u => !u.carOnly);
+        if (visible.length > 0) result[cat] = visible;
+      }
+      return result;
+    }
     const result: Record<string, Upgrade[]> = {};
     for (const [cat, ups] of Object.entries(configuratorData.upgrades)) {
-      const visible = ups.filter(u => !(u as any).forCommercial);
+      const visible = ups.filter(u => !u.forCommercial);
       if (visible.length > 0) result[cat] = visible;
     }
     return result;

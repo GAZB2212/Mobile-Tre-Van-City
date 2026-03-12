@@ -93,6 +93,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   allowQuantity: z.boolean().optional(),
   popular: z.boolean().optional(),
   forCommercial: z.boolean().optional(),
+  carOnly: z.boolean().optional(),
   exclusiveGroup: z.string().optional().nullable(),
 });
 
@@ -292,6 +293,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       allowQuantity: false,
       popular: false,
       forCommercial: false,
+      carOnly: false,
       exclusiveGroup: null,
     },
   });
@@ -341,6 +343,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         allowQuantity: upgrade.allowQuantity || false,
         popular: upgrade.popular || false,
         forCommercial: upgrade.forCommercial || false,
+        carOnly: upgrade.carOnly || false,
         exclusiveGroup: upgrade.exclusiveGroup || null,
       });
     } else {
@@ -363,6 +366,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         allowQuantity: false,
         popular: false,
         forCommercial: false,
+        carOnly: false,
         exclusiveGroup: null,
       });
     }
@@ -655,6 +659,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       field.onChange(value);
                       if (value === "commercial") {
                         form.setValue("forCommercial", true);
+                        form.setValue("carOnly", false);
                       }
                     }}
                     defaultValue={field.value}
@@ -1103,8 +1108,45 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   <FormControl>
                     <AdminSwitch
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked: boolean) => {
+                        field.onChange(checked);
+                        if (checked) {
+                          form.setValue("carOnly", false);
+                        }
+                      }}
                       data-testid="switch-for-commercial"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="carOnly"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Car/Van Only (hide from commercial)</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Hide this upgrade from customers who selected a Commercial service type
+                    </p>
+                    {form.watch("forCommercial") && field.value && (
+                      <p className="text-sm text-destructive font-medium" data-testid="text-car-only-warning">
+                        Warning: This upgrade is also marked as Commercial Only — these settings contradict each other
+                      </p>
+                    )}
+                  </div>
+                  <FormControl>
+                    <AdminSwitch
+                      checked={field.value}
+                      onCheckedChange={(checked: boolean) => {
+                        field.onChange(checked);
+                        if (checked) {
+                          form.setValue("forCommercial", false);
+                        }
+                      }}
+                      data-testid="switch-car-only"
                     />
                   </FormControl>
                 </FormItem>
