@@ -1557,6 +1557,13 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         estDiscount: z.number().int().optional(),
         estVAT: z.number().int().optional(),
         estTotal: z.number().int().optional(),
+        // Finance overrides
+        financePlanId: z.string().nullable().optional(),
+        financeInputs: z.object({
+          deposit: z.number().optional(),
+          term: z.number().optional(),
+          balloon: z.number().optional(),
+        }).nullable().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
