@@ -70,7 +70,7 @@ export default function SelectFinance() {
   
   // Calculate total from configurator (prices are in pence)
   const pricing = useMemo(() => {
-    const vanPrice = van?.price || 0;
+    const vanPrice = van?.price ?? state.customVanValue ?? 0;
     const kitPrice = kit?.price || 0;
     const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
     const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
