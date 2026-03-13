@@ -57,7 +57,7 @@ export default function Hero() {
   }, [videoSrc]);
 
   return (
-    <section className="relative bg-[#1a1a1a] min-h-[70vh] sm:min-h-[80vh] py-24 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
+    <section className="relative bg-[#1a1a1a] min-h-[50vh] sm:min-h-[80vh] py-14 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
       {/* Video Background */}
       <video
         ref={videoRef}
