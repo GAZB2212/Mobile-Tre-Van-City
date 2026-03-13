@@ -387,7 +387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate server-side pricing (all prices in pence) with quantities
-      const vanPrice = van?.price || 0;
+      // Use custom van value when no system van is selected
+      const vanPrice = van?.price ?? (validatedData as any).customVanValue ?? 0;
       const kitPrice = kit?.price || 0;
       const upgradesTotal = upgrades.reduce((sum: number, upgrade: any) => {
         const quantity = validatedData.selectedUpgrades?.[upgrade.id] || 1;
