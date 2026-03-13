@@ -222,7 +222,8 @@ export default function AdminQuoteDetail() {
       setServiceType((quote.serviceType as any) ?? null);
 
       // Initialize custom van fields
-      setCustomVanDescription(quote.customVanDescription ?? "");
+      // Fall back to registration number if no description entered yet (e.g. submitted via configurator)
+      setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
       setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
 
       // Set current configuration — use "custom" sentinel when no system van but custom details exist
