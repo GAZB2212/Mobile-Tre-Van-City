@@ -551,7 +551,23 @@ export default function AdminQuotes() {
                             <Car className="w-4 h-4" />
                             Van
                           </div>
-                          <p className="text-sm text-muted-foreground">{getVanName(quote.vanId)}</p>
+                          {quote.vanId ? (
+                            <p className="text-sm text-muted-foreground">{getVanName(quote.vanId)}</p>
+                          ) : quote.customVanValue || quote.vanRegistration || quote.customVanDescription ? (
+                            <div className="space-y-0.5">
+                              {quote.vanRegistration && (
+                                <p className="text-sm font-medium">{quote.vanRegistration.toUpperCase()}</p>
+                              )}
+                              {quote.customVanDescription && (
+                                <p className="text-sm text-muted-foreground">{quote.customVanDescription}</p>
+                              )}
+                              {quote.customVanValue && (
+                                <p className="text-sm text-muted-foreground">£{(quote.customVanValue / 100).toLocaleString()}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No van selected</p>
+                          )}
                         </div>
 
                         {/* Kit Selection */}

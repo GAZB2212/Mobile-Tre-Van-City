@@ -226,7 +226,8 @@ export default function AdminQuoteDetail() {
       setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
 
       // Set current configuration — use "custom" sentinel when no system van but custom details exist
-      setSelectedVanId(quote.vanId || (quote.customVanDescription ? "custom" : null));
+      // Also detect custom van when only customVanValue or vanRegistration is set (e.g. from configurator flow)
+      setSelectedVanId(quote.vanId || (quote.customVanDescription || quote.customVanValue || quote.vanRegistration ? "custom" : null));
       setSelectedKitId(quote.kitId || null);
       setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setSelectedUpgrades(quote.selectedUpgrades || {});
