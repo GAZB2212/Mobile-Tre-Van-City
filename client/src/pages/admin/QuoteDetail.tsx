@@ -826,10 +826,10 @@ export default function AdminQuoteDetail() {
                     <div className="rounded-md border p-4 space-y-3 bg-muted/30">
                       <p className="text-xs text-muted-foreground font-medium">Enter the customer's van details below. The cost will be included in the quote total.</p>
                       <div className="space-y-1.5">
-                        <Label htmlFor="custom-van-description" className="text-sm">Make, Model &amp; Year</Label>
+                        <Label htmlFor="custom-van-description" className="text-sm">Reg Number</Label>
                         <Input
                           id="custom-van-description"
-                          placeholder="e.g. 2022 Ford Transit Custom 280 L1"
+                          placeholder="e.g. AB12 CDE"
                           value={customVanDescription}
                           onChange={(e) => setCustomVanDescription(e.target.value)}
                           data-testid="input-custom-van-description"
