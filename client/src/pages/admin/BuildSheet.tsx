@@ -218,7 +218,10 @@ export default function BuildSheet() {
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2" data-testid="text-page-title">Van Build Sheet</h1>
+          <h1 className="text-3xl font-bold mb-1" data-testid="text-page-title">Van Build Sheet</h1>
+          <p className="text-xl font-semibold mb-2 print:text-black" data-testid="text-build-sheet-company">
+            {quote.company || quote.userName}
+          </p>
           <p className="text-muted-foreground print:text-black">
             Quote Reference: <strong>{quote.id.substring(0, 8).toUpperCase()}</strong>
           </p>
