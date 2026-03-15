@@ -1922,6 +1922,44 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         }
       }
 
+      let financeDetails: {
+        planType: string;
+        apr: number;
+        depositAmount: number;
+        termMonths: number;
+        monthlyPayment: number;
+        weeklyPayment: number;
+      } | undefined;
+
+      if (quote.financePlanId && quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
+        const financePlan = await storage.getFinancePlan(quote.financePlanId);
+        if (financePlan) {
+          const depositAmount = quote.financeInputs.deposit;
+          const termMonths = quote.financeInputs.term;
+          const apr = financePlan.aprBps / 10000;
+          const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
+          if (principal > 0 && termMonths > 0) {
+            const monthlyRate = apr / 12;
+            let monthlyPayment: number;
+            if (monthlyRate === 0) {
+              monthlyPayment = Math.round(principal / termMonths);
+            } else {
+              const pv = Math.pow(1 + monthlyRate, termMonths);
+              monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+            }
+            const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+            financeDetails = {
+              planType: financePlan.type,
+              apr: financePlan.aprBps / 100,
+              depositAmount,
+              termMonths,
+              monthlyPayment,
+              weeklyPayment,
+            };
+          }
+        }
+      }
+
       const { sendFinanceSubmissionEmail } = await import('./email.js');
       await sendFinanceSubmissionEmail({
         financeCompanyEmail: financeEmail,
@@ -1938,6 +1976,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         vat: quote.estVAT,
         total: totalWithVat,
         discount: discount > 0 ? discount : undefined,
+        financeDetails,
       });
 
       // Record when finance email was sent and persist reg/mileage if provided

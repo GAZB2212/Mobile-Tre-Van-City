@@ -274,6 +274,14 @@ export async function sendFinanceSubmissionEmail({
   vat: number;
   total: number;
   discount?: number;
+  financeDetails?: {
+    planType: string;
+    apr: number;
+    depositAmount: number;
+    termMonths: number;
+    monthlyPayment: number;
+    weeklyPayment: number;
+  };
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
@@ -345,6 +353,17 @@ export async function sendFinanceSubmissionEmail({
         <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
       </table>
 
+${financeDetails ? `
+      <div class="section-title">Finance Details</div>
+      <table>
+        <tr><td>Plan Type</td><td>${financeDetails.planType}</td></tr>
+        <tr><td>APR</td><td>${financeDetails.apr.toFixed(2)}%</td></tr>
+        <tr><td>Deposit</td><td>${fmt(financeDetails.depositAmount)}</td></tr>
+        <tr><td>Term</td><td>${financeDetails.termMonths} months</td></tr>
+        <tr><td>Monthly Payment</td><td>${fmt(financeDetails.monthlyPayment)}</td></tr>
+        <tr><td>Weekly Payment</td><td>${fmt(financeDetails.weeklyPayment)}</td></tr>
+      </table>
+` : ''}
       <p style="margin-top:24px;">Please contact the customer directly to progress the finance application. If you have any questions, please reply to this email or call us on <strong>0151 203 8500</strong>.</p>
       <p>Kind regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL<br>0151 203 8500</p>
     </div>
@@ -355,7 +374,9 @@ export async function sendFinanceSubmissionEmail({
 </body>
 </html>`;
 
-  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nPricing:\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+  const financeText = financeDetails ? `\nFinance Details:\nPlan Type: ${financeDetails.planType}\nAPR: ${financeDetails.apr.toFixed(2)}%\nDeposit: ${fmt(financeDetails.depositAmount)}\nTerm: ${financeDetails.termMonths} months\nMonthly Payment: ${fmt(financeDetails.monthlyPayment)}\nWeekly Payment: ${fmt(financeDetails.weeklyPayment)}\n` : '';
+
+  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nPricing:\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
 
   await client.emails.send({
     to: financeCompanyEmail,
