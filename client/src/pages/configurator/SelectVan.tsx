@@ -38,7 +38,7 @@ import type { Van } from "@shared/schema";
 
 export default function SelectVan() {
   const [, setLocation] = useLocation();
-  const { state, setVan, setCustomVanValue, setVanReg } = useConfigurator();
+  const { state, setVan, setVanReg } = useConfigurator();
   const [modalVan, setModalVan] = useState<Van | null>(null);
   const [filterMake, setFilterMake] = useState<string>("all");
   const [filterModel, setFilterModel] = useState<string>("all");
@@ -47,8 +47,6 @@ export default function SelectVan() {
 
   // Own van form state
   const [ownVanReg, setOwnVanReg] = useState<string>("");
-  const [ownVanPrice, setOwnVanPrice] = useState<string>("");
-  const [ownVanPriceError, setOwnVanPriceError] = useState<string>("");
 
   const { data: allVans = [], isLoading } = useQuery<Van[]>({
     queryKey: ['/api/vans'],
@@ -90,14 +88,7 @@ export default function SelectVan() {
   };
 
   const handleOwnVan = () => {
-    const price = parseFloat(ownVanPrice.replace(/[^0-9.]/g, ""));
-    if (!ownVanPrice.trim() || isNaN(price) || price <= 0) {
-      setOwnVanPriceError("Please enter the purchase price of your van");
-      return;
-    }
-    setOwnVanPriceError("");
     setVan(null);
-    setCustomVanValue(Math.round(price * 100));
     setVanReg(ownVanReg.trim().toUpperCase() || null);
     setLocation('/configurator/service-type');
   };
@@ -378,13 +369,13 @@ export default function SelectVan() {
                           <CardTitle className="text-lg">Already have your own van?</CardTitle>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Can't see what you're looking for, or bringing your own vehicle? Enter your van's details below and we'll build a package around it.
+                          Already have your own vehicle? Enter your registration below and we'll build a package around it.
                         </p>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div className="mb-4 max-w-sm">
                           <div className="space-y-1.5">
-                            <Label htmlFor="own-van-reg">Registration Plate</Label>
+                            <Label htmlFor="own-van-reg">Registration Plate (optional)</Label>
                             <Input
                               id="own-van-reg"
                               placeholder="e.g. AB12 CDE"
@@ -392,28 +383,6 @@ export default function SelectVan() {
                               onChange={(e) => setOwnVanReg(e.target.value.toUpperCase())}
                               data-testid="input-own-van-reg"
                             />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="own-van-price">
-                              Van Purchase Price <span className="text-destructive">*</span>
-                            </Label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">£</span>
-                              <Input
-                                id="own-van-price"
-                                className="pl-7"
-                                placeholder="e.g. 12995"
-                                value={ownVanPrice}
-                                onChange={(e) => {
-                                  setOwnVanPrice(e.target.value.replace(/[^0-9.]/g, ""));
-                                  setOwnVanPriceError("");
-                                }}
-                                data-testid="input-own-van-price"
-                              />
-                            </div>
-                            {ownVanPriceError && (
-                              <p className="text-xs text-destructive" data-testid="text-own-van-price-error">{ownVanPriceError}</p>
-                            )}
                           </div>
                         </div>
                         <Button
