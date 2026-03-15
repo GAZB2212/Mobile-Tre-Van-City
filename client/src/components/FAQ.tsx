@@ -22,7 +22,7 @@ export default function FAQ() {
     },
     {
       question: "Can I use my existing van?",
-      answer: "Absolutely! We can convert most commercial vans including Ford Transit, Mercedes Sprinter, Volkswagen Crafter, and others. We'll assess your van's suitability during consultation."
+      answer: "Yes, you can! The main requirement is that your van must be a high top model, so you can comfortably stand up in the rear living area. Ideally, it should also be a long or medium wheelbase van to give you enough space for the conversion. We'll confirm your van's suitability during consultation."
     },
     {
       question: "Do you provide training?",
