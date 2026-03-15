@@ -1539,6 +1539,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         financeStatus: z.enum(financeStatuses).optional(),
         buildStage: z.enum(buildStages).nullable().optional(),
         completedBuildStages: z.array(z.string()).optional(),
+        customBuildStages: z.array(z.object({ id: z.string(), label: z.string() })).nullable().optional(),
         featuredInPortfolio: z.boolean().optional(),
         graphicsArtworkUrl: z.string().url().or(z.literal('')).nullable().optional(),
         graphicsArtworkNotes: z.string().nullable().optional(),

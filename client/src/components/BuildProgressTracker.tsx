@@ -1,38 +1,23 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CheckCircle2, 
-  Circle,
-  Wrench,
-  FileImage,
-  Zap,
-  Package,
-  AlertTriangle,
-  Cog,
-  Eye,
-  Sparkles
-} from "lucide-react";
+import { CheckCircle2, Circle, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export interface BuildStage {
+  id: string;
+  label: string;
+}
 
 interface BuildProgressTrackerProps {
   completedStages: string[];
+  stages: BuildStage[];
 }
 
-export const BUILD_STAGES = [
-  { id: "graphics", label: "Graphics Design", icon: FileImage },
-  { id: "electrical_systems", label: "Electrical Systems", icon: Zap },
-  { id: "accessories", label: "Accessories", icon: Package },
-  { id: "emergency_lighting", label: "Emergency Lighting", icon: AlertTriangle },
-  { id: "tyre_equipment", label: "Tyre Equipment", icon: Cog },
-  { id: "final_checks", label: "Final Checks", icon: Eye },
-  { id: "valet", label: "Valet & Completion", icon: Sparkles },
-];
-
-export default function BuildProgressTracker({ completedStages }: BuildProgressTrackerProps) {
-  const completedCount = completedStages.length;
-  const totalCount = BUILD_STAGES.length;
-  const progressPercent = Math.round((completedCount / totalCount) * 100);
-  const allDone = completedCount === totalCount;
+export default function BuildProgressTracker({ completedStages, stages }: BuildProgressTrackerProps) {
+  const completedCount = stages.filter(s => completedStages.includes(s.id)).length;
+  const totalCount = stages.length;
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const allDone = totalCount > 0 && completedCount === totalCount;
 
   return (
     <Card>
@@ -42,7 +27,9 @@ export default function BuildProgressTracker({ completedStages }: BuildProgressT
           Build Progress
         </CardTitle>
         <CardDescription>
-          {allDone
+          {totalCount === 0
+            ? "No build stages defined"
+            : allDone
             ? "All stages complete — van is ready"
             : completedCount === 0
             ? "Build has not started yet"
@@ -51,9 +38,8 @@ export default function BuildProgressTracker({ completedStages }: BuildProgressT
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {BUILD_STAGES.map((stage) => {
+          {stages.map((stage) => {
             const isComplete = completedStages.includes(stage.id);
-            const Icon = stage.icon;
 
             return (
               <div
@@ -71,7 +57,6 @@ export default function BuildProgressTracker({ completedStages }: BuildProgressT
                     <Circle className="w-5 h-5 text-muted-foreground" />
                   )}
                 </div>
-                <Icon className={cn("w-4 h-4 flex-shrink-0", isComplete ? "text-accent" : "text-muted-foreground")} />
                 <span
                   className={cn(
                     "flex-1 text-sm font-medium",
@@ -90,21 +75,23 @@ export default function BuildProgressTracker({ completedStages }: BuildProgressT
           })}
         </div>
 
-        <div className="mt-5 pt-4 border-t">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Overall Progress</span>
-            <span className="font-semibold" data-testid="progress-percent">
-              {progressPercent}% &mdash; {completedCount} of {totalCount} stages
-            </span>
+        {totalCount > 0 && (
+          <div className="mt-5 pt-4 border-t">
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Overall Progress</span>
+              <span className="font-semibold" data-testid="progress-percent">
+                {progressPercent}% &mdash; {completedCount} of {totalCount} stages
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+                data-testid="progress-bar"
+              />
+            </div>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-accent transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-              data-testid="progress-bar"
-            />
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

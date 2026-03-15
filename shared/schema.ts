@@ -182,6 +182,7 @@ export const quotes = pgTable("quotes", {
   status: text("status").notNull().default("pending"),
   buildStage: text("build_stage"),
   completedBuildStages: json("completed_build_stages").$type<string[]>().notNull().default([]),
+  customBuildStages: json("custom_build_stages").$type<Array<{id: string; label: string}>>(), // null = auto-generate from config
   financeStatus: text("finance_status").notNull().default("pending"),
   graphicsArtworkUrl: text("graphics_artwork_url"),
   graphicsArtworkApproved: boolean("graphics_artwork_approved").notNull().default(false),

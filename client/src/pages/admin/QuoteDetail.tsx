@@ -41,19 +41,22 @@ import {
   MessageSquare,
   Settings,
   ChevronDown,
+  ChevronUp,
   CheckCircle,
   CheckCircle2,
   Pencil,
   Trash2,
   Check,
   XCircle,
-  Calculator
+  Calculator,
+  Plus,
+  RefreshCw
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { upgradeCategories } from "@shared/schema";
-import BuildProgressTracker, { BUILD_STAGES } from "@/components/BuildProgressTracker";
+import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
@@ -138,6 +141,8 @@ export default function AdminQuoteDetail() {
   
   const [status, setStatus] = useState("");
   const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);
+  const [customBuildStages, setCustomBuildStages] = useState<Array<{id: string; label: string}> | null>(null);
+  const [newStageName, setNewStageName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
   const [newAdminNote, setNewAdminNote] = useState("");
@@ -202,6 +207,7 @@ export default function AdminQuoteDetail() {
     if (quote) {
       setStatus(quote.status || "new");
       setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
+      setCustomBuildStages(Array.isArray(quote.customBuildStages) ? quote.customBuildStages : null);
       setCustomerConfirmed(quote.customerConfirmed ?? false);
       setVanRegistration(quote.vanRegistration ?? "");
       setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
@@ -542,14 +548,34 @@ export default function AdminQuoteDetail() {
     return false;
   };
 
-  const allBuildStagesDone = completedBuildStages.length === BUILD_STAGES.length;
+  // Auto-generate bespoke build stages from the quote's configuration
+  const autoGenerateStages = (): Array<{id: string; label: string}> => {
+    const stages: Array<{id: string; label: string}> = [];
+    stages.push({ id: "prep", label: "Van Preparation" });
+    const selectedKit = kits.find(k => k.id === selectedKitId);
+    if (selectedKit) {
+      stages.push({ id: "kit", label: `Install ${selectedKit.name}` });
+    }
+    const selectedUpgradesList = upgrades.filter(u => selectedUpgradeIds.includes(u.id));
+    for (const u of selectedUpgradesList) {
+      stages.push({ id: `upg_${u.id}`, label: u.name });
+    }
+    stages.push({ id: "final_checks", label: "Final Checks" });
+    stages.push({ id: "valet", label: "Valet & Handover" });
+    return stages;
+  };
+
+  // The active stage list: use custom if set, otherwise auto-generate from config
+  const activeStages = customBuildStages ?? autoGenerateStages();
+
+  const allBuildStagesDone = activeStages.length > 0 && activeStages.every(s => completedBuildStages.includes(s.id));
 
   const handleSave = () => {
     // Block saving as completed unless all build stages are ticked
     if (status === "completed" && !allBuildStagesDone) {
       toast({
         title: "Build stages incomplete",
-        description: `Please tick all ${BUILD_STAGES.length} build stages before marking as Complete.`,
+        description: `Please tick all ${activeStages.length} build stages before marking as Complete.`,
         variant: "destructive",
       });
       return;
@@ -575,6 +601,7 @@ export default function AdminQuoteDetail() {
       status: (quoteStatuses as readonly string[]).includes(status) ? status : "new",
       serviceType: (serviceType === 'car' || serviceType === 'commercial' || serviceType === 'hybrid') ? serviceType : null,
       completedBuildStages,
+      customBuildStages: customBuildStages,
       discountType: (discountType === 'percentage' || discountType === 'fixed') ? discountType : null,
       discountValue: discountValueInPence,
       selectedUpgradeIds,
@@ -1088,62 +1115,148 @@ export default function AdminQuoteDetail() {
                       <span className="text-sm text-muted-foreground">All build stages finished — van delivered</span>
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      {BUILD_STAGES.map((stage) => {
-                        const isComplete = completedBuildStages.includes(stage.id);
-                        const Icon = stage.icon;
-                        return (
-                          <div
-                            key={stage.id}
-                            className={cn(
-                              "flex items-center gap-3 py-2.5 px-3 rounded-md cursor-pointer select-none hover-elevate",
-                              isComplete ? "bg-accent/10" : "bg-muted/30"
-                            )}
-                            onClick={() => {
-                              if (!canEdit) return;
-                              setCompletedBuildStages(prev =>
-                                isComplete
-                                  ? prev.filter(s => s !== stage.id)
-                                  : [...prev, stage.id]
-                              );
-                            }}
-                            data-testid={`toggle-stage-${stage.id}`}
-                          >
-                            <Checkbox
-                              checked={isComplete}
-                              onCheckedChange={(checked) => {
-                                if (!canEdit) return;
-                                setCompletedBuildStages(prev =>
-                                  checked
-                                    ? [...prev, stage.id]
-                                    : prev.filter(s => s !== stage.id)
-                                );
-                              }}
-                              data-testid={`checkbox-stage-${stage.id}`}
-                              disabled={!canEdit}
-                            />
-                            <Icon className={cn("w-4 h-4 flex-shrink-0", isComplete ? "text-accent" : "text-muted-foreground")} />
-                            <span className={cn("flex-1 text-sm font-medium", isComplete ? "text-foreground" : "text-muted-foreground")}>
-                              {stage.label}
-                            </span>
-                            {isComplete && (
-                              <Badge variant="secondary" className="text-xs">Done</Badge>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="space-y-3">
+                      {/* Stage checklist */}
+                      <div className="space-y-1">
+                        {activeStages.map((stage, idx) => {
+                          const isComplete = completedBuildStages.includes(stage.id);
+                          return (
+                            <div
+                              key={stage.id}
+                              className={cn(
+                                "flex items-center gap-2 py-2 px-3 rounded-md",
+                                isComplete ? "bg-accent/10" : "bg-muted/30"
+                              )}
+                              data-testid={`toggle-stage-${stage.id}`}
+                            >
+                              <Checkbox
+                                checked={isComplete}
+                                onCheckedChange={(checked) => {
+                                  if (!canEdit) return;
+                                  setCompletedBuildStages(prev =>
+                                    checked
+                                      ? [...prev, stage.id]
+                                      : prev.filter(s => s !== stage.id)
+                                  );
+                                }}
+                                data-testid={`checkbox-stage-${stage.id}`}
+                                disabled={!canEdit}
+                                className="cursor-pointer"
+                              />
+                              <span className={cn("flex-1 text-sm font-medium", isComplete ? "text-foreground" : "text-muted-foreground")}>
+                                {stage.label}
+                              </span>
+                              {isComplete && (
+                                <Badge variant="secondary" className="text-xs">Done</Badge>
+                              )}
+                              {canEdit && (
+                                <div className="flex items-center gap-0.5 ml-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    disabled={idx === 0}
+                                    onClick={() => {
+                                      const next = [...activeStages];
+                                      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                                      setCustomBuildStages(next);
+                                    }}
+                                    data-testid={`button-stage-up-${stage.id}`}
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    disabled={idx === activeStages.length - 1}
+                                    onClick={() => {
+                                      const next = [...activeStages];
+                                      [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                                      setCustomBuildStages(next);
+                                    }}
+                                    data-testid={`button-stage-down-${stage.id}`}
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setCustomBuildStages(activeStages.filter(s => s.id !== stage.id));
+                                      setCompletedBuildStages(prev => prev.filter(id => id !== stage.id));
+                                    }}
+                                    data-testid={`button-stage-remove-${stage.id}`}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                      <div className="pt-4 mt-2 border-t">
+                      {/* Add stage + regenerate */}
+                      {canEdit && (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Add a build stage..."
+                              value={newStageName}
+                              onChange={e => setNewStageName(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === "Enter" && newStageName.trim()) {
+                                  const id = `custom_${Date.now()}`;
+                                  setCustomBuildStages([...activeStages, { id, label: newStageName.trim() }]);
+                                  setNewStageName("");
+                                }
+                              }}
+                              data-testid="input-new-stage-name"
+                            />
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              disabled={!newStageName.trim()}
+                              onClick={() => {
+                                const id = `custom_${Date.now()}`;
+                                setCustomBuildStages([...activeStages, { id, label: newStageName.trim() }]);
+                                setNewStageName("");
+                              }}
+                              data-testid="button-add-stage"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-muted-foreground"
+                            onClick={() => {
+                              setCustomBuildStages(null);
+                              setCompletedBuildStages([]);
+                            }}
+                            data-testid="button-regenerate-stages"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                            Re-generate from configuration
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Progress bar */}
+                      <div className="pt-3 border-t">
                         <div className="flex items-center justify-between text-sm mb-2">
                           <span className="text-muted-foreground">Overall Progress</span>
                           <span className="font-semibold">
-                            {Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}% — {completedBuildStages.length} of {BUILD_STAGES.length} stages
+                            {activeStages.length > 0
+                              ? `${Math.round((completedBuildStages.filter(id => activeStages.some(s => s.id === id)).length / activeStages.length) * 100)}% — ${completedBuildStages.filter(id => activeStages.some(s => s.id === id)).length} of ${activeStages.length} stages`
+                              : "No stages defined"}
                           </span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-accent transition-all duration-500"
-                            style={{ width: `${Math.round((completedBuildStages.length / BUILD_STAGES.length) * 100)}%` }}
+                            style={{ width: activeStages.length > 0 ? `${Math.round((completedBuildStages.filter(id => activeStages.some(s => s.id === id)).length / activeStages.length) * 100)}%` : "0%" }}
                             data-testid="admin-progress-bar"
                           />
                         </div>
@@ -1291,7 +1404,7 @@ export default function AdminQuoteDetail() {
                           Move to Build
                         </Button>
                       )}
-                      {status === "in_build" && completedBuildStages.length === BUILD_STAGES.length && (
+                      {status === "in_build" && allBuildStagesDone && (
                         <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("completed")} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
                           Mark as Completed
                         </Button>
@@ -1309,7 +1422,7 @@ export default function AdminQuoteDetail() {
                       if (val === "completed" && !allBuildStagesDone) {
                         toast({
                           title: "Build stages incomplete",
-                          description: `Please tick all ${BUILD_STAGES.length} build stages in Build Stage Management before marking as Complete.`,
+                          description: `Please tick all ${activeStages.length} build stages in Build Stage Management before marking as Complete.`,
                           variant: "destructive",
                         });
                         return;
