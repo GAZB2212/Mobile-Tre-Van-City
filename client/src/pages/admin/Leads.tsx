@@ -66,9 +66,11 @@ export default function AdminLeads() {
   }, [user, toast]);
 
   // Fetch leads data
-  const { data: leads = [], isLoading: leadsLoading, error: leadsError } = useQuery<Lead[]>({
+  const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching } = useQuery<Lead[]>({
     queryKey: ["/api/admin/leads"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   if (isLoading) {
@@ -224,8 +226,12 @@ export default function AdminLeads() {
                 <Users className="w-6 h-6" />
                 Lead Management
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground flex items-center gap-2">
                 Track and manage customer inquiries and leads
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className={`w-1.5 h-1.5 rounded-full ${leadsFetching ? "bg-amber-400 animate-pulse" : "bg-green-500"}`} />
+                  {leadsFetching ? "Refreshing…" : "Live — updates every 30s"}
+                </span>
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

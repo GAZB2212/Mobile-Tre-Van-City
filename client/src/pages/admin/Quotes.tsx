@@ -122,9 +122,11 @@ export default function AdminQuotes() {
   }, [user, toast]);
 
   // Fetch quotes data
-  const { data: quotes = [], isLoading: quotesLoading, error: quotesError } = useQuery<Quote[]>({
+  const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   // Fetch vans, kits, and upgrades for reference data
@@ -347,8 +349,12 @@ export default function AdminQuotes() {
                 <FileText className="w-6 h-6" />
                 Configurator Management
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground flex items-center gap-2">
                 Review and manage customer configurators
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className={`w-1.5 h-1.5 rounded-full ${quotesFetching ? "bg-amber-400 animate-pulse" : "bg-green-500"}`} />
+                  {quotesFetching ? "Refreshing…" : "Live — updates every 30s"}
+                </span>
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
