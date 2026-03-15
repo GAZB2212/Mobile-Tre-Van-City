@@ -32,7 +32,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-background text-foreground border-t border-border">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 pt-12 pb-24">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="lg:col-span-1">
