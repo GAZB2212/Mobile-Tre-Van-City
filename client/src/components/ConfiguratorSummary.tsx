@@ -134,7 +134,9 @@ export function ConfiguratorSummary() {
   });
 
   const isOwnVan = !state.vanId;
-  const vanPrice = van?.price || (vanDetailsOpen ? (state.customVanValue || 0) : 0);
+  // Van price: only include catalog van price or own-van price if the details panel is open and a price was entered
+  const ownVanPrice = (vanDetailsOpen && state.customVanValue) ? state.customVanValue : 0;
+  const vanPrice = van?.price || ownVanPrice;
   const kitPrice = kit?.price || 0;
   const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
@@ -143,8 +145,8 @@ export function ConfiguratorSummary() {
   const vat = Math.round(subtotal * 0.2);
   const total = subtotal + vat;
 
-  // For own van, show pricing block only when van details are open
-  const showPricing = isOwnVan ? vanDetailsOpen : true;
+  // Always show pricing — the conversion total (kit + upgrades + training) is always useful
+  const showPricing = true;
   const hasItems = van ? true : (kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0);
 
   return (
