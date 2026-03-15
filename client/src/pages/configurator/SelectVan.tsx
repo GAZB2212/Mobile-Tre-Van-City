@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,9 +113,11 @@ export default function SelectVan() {
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
+          <ConfiguratorStepper currentPath="/configurator/van" />
+
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-2" data-testid="text-page-title">
-              Step 1: Select Your Van
+              Select Your Van
             </h1>
             <p className="text-muted-foreground mb-5">
               Browse our ready-to-convert stock below and select the van you'd like built around — or if you already have your own van, scroll down to enter your details.

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -138,8 +139,10 @@ export default function SelectTraining() {
               Back to Upgrades
             </Button>
             
+            <ConfiguratorStepper currentPath="/configurator/training" />
+
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 4: Optional Training
+              Optional Training
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Select professional training programmes to enhance your business capabilities

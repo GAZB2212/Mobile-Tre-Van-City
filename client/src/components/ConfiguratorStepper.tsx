@@ -1,106 +1,121 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Check, ChevronRight } from "lucide-react";
+import { useLocation } from "wouter";
+import { useConfigurator } from "@/lib/ConfiguratorContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { Check } from "lucide-react";
 
 interface Step {
-  id: number;
   title: string;
-  description: string;
-  status: 'completed' | 'current' | 'pending';
+  path: string;
+}
+
+const BASE_STEPS: Step[] = [
+  { title: "Van", path: "/configurator/van" },
+  { title: "Service Type", path: "/configurator/service-type" },
+];
+
+const KIT_STEP: Step = { title: "Kit", path: "/configurator/kit" };
+
+const LATER_STEPS: Step[] = [
+  { title: "Upgrades", path: "/configurator/upgrades" },
+  { title: "Finance", path: "/configurator/finance" },
+  { title: "Quote", path: "/configurator/quote" },
+];
+
+function useConfiguratorSteps() {
+  const { state } = useConfigurator();
+  const isCommercial = state.serviceType === "commercial";
+
+  const steps = [
+    ...BASE_STEPS,
+    ...(isCommercial ? [] : [KIT_STEP]),
+    ...LATER_STEPS,
+  ];
+
+  return steps;
 }
 
 interface ConfiguratorStepperProps {
-  currentStep: number;
-  onStepChange: (step: number) => void;
+  currentPath: string;
 }
 
-export default function ConfiguratorStepper({ currentStep, onStepChange }: ConfiguratorStepperProps) {
-  const steps: Step[] = [
-    {
-      id: 1,
-      title: "Base Van",
-      description: "Choose your vehicle or use existing stock",
-      status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'pending'
-    },
-    {
-      id: 2,
-      title: "Tyre Kit",
-      description: "Select your equipment package",
-      status: currentStep > 2 ? 'completed' : currentStep === 2 ? 'current' : 'pending'
-    },
-    {
-      id: 3,
-      title: "Upgrades",
-      description: "Add extras and customizations",
-      status: currentStep > 3 ? 'completed' : currentStep === 3 ? 'current' : 'pending'
-    },
-    {
-      id: 4,
-      title: "Summary",
-      description: "Review and request quote",
-      status: currentStep > 4 ? 'completed' : currentStep === 4 ? 'current' : 'pending'
-    }
-  ];
+export default function ConfiguratorStepper({ currentPath }: ConfiguratorStepperProps) {
+  const [, setLocation] = useLocation();
+  const steps = useConfiguratorSteps();
+  const totalSteps = steps.length;
+  const currentIndex = steps.findIndex(s => s.path === currentPath);
+
+  if (currentIndex < 0) return null;
+
+  const currentStep = currentIndex + 1;
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>Van Configuration Progress</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center flex-1">
-              <div 
-                className={`flex items-center cursor-pointer ${
-                  step.status === 'pending' ? 'opacity-50' : 'hover-elevate'
-                }`}
-                onClick={() => step.status !== 'pending' && onStepChange(step.id)}
-                data-testid={`step-${step.id}`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                  step.status === 'completed' 
-                    ? 'bg-chart-3 border-chart-3' 
-                    : step.status === 'current' 
-                      ? 'border-chart-2 bg-chart-2 text-white' 
-                      : 'border-muted bg-background'
-                }`}>
-                  {step.status === 'completed' ? (
-                    <Check className="w-5 h-5 text-black" />
-                  ) : (
-                    <span className={`font-semibold ${
-                      step.status === 'current' ? 'text-white' : 'text-muted-foreground'
-                    }`}>
-                      {step.id}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="ml-3">
-                  <div className={`font-semibold ${
-                    step.status === 'current' ? 'text-foreground' : 
-                    step.status === 'completed' ? 'text-foreground' : 'text-muted-foreground'
+    <Card className="mb-6">
+      <CardContent className="pt-5 pb-4">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+          <p className="text-sm font-semibold text-foreground" data-testid="text-step-indicator">
+            Step {currentStep} of {totalSteps}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {steps[currentIndex]?.title}
+          </p>
+        </div>
+
+        <div className="w-full bg-muted rounded-full h-2 mb-4">
+          <div
+            className="bg-accent h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            data-testid="progress-bar"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const stepNum = index + 1;
+            const status = currentStep > stepNum ? 'completed' : currentStep === stepNum ? 'current' : 'pending';
+            const isClickable = status === 'completed' || status === 'current';
+
+            return (
+              <div key={step.path} className="flex items-center flex-1 last:flex-none">
+                <button
+                  type="button"
+                  className={`flex flex-col items-center gap-1 group ${
+                    isClickable ? 'cursor-pointer' : 'cursor-default opacity-50'
+                  }`}
+                  onClick={() => isClickable && setLocation(step.path)}
+                  disabled={!isClickable}
+                  data-testid={`step-${stepNum}`}
+                  aria-label={`${step.title} - Step ${stepNum} of ${totalSteps}`}
+                  aria-current={status === 'current' ? 'step' : undefined}
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 text-xs font-semibold transition-colors ${
+                    status === 'completed'
+                      ? 'bg-accent border-accent text-accent-foreground'
+                      : status === 'current'
+                        ? 'border-accent bg-accent text-accent-foreground'
+                        : 'border-muted-foreground/30 bg-background text-muted-foreground'
+                  }`}>
+                    {status === 'completed' ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      stepNum
+                    )}
+                  </div>
+                  <span className={`text-xs hidden md:block text-center leading-tight ${
+                    status === 'current' ? 'font-semibold text-foreground' :
+                    status === 'completed' ? 'text-foreground' : 'text-muted-foreground'
                   }`}>
                     {step.title}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {step.description}
-                  </div>
-                </div>
+                  </span>
+                </button>
+
+                {index < steps.length - 1 && (
+                  <div className={`flex-1 h-0.5 mx-1 ${
+                    currentStep > stepNum ? 'bg-accent' : 'bg-muted'
+                  }`} />
+                )}
               </div>
-              
-              {index < steps.length - 1 && (
-                <ChevronRight className="w-5 h-5 text-muted-foreground mx-4 hidden md:block" />
-              )}
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-6">
-          <Badge variant={currentStep === 4 ? "default" : "secondary"} className="bg-chart-3 text-black">
-            Step {currentStep} of {steps.length}
-          </Badge>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

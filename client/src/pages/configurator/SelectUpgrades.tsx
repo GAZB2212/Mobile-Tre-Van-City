@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -384,8 +385,10 @@ export default function SelectUpgrades() {
               {isCommercial ? 'Back to Service Type' : 'Back to Kit Selection'}
             </Button>
             
+            <ConfiguratorStepper currentPath="/configurator/upgrades" />
+
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              {isCommercial ? 'Step 3: Configure Your Commercial Setup' : 'Step 4: Add Upgrades & Extras'}
+              {isCommercial ? 'Configure Your Commercial Setup' : 'Add Upgrades & Extras'}
             </h1>
             <p className="text-muted-foreground">
               {isCommercial

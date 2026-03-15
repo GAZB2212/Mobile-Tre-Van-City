@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,11 +60,13 @@ export default function SelectServiceType() {
             <ArrowLeft className="w-4 h-4" />
             Back to Van Selection
           </Button>
+          <ConfiguratorStepper currentPath="/configurator/service-type" />
+
           <h1
             className="text-3xl md:text-4xl font-bold mb-2 mt-4"
             data-testid="text-page-title"
           >
-            Step 2: What Will You Be Fitting?
+            What Will You Be Fitting?
           </h1>
           <p className="text-muted-foreground">
             Tell us what type of vehicles your mobile tyre service will cover

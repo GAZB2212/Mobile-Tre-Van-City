@@ -9,6 +9,7 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -16,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle, Package, Truck, CreditCard } from "lucide-react";
+import { ArrowLeft, CheckCircle, Package, Truck, CreditCard, Phone, Mail, Clock, FileText, MessageSquare } from "lucide-react";
 import type { Van, Kit, FinancePlan, Upgrade, TrainingOption } from "@shared/schema";
 
 const quoteFormSchema = z.object({
@@ -177,19 +178,80 @@ export default function RequestQuote() {
         <Header />
         
         <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto py-20">
+          <div className="max-w-2xl mx-auto py-12">
             <div className="text-center mb-8">
-              <CheckCircle className="w-20 h-20 text-accent mx-auto mb-6" />
-              <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-success-title">
-                Quote Request Submitted!
+              <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-12 h-12 text-accent" />
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-3" data-testid="text-success-title">
+                Quote Request Submitted
               </h1>
-              <p className="text-lg text-muted-foreground mb-4">
-                Thank you for your interest. Our team will review your configuration and contact you shortly with a detailed quote.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                We'll be in touch within 1 business day to discuss your custom build and finalize the details.
+              <p className="text-lg text-muted-foreground">
+                Thank you — your custom configuration has been received and our team is on it.
               </p>
             </div>
+
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-lg">What Happens Next</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3" data-testid="next-step-review">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FileText className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">We review your configuration</p>
+                    <p className="text-sm text-muted-foreground">Our team checks every detail of your spec to prepare an accurate, no-obligation quote.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3" data-testid="next-step-call">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Phone className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">We call you within 1 working day</p>
+                    <p className="text-sm text-muted-foreground">A specialist will walk through your quote, answer questions, and discuss any adjustments.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3" data-testid="next-step-quote">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Mail className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Your detailed quote arrives by email</p>
+                    <p className="text-sm text-muted-foreground">You'll receive a full breakdown including pricing, lead times, and finance options.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3" data-testid="next-step-build">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Clock className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Approve and we start your build</p>
+                    <p className="text-sm text-muted-foreground">Once you're happy, we schedule your conversion — most builds complete within 2-3 weeks.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mb-8">
+              <CardContent className="pt-5">
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm mb-1">Need to reach us sooner?</p>
+                    <p className="text-sm text-muted-foreground">
+                      Call us on <a href="tel:01512038500" className="text-accent font-medium" data-testid="link-phone">0151 203 8500</a> or email{" "}
+                      <a href="mailto:sales@mobiletyrevancity.co.uk" className="text-accent font-medium" data-testid="link-email">sales@mobiletyrevancity.co.uk</a>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex gap-4 justify-center">
               <Button onClick={() => setLocation('/')} data-testid="button-home">
@@ -247,8 +309,10 @@ export default function RequestQuote() {
               Back to Finance Options
             </Button>
             
+            <ConfiguratorStepper currentPath="/configurator/quote" />
+
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 5: Request Your Quote
+              Request Your Quote
             </h1>
             <p className="text-muted-foreground">
               Review your configuration and enter your details

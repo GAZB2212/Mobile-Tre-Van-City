@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -107,8 +108,10 @@ export default function SelectKit() {
               Back to Service Type
             </Button>
             
+            <ConfiguratorStepper currentPath="/configurator/kit" />
+
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              Step 3: Choose Your Equipment Kit
+              Choose Your Equipment Kit
             </h1>
             <p className="text-muted-foreground">
               Select the perfect equipment package for your mobile tyre business

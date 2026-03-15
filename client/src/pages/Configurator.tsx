@@ -239,8 +239,7 @@ export default function Configurator() {
         </div>
 
         <ConfiguratorStepper 
-          currentStep={currentStep} 
-          onStepChange={setCurrentStep}
+          currentPath={currentStep === 1 ? "/configurator/van" : currentStep === 2 ? "/configurator/kit" : currentStep === 3 ? "/configurator/upgrades" : "/configurator/quote"}
         />
 
         {isLoading ? (
