@@ -137,7 +137,7 @@ export default function SelectVan() {
               <button
                 type="button"
                 className="flex items-start gap-3 rounded-md border bg-card p-4 text-left hover-elevate"
-                onClick={() => document.getElementById('own-van-section')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => document.getElementById('own-van-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 data-testid="button-scroll-to-own-van"
               >
                 <Car className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
