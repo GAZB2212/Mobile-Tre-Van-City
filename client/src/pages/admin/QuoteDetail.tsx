@@ -59,6 +59,7 @@ import { upgradeCategories } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Helper to transform upgrades with variations
 interface UpgradeGroup {
@@ -170,6 +171,9 @@ export default function AdminQuoteDetail() {
   
   // Configuration editor collapse state
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState(true);
+
+  // Active detail tab
+  const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build">("overview");
 
   // Finance editor state (deposit in £ pounds, term in years 1-5)
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
@@ -746,11 +750,19 @@ export default function AdminQuoteDetail() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Quote Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Customer Information */}
-            <Card>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-0">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+            <TabsTrigger value="configuration" data-testid="tab-configuration">Configuration</TabsTrigger>
+            <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
+            <TabsTrigger value="build" data-testid="tab-build">Build Progress</TabsTrigger>
+          </TabsList>
+
+          <div className={`grid gap-6 ${activeTab === "overview" ? "lg:grid-cols-3" : ""}`}>
+          {/* Left Column / Main content */}
+          <div className={`space-y-6 ${activeTab === "overview" ? "lg:col-span-2" : ""}`}>
+            {/* Customer Information — Overview tab */}
+            {activeTab === "overview" && <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserIcon className="w-5 h-5" />
@@ -779,10 +791,10 @@ export default function AdminQuoteDetail() {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </Card>}
 
-            {/* Configuration Editor */}
-            <Card>
+            {/* Configuration Editor — Configuration tab */}
+            {activeTab === "configuration" && <Card>
               <Collapsible open={isConfigEditorOpen} onOpenChange={setIsConfigEditorOpen}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1091,10 +1103,10 @@ export default function AdminQuoteDetail() {
               </CardContent>
                 </CollapsibleContent>
               </Collapsible>
-            </Card>
+            </Card>}
 
-            {/* Build Progress Management — only visible once in build or completed */}
-            {(status === "in_build" || status === "completed") && (
+            {/* Build Progress Management — Build Progress tab */}
+            {activeTab === "build" && (
               <Card className={status === "completed" ? "border-accent bg-accent/5" : ""}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1267,8 +1279,8 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
-            {/* Customer Logos */}
-            {quote.customerLogoUrls && quote.customerLogoUrls.length > 0 && (
+            {/* Customer Logos — Configuration tab */}
+            {activeTab === "configuration" && quote.customerLogoUrls && quote.customerLogoUrls.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1303,10 +1315,79 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
+            {/* Finance Submission — Finance tab (left/main col) */}
+            {activeTab === "finance" && canEdit && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PoundSterling className="w-5 h-5" />
+                    Finance Submission
+                  </CardTitle>
+                  <CardDescription>
+                    Send the full spec to the finance company
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {/* Step 1 */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 1 — Customer confirmation</Label>
+                    <div className="flex items-start gap-3 p-3 rounded-md border">
+                      <Checkbox id="customer-confirmed-fin" checked={customerConfirmed} onCheckedChange={(v) => setCustomerConfirmed(!!v)} data-testid="checkbox-customer-confirmed" />
+                      <div className="flex-1">
+                        <label htmlFor="customer-confirmed-fin" className="text-sm font-medium cursor-pointer select-none">Customer confirms the configurator</label>
+                        <p className="text-xs text-muted-foreground mt-0.5">Tick once the customer has verbally agreed their configuration and spec on the phone</p>
+                      </div>
+                    </div>
+                    {customerConfirmed && <p className="text-xs text-accent font-medium">Confirmed — ready to submit to finance</p>}
+                  </div>
+                  {/* Step 2 */}
+                  <div className="space-y-3">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 2 — Vehicle details</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="van-registration-fin" className="text-sm">Van Registration</Label>
+                      <Input id="van-registration-fin" placeholder="e.g. AB12 CDE" value={vanRegistration} onChange={(e) => setVanRegistration(e.target.value.toUpperCase())} className="font-mono uppercase" data-testid="input-van-registration" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="van-mileage-fin" className="text-sm">Van Mileage</Label>
+                      <Input id="van-mileage-fin" type="number" placeholder="e.g. 15000" value={vanMileage} onChange={(e) => setVanMileage(e.target.value)} data-testid="input-van-mileage" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Save changes above to store registration and mileage.</p>
+                  </div>
+                  {/* Step 3 */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 3 — Finance company</Label>
+                    <div className="flex items-center gap-2">
+                      <Input placeholder="Finance company email" value={financeEmailOverride || defaultFinanceEmail} onChange={(e) => setFinanceEmailOverride(e.target.value)} className="text-sm" data-testid="input-finance-email" />
+                      {financeEmailOverride && financeEmailOverride !== defaultFinanceEmail && (
+                        <Button size="sm" variant="outline" onClick={() => saveFinanceEmailMutation.mutate(financeEmailOverride)} disabled={saveFinanceEmailMutation.isPending} data-testid="button-save-finance-email">Save</Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Default: Jigsaw Finance (Stephen Quinn). Editing and saving will update the default for all quotes.</p>
+                  </div>
+                  {/* Step 4 */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 4 — Send application</Label>
+                    <Button className="w-full bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => sendFinanceMutation.mutate()} disabled={!customerConfirmed || sendFinanceMutation.isPending} data-testid="button-send-finance">
+                      <Send className="w-4 h-4 mr-2" />
+                      {sendFinanceMutation.isPending ? "Sending..." : "Send to Finance Company"}
+                    </Button>
+                    {!customerConfirmed && <p className="text-xs text-muted-foreground text-center">Tick "Customer confirms the configurator" to enable</p>}
+                    {quote.financeSentAt && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Last sent: {new Date(quote.financeSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
           </div>
 
-          {/* Right Column - Status Management */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Right Column - shown only in overview and finance tabs */}
+          {(activeTab === "overview" || activeTab === "finance") && <div className="lg:col-span-1 space-y-6">
+            {/* Overview-only sections */}
+            {activeTab === "overview" && <>
             {/* Workflow Pipeline */}
             <Card>
               <CardHeader>
@@ -1666,9 +1747,9 @@ export default function AdminQuoteDetail() {
                 </div>
               </CardContent>
             </Card>
+            </>}
 
-
-            {/* Price Summary */}
+            {/* Price Summary — visible in both overview and finance tabs */}
             <Card>
               <CardHeader>
                 <CardTitle>Price Summary</CardTitle>
@@ -1751,8 +1832,8 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Finance Calculator Editor */}
-            {canEdit && (
+            {/* Finance Calculator Editor — Finance tab only */}
+            {activeTab === "finance" && canEdit && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1850,8 +1931,8 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
-            {/* Finance Submission Card */}
-            {canEdit && (
+            {/* Finance Submission Card — now in Finance tab left col; hidden here */}
+            {false && canEdit && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1970,8 +2051,8 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
-            {/* Send Spec Summary Email - Only for full admins */}
-            {canEdit && (
+            {/* Send Spec Summary Email - Only for full admins in overview */}
+            {activeTab === "overview" && canEdit && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1999,8 +2080,8 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
-            {/* Delete Quote - Only for full admins */}
-            {canEdit && (
+            {/* Delete Quote - Only for full admins in overview */}
+            {activeTab === "overview" && canEdit && (
               <Card className="border-destructive/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
@@ -2047,8 +2128,9 @@ export default function AdminQuoteDetail() {
                 </CardContent>
               </Card>
             )}
+          </div>}
           </div>
-        </div>
+        </Tabs>
       </div>
     </div>
   );

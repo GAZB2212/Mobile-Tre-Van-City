@@ -58,6 +58,11 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  LayoutGrid,
+  List,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -73,6 +78,9 @@ export default function AdminQuotes() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
+    try { return (localStorage.getItem("quotesViewMode") as "list" | "kanban") || "list"; } catch { return "list"; }
+  });
 
   const toggleExpanded = (id: string) => {
     setExpandedIds(prev => {
@@ -244,6 +252,36 @@ export default function AdminQuotes() {
       return 0;
     });
 
+  const setAndPersistViewMode = (mode: "list" | "kanban") => {
+    setViewMode(mode);
+    try { localStorage.setItem("quotesViewMode", mode); } catch {}
+  };
+
+  // Trend calculation helpers
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const thisWeekQuotes = quotes.filter(q => q.createdAt && new Date(q.createdAt) >= sevenDaysAgo);
+  const lastWeekQuotes = quotes.filter(q => q.createdAt && new Date(q.createdAt) >= fourteenDaysAgo && new Date(q.createdAt) < sevenDaysAgo);
+  const thisMonthQuotes = quotes.filter(q => q.createdAt && new Date(q.createdAt) >= startOfThisMonth);
+  const lastMonthQuotes = quotes.filter(q => q.createdAt && new Date(q.createdAt) >= startOfLastMonth && new Date(q.createdAt) <= endOfLastMonth);
+
+  const calcTrend = (current: number, previous: number): { pct: number; dir: "up" | "down" | "flat" } => {
+    if (previous === 0) return current > 0 ? { pct: 100, dir: "up" } : { pct: 0, dir: "flat" };
+    const pct = Math.round(((current - previous) / previous) * 100);
+    return { pct: Math.abs(pct), dir: pct > 0 ? "up" : pct < 0 ? "down" : "flat" };
+  };
+
+  const weekCountTrend = calcTrend(thisWeekQuotes.length, lastWeekQuotes.length);
+  const monthCountTrend = calcTrend(thisMonthQuotes.length, lastMonthQuotes.length);
+  const thisWeekValue = thisWeekQuotes.reduce((s, q) => s + q.estTotal, 0);
+  const lastWeekValue = lastWeekQuotes.reduce((s, q) => s + q.estTotal, 0);
+  const weekValueTrend = calcTrend(thisWeekValue, lastWeekValue);
+
   const handleExportQuotes = () => {
     if (filteredQuotes.length === 0) {
       toast({
@@ -402,63 +440,116 @@ export default function AdminQuotes() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Configurators</p>
-                  <p className="text-2xl font-bold" data-testid="stat-total-quotes">{quotes.length}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Configurators</p>
+                    <p className="text-2xl font-bold" data-testid="stat-total-quotes">{quotes.length}</p>
+                  </div>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">{thisMonthQuotes.length} this month</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <PoundSterling className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-2xl font-bold" data-testid="stat-total-value">
-                    {formatPrice(quotes.reduce((sum, quote) => sum + quote.estTotal, 0))}
-                  </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <PoundSterling className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Value</p>
+                    <p className="text-2xl font-bold" data-testid="stat-total-value">
+                      {formatPrice(quotes.reduce((sum, quote) => sum + quote.estTotal, 0))}
+                    </p>
+                  </div>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">{formatPrice(thisWeekValue)} this week</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">This Week</p>
-                  <p className="text-2xl font-bold" data-testid="stat-week-quotes">
-                    {quotes.filter((quote) => {
-                      if (!quote.createdAt) return false;
-                      const quoteDate = new Date(quote.createdAt);
-                      const now = new Date();
-                      const daysDiff = Math.floor((now.getTime() - quoteDate.getTime()) / (1000 * 60 * 60 * 24));
-                      return daysDiff <= 7;
-                    }).length}
-                  </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">This Week</p>
+                    <p className="text-2xl font-bold" data-testid="stat-week-quotes">{thisWeekQuotes.length}</p>
+                  </div>
                 </div>
+                {weekCountTrend.dir !== "flat" && (
+                  <div className={`flex items-center gap-0.5 text-xs font-medium shrink-0 ${weekCountTrend.dir === "up" ? "text-green-500" : "text-destructive"}`} data-testid="trend-week-count">
+                    {weekCountTrend.dir === "up" ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                    {weekCountTrend.pct}%
+                  </div>
+                )}
+                {weekCountTrend.dir === "flat" && (
+                  <div className="flex items-center gap-0.5 text-xs font-medium shrink-0 text-muted-foreground">
+                    <Minus className="w-3.5 h-3.5" />
+                  </div>
+                )}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">vs {lastWeekQuotes.length} prev week</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <PoundSterling className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Average Value</p>
-                  <p className="text-2xl font-bold" data-testid="stat-average-value">
-                    {quotes.length > 0 ? formatPrice(Math.round(quotes.reduce((sum, quote) => sum + quote.estTotal, 0) / quotes.length)) : "£0.00"}
-                  </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">This Month</p>
+                    <p className="text-2xl font-bold" data-testid="stat-month-quotes">{thisMonthQuotes.length}</p>
+                  </div>
                 </div>
+                {monthCountTrend.dir !== "flat" && (
+                  <div className={`flex items-center gap-0.5 text-xs font-medium shrink-0 ${monthCountTrend.dir === "up" ? "text-green-500" : "text-destructive"}`} data-testid="trend-month-count">
+                    {monthCountTrend.dir === "up" ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                    {monthCountTrend.pct}%
+                  </div>
+                )}
+                {monthCountTrend.dir === "flat" && (
+                  <div className="flex items-center gap-0.5 text-xs font-medium shrink-0 text-muted-foreground">
+                    <Minus className="w-3.5 h-3.5" />
+                  </div>
+                )}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">vs {lastMonthQuotes.length} last month</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Quotes List */}
+        {/* View toggle */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-muted-foreground">
+            {quotesLoading ? "Loading..." : `${filteredQuotes.length} configurator${filteredQuotes.length !== 1 ? "s" : ""}`}
+          </p>
+          <div className="flex items-center gap-1 border rounded-md p-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAndPersistViewMode("list")}
+              className={viewMode === "list" ? "bg-muted" : ""}
+              data-testid="button-view-list"
+            >
+              <List className="w-4 h-4 mr-1.5" />
+              List
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAndPersistViewMode("kanban")}
+              className={viewMode === "kanban" ? "bg-muted" : ""}
+              data-testid="button-view-kanban"
+            >
+              <LayoutGrid className="w-4 h-4 mr-1.5" />
+              Kanban
+            </Button>
+          </div>
+        </div>
+
         {quotesLoading ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -479,6 +570,63 @@ export default function AdminQuotes() {
               </p>
             </CardContent>
           </Card>
+        ) : viewMode === "kanban" ? (
+          (() => {
+            const kanbanColumns = [
+              { key: "new", label: "New" },
+              { key: "contacted", label: "Contacted" },
+              { key: "awaiting_deposit", label: "Awaiting Deposit" },
+              { key: "awaiting_finance", label: "Finance Submitted" },
+              { key: "deposit_taken", label: "Deposit Taken" },
+              { key: "finance_approved", label: "Finance Approved" },
+              { key: "in_build", label: "In Build" },
+              { key: "completed", label: "Completed" },
+              { key: "cancelled", label: "Cancelled" },
+            ];
+            return (
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-3 min-w-max">
+                  {kanbanColumns.map(col => {
+                    const colQuotes = filteredQuotes.filter(q => q.status === col.key);
+                    return (
+                      <div key={col.key} className="w-64 shrink-0" data-testid={`kanban-col-${col.key}`}>
+                        <div className="flex items-center justify-between mb-2 px-1">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{col.label}</span>
+                          <Badge variant="secondary" className="text-xs">{colQuotes.length}</Badge>
+                        </div>
+                        <div className="space-y-2 min-h-16">
+                          {colQuotes.map(quote => (
+                            <Link key={quote.id} href={`/admin/quotes/${quote.id}`}>
+                              <Card className="hover-elevate cursor-pointer" data-testid={`kanban-card-${quote.id}`}>
+                                <CardContent className="p-3 space-y-1.5">
+                                  <p className="font-semibold text-sm truncate">{quote.userName}</p>
+                                  {quote.company && (
+                                    <p className="text-xs text-muted-foreground truncate">{quote.company}</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    {getVanName(quote.vanId)} {quote.kitId ? `· ${getKitName(quote.kitId)}` : ""}
+                                  </p>
+                                  <div className="flex items-center justify-between pt-0.5">
+                                    <span className="text-xs font-bold text-accent">{formatPrice(quote.estTotal)}</span>
+                                    <span className="text-xs text-muted-foreground">{quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : ""}</span>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </Link>
+                          ))}
+                          {colQuotes.length === 0 && (
+                            <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-md">
+                              None
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()
         ) : (
           <div className="space-y-2">
             {filteredQuotes.map((quote) => {
@@ -486,8 +634,8 @@ export default function AdminQuotes() {
               return (
                 <Card key={quote.id}>
                   {/* Collapsed summary row — always visible, click to expand */}
-                  <button
-                    className="w-full text-left"
+                  <div
+                    className="w-full text-left cursor-pointer"
                     onClick={() => toggleExpanded(quote.id)}
                     data-testid={`button-expand-${quote.id}`}
                   >
@@ -507,20 +655,50 @@ export default function AdminQuotes() {
                         </span>
                       </div>
 
-                      {/* Centre: phone & email */}
-                      <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground shrink-0">
-                        <span className="flex items-center gap-1">
+                      {/* Centre: phone & email as quick-action links */}
+                      <div className="hidden md:flex items-center gap-3 text-sm text-muted-foreground shrink-0">
+                        <a
+                          href={`tel:${quote.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 hover:text-foreground transition-colors"
+                          data-testid={`link-phone-${quote.id}`}
+                          title={`Call ${quote.phone}`}
+                        >
                           <Phone className="w-3 h-3" />
                           {quote.phone}
-                        </span>
-                        <span className="flex items-center gap-1">
+                        </a>
+                        <a
+                          href={`mailto:${quote.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 hover:text-foreground transition-colors"
+                          data-testid={`link-email-${quote.id}`}
+                          title={`Email ${quote.email}`}
+                        >
                           <Mail className="w-3 h-3" />
                           {quote.email}
-                        </span>
+                        </a>
                       </div>
 
-                      {/* Right: total + chevron */}
-                      <div className="flex items-center gap-3 shrink-0">
+                      {/* Right: quick-action icons + total + chevron */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`tel:${quote.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="md:hidden p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid={`icon-phone-${quote.id}`}
+                          title={`Call ${quote.phone}`}
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                        </a>
+                        <a
+                          href={`mailto:${quote.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="md:hidden p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid={`icon-email-${quote.id}`}
+                          title={`Email ${quote.email}`}
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                        </a>
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -528,7 +706,7 @@ export default function AdminQuotes() {
                         }
                       </div>
                     </div>
-                  </button>
+                  </div>
 
                   {/* Expanded detail — only visible when open */}
                   {isExpanded && (
