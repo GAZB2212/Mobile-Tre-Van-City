@@ -65,15 +65,15 @@ export default function ChatBubble() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-3">
-      {/* Chat panel */}
+    <div className="fixed bottom-5 right-5 z-[9999]">
+      {/* Chat panel — absolutely positioned above the button, never occupies page space */}
       <div
-        className={`transition-all duration-300 origin-bottom-right ${
+        className={`absolute bottom-16 right-0 transition-all duration-300 origin-bottom-right ${
           open
             ? "opacity-100 scale-100 pointer-events-auto"
             : "opacity-0 scale-95 pointer-events-none"
         }`}
-        style={{ visibility: open ? "visible" : "hidden" }}
+        aria-hidden={!open}
       >
         <div className="w-80 rounded-md border border-border bg-background shadow-lg overflow-hidden">
           {/* Header */}
