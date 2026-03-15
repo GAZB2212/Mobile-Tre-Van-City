@@ -172,6 +172,13 @@ export default function AdminQuoteDetail() {
   // Configuration editor collapse state
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState(true);
 
+  // Customer info inline edit state
+  const [editingCustomer, setEditingCustomer] = useState(false);
+  const [editCustomerName, setEditCustomerName] = useState("");
+  const [editCustomerEmail, setEditCustomerEmail] = useState("");
+  const [editCustomerPhone, setEditCustomerPhone] = useState("");
+  const [editCustomerCompany, setEditCustomerCompany] = useState("");
+
   // Active detail tab
   const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build" | "notes">("overview");
 
@@ -765,32 +772,119 @@ export default function AdminQuoteDetail() {
             {/* Customer Information — Overview tab */}
             {activeTab === "overview" && <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserIcon className="w-5 h-5" />
-                  Customer Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Name</div>
-                    <div className="text-base">{quote.userName}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Email</div>
-                    <div className="text-base">{quote.email}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">Phone</div>
-                    <div className="text-base">{quote.phone}</div>
-                  </div>
-                  {quote.company && (
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Company</div>
-                      <div className="text-base">{quote.company}</div>
-                    </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardTitle className="flex items-center gap-2">
+                    <UserIcon className="w-5 h-5" />
+                    Customer Information
+                  </CardTitle>
+                  {canEdit && !editingCustomer && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditCustomerName(quote.userName || "");
+                        setEditCustomerEmail(quote.email || "");
+                        setEditCustomerPhone(quote.phone || "");
+                        setEditCustomerCompany(quote.company || "");
+                        setEditingCustomer(true);
+                      }}
+                      data-testid="button-edit-customer"
+                    >
+                      <Pencil className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
                   )}
                 </div>
+              </CardHeader>
+              <CardContent>
+                {editingCustomer ? (
+                  <div className="space-y-3">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">Name</label>
+                        <Input
+                          value={editCustomerName}
+                          onChange={(e) => setEditCustomerName(e.target.value)}
+                          data-testid="input-edit-customer-name"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">Email</label>
+                        <Input
+                          type="email"
+                          value={editCustomerEmail}
+                          onChange={(e) => setEditCustomerEmail(e.target.value)}
+                          data-testid="input-edit-customer-email"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                        <Input
+                          type="tel"
+                          value={editCustomerPhone}
+                          onChange={(e) => setEditCustomerPhone(e.target.value)}
+                          data-testid="input-edit-customer-phone"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">Business Name</label>
+                        <Input
+                          value={editCustomerCompany}
+                          onChange={(e) => setEditCustomerCompany(e.target.value)}
+                          placeholder="e.g. Smith Tyres Ltd"
+                          data-testid="input-edit-customer-company"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          updateMutation.mutate({
+                            userName: editCustomerName,
+                            email: editCustomerEmail,
+                            phone: editCustomerPhone,
+                            company: editCustomerCompany || null,
+                          } as any);
+                          setEditingCustomer(false);
+                        }}
+                        disabled={updateMutation.isPending}
+                        data-testid="button-save-customer"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingCustomer(false)}
+                        data-testid="button-cancel-edit-customer"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Name</div>
+                      <div className="text-base">{quote.userName}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Email</div>
+                      <div className="text-base">{quote.email}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Phone</div>
+                      <div className="text-base">{quote.phone}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Business Name</div>
+                      <div className="text-base">
+                        {quote.company || <span className="text-muted-foreground italic text-sm">Not set</span>}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>}
 
