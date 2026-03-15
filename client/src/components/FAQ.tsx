@@ -26,7 +26,7 @@ export default function FAQ() {
     },
     {
       question: "Do you provide training?",
-      answer: "Yes, we include basic equipment training with every conversion. We also offer extended training programs to help you maximize your business potential."
+      answer: "Yes, we include basic equipment training with every conversion. We also offer extended training programs to help you maximize your business potential. Our comprehensive training package is currently being put together and will be available soon."
     },
     {
       question: "What ongoing support do you offer?",
