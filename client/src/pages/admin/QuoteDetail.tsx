@@ -2066,7 +2066,7 @@ export default function AdminQuoteDetail() {
                     Email the customer their van spec and agreed price — send after discussing on the phone
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                   <Button
                     onClick={() => sendConfirmationMutation.mutate()}
                     disabled={sendConfirmationMutation.isPending}
@@ -2076,7 +2076,12 @@ export default function AdminQuoteDetail() {
                     <Send className="w-4 h-4 mr-2" />
                     {sendConfirmationMutation.isPending ? "Sending..." : "Send Spec Summary Email"}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  {(quote as any).specSentAt && (
+                    <p className="text-xs text-muted-foreground text-center" data-testid="text-spec-sent-at">
+                      Last sent: {new Date((quote as any).specSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
                     Sends the van, pack, upgrades, and price to {quote.email}.
                   </p>
                 </CardContent>

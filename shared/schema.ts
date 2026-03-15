@@ -177,6 +177,7 @@ export const quotes = pgTable("quotes", {
   vanRegistration: text("van_registration"), // Specific van registration plate for finance submission
   vanMileage: integer("van_mileage"), // Current van mileage for finance submission
   financeSentAt: timestamp("finance_sent_at"), // When finance submission email was last sent
+  specSentAt: timestamp("spec_sent_at"), // When spec summary email was last sent to customer
   
   featuredInPortfolio: boolean("featured_in_portfolio").notNull().default(false),
   status: text("status").notNull().default("pending"),

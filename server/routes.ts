@@ -1711,6 +1711,26 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         (validatedData as any).estDiscount = discountAmount;
       }
       
+      // Auto-audit note: status change
+      if (validatedData.status) {
+        const statusLabels: Record<string, string> = {
+          pending: 'Pending', new: 'New', contacted: 'Contacted',
+          payment_finance: 'Payment / Finance', in_build: 'In Build', completed: 'Completed'
+        };
+        const currentQuote = await storage.getQuote(req.params.id);
+        if (currentQuote && currentQuote.status !== validatedData.status) {
+          const user = req.user as any;
+          const author = user?.username || 'System';
+          const from = statusLabels[currentQuote.status] || currentQuote.status;
+          const to = statusLabels[validatedData.status] || validatedData.status;
+          const existingHistory = (validatedData as any).adminNotesHistory || currentQuote.adminNotesHistory || [];
+          (validatedData as any).adminNotesHistory = [
+            ...existingHistory,
+            { text: `Status changed from "${from}" to "${to}"`, timestamp: new Date().toISOString(), author }
+          ];
+        }
+      }
+
       const updated = await storage.updateQuote(req.params.id, validatedData);
       
       if (!updated) {
@@ -1884,7 +1904,19 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         customerNote: latestCustomerNote,
       });
 
-      res.json({ success: true, emailSent: true });
+      // Record specSentAt and add auto-audit note
+      const specUser = req.user as any;
+      const specAuthor = specUser?.username || 'System';
+      const specNoteText = `Spec summary email sent to customer (${quote.email})`;
+      await storage.updateQuote(req.params.id, {
+        specSentAt: new Date(),
+        adminNotesHistory: [
+          ...(quote.adminNotesHistory || []),
+          { text: specNoteText, timestamp: new Date().toISOString(), author: specAuthor }
+        ],
+      } as any);
+
+      res.json({ success: true, emailSent: true, specSentAt: new Date().toISOString() });
     } catch (error) {
       console.error('Error sending spec summary email:', error);
       res.status(500).json({ error: "Failed to send summary email" });
@@ -1980,10 +2012,16 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         financeDetails,
       });
 
-      // Record when finance email was sent and persist reg/mileage if provided
+      // Record when finance email was sent, persist reg/mileage, and add auto-audit note
+      const financeUser = req.user as any;
+      const financeAuthor = financeUser?.username || 'System';
       const financeUpdates: any = {
         financeSentAt: new Date(),
         status: 'awaiting_finance' as const,
+        adminNotesHistory: [
+          ...(quote.adminNotesHistory || []),
+          { text: `Finance submission sent to ${financeEmail} for ${quote.userName}`, timestamp: new Date().toISOString(), author: financeAuthor }
+        ],
       };
       if (req.body.vanRegistration !== undefined) financeUpdates.vanRegistration = req.body.vanRegistration;
       if (req.body.vanMileage !== undefined) financeUpdates.vanMileage = req.body.vanMileage;
