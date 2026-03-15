@@ -141,7 +141,7 @@ export default function SelectVan() {
                 <div>
                   <p className="font-semibold text-sm">I already have a van</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Enter your reg and price at the bottom of this page.
+                    Enter your reg at the bottom of this page.
                   </p>
                 </div>
                 <ArrowDown className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0 ml-auto" />
