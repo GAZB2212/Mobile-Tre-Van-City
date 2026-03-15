@@ -76,6 +76,15 @@ export default function SEO({
     }
     linkCanonical.setAttribute('href', canonicalUrl);
 
+    let linkHreflang = document.querySelector('link[rel="alternate"][hreflang="en-gb"]') as HTMLLinkElement | null;
+    if (!linkHreflang) {
+      linkHreflang = document.createElement('link');
+      linkHreflang.setAttribute('rel', 'alternate');
+      linkHreflang.setAttribute('hreflang', 'en-gb');
+      document.head.appendChild(linkHreflang);
+    }
+    linkHreflang.setAttribute('href', canonicalUrl);
+
     document.querySelectorAll('script[type="application/ld+json"]').forEach(s => s.remove());
     
     if (structuredData) {

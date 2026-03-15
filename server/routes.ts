@@ -8,6 +8,7 @@ import { pool } from "./db";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin } from "./auth";
+import { buildVanMeta } from "./seo";
 import { 
   insertVanSchema, 
   insertKitSchema, 
@@ -3153,6 +3154,21 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // ============================================================
+  // SEO: Server-side meta tag injection for dynamic routes
+  // ============================================================
+  app.get('/stock/:slug', async (req, res, next) => {
+    try {
+      const van = await storage.getVanBySlug(req.params.slug);
+      if (van && van.published) {
+        req.__seoMeta = buildVanMeta(van);
+      }
+    } catch (e) {
+      // Non-fatal: page will use default meta
+    }
+    next();
+  });
+
+  // ============================================================
   // SEO: robots.txt
   // ============================================================
   app.get('/robots.txt', (_req, res) => {
@@ -3177,7 +3193,7 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
   app.get('/sitemap.xml', async (_req, res) => {
     try {
       const SITE_URL = 'https://www.mobiletyrevancity.co.uk';
-      const today = new Date().toISOString().split('T')[0];
+      const BUILD_DATE = '2026-03-15';
 
       const staticPages = [
         { url: '/', changefreq: 'weekly', priority: '1.0' },
@@ -3185,34 +3201,51 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
         { url: '/configurator', changefreq: 'monthly', priority: '0.9' },
         { url: '/finance', changefreq: 'monthly', priority: '0.8' },
         { url: '/training', changefreq: 'monthly', priority: '0.8' },
+        { url: '/business-opportunity', changefreq: 'monthly', priority: '0.8' },
         { url: '/gallery', changefreq: 'weekly', priority: '0.7' },
         { url: '/about', changefreq: 'monthly', priority: '0.7' },
         { url: '/contact', changefreq: 'monthly', priority: '0.6' },
         { url: '/how-it-works', changefreq: 'monthly', priority: '0.6' },
       ];
 
-      // Fetch all published vans dynamically
       const vans = await storage.getVans();
       const publishedVans = vans.filter(v => v.published && v.slug);
 
       const staticEntries = staticPages.map(page => `
   <url>
     <loc>${SITE_URL}${page.url}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${BUILD_DATE}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
   </url>`).join('');
 
-      const vanEntries = publishedVans.map(van => `
+      const vanEntries = publishedVans.map(van => {
+        const lastmod = van.updatedAt
+          ? new Date(van.updatedAt).toISOString().split('T')[0]
+          : BUILD_DATE;
+        const heroImg = van.heroImage || (van.images && van.images[0]);
+        const absoluteImgUrl = heroImg
+          ? (heroImg.startsWith('http') ? heroImg : `${SITE_URL}${heroImg.startsWith('/') ? '' : '/'}${heroImg}`)
+          : null;
+        const imageTag = absoluteImgUrl
+          ? `
+    <image:image>
+      <image:loc>${absoluteImgUrl}</image:loc>
+      <image:title>${van.year} ${van.make} ${van.model} - Mobile Tyre Van</image:title>
+    </image:image>`
+          : '';
+        return `
   <url>
     <loc>${SITE_URL}/stock/${van.slug}</loc>
-    <lastmod>${today}</lastmod>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>`).join('');
+    <priority>0.8</priority>${imageTag}
+  </url>`;
+      }).join('');
 
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${staticEntries}
 ${vanEntries}
 </urlset>`;

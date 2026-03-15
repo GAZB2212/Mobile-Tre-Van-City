@@ -286,6 +286,44 @@ export default function Stock() {
           )}
         </div>
       </section>
+      {/* Cross-links */}
+      <section className="py-12 border-t">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Finance Available</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Spread the cost with our flexible finance options. Use our calculator to see monthly payments.
+                  </p>
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" asChild data-testid="link-finance-from-stock">
+                    <Link href="/finance">
+                      View Finance Options
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Build Your Own Spec</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Use our online configurator to customise your van with your choice of equipment and upgrades.
+                  </p>
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" asChild data-testid="link-configurator-from-stock">
+                    <Link href="/configurator/van">
+                      Open Configurator
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 bg-card border-t">
         <div className="container mx-auto px-4">

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SEO from "@/components/SEO";
+import SEO, { createServiceStructuredData } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +120,13 @@ export default function Finance() {
         description="Finance your mobile tyre van with our flexible, competitive payment plans. Use our free finance calculator to see monthly payments. FCA authorised credit broker. Apply online or call 0151 203 8500."
         canonical="/finance"
         keywords="mobile tyre van finance, van finance UK, tyre van hire purchase, mobile tyre van payment plans, van conversion finance, FCA authorised credit broker"
+        structuredData={[
+          createServiceStructuredData({
+            name: "Mobile Tyre Van Finance",
+            description: "Flexible finance options for mobile tyre van purchases. Hire purchase and leasing available through our FCA authorised credit broker service. Competitive rates with various term lengths.",
+            url: "/finance",
+          })
+        ]}
       />
       <Header />
 
@@ -439,6 +446,44 @@ export default function Finance() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Cross-links */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Browse Van Stock</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    View our selection of ready-to-go mobile tyre vans available for purchase with finance.
+                  </p>
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" asChild data-testid="link-stock-from-finance">
+                    <Link href="/stock">
+                      View Available Vans
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Configure Your Van</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Build your perfect mobile tyre van and see finance options during the process.
+                  </p>
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" asChild data-testid="link-configurator-from-finance">
+                    <Link href="/configurator/van">
+                      Open Configurator
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

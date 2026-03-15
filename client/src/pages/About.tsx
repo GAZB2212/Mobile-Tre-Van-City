@@ -151,6 +151,44 @@ export default function About() {
         </div>
       </section>
 
+      {/* Cross-links */}
+      <section className="py-12 border-t">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Get in Touch</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Have questions? Call us on 0151 203 8500 or send us a message.
+                  </p>
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" asChild data-testid="link-contact-from-about">
+                    <Link href="/contact">
+                      Contact Us
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">How We Build Your Van</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    See our step-by-step process from choosing your van to hitting the road.
+                  </p>
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" asChild data-testid="link-how-it-works-from-about">
+                    <Link href="/how-it-works">
+                      See How It Works
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-accent/5 to-accent/10 border-t">
         <div className="container mx-auto px-4">

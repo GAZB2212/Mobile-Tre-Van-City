@@ -76,7 +76,7 @@ Preferred communication style: Simple, everyday language.
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options.
 - **Email System**: SendGrid for automated, dynamic HTML quote confirmation emails with secure, one-time confirmation links.
-- **SEO Optimization**: Dynamic meta tags, Open Graph, JSON-LD structured data, canonical URLs, sitemap.xml, robots.txt.
+- **SEO Optimization**: Server-side meta tag pre-rendering (SSR-lite via Express route-aware HTML injection in `server/seo.ts` + `server/vite.ts`) for both static and dynamic routes (e.g. `/stock/:slug`), dynamic meta tags, Open Graph, JSON-LD structured data (Organization, FAQ, Service, Vehicle, Breadcrumb schemas), canonical URLs, hreflang en-gb, sitemap.xml with image entries, robots.txt. Internal cross-linking between key pages.
 - **Training Programme**: Information on REACT (motorway operations) and Tyre Fitting certifications included with van purchases.
 
 ### Vehicle Data Integration

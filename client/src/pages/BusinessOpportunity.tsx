@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SEO from "@/components/SEO";
+import SEO, { createServiceStructuredData } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +97,53 @@ export default function BusinessOpportunity() {
       <SEO
         title="The Mobile Tyre Business Opportunity | Mobile Tyre Van City"
         description="Discover why the mobile tyre fitting sector is one of the UK's fastest growing small business opportunities. Clients earning up to £1,200 per day. Business in a box — van, tech, supplier and website included."
+        canonical="/business-opportunity"
+        keywords="mobile tyre business opportunity, start a mobile tyre business, mobile tyre franchise, tyre fitting business UK, mobile tyre van business, tyre business startup"
+        structuredData={[
+          createServiceStructuredData({
+            name: "Mobile Tyre Business Opportunity",
+            description: "Complete mobile tyre business package including van conversion, tyre supplier network, professional website, and ongoing support. Clients earning up to £1,200 per day.",
+            url: "/business-opportunity",
+          }),
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How much can I earn with a mobile tyre business?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Our clients in London are already seeing daily turnovers of up to £1,200. Urban density, high vehicle ownership, and time-poor consumers make cities ideal markets. But the opportunity exists everywhere — we have operators thriving in towns and rural areas too."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is included in the mobile tyre business package?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Our business-in-a-box includes your fully converted mobile tyre van fitted out to the highest standard, connection to our established tyre supplier network for trade pricing, and a professional SEO-optimised website built for your brand and area."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Who is the mobile tyre business opportunity for?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The opportunity suits ex-tradespeople looking for better margins, entrepreneurs seeking a proven business model with low startup costs, and existing fleet operators wanting to add a mobile tyre service bolt-on for additional revenue."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why is now the right time to start a mobile tyre business?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Consumer behaviour has fundamentally shifted — customers expect services to come to them. Mobile tyre fitting is growing faster than the traditional retail market. Low overheads, high margins, and repeat business make the economics compelling."
+                }
+              }
+            ]
+          }
+        ]}
       />
       <Header />
 
@@ -379,6 +426,44 @@ export default function BusinessOpportunity() {
                 </Card>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Cross-links */}
+      <section className="py-12 bg-muted/30 border-y border-border">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card className="border-border">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Training Included</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Every van purchase includes complete REACT motorway certification and professional tyre fitting training.
+                  </p>
+                  <Link href="/training">
+                    <Button variant="outline" className="!border-2 !border-accent text-accent" data-testid="link-training-from-opportunity">
+                      View Training Programme
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-lg mb-2">Build Your Van Online</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Use our configurator to spec your perfect mobile tyre van and get an instant quote.
+                  </p>
+                  <Link href="/configurator/van">
+                    <Button variant="outline" className="!border-2 !border-accent text-accent" data-testid="link-configurator-from-opportunity">
+                      Open Configurator
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </section>

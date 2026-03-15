@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SEO from "@/components/SEO";
+import SEO, { createServiceStructuredData } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Car, Package, Sparkles, CreditCard, Check, Wrench, Palette, Users } from "lucide-react";
 import { Link } from "wouter";
@@ -82,6 +82,13 @@ export default function HowItWorks() {
         description="See how we build your mobile tyre van in 4 simple steps: choose your van, select your equipment kit, add custom upgrades, arrange finance. UK-built, in-house team, nationwide delivery."
         canonical="/how-it-works"
         keywords="how mobile tyre van works, tyre van build process, custom van conversion steps, mobile tyre van build UK"
+        structuredData={[
+          createServiceStructuredData({
+            name: "Mobile Tyre Van Build Process",
+            description: "Our 4-step mobile tyre van build process: choose your van, select your equipment kit, add custom upgrades, and arrange finance. UK-built by our in-house team with nationwide delivery.",
+            url: "/how-it-works",
+          })
+        ]}
       />
       <Header />
       

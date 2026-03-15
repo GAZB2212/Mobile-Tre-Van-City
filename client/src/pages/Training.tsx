@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import SEO from "@/components/SEO";
+import SEO, { createServiceStructuredData } from "@/components/SEO";
 import Header from "@/components/Header";
 import { 
   GraduationCap, 
@@ -13,7 +13,8 @@ import {
   FileText,
   Users,
   Wrench,
-  CarFront
+  CarFront,
+  ArrowRight
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -108,6 +109,43 @@ export default function Training() {
         description="Get fully certified to operate your mobile tyre business. We offer professional tyre fitting courses and REACT motorway certification. Start legally and safely. Based in Wirral, training UK-wide."
         canonical="/training"
         keywords="mobile tyre fitting training, REACT motorway certification, tyre fitting course UK, mobile tyre technician training, tyre fitting qualification"
+        structuredData={[
+          createServiceStructuredData({
+            name: "Mobile Tyre Fitting Training & REACT Certification",
+            description: "Comprehensive in-house training covering both REACT motorway certification and professional tyre fitting. Full legal compliance for motorway and roadside operations, industry-recognized certification, and ongoing support.",
+            url: "/training",
+          }),
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is REACT training and do I need it?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Recovery Equipment And Carriageway Training (REACT) is the industry-standard qualification and legal requirement for operating on UK motorways and high-speed roads. It is essential for insurance coverage and legally operating your mobile tyre business on motorways."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are the entry requirements for the training?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "You need a valid UK driving licence, no medical conditions affecting roadside work, a basic understanding of vehicle operations, and commitment to full training attendance."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is training included with a van purchase?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes, every van purchase includes both REACT motorway certification and professional tyre fitting training, with all training materials provided. You also receive hands-on practical experience and ongoing support."
+                }
+              }
+            ]
+          }
+        ]}
       />
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-background py-16 px-4">
@@ -376,6 +414,45 @@ export default function Training() {
                 <p className="text-muted-foreground">
                   Continued guidance and access to refresher training whenever you need it
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Cross-links */}
+      <section className="py-12 px-4 bg-muted/30 border-y">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Explore More</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-lg mb-2">The Business Opportunity</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Discover why mobile tyre fitting is one of the UK's fastest growing small business opportunities.
+                </p>
+                <Link href="/business-opportunity">
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" data-testid="link-opportunity-from-training">
+                    Learn More
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-bold text-lg mb-2">Browse Our Van Stock</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  View our selection of ready-to-go mobile tyre vans, all professionally converted and fully equipped.
+                </p>
+                <Link href="/stock">
+                  <Button variant="outline" className="!border-2 !border-accent text-accent" data-testid="link-stock-from-training">
+                    View Stock
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>
