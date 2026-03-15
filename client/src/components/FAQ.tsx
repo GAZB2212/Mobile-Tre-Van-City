@@ -10,7 +10,7 @@ export default function FAQ() {
   const faqs = [
     {
       question: "How long does a van conversion take?",
-      answer: "Most conversions are completed within 2-3 weeks from order confirmation. We'll provide you with a detailed timeline based on your specific requirements and current workload."
+      answer: "Build times can vary depending on how busy we are. Generally, you're looking at around 6–9 weeks from order confirmation. We'll give you a more accurate timeline based on your specific requirements and our current workload at the time of booking."
     },
     {
       question: "Do you offer finance options?",
