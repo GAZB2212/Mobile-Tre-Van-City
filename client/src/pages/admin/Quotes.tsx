@@ -639,7 +639,7 @@ export default function AdminQuotes() {
                     onClick={() => toggleExpanded(quote.id)}
                     data-testid={`button-expand-${quote.id}`}
                   >
-                    <div className="flex items-center justify-between gap-4 px-4 py-3 hover-elevate rounded-md">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 hover-elevate rounded-md">
                       {/* Left: name, company, status */}
                       <div className="flex items-center gap-3 flex-wrap min-w-0">
                         <UserIcon className="w-4 h-4 text-muted-foreground shrink-0" />
