@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Lead } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -106,10 +107,12 @@ export default function AdminLeads() {
     }
   }, [user, toast]);
 
+  const isActive = useIdlePolling();
+
   const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching } = useQuery<Lead[]>({
     queryKey: ["/api/admin/leads"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
-    refetchInterval: 30_000,
+    refetchInterval: isActive ? 60_000 : false,
     refetchIntervalInBackground: false,
   });
 
@@ -230,8 +233,8 @@ export default function AdminLeads() {
               <p className="text-muted-foreground flex items-center gap-2">
                 Track and manage customer inquiries and leads
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className={`w-1.5 h-1.5 rounded-full ${leadsFetching ? "bg-amber-400 animate-pulse" : "bg-green-500"}`} />
-                  {leadsFetching ? "Refreshing…" : "Live — updates every 30s"}
+                  <span className={`w-1.5 h-1.5 rounded-full ${leadsFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
+                  {leadsFetching ? "Refreshing…" : isActive ? "Live — updates every 60s" : "Paused (idle)"}
                 </span>
               </p>
             </div>

@@ -30,6 +30,7 @@ function getStatusLabel(status: string): string {
 
 import { useAuth } from "@/hooks/useAuth";
 import { useCanEdit } from "@/hooks/useCanEdit";
+import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -121,11 +122,13 @@ export default function AdminQuotes() {
     }
   }, [user, toast]);
 
+  const isActive = useIdlePolling();
+
   // Fetch quotes data
   const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
-    refetchInterval: 30_000,
+    refetchInterval: isActive ? 60_000 : false,
     refetchIntervalInBackground: false,
   });
 
@@ -352,8 +355,8 @@ export default function AdminQuotes() {
               <p className="text-muted-foreground flex items-center gap-2">
                 Review and manage customer configurators
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className={`w-1.5 h-1.5 rounded-full ${quotesFetching ? "bg-amber-400 animate-pulse" : "bg-green-500"}`} />
-                  {quotesFetching ? "Refreshing…" : "Live — updates every 30s"}
+                  <span className={`w-1.5 h-1.5 rounded-full ${quotesFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
+                  {quotesFetching ? "Refreshing…" : isActive ? "Live — updates every 60s" : "Paused (idle)"}
                 </span>
               </p>
             </div>
