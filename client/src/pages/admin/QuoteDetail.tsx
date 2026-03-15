@@ -759,9 +759,9 @@ export default function AdminQuoteDetail() {
             <TabsTrigger value="notes" data-testid="tab-notes">Internal Notes</TabsTrigger>
           </TabsList>
 
-          <div className={`grid gap-6 ${activeTab === "overview" ? "lg:grid-cols-3" : ""}`}>
+          <div className={`grid gap-6 ${activeTab === "finance" ? "lg:grid-cols-3" : ""}`}>
           {/* Left Column / Main content */}
-          <div className={`space-y-6 ${activeTab === "overview" ? "lg:col-span-2" : ""}`}>
+          <div className={`space-y-6 ${activeTab === "finance" ? "lg:col-span-2" : ""}`}>
             {/* Customer Information — Overview tab */}
             {activeTab === "overview" && <Card>
               <CardHeader>
