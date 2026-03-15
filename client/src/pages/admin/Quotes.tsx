@@ -197,6 +197,11 @@ export default function AdminQuotes() {
     return selectedUpgrades.map((u) => u.name).join(", ");
   };
 
+  const getUpgradeList = (upgradeIds: string[]): string[] => {
+    if (!upgradeIds.length) return [];
+    return upgrades.filter((u) => upgradeIds.includes(u.id)).map((u) => u.name);
+  };
+
   // Filter and sort quotes
   const filteredQuotes = quotes
     .filter((quote) => {
@@ -585,7 +590,18 @@ export default function AdminQuotes() {
                             <Wrench className="w-4 h-4" />
                             Upgrades ({quote.selectedUpgradeIds.length})
                           </div>
-                          <p className="text-sm text-muted-foreground">{getUpgradeNames(quote.selectedUpgradeIds)}</p>
+                          {quote.selectedUpgradeIds.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No upgrades</p>
+                          ) : (
+                            <ul className="space-y-0.5">
+                              {getUpgradeList(quote.selectedUpgradeIds).map((name, i) => (
+                                <li key={i} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                                  <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/50 flex-shrink-0" />
+                                  {name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       </div>
 
