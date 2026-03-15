@@ -31,17 +31,24 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowRight, ArrowDown, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal, X, Truck } from "lucide-react";
 import type { Van } from "@shared/schema";
 
 export default function SelectVan() {
   const [, setLocation] = useLocation();
-  const { state, setVan } = useConfigurator();
+  const { state, setVan, setCustomVanValue, setVanReg } = useConfigurator();
   const [modalVan, setModalVan] = useState<Van | null>(null);
   const [filterMake, setFilterMake] = useState<string>("all");
   const [filterModel, setFilterModel] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterFuel, setFilterFuel] = useState<string>("all");
+
+  // Own van form state
+  const [ownVanReg, setOwnVanReg] = useState<string>("");
+  const [ownVanPrice, setOwnVanPrice] = useState<string>("");
+  const [ownVanPriceError, setOwnVanPriceError] = useState<string>("");
 
   const { data: allVans = [], isLoading } = useQuery<Van[]>({
     queryKey: ['/api/vans'],
@@ -82,8 +89,16 @@ export default function SelectVan() {
     setLocation('/configurator/service-type');
   };
 
-  const handleSkipVan = () => {
+  const handleOwnVan = () => {
+    const price = parseFloat(ownVanPrice.replace(/[^0-9.]/g, ""));
+    if (!ownVanPrice.trim() || isNaN(price) || price <= 0) {
+      setOwnVanPriceError("Please enter the purchase price of your van");
+      return;
+    }
+    setOwnVanPriceError("");
     setVan(null);
+    setCustomVanValue(Math.round(price * 100));
+    setVanReg(ownVanReg.trim().toUpperCase() || null);
     setLocation('/configurator/service-type');
   };
 
@@ -110,9 +125,37 @@ export default function SelectVan() {
             <h1 className="text-3xl md:text-4xl font-bold mb-2" data-testid="text-page-title">
               Step 1: Select Your Van
             </h1>
-            <p className="text-muted-foreground">
-              Choose a van from our stock or skip to configure with your own vehicle
+            <p className="text-muted-foreground mb-5">
+              Browse our ready-to-convert stock below and select the van you'd like built around — or if you already have your own van, scroll down to enter your details.
             </p>
+
+            {/* Two-path signpost */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-3 rounded-md border bg-card p-4">
+                <Truck className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Browse our stock</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Choose from our range of quality vans — all ready to be converted.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="flex items-start gap-3 rounded-md border bg-card p-4 text-left hover-elevate"
+                onClick={() => document.getElementById('own-van-section')?.scrollIntoView({ behavior: 'smooth' })}
+                data-testid="button-scroll-to-own-van"
+              >
+                <Car className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">I already have a van</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Enter your reg and price at the bottom of this page.
+                  </p>
+                </div>
+                <ArrowDown className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0 ml-auto" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
@@ -326,17 +369,64 @@ export default function SelectVan() {
                     }))}
                   </div>
 
-                  <div className="flex justify-center">
-                    <Button 
-                      variant="outline" 
-                      size="lg"
-                      className="!border-2 !border-accent text-accent hover:bg-accent/10"
-                      onClick={handleSkipVan}
-                      data-testid="button-skip-van"
-                    >
-                      Skip - I Have My Own Van
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
+                  {/* Own van section */}
+                  <div id="own-van-section" className="mt-8">
+                    <Card className="border-dashed">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                          <Car className="w-5 h-5 text-muted-foreground" />
+                          <CardTitle className="text-lg">Already have your own van?</CardTitle>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Can't see what you're looking for, or bringing your own vehicle? Enter your van's details below and we'll build a package around it.
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="own-van-reg">Registration Plate</Label>
+                            <Input
+                              id="own-van-reg"
+                              placeholder="e.g. AB12 CDE"
+                              value={ownVanReg}
+                              onChange={(e) => setOwnVanReg(e.target.value.toUpperCase())}
+                              data-testid="input-own-van-reg"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="own-van-price">
+                              Van Purchase Price <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">£</span>
+                              <Input
+                                id="own-van-price"
+                                className="pl-7"
+                                placeholder="e.g. 12995"
+                                value={ownVanPrice}
+                                onChange={(e) => {
+                                  setOwnVanPrice(e.target.value.replace(/[^0-9.]/g, ""));
+                                  setOwnVanPriceError("");
+                                }}
+                                data-testid="input-own-van-price"
+                              />
+                            </div>
+                            {ownVanPriceError && (
+                              <p className="text-xs text-destructive" data-testid="text-own-van-price-error">{ownVanPriceError}</p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="lg"
+                          className="w-full sm:w-auto bg-accent text-accent-foreground"
+                          onClick={handleOwnVan}
+                          data-testid="button-continue-own-van"
+                        >
+                          Continue with My Own Van
+                          <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </div>
                 </>
               )}
