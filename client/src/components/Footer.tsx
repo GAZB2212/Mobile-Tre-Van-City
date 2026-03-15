@@ -47,7 +47,7 @@ export default function Footer() {
               UK's leading mobile tyre van conversion specialists. Custom-built solutions for your mobile tyre business.
             </p>
             <div className="flex gap-4">
-              <a href="https://www.facebook.com/mobiletyrevancity" target="_blank" rel="noopener noreferrer" aria-label="Facebook" data-testid="link-facebook" className="text-muted-foreground hover:text-accent transition-colors">
+              <a href="https://www.facebook.com/mobiletyrevanscity" target="_blank" rel="noopener noreferrer" aria-label="Facebook" data-testid="link-facebook" className="text-muted-foreground hover:text-accent transition-colors">
                 <SiFacebook className="w-5 h-5" />
               </a>
               <a href="https://www.instagram.com/mobiletyrevancity" target="_blank" rel="noopener noreferrer" aria-label="Instagram" data-testid="link-instagram" className="text-muted-foreground hover:text-accent transition-colors">
