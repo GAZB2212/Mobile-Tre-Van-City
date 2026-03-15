@@ -2154,6 +2154,21 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  app.patch("/api/admin/leads/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { status, crmNotes } = req.body;
+      const updateData: Record<string, any> = {};
+      if (status !== undefined) updateData.status = status;
+      if (crmNotes !== undefined) updateData.crmNotes = crmNotes;
+      const updated = await storage.updateLead(req.params.id, updateData);
+      if (!updated) return res.status(404).json({ error: "Lead not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error('PATCH /api/admin/leads/:id error:', error);
+      res.status(500).json({ error: "Failed to update lead" });
+    }
+  });
+
   // Analytics endpoint
   app.get("/api/admin/analytics", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

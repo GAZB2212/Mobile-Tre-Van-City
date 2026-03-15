@@ -203,6 +203,8 @@ export const leads = pgTable("leads", {
   phone: text("phone"),
   source: text("source").notNull(),
   message: text("message"),
+  status: text("status").notNull().default("new"), // "new" | "contacted" | "qualified" | "converted" | "closed"
+  crmNotes: json("crm_notes").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

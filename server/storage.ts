@@ -58,6 +58,7 @@ export interface IStorage {
   getLeads(): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: string, data: Partial<Lead>): Promise<Lead | undefined>;
 
   // Finance Plans
   getFinancePlans(): Promise<FinancePlan[]>;
@@ -1551,6 +1552,14 @@ export class MemStorage implements IStorage {
     return lead;
   }
 
+  async updateLead(id: string, data: Partial<Lead>): Promise<Lead | undefined> {
+    const existing = this.leads.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data };
+    this.leads.set(id, updated);
+    return updated;
+  }
+
   // Finance Plans
   async getFinancePlans(): Promise<FinancePlan[]> {
     return Array.from(this.financePlans.values()).filter(plan => plan.published);
@@ -1878,6 +1887,11 @@ export class DbStorage implements IStorage {
 
   async createLead(insertLead: InsertLead): Promise<Lead> {
     const result = await db.insert(schema.leads).values(insertLead).returning();
+    return result[0];
+  }
+
+  async updateLead(id: string, data: Partial<Lead>): Promise<Lead | undefined> {
+    const result = await db.update(schema.leads).set(data).where(eq(schema.leads.id, id)).returning();
     return result[0];
   }
 
