@@ -18,7 +18,7 @@ export default function FAQ() {
     },
     {
       question: "What warranty do you provide?",
-      answer: "All our conversions come with a comprehensive 12-month warranty covering workmanship and equipment. Individual components may have extended manufacturer warranties."
+      answer: "All our conversions come with a 12-month warranty covering workmanship and equipment. Some of our equipment also benefits from a 10-year manufacturer's warranty. Speak to one of the team to find out more about what's covered with your specific build."
     },
     {
       question: "Can I use my existing van?",
