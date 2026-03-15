@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,6 +8,7 @@ import ScrollRestoration from "@/components/ScrollRestoration";
 import LoadingScreen from "@/components/LoadingScreen";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import ChatBubble from "@/components/ChatBubble";
 import { useState, useEffect } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import Home from "@/pages/Home";
@@ -109,6 +110,12 @@ function Router() {
   );
 }
 
+function PublicChatBubble() {
+  const [location] = useLocation();
+  if (location.startsWith("/admin") || location === "/login") return null;
+  return <ChatBubble />;
+}
+
 function App() {
   const [showCookieBanner, setShowCookieBanner] = useState(false);
 
@@ -136,6 +143,7 @@ function App() {
           <AnalyticsProvider>
             <Router />
           </AnalyticsProvider>
+          <PublicChatBubble />
           {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
         </TooltipProvider>
       </ConfiguratorProvider>
