@@ -13,20 +13,22 @@ function OwnVanDetails({
   vanRegStr,
   onPriceChange,
   onRegChange,
+  open,
+  onToggle,
 }: {
   vanPriceStr: string;
   vanRegStr: string;
   onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRegChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  open: boolean;
+  onToggle: () => void;
 }) {
-  const [open, setOpen] = useState(() => !!(vanPriceStr || vanRegStr));
-
   return (
     <div className="pt-1">
       <button
         type="button"
         className="w-full text-left text-xs font-semibold uppercase tracking-wide text-accent hover-elevate px-0 py-1"
-        onClick={() => setOpen(v => !v)}
+        onClick={onToggle}
         data-testid="button-toggle-van-details"
       >
         {open ? 'Hide van details' : 'Want to add van details?'}
@@ -81,6 +83,12 @@ export function ConfiguratorSummary() {
   );
   const [vanRegStr, setVanRegStr] = useState(state.vanReg ?? "");
 
+  // Controls "Want to add van details?" panel for own-van path
+  // Only starts open if a price has already been entered (not just a reg number)
+  const [vanDetailsOpen, setVanDetailsOpen] = useState(
+    () => !!(state.customVanValue)
+  );
+
   // Sync context → local when context changes externally (e.g. clearAll)
   useEffect(() => {
     setVanPriceStr(state.customVanValue ? (state.customVanValue / 100).toFixed(0) : "");
@@ -125,16 +133,19 @@ export function ConfiguratorSummary() {
     enabled: state.trainingOptionIds.length > 0,
   });
 
-  const vanPrice = van?.price || state.customVanValue || 0;
+  const isOwnVan = !state.vanId;
+  const vanPrice = van?.price || (vanDetailsOpen ? (state.customVanValue || 0) : 0);
   const kitPrice = kit?.price || 0;
   const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
-  
+
   const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
   const vat = Math.round(subtotal * 0.2);
   const total = subtotal + vat;
 
-  const hasItems = vanPrice > 0 || kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0;
+  // For own van, show pricing block only when van details are open
+  const showPricing = isOwnVan ? vanDetailsOpen : true;
+  const hasItems = van ? true : (kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0);
 
   return (
     <Card className="sticky top-[180px] sm:top-[200px] xl:top-[220px] z-10 max-h-[calc(100vh-200px)] overflow-y-auto" data-testid="summary-container">
@@ -166,7 +177,8 @@ export function ConfiguratorSummary() {
               </div>
             )}
 
-            {!van && state.customVanValue && state.customVanValue > 0 && (
+            {/* Own van with price entered (only shown when van details are open) */}
+            {isOwnVan && vanDetailsOpen && state.customVanValue && state.customVanValue > 0 && (
               <div className="flex items-start gap-2">
                 <Car className="w-4 h-4 text-accent mt-0.5" />
                 <div className="flex-1 min-w-0">
@@ -187,9 +199,11 @@ export function ConfiguratorSummary() {
                   <p className="text-sm font-medium truncate" data-testid="text-summary-kit-name">
                     {kit.name}
                   </p>
-                  <p className="text-sm text-muted-foreground" data-testid="text-summary-kit-price">
-                    {formatPrice(kit.price)}
-                  </p>
+                  {showPricing && (
+                    <p className="text-sm text-muted-foreground" data-testid="text-summary-kit-price">
+                      {formatPrice(kit.price)}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -208,9 +222,11 @@ export function ConfiguratorSummary() {
                       <span className="text-muted-foreground truncate pr-2" data-testid={`text-summary-upgrade-name-${upgrade.id}`}>
                         {upgrade.name}
                       </span>
-                      <span className="font-medium whitespace-nowrap" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
-                        {formatPrice(upgrade.price)}
-                      </span>
+                      {showPricing && (
+                        <span className="font-medium whitespace-nowrap" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
+                          {formatPrice(upgrade.price)}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -231,38 +247,43 @@ export function ConfiguratorSummary() {
                       <span className="text-muted-foreground truncate pr-2" data-testid={`text-summary-training-name-${option.id}`}>
                         {option.name}
                       </span>
-                      <span className="font-medium whitespace-nowrap" data-testid={`text-summary-training-price-${option.id}`}>
-                        {formatPrice(option.price)}
-                      </span>
+                      {showPricing && (
+                        <span className="font-medium whitespace-nowrap" data-testid={`text-summary-training-price-${option.id}`}>
+                          {formatPrice(option.price)}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <Separator />
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium" data-testid="text-summary-subtotal">
-                  {formatPrice(subtotal)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">VAT (20%)</span>
-                <span className="font-medium" data-testid="text-summary-vat">
-                  {formatPrice(vat)}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex justify-between">
-                <span className="font-bold">Total</span>
-                <span className="font-bold text-lg text-accent" data-testid="text-summary-total">
-                  {formatPrice(total)}
-                </span>
-              </div>
-            </div>
+            {showPricing && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium" data-testid="text-summary-subtotal">
+                      {formatPrice(subtotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">VAT (20%)</span>
+                    <span className="font-medium" data-testid="text-summary-vat">
+                      {formatPrice(vat)}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span className="font-bold">Total</span>
+                    <span className="font-bold text-lg text-accent" data-testid="text-summary-total">
+                      {formatPrice(total)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
 
             {state.vanId && !state.serviceType && (
               <Badge variant="secondary" className="w-full justify-center" data-testid="badge-select-service-type">
@@ -278,12 +299,14 @@ export function ConfiguratorSummary() {
         )}
 
         {/* Own van price + reg inputs — collapsible, shown when no catalog van is selected */}
-        {!state.vanId && (
+        {isOwnVan && (
           <OwnVanDetails
             vanPriceStr={vanPriceStr}
             vanRegStr={vanRegStr}
             onPriceChange={handleVanPriceChange}
             onRegChange={handleVanRegChange}
+            open={vanDetailsOpen}
+            onToggle={() => setVanDetailsOpen(v => !v)}
           />
         )}
 
