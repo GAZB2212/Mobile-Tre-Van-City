@@ -1577,6 +1577,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         vanMileage: z.number().int().nullable().optional(),
         // Customer confirmation flag
         customerConfirmed: z.boolean().optional(),
+        // Customer info fields
+        userName: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        company: z.string().nullable().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
