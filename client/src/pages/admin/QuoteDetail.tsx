@@ -173,7 +173,7 @@ export default function AdminQuoteDetail() {
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState(true);
 
   // Active detail tab
-  const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build" | "notes">("overview");
 
   // Finance editor state (deposit in £ pounds, term in years 1-5)
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
@@ -751,11 +751,12 @@ export default function AdminQuoteDetail() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-0">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
             <TabsTrigger value="configuration" data-testid="tab-configuration">Configuration</TabsTrigger>
             <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
             <TabsTrigger value="build" data-testid="tab-build">Build Progress</TabsTrigger>
+            <TabsTrigger value="notes" data-testid="tab-notes">Internal Notes</TabsTrigger>
           </TabsList>
 
           <div className={`grid gap-6 ${activeTab === "overview" ? "lg:grid-cols-3" : ""}`}>
@@ -1382,6 +1383,140 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
+            {/* Internal Notes — Notes tab */}
+            {activeTab === "notes" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    Internal Notes
+                  </CardTitle>
+                  <CardDescription>Only visible to staff — never shown to customers</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Note History */}
+                  {quote?.adminNotesHistory && quote.adminNotesHistory.length > 0 ? (
+                    <div className="space-y-3">
+                      {quote.adminNotesHistory.map((note, index) => {
+                        const isEditing = editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
+                        return (
+                          <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                {note.author || 'Admin'}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(note.timestamp).toLocaleString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                                {!isEditing && (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={() => setEditingNote({ noteType: 'admin', timestamp: note.timestamp, text: note.text })}
+                                      data-testid={`button-edit-admin-note-${index}`}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 text-destructive"
+                                      onClick={() => {
+                                        if (confirm('Are you sure you want to delete this note?')) {
+                                          deleteNoteMutation.mutate({ noteType: 'admin', timestamp: note.timestamp });
+                                        }
+                                      }}
+                                      data-testid={`button-delete-admin-note-${index}`}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {isEditing ? (
+                              <div className="space-y-2">
+                                <Textarea
+                                  value={editingNote.text}
+                                  onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
+                                  rows={4}
+                                  data-testid="textarea-edit-admin-note"
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      if (editingNote.text.trim()) {
+                                        editNoteMutation.mutate({
+                                          noteType: 'admin',
+                                          timestamp: editingNote.timestamp,
+                                          text: editingNote.text
+                                        });
+                                      }
+                                    }}
+                                    disabled={!editingNote.text.trim()}
+                                    data-testid="button-save-admin-note"
+                                  >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingNote(null)}
+                                    data-testid="button-cancel-admin-note"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6">No notes yet — add the first one below.</p>
+                  )}
+
+                  {/* Add New Note */}
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label htmlFor="new-admin-note-tab">Add Note</Label>
+                    <Textarea
+                      id="new-admin-note-tab"
+                      value={newAdminNote}
+                      onChange={(e) => setNewAdminNote(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (newAdminNote.trim()) {
+                            handleSave();
+                            setNewAdminNote("");
+                          }
+                        }
+                      }}
+                      placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
+                      rows={3}
+                      data-testid="textarea-new-admin-note"
+                    />
+                    <p className="text-xs text-muted-foreground">Press Enter to save · Shift+Enter for new line</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
           </div>
 
           {/* Right Column - shown only in overview and finance tabs */}
@@ -1615,138 +1750,6 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Admin Notes History */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Internal Notes
-                </CardTitle>
-                <CardDescription>Only visible to staff</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Note History */}
-                {quote?.adminNotesHistory && quote.adminNotesHistory.length > 0 && (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {quote.adminNotesHistory.map((note, index) => {
-                      const isEditing = editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
-                      
-                      return (
-                        <div key={index} className="p-3 rounded-lg bg-muted/50 border">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {note.author || 'Admin'}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(note.timestamp).toLocaleString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                              {!isEditing && (
-                                <div className="flex gap-1">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6"
-                                    onClick={() => setEditingNote({ noteType: 'admin', timestamp: note.timestamp, text: note.text })}
-                                    data-testid={`button-edit-admin-note-${index}`}
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6 text-destructive"
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this note?')) {
-                                        deleteNoteMutation.mutate({ noteType: 'admin', timestamp: note.timestamp });
-                                      }
-                                    }}
-                                    data-testid={`button-delete-admin-note-${index}`}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <Textarea
-                                value={editingNote.text}
-                                onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
-                                rows={3}
-                                data-testid="textarea-edit-admin-note"
-                              />
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    if (editingNote.text.trim()) {
-                                      editNoteMutation.mutate({
-                                        noteType: 'admin',
-                                        timestamp: editingNote.timestamp,
-                                        text: editingNote.text
-                                      });
-                                    }
-                                  }}
-                                  disabled={!editingNote.text.trim()}
-                                  data-testid="button-save-admin-note"
-                                >
-                                  <Check className="h-4 w-4 mr-1" />
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setEditingNote(null)}
-                                  data-testid="button-cancel-admin-note"
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm whitespace-pre-wrap">{note.text}</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                {/* Add New Note */}
-                <div className="space-y-2">
-                  <Label htmlFor="new-admin-note">Add New Note</Label>
-                  <Textarea
-                    id="new-admin-note"
-                    value={newAdminNote}
-                    onChange={(e) => setNewAdminNote(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (newAdminNote.trim()) {
-                          handleSave();
-                          setNewAdminNote("");
-                        }
-                      }
-                    }}
-                    placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
-                    rows={2}
-                    data-testid="textarea-new-admin-note"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Press Enter to save, Shift+Enter for new line
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
             </>}
 
             {/* Price Summary — visible in both overview and finance tabs */}
