@@ -259,6 +259,7 @@ export async function sendFinanceSubmissionEmail({
   vat,
   total,
   discount,
+  financeDetails,
 }: {
   financeCompanyEmail: string;
   customerName: string;
