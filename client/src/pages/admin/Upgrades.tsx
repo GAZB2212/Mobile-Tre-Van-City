@@ -95,6 +95,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   forCommercial: z.boolean().optional(),
   carOnly: z.boolean().optional(),
   hideForHybrid: z.boolean().optional(),
+  supersedesKitItems: z.string().optional(), // newline-separated in the form, converted to array on submit
   exclusiveGroup: z.string().optional().nullable(),
 });
 
@@ -296,6 +297,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       forCommercial: false,
       carOnly: false,
       hideForHybrid: false,
+      supersedesKitItems: "",
       exclusiveGroup: null,
     },
   });
@@ -347,6 +349,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         forCommercial: upgrade.forCommercial || false,
         carOnly: upgrade.carOnly || false,
         hideForHybrid: (upgrade as any).hideForHybrid || false,
+        supersedesKitItems: ((upgrade as any).supersedesKitItems as string[] || []).join('\n'),
         exclusiveGroup: upgrade.exclusiveGroup || null,
       });
     } else {
@@ -371,6 +374,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         forCommercial: false,
         carOnly: false,
         hideForHybrid: false,
+        supersedesKitItems: "",
         exclusiveGroup: null,
       });
     }
@@ -616,10 +620,19 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       }
     }
     
+    // Convert newline-separated supersedesKitItems text to array before sending
+    const transformedData = {
+      ...data,
+      supersedesKitItems: (data.supersedesKitItems || '')
+        .split('\n')
+        .map((s: string) => s.trim())
+        .filter(Boolean),
+    };
+
     if (isEditing) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(transformedData as any);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(transformedData as any);
     }
   };
 
@@ -1175,6 +1188,29 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       data-testid="switch-hide-for-hybrid"
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="supersedesKitItems"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Supersedes Kit Items (Build Sheet)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={"e.g.\nT1000 Pro Tyre Changer\nT2000 Pro Tyre Changer"}
+                      {...field}
+                      value={field.value ?? ""}
+                      rows={4}
+                      className="resize-none font-mono text-xs"
+                      data-testid="input-supersedes-kit-items"
+                    />
+                  </FormControl>
+                  <p className="text-sm text-muted-foreground">
+                    One kit item per line (exact text match). On the build sheet, this upgrade will appear <strong>in place of</strong> these kit items — the kit items will be hidden and the upgrade name shown instead. Leave blank if this upgrade does not supersede any kit items.
+                  </p>
                 </FormItem>
               )}
             />

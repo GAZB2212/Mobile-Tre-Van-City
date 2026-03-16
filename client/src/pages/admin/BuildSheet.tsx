@@ -128,6 +128,49 @@ export default function BuildSheet() {
   const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds.includes(u.id));
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
 
+  // ── Build-sheet supersession logic ──────────────────────────────────────────
+  // Upgrades with supersedesKitItems move INTO the kit section, replacing those
+  // kit items. They are removed from the upgrades section.
+  const supersedingUpgrades = upgrades.filter(
+    (u) => Array.isArray((u as any).supersedesKitItems) && (u as any).supersedesKitItems.length > 0
+  );
+  const regularUpgrades = upgrades.filter(
+    (u) => !Array.isArray((u as any).supersedesKitItems) || (u as any).supersedesKitItems.length === 0
+  );
+
+  // Build a lookup: lower-cased kit item text → the upgrade that supersedes it
+  const kitItemToUpgrade = new Map<string, typeof upgrades[0]>();
+  for (const upgrade of supersedingUpgrades) {
+    for (const item of ((upgrade as any).supersedesKitItems as string[])) {
+      kitItemToUpgrade.set(item.trim().toLowerCase(), upgrade);
+    }
+  }
+
+  // Compute the effective kit items list for rendering:
+  // Each entry is either a plain kit string or a superseding upgrade.
+  type KitEntry =
+    | { kind: "kit"; text: string; origIdx: number }
+    | { kind: "upgrade"; upgrade: typeof upgrades[0]; origIdx: number };
+
+  const effectiveKitItems: KitEntry[] = [];
+  const renderedUpgradeIds = new Set<string>();
+
+  if (kit) {
+    kit.includes.forEach((item, idx) => {
+      const matchingUpgrade = kitItemToUpgrade.get(item.trim().toLowerCase());
+      if (matchingUpgrade) {
+        if (!renderedUpgradeIds.has(matchingUpgrade.id)) {
+          // First match: show the upgrade in place of this kit item
+          effectiveKitItems.push({ kind: "upgrade", upgrade: matchingUpgrade, origIdx: idx });
+          renderedUpgradeIds.add(matchingUpgrade.id);
+        }
+        // Subsequent matches for the same upgrade: skip (item is removed)
+      } else {
+        effectiveKitItems.push({ kind: "kit", text: item, origIdx: idx });
+      }
+    });
+  }
+
   const formatDate = (dateString: string | Date | null): string => {
     if (!dateString) return "Unknown date";
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -337,8 +380,10 @@ export default function BuildSheet() {
                   </div>
                   <Separator />
                   <div className="space-y-2">
-                    {kit.includes.map((item, idx) => {
-                      const itemKey = `kit-${idx}`;
+                    {effectiveKitItems.map((entry, idx) => {
+                      const itemKey = entry.kind === "upgrade"
+                        ? `kit-upgrade-${entry.upgrade.id}`
+                        : `kit-${entry.origIdx}`;
                       return (
                         <div
                           key={idx}
@@ -346,16 +391,35 @@ export default function BuildSheet() {
                           data-testid={`row-kit-item-${idx}`}
                         >
                           <PrintCheckbox
-                            id={`checkbox-kit-${idx}`}
+                            id={`checkbox-${itemKey}`}
                             checked={isChecked(itemKey)}
                             onChange={v => setChecked(itemKey, v)}
                           />
-                          <span
-                            className={`text-sm font-medium flex-1 ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
-                            data-testid={`text-kit-includes-${idx}`}
-                          >
-                            {item}
-                          </span>
+                          {entry.kind === "upgrade" ? (
+                            <div className="flex-1 min-w-0">
+                              <span
+                                className={`text-sm font-semibold flex-1 ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                                data-testid={`text-kit-includes-${idx}`}
+                              >
+                                {entry.upgrade.name}
+                              </span>
+                              <span className="ml-2 text-xs font-bold uppercase tracking-wide text-accent print:text-black">
+                                (Upgraded)
+                              </span>
+                              {entry.upgrade.description && (
+                                <p className="text-xs text-muted-foreground print:text-black mt-0.5">
+                                  {entry.upgrade.description}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span
+                              className={`text-sm font-medium flex-1 ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                              data-testid={`text-kit-includes-${idx}`}
+                            >
+                              {entry.text}
+                            </span>
+                          )}
                         </div>
                       );
                     })}
@@ -365,15 +429,15 @@ export default function BuildSheet() {
             </Card>
           )}
 
-          {/* Upgrades — with checkboxes */}
-          {upgrades.length > 0 && (
+          {/* Upgrades — with checkboxes (superseding upgrades are shown in the kit section above) */}
+          {regularUpgrades.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Additional Equipment &amp; Upgrades — Items to Install</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
-                  {upgrades.map((upgrade) => {
+                  {regularUpgrades.map((upgrade) => {
                     const quantity = quote.selectedUpgrades?.[upgrade.id] || 1;
                     const itemKey = `upgrade-${upgrade.id}`;
                     return (

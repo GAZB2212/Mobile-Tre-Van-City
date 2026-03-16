@@ -130,6 +130,7 @@ export const upgrades = pgTable("upgrades", {
   forCommercial: boolean("for_commercial").notNull().default(false), // If true, shown only to commercial/hybrid customers
   carOnly: boolean("car_only").notNull().default(false), // If true, hidden from commercial customers (car/van only)
   hideForHybrid: boolean("hide_for_hybrid").notNull().default(false), // If true, hidden from hybrid customers (but still shown to commercial)
+  supersedesKitItems: json("supersedes_kit_items").$type<string[]>().notNull().default([]), // Kit item strings this upgrade replaces/removes in the build sheet
   exclusiveGroup: text("exclusive_group"), // If set, only one upgrade in this group can be selected at a time
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
