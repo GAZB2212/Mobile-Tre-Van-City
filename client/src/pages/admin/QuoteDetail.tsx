@@ -1020,7 +1020,17 @@ export default function AdminQuoteDetail() {
                   </p>
                   <div className="mt-2 space-y-4 max-h-96 overflow-y-auto border rounded-md p-4">
                     {upgradeCategories.map((category) => {
-                      const categoryUpgrades = upgrades.filter(u => u.published && u.category === category);
+                      // Hide the "commercial" category entirely for car/personal customers
+                      if (category === "commercial" && serviceType === "car") return null;
+
+                      const categoryUpgrades = upgrades.filter(u => {
+                        if (!u.published || u.category !== category) return false;
+                        // Hide commercial-only items from car/personal customers
+                        if (serviceType === "car" && u.forCommercial) return false;
+                        // Hide car-only items from commercial/hybrid customers
+                        if ((serviceType === "commercial" || serviceType === "hybrid") && u.carOnly) return false;
+                        return true;
+                      });
                       if (categoryUpgrades.length === 0) return null;
                       
                       const { groups, standalone } = groupUpgradeVariations(categoryUpgrades);
