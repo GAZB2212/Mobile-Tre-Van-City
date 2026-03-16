@@ -129,6 +129,7 @@ export const upgrades = pgTable("upgrades", {
   popular: boolean("popular").notNull().default(false), // Mark as popular upgrade
   forCommercial: boolean("for_commercial").notNull().default(false), // If true, shown only to commercial/hybrid customers
   carOnly: boolean("car_only").notNull().default(false), // If true, hidden from commercial customers (car/van only)
+  hideForHybrid: boolean("hide_for_hybrid").notNull().default(false), // If true, hidden from hybrid customers (but still shown to commercial)
   exclusiveGroup: text("exclusive_group"), // If set, only one upgrade in this group can be selected at a time
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

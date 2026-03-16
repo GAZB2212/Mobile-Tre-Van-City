@@ -1194,6 +1194,8 @@ export default function AdminQuoteDetail() {
                         if (serviceType === "car" && u.forCommercial) return false;
                         // Hide car-only items from commercial/hybrid customers
                         if ((serviceType === "commercial" || serviceType === "hybrid") && u.carOnly) return false;
+                        // Hide hybrid-excluded items from hybrid customers (but still show to commercial)
+                        if (serviceType === "hybrid" && (u as any).hideForHybrid) return false;
                         return true;
                       });
                       if (categoryUpgrades.length === 0) return null;

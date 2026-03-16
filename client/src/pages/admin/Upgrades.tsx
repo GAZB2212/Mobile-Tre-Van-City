@@ -94,6 +94,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
   popular: z.boolean().optional(),
   forCommercial: z.boolean().optional(),
   carOnly: z.boolean().optional(),
+  hideForHybrid: z.boolean().optional(),
   exclusiveGroup: z.string().optional().nullable(),
 });
 
@@ -294,6 +295,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
       popular: false,
       forCommercial: false,
       carOnly: false,
+      hideForHybrid: false,
       exclusiveGroup: null,
     },
   });
@@ -344,6 +346,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         popular: upgrade.popular || false,
         forCommercial: upgrade.forCommercial || false,
         carOnly: upgrade.carOnly || false,
+        hideForHybrid: (upgrade as any).hideForHybrid || false,
         exclusiveGroup: upgrade.exclusiveGroup || null,
       });
     } else {
@@ -367,6 +370,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         popular: false,
         forCommercial: false,
         carOnly: false,
+        hideForHybrid: false,
         exclusiveGroup: null,
       });
     }
@@ -1147,6 +1151,28 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                         }
                       }}
                       data-testid="switch-car-only"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="hideForHybrid"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Hide from Car &amp; Commercial (Hybrid)</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Hide this upgrade from customers who selected the Hybrid service type, while still showing it to pure Commercial customers
+                    </p>
+                  </div>
+                  <FormControl>
+                    <AdminSwitch
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                      data-testid="switch-hide-for-hybrid"
                     />
                   </FormControl>
                 </FormItem>

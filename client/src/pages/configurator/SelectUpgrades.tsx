@@ -136,16 +136,18 @@ export default function SelectUpgrades() {
   const isCommercial = state.serviceType === "commercial" || state.serviceType === "hybrid";
   // Commercial skips kit selection entirely; hybrid goes through kit first
   const skippedKit = state.serviceType === "commercial";
+  const isHybrid = state.serviceType === "hybrid";
 
   // Filter upgrades by service type:
   // - Commercial customers see all upgrades except carOnly ones (regular + commercial-specific)
+  // - Hybrid customers: same as commercial BUT also hide upgrades flagged hideForHybrid
   // - Car/van customers only see upgrades where forCommercial is false
   const filteredUpgrades = useMemo<Record<string, Upgrade[]>>(() => {
     if (!configuratorData) return {};
     if (isCommercial) {
       const result: Record<string, Upgrade[]> = {};
       for (const [cat, ups] of Object.entries(configuratorData.upgrades)) {
-        const visible = ups.filter(u => !u.carOnly);
+        const visible = ups.filter(u => !u.carOnly && !(isHybrid && u.hideForHybrid));
         if (visible.length > 0) result[cat] = visible;
       }
       return result;
