@@ -2043,8 +2043,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // Send finance preview email to the logged-in admin's own email
   app.post("/api/admin/quotes/:id/send-finance-preview", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const adminUser = req.user as any;
-      const recipientEmail: string = req.body.previewEmail?.trim() || adminUser?.email;
+      // req.user is not populated by this app (no Passport) — look up the user via session
+      const sessionUserId = (req.session as any)?.user?.id;
+      const sessionUser = sessionUserId ? await storage.getUser(sessionUserId) : null;
+      const recipientEmail: string = req.body.previewEmail?.trim() || sessionUser?.email || "";
       if (!recipientEmail) {
         return res.status(400).json({ error: "Please enter an email address to send the preview to." });
       }

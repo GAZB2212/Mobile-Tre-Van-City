@@ -190,7 +190,7 @@ export default function AdminQuoteDetail() {
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
   const [editorTermYears, setEditorTermYears] = useState<number>(3);
 
-  // Preview email — where the "Send preview to me" goes
+  // Preview email — where the "Send preview to me" goes (pre-populated from account)
   const [previewEmail, setPreviewEmail] = useState<string>("");
 
   // Service type (car / commercial / hybrid) — determines customer's path
@@ -506,6 +506,13 @@ export default function AdminQuoteDetail() {
     if (newAdminNote.trim() !== "") return true;
     return false;
   })() : false;
+
+  // Pre-populate preview email from the logged-in user's account email
+  useEffect(() => {
+    if ((user as any)?.email && !previewEmail) {
+      setPreviewEmail((user as any).email);
+    }
+  }, [(user as any)?.email]);
 
   // Must be called before any early return (Rules of Hooks)
   useEffect(() => {
