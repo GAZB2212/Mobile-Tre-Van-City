@@ -2261,6 +2261,65 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Customer submits corrections to their quote (public endpoint, token-gated)
+  app.post("/api/quote/correct/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { corrections } = req.body;
+
+      if (!corrections || typeof corrections !== 'string' || !corrections.trim()) {
+        return res.status(400).json({ error: "Corrections text is required" });
+      }
+
+      const quotes = await storage.getQuotes();
+      const quote = quotes.find(q => q.confirmationToken === token);
+
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found or link expired" });
+      }
+
+      const newNote = {
+        text: `Customer correction request:\n${corrections.trim()}`,
+        timestamp: new Date().toISOString(),
+        author: "Customer",
+      };
+
+      const updatedHistory = [...(quote.adminNotesHistory || []), newNote];
+
+      await storage.updateQuote(quote.id, {
+        adminNotesHistory: updatedHistory,
+      });
+
+      // Notify internal team
+      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'info@gfukgroup.co.uk'];
+      try {
+        const { sendEmail } = await import('./email.js');
+        await sendEmail({
+          to: INTERNAL_NOTIFY_EMAILS,
+          subject: `Quote Correction Request — ${quote.userName}`,
+          html: `
+            <h2>A customer has requested corrections to their quote</h2>
+            <p><strong>Customer:</strong> ${quote.userName}</p>
+            <p><strong>Email:</strong> ${quote.email}</p>
+            <p><strong>Quote ID:</strong> ${quote.id}</p>
+            <hr/>
+            <h3>Their corrections:</h3>
+            <p style="white-space:pre-wrap; background:#f5f5f5; padding:12px; border-radius:6px;">${corrections.trim()}</p>
+            <hr/>
+            <p>Please review the quote in the admin panel and make any necessary adjustments.</p>
+          `,
+        });
+      } catch (emailErr) {
+        console.error('Failed to send correction notification email:', emailErr);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error saving quote correction:', error);
+      res.status(500).json({ error: "Failed to save corrections" });
+    }
+  });
+
   app.get("/api/admin/leads", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const leads = await storage.getLeads();

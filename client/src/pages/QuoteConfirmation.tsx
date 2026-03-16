@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, Loader2, XCircle, MessageSquare, Truck, Wrench, PoundSterling, AlertCircle } from "lucide-react";
+import { CheckCircle, Loader2, XCircle, MessageSquare, Truck, Wrench, PoundSterling, AlertCircle, ThumbsUp, ThumbsDown, Send, ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -18,6 +19,9 @@ export default function QuoteConfirmation() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [confirmed, setConfirmed] = useState(false);
+  const [correctionMode, setCorrectionMode] = useState(false);
+  const [correctionText, setCorrectionText] = useState("");
+  const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
 
   const { data: quote, isLoading, error } = useQuery<Quote>({
     queryKey: [`/api/quote/confirm/${token}`],
@@ -40,6 +44,26 @@ export default function QuoteConfirmation() {
         variant: "destructive",
         title: "Error",
         description: "Failed to confirm quote. Please try again.",
+      });
+    },
+  });
+
+  const correctMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/quote/correct/${token}`, { corrections: correctionText });
+    },
+    onSuccess: () => {
+      setCorrectionSubmitted(true);
+      toast({
+        title: "Corrections Sent",
+        description: "We've received your corrections and will be in touch shortly.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send corrections. Please try again.",
       });
     },
   });
@@ -452,28 +476,101 @@ export default function QuoteConfirmation() {
               )}
 
               <Card className="border-accent">
-                <CardContent className="py-6">
-                  <Button
-                    onClick={() => confirmMutation.mutate()}
-                    disabled={confirmMutation.isPending}
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
-                    data-testid="button-confirm-quote"
-                  >
-                    {confirmMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Confirming...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Confirm Quote
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-3">
-                    By confirming, you agree to proceed with this quote
-                  </p>
+                <CardHeader>
+                  <CardTitle className="text-center text-xl">
+                    Does everything look correct?
+                  </CardTitle>
+                  <CardDescription className="text-center">
+                    Please review your full configuration above before confirming
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {correctionSubmitted ? (
+                    <div className="text-center py-4 space-y-3">
+                      <CheckCircle className="w-12 h-12 text-accent mx-auto" />
+                      <p className="font-semibold text-lg">Corrections received</p>
+                      <p className="text-muted-foreground text-sm">
+                        Thank you — our team will review your notes and be in touch shortly to discuss any changes.
+                      </p>
+                    </div>
+                  ) : correctionMode ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Please describe what needs to be changed — our team will review your notes and get back to you.
+                      </p>
+                      <Textarea
+                        placeholder="e.g. I'd like to change the van model, remove the graphic pack, and add the security camera instead..."
+                        value={correctionText}
+                        onChange={(e) => setCorrectionText(e.target.value)}
+                        rows={5}
+                        className="resize-none"
+                        data-testid="input-corrections"
+                      />
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => { setCorrectionMode(false); setCorrectionText(""); }}
+                          disabled={correctMutation.isPending}
+                          className="flex-1"
+                          data-testid="button-back-to-confirm"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Go back
+                        </Button>
+                        <Button
+                          onClick={() => correctMutation.mutate()}
+                          disabled={correctMutation.isPending || !correctionText.trim()}
+                          className="flex-1 bg-accent text-accent-foreground"
+                          data-testid="button-send-corrections"
+                        >
+                          {correctMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-2" />
+                              Send corrections
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => confirmMutation.mutate()}
+                        disabled={confirmMutation.isPending}
+                        className="w-full bg-accent text-accent-foreground text-base"
+                        data-testid="button-confirm-quote"
+                      >
+                        {confirmMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Confirming...
+                          </>
+                        ) : (
+                          <>
+                            <ThumbsUp className="w-4 h-4 mr-2" />
+                            Yes, everything is correct — confirm my quote
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setCorrectionMode(true)}
+                        className="w-full text-base"
+                        data-testid="button-request-corrections"
+                      >
+                        <ThumbsDown className="w-4 h-4 mr-2" />
+                        No, I need to make some changes
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        By confirming, you agree to proceed with this quote
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
