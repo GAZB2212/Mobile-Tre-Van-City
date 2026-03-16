@@ -463,6 +463,37 @@ export default function AdminQuoteDetail() {
     },
   });
 
+  // Detect unsaved changes across ALL saveable fields (every tab)
+  // Computed before early returns so the useEffect below is never conditionally called
+  const isDirty = quote ? (() => {
+    if (selectedVanId !== (originalVanId ?? null)) return true;
+    if (selectedKitId !== (originalKitId ?? null)) return true;
+    if (JSON.stringify([...selectedUpgradeIds].sort()) !== JSON.stringify([...originalSelectedUpgradeIds].sort())) return true;
+    if (JSON.stringify(selectedUpgrades) !== JSON.stringify(originalSelectedUpgrades)) return true;
+    if (serviceType !== ((quote.serviceType as any) ?? null)) return true;
+    if (status !== (quote.status || "new")) return true;
+    if (discountType !== (quote.discountType || "")) return true;
+    const origDiscountValue = quote.discountValue
+      ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
+      : "";
+    if (discountValue !== origDiscountValue) return true;
+    if (vanRegistration !== (quote.vanRegistration ?? "")) return true;
+    if (vanMileage !== (quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "")) return true;
+    if (customerConfirmed !== (quote.customerConfirmed ?? false)) return true;
+    if (JSON.stringify([...completedBuildStages].sort()) !== JSON.stringify([...(quote.completedBuildStages || [])].sort())) return true;
+    if (newAdminNote.trim() !== "") return true;
+    return false;
+  })() : false;
+
+  // Must be called before any early return (Rules of Hooks)
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
   if (!user?.adminRole || user.adminRole === "none") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -594,39 +625,6 @@ export default function AdminQuoteDetail() {
   const activeStages = customBuildStages ?? autoGenerateStages();
 
   const allBuildStagesDone = activeStages.length > 0 && activeStages.every(s => completedBuildStages.includes(s.id));
-
-  // Detect unsaved changes across ALL saveable fields (every tab)
-  const isDirty = quote ? (() => {
-    // Configuration fields
-    if (selectedVanId !== (originalVanId ?? null)) return true;
-    if (selectedKitId !== (originalKitId ?? null)) return true;
-    if (JSON.stringify([...selectedUpgradeIds].sort()) !== JSON.stringify([...originalSelectedUpgradeIds].sort())) return true;
-    if (JSON.stringify(selectedUpgrades) !== JSON.stringify(originalSelectedUpgrades)) return true;
-    if (serviceType !== ((quote.serviceType as any) ?? null)) return true;
-    // Overview fields
-    if (status !== (quote.status || "new")) return true;
-    if (discountType !== (quote.discountType || "")) return true;
-    const origDiscountValue = quote.discountValue
-      ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
-      : "";
-    if (discountValue !== origDiscountValue) return true;
-    if (vanRegistration !== (quote.vanRegistration ?? "")) return true;
-    if (vanMileage !== (quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "")) return true;
-    if (customerConfirmed !== (quote.customerConfirmed ?? false)) return true;
-    if (JSON.stringify([...completedBuildStages].sort()) !== JSON.stringify([...(quote.completedBuildStages || [])].sort())) return true;
-    // Notes input typed but not saved
-    if (newAdminNote.trim() !== "") return true;
-    return false;
-  })() : false;
-
-  // Warn browser on tab close / hard refresh when dirty
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = ""; }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
 
   // Tab switch — guard ALL tab changes when ANY field is dirty
   const handleTabChange = (newTab: string) => {
