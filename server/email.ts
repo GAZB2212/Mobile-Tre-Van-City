@@ -381,6 +381,7 @@ ${financeDetails ? `
 
   await client.emails.send({
     to: financeCompanyEmail,
+    cc: ['carl@geg.co'],
     from: fromEmail,
     replyTo: [fromEmail],
     subject: `Finance Application – ${customerName} – ${fmt(totalAfterDiscount)} – Ref #${ref}`,
