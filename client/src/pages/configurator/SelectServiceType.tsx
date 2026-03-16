@@ -6,7 +6,7 @@ import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Car, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Car, Truck, Shuffle } from "lucide-react";
 import type { KitServiceType } from "@shared/schema";
 
 const SERVICE_OPTIONS: {
@@ -22,18 +22,27 @@ const SERVICE_OPTIONS: {
     label: "Car & Van Tyres",
     description: "Passenger cars, vans & SUVs",
     detail:
-      "Your conversion will include a fully configured equipment pack suited for fitting standard car and light-van tyres. Choose from our range of packs in the next step.",
+      "Your conversion will be set up for fitting standard car and light-van tyres. Choose from our range of equipment packs in the next step.",
     Icon: Car,
     nextPath: "/configurator/kit",
   },
   {
     value: "commercial",
-    label: "Commercial / Hybrid",
-    description: "HGVs, lorries, mixed fleet & dual-purpose",
+    label: "Commercial Only",
+    description: "HGVs, lorries & heavy commercial fleet",
     detail:
-      "For heavy goods vehicles, large commercial fleet, or a van that handles both car/van and commercial tyres. Skip straight to selecting your extras and equipment.",
+      "For heavy goods vehicles and large commercial fleets only. No equipment pack required — select your commercial extras and equipment in the next step.",
     Icon: Truck,
     nextPath: "/configurator/upgrades",
+  },
+  {
+    value: "hybrid",
+    label: "Car & Commercial",
+    description: "Mixed fleet — car tyres and commercial",
+    detail:
+      "Your van will handle both standard car/van tyres and commercial vehicles. You'll choose an equipment pack first, then select your commercial extras on top.",
+    Icon: Shuffle,
+    nextPath: "/configurator/kit",
   },
 ];
 
@@ -75,7 +84,7 @@ export default function SelectServiceType() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
           <div className="xl:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-service-types">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-testid="grid-service-types">
               {SERVICE_OPTIONS.map(({ value, label, description, detail, Icon, nextPath }) => {
                 const isSelected = state.serviceType === value;
                 return (

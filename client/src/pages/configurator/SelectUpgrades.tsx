@@ -133,7 +133,9 @@ export default function SelectUpgrades() {
     queryKey: ['/api/configurator/data'],
   });
 
-  const isCommercial = state.serviceType === "commercial";
+  const isCommercial = state.serviceType === "commercial" || state.serviceType === "hybrid";
+  // Commercial skips kit selection entirely; hybrid goes through kit first
+  const skippedKit = state.serviceType === "commercial";
 
   // Filter upgrades by service type:
   // - Commercial customers see all upgrades except carOnly ones (regular + commercial-specific)
@@ -378,20 +380,26 @@ export default function SelectUpgrades() {
           <div className="mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => setLocation(isCommercial ? '/configurator/service-type' : '/configurator/kit')}
+              onClick={() => setLocation(skippedKit ? '/configurator/service-type' : '/configurator/kit')}
               data-testid="button-back"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {isCommercial ? 'Back to Service Type' : 'Back to Kit Selection'}
+              {skippedKit ? 'Back to Service Type' : 'Back to Kit Selection'}
             </Button>
             
             <ConfiguratorStepper currentPath="/configurator/upgrades" />
 
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
-              {isCommercial ? 'Configure Your Commercial Setup' : 'Add Upgrades & Extras'}
+              {state.serviceType === "hybrid"
+                ? 'Add Commercial & Extra Equipment'
+                : isCommercial
+                ? 'Configure Your Commercial Setup'
+                : 'Add Upgrades & Extras'}
             </h1>
             <p className="text-muted-foreground">
-              {isCommercial
+              {state.serviceType === "hybrid"
+                ? 'Select the commercial equipment and any additional extras for your hybrid setup'
+                : isCommercial
                 ? 'Select the commercial equipment and extras for your van conversion'
                 : 'Enhance your van with additional features and equipment upgrades'}
             </p>
@@ -676,7 +684,7 @@ export default function SelectUpgrades() {
                   <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-6">
                     <Button 
                       variant="outline" 
-                      onClick={() => setLocation(isCommercial ? '/configurator/service-type' : '/configurator/kit')}
+                      onClick={() => setLocation(skippedKit ? '/configurator/service-type' : '/configurator/kit')}
                       data-testid="button-back-bottom"
                       className="w-full sm:w-auto !border-2 !border-accent text-accent hover:bg-accent/10"
                     >

@@ -54,6 +54,10 @@ export default function SelectKit() {
         ? kit.serviceType
         : ["car", "commercial", "hybrid"]; // fallback for legacy data
       if (kitTypes.length === 0 || kitTypes.length === 3) return true; // effectively "all"
+      // Hybrid customers see car-compatible packs (they need a base car pack + commercial upgrades)
+      if (state.serviceType === "hybrid") {
+        return kitTypes.includes("hybrid") || kitTypes.includes("car");
+      }
       return kitTypes.includes(state.serviceType!);
     });
   }, [allKits, state.serviceType]);
