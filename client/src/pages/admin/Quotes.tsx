@@ -29,7 +29,6 @@ function getStatusLabel(status: string): string {
 }
 
 import { useAuth } from "@/hooks/useAuth";
-import { useCanEdit } from "@/hooks/useCanEdit";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { useEffect, useState } from "react";
@@ -148,8 +147,7 @@ export default function AdminQuotes() {
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
-  // Only full admins can edit quotes
-  const canEdit = useCanEdit();
+  const canEdit = user?.adminRole === "full";
 
   if (isLoading) {
     return (

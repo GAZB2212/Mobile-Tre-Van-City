@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { useCanEdit } from "@/hooks/useCanEdit";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,7 +137,7 @@ export default function AdminQuoteDetail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const canEdit = useCanEdit();
+  const canEdit = user?.adminRole === "full";
   
   const [status, setStatus] = useState("");
   const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);

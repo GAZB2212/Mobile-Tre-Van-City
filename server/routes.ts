@@ -243,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/vans", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/vans", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const validatedData = insertVanSchema.parse(req.body);
       const van = await storage.createVan(validatedData);
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/kits", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/kits", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const validatedData = insertKitSchema.parse(req.body);
       const kit = await storage.createKit(validatedData);
@@ -310,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upgrades", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/upgrades", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const validatedData = insertUpgradeSchema.parse(req.body);
       const upgrade = await storage.createUpgrade(validatedData);
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/vans", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/vans", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const vanData = insertVanSchema.parse(req.body);
       const van = await storage.createVan(vanData);
@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/vans/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/vans/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const vanData = insertVanSchema.partial().parse(req.body);
       const van = await storage.updateVan(req.params.id, vanData);
@@ -679,7 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/vans/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/vans/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const success = await storage.deleteVan(req.params.id);
       if (!success) {
@@ -692,7 +692,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fix ACLs for all van images
-  app.post("/api/admin/vans/fix-acls", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/vans/fix-acls", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { ObjectStorageService } = await import("./objectStorage");
       const vans = await storage.getVans();
@@ -755,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add image to van - NEW SIMPLIFIED VERSION
-  app.post("/api/admin/vans/:id/images", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/vans/:id/images", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { imageUrl } = req.body;
       
@@ -791,7 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove image from van
-  app.delete("/api/admin/vans/:id/images", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/vans/:id/images", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { objectPath } = req.body;
       
@@ -825,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Set van hero image
-  app.put("/api/admin/vans/:id/hero-image", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/vans/:id/hero-image", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { objectPath } = req.body;
       
@@ -856,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reorder van images
-  app.put("/api/admin/vans/:id/images/reorder", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/vans/:id/images/reorder", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { images } = req.body;
       
@@ -889,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Vehicle Registration Lookup (using CheckCarDetails API)
-  app.post("/api/admin/vehicle-lookup", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/vehicle-lookup", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { registration } = req.body;
 
@@ -995,7 +995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Description Generator for Vans (using OpenAI via Replit AI Integrations)
-  app.post("/api/admin/generate-van-description", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/generate-van-description", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { make, model, year, transmission, size, fuel, mileage, engine } = req.body;
 
@@ -1073,7 +1073,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.post("/api/admin/kits", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/kits", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       if (process.env.NODE_ENV === 'development') {
         console.log('🛠️ Kit creation request:', {
@@ -1103,7 +1103,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.put("/api/admin/kits/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/kits/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const kitData = insertKitSchema.partial().parse(req.body);
       const kit = await storage.updateKit(req.params.id, kitData);
@@ -1116,7 +1116,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.delete("/api/admin/kits/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/kits/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const success = await storage.deleteKit(req.params.id);
       if (!success) {
@@ -1129,7 +1129,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Update kit sort order
-  app.patch("/api/admin/kits/:id/sort-order", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/kits/:id/sort-order", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { sortOrder } = req.body;
       
@@ -1157,7 +1157,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.post("/api/admin/upgrades", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/upgrades", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const upgradeData = insertUpgradeSchema.parse(req.body);
       
@@ -1188,7 +1188,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.put("/api/admin/upgrades/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/upgrades/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const upgradeData = insertUpgradeSchema.partial().parse(req.body);
       
@@ -1212,7 +1212,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.delete("/api/admin/upgrades/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/upgrades/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       // Check if this upgrade has child variations
       const allUpgrades = await storage.getUpgrades();
@@ -1235,7 +1235,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Update upgrade sort order
-  app.patch("/api/admin/upgrades/:id/sort-order", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/upgrades/:id/sort-order", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { sortOrder } = req.body;
       
@@ -1263,7 +1263,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.post("/api/admin/finance-plans", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/finance-plans", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const planData = insertFinancePlanSchema.parse(req.body);
       const plan = await storage.createFinancePlan(planData);
@@ -1273,7 +1273,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.put("/api/admin/finance-plans/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/finance-plans/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const planData = insertFinancePlanSchema.partial().parse(req.body);
       const plan = await storage.updateFinancePlan(req.params.id, planData);
@@ -1286,7 +1286,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  app.delete("/api/admin/finance-plans/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/finance-plans/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const success = await storage.deleteFinancePlan(req.params.id);
       if (!success) {
@@ -2863,7 +2863,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Admin endpoint for temporary image upload (for create forms)
-  app.post("/api/admin/temp-upload", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/temp-upload", isAuthenticated, isBasicAdmin, async (req, res) => {
     const multer = await import("multer");
     const upload = multer.default({ storage: multer.memoryStorage() });
     
@@ -2902,7 +2902,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Admin endpoint for van image upload - BACKEND PROXY (no CORS issues)
-  app.post("/api/admin/vans/:id/upload-image", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/vans/:id/upload-image", isAuthenticated, isBasicAdmin, async (req, res) => {
     const multer = await import("multer");
     const upload = multer.default({ storage: multer.memoryStorage() });
     
@@ -2958,7 +2958,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Admin endpoint for setting ACL policy on uploaded objects
-  app.post("/api/admin/objects/set-acl", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/objects/set-acl", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { objectPath, acl } = req.body;
       
