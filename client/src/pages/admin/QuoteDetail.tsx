@@ -364,6 +364,24 @@ export default function AdminQuoteDetail() {
     },
   });
 
+  const sendFinancePreviewMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/admin/quotes/${id}/send-finance-preview`, {
+        vanRegistration: vanRegistration.trim() || null,
+        vanMileage: vanMileage.trim() ? parseInt(vanMileage.trim()) : null,
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Preview Sent",
+        description: `Finance preview emailed to ${data?.sentTo ?? "your email"}.`,
+      });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to send finance preview email." });
+    },
+  });
+
   const saveFinanceMutation = useMutation({
     mutationFn: async () => {
       const depositPence = editorDepositAmount !== "" ? Math.round(parseFloat(editorDepositAmount) * 100) : 0;
@@ -1612,6 +1630,10 @@ export default function AdminQuoteDetail() {
                       <Send className="w-4 h-4 mr-2" />
                       {sendFinanceMutation.isPending ? "Sending..." : "Send to Finance Company"}
                     </Button>
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => sendFinancePreviewMutation.mutate()} disabled={sendFinancePreviewMutation.isPending} data-testid="button-send-finance-preview">
+                      <Send className="w-3 h-3 mr-2" />
+                      {sendFinancePreviewMutation.isPending ? "Sending..." : "Send preview to me"}
+                    </Button>
                     {!customerConfirmed && <p className="text-xs text-muted-foreground text-center">Tick "Customer confirms the configurator" to enable</p>}
                     {quote.financeSentAt && (
                       <p className="text-xs text-muted-foreground text-center">
@@ -2278,6 +2300,17 @@ export default function AdminQuoteDetail() {
                     >
                       <Send className="w-4 h-4 mr-2" />
                       {sendFinanceMutation.isPending ? "Sending..." : "Send to Finance Company"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => sendFinancePreviewMutation.mutate()}
+                      disabled={sendFinancePreviewMutation.isPending}
+                      data-testid="button-send-finance-preview-mobile"
+                    >
+                      <Send className="w-3 h-3 mr-2" />
+                      {sendFinancePreviewMutation.isPending ? "Sending..." : "Send preview to me"}
                     </Button>
                     {!customerConfirmed && (
                       <p className="text-xs text-muted-foreground text-center">

@@ -2040,6 +2040,101 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Send finance preview email to the logged-in admin's own email
+  app.post("/api/admin/quotes/:id/send-finance-preview", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const adminUser = req.user as any;
+      if (!adminUser?.email) {
+        return res.status(400).json({ error: "Your account does not have an email address on file." });
+      }
+
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      const [van, kit, selectedUpgrades] = await Promise.all([
+        quote.vanId ? storage.getVan(quote.vanId) : Promise.resolve(null),
+        quote.kitId ? storage.getKit(quote.kitId) : Promise.resolve(null),
+        quote.selectedUpgradeIds && quote.selectedUpgradeIds.length > 0
+          ? Promise.all(quote.selectedUpgradeIds.map((uid: string) => storage.getUpgrade(uid)))
+          : Promise.resolve([]),
+      ]);
+
+      const totalWithVat = quote.estSubtotal + quote.estVAT;
+      let discount = 0;
+      if (quote.discountType && quote.discountValue) {
+        if (quote.discountType === 'percentage') {
+          discount = Math.round((totalWithVat * quote.discountValue) / 100);
+        } else {
+          discount = quote.discountValue;
+        }
+      }
+
+      let financeDetails: {
+        planType: string;
+        apr: number;
+        depositAmount: number;
+        termMonths: number;
+        monthlyPayment: number;
+        weeklyPayment: number;
+      } | undefined;
+
+      if (quote.financePlanId && quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
+        const financePlan = await storage.getFinancePlan(quote.financePlanId);
+        if (financePlan) {
+          const depositAmount = quote.financeInputs.deposit;
+          const termMonths = quote.financeInputs.term;
+          const apr = financePlan.aprBps / 10000;
+          const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
+          if (principal > 0 && termMonths > 0) {
+            const monthlyRate = apr / 12;
+            let monthlyPayment: number;
+            if (monthlyRate === 0) {
+              monthlyPayment = Math.round(principal / termMonths);
+            } else {
+              const pv = Math.pow(1 + monthlyRate, termMonths);
+              monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+            }
+            const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+            financeDetails = {
+              planType: financePlan.type,
+              apr: financePlan.aprBps / 100,
+              depositAmount,
+              termMonths,
+              monthlyPayment,
+              weeklyPayment,
+            };
+          }
+        }
+      }
+
+      const { sendFinanceSubmissionEmail } = await import('./email.js');
+      await sendFinanceSubmissionEmail({
+        financeCompanyEmail: adminUser.email,
+        customerName: quote.userName,
+        customerPhone: quote.phone,
+        customerEmail: quote.email,
+        quoteId: quote.id,
+        vanTitle: van?.title ?? null,
+        vanRegistration: req.body.vanRegistration !== undefined ? req.body.vanRegistration : (quote.vanRegistration ?? null),
+        vanMileage: req.body.vanMileage !== undefined ? req.body.vanMileage : (quote.vanMileage ?? null),
+        kitName: kit?.name ?? null,
+        upgradeNames: selectedUpgrades.filter(Boolean).map((u: any) => u.name),
+        subtotal: quote.estSubtotal,
+        vat: quote.estVAT,
+        total: totalWithVat,
+        discount: discount > 0 ? discount : undefined,
+        financeDetails,
+      });
+
+      res.json({ success: true, sentTo: adminUser.email });
+    } catch (error) {
+      console.error('Error sending finance preview email:', error);
+      res.status(500).json({ error: "Failed to send finance preview email" });
+    }
+  });
+
   // Public quote confirmation endpoint (no auth required)
   app.get("/api/quote/confirm/:token", async (req, res) => {
     try {
@@ -3427,6 +3522,21 @@ ${vanEntries}
       }
     });
   });
+
+  (async () => {
+    try {
+      const settings = await storage.getSiteSettings();
+      if (!settings._finance_email_reset_v1) {
+        if (settings.finance_company_email && settings.finance_company_email !== 'stephen.quinn@jigsawfinance.com') {
+          await storage.setSiteSetting('finance_company_email', 'stephen.quinn@jigsawfinance.com');
+          console.log('Reset finance_company_email to stephen.quinn@jigsawfinance.com');
+        }
+        await storage.setSiteSetting('_finance_email_reset_v1', 'done');
+      }
+    } catch (e) {
+      console.error('Failed to reset finance_company_email:', e);
+    }
+  })();
 
   const httpServer = createServer(app);
 
