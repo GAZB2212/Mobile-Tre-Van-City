@@ -181,6 +181,10 @@ export default function AdminQuoteDetail() {
   // Active detail tab
   const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build" | "notes">("overview");
 
+  // Unsaved-changes guard for the configuration tab
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const pendingTabRef = useRef<string | null>(null);
+
   // Finance editor state (deposit in £ pounds, term in years 1-5)
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
   const [editorTermYears, setEditorTermYears] = useState<number>(3);
@@ -251,7 +255,8 @@ export default function AdminQuoteDetail() {
       setOriginalUpgradeIds(quote.selectedUpgradeIds || []);
       
       // Store original configuration for change detection
-      setOriginalVanId(quote.vanId || null);
+      // Mirror the "custom" sentinel used by selectedVanId so dirty-check works correctly for custom vans
+      setOriginalVanId(quote.vanId || (quote.customVanDescription || quote.customVanValue || quote.vanRegistration ? "custom" : null));
       setOriginalKitId(quote.kitId || null);
       setOriginalSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setOriginalSelectedUpgrades(quote.selectedUpgrades || {});
@@ -277,6 +282,11 @@ export default function AdminQuoteDetail() {
         title: "Success",
         description: "Quote updated successfully",
       });
+      // If save was triggered by the unsaved-changes dialog, navigate to the pending tab
+      if (pendingTabRef.current) {
+        setActiveTab(pendingTabRef.current as any);
+        pendingTabRef.current = null;
+      }
     },
     onError: () => {
       toast({
@@ -580,6 +590,25 @@ export default function AdminQuoteDetail() {
 
   const allBuildStagesDone = activeStages.length > 0 && activeStages.every(s => completedBuildStages.includes(s.id));
 
+  // Detect whether the configuration tab has unsaved changes
+  const isConfigDirty = quote ? (
+    selectedVanId !== (originalVanId ?? null) ||
+    selectedKitId !== (originalKitId ?? null) ||
+    JSON.stringify([...selectedUpgradeIds].sort()) !== JSON.stringify([...originalSelectedUpgradeIds].sort()) ||
+    JSON.stringify(selectedUpgrades) !== JSON.stringify(originalSelectedUpgrades) ||
+    serviceType !== ((quote.serviceType as any) ?? null)
+  ) : false;
+
+  // Tab switch handler — shows unsaved-changes dialog when leaving configuration with pending edits
+  const handleTabChange = (newTab: string) => {
+    if (activeTab === "configuration" && isConfigDirty) {
+      pendingTabRef.current = newTab;
+      setShowUnsavedDialog(true);
+    } else {
+      setActiveTab(newTab as any);
+    }
+  };
+
   const handleSave = () => {
     // Block saving as completed unless all build stages are ticked
     if (status === "completed" && !allBuildStagesDone) {
@@ -756,7 +785,59 @@ export default function AdminQuoteDetail() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-0">
+        {/* Unsaved configuration changes dialog */}
+        <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved configuration changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have made changes to the configuration that haven't been saved yet. What would you like to do?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel
+                onClick={() => { pendingTabRef.current = null; setShowUnsavedDialog(false); }}
+                data-testid="button-unsaved-keep-editing"
+              >
+                Keep Editing
+              </AlertDialogCancel>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Discard changes — reset all config state back to original
+                  setSelectedVanId(originalVanId);
+                  setSelectedKitId(originalKitId);
+                  setSelectedUpgradeIds(originalSelectedUpgradeIds);
+                  setSelectedUpgrades(originalSelectedUpgrades);
+                  if (quote) {
+                    setServiceType((quote.serviceType as any) ?? null);
+                    setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
+                    setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
+                  }
+                  const target = pendingTabRef.current;
+                  pendingTabRef.current = null;
+                  setShowUnsavedDialog(false);
+                  if (target) setActiveTab(target as any);
+                }}
+                data-testid="button-unsaved-discard"
+              >
+                Discard Changes
+              </Button>
+              <AlertDialogAction
+                className="bg-[#8bc440e6] text-[#191919]"
+                onClick={() => {
+                  setShowUnsavedDialog(false);
+                  handleSave();
+                }}
+                data-testid="button-unsaved-save"
+              >
+                Save & Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0">
           <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
             <TabsTrigger value="configuration" data-testid="tab-configuration">Configuration</TabsTrigger>
