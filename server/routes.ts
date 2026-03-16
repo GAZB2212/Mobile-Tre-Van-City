@@ -1150,7 +1150,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // Admin CRUD endpoints for upgrades
   app.get("/api/admin/upgrades", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const upgrades = await storage.getUpgrades();
+      const upgrades = await storage.getAllUpgradesAdmin();
       res.json(upgrades);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch upgrades" });
@@ -1215,7 +1215,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   app.delete("/api/admin/upgrades/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       // Check if this upgrade has child variations
-      const allUpgrades = await storage.getUpgrades();
+      const allUpgrades = await storage.getAllUpgradesAdmin();
       const hasChildren = allUpgrades.some(u => u.parentId === req.params.id);
       
       if (hasChildren) {

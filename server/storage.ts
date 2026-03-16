@@ -42,6 +42,7 @@ export interface IStorage {
 
   // Upgrades
   getUpgrades(category?: string): Promise<Upgrade[]>;
+  getAllUpgradesAdmin(): Promise<Upgrade[]>;
   getUpgrade(id: string): Promise<Upgrade | undefined>;
   createUpgrade(upgrade: InsertUpgrade): Promise<Upgrade>;
   updateUpgrade(id: string, upgrade: Partial<InsertUpgrade>): Promise<Upgrade | undefined>;
@@ -1451,6 +1452,10 @@ export class MemStorage implements IStorage {
     return upgrades;
   }
 
+  async getAllUpgradesAdmin(): Promise<Upgrade[]> {
+    return Array.from(this.upgrades.values()).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }
+
   async getUpgrade(id: string): Promise<Upgrade | undefined> {
     return this.upgrades.get(id);
   }
@@ -1827,6 +1832,11 @@ export class DbStorage implements IStorage {
       ).orderBy(schema.upgrades.sortOrder, schema.upgrades.name);
     }
     return await db.select().from(schema.upgrades).where(eq(schema.upgrades.published, true))
+      .orderBy(schema.upgrades.sortOrder, schema.upgrades.name);
+  }
+
+  async getAllUpgradesAdmin(): Promise<Upgrade[]> {
+    return await db.select().from(schema.upgrades)
       .orderBy(schema.upgrades.sortOrder, schema.upgrades.name);
   }
 
