@@ -1961,6 +1961,9 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         }
       }
 
+      // Build finance details from saved financeInputs.
+      // Admin saves nullify financePlanId, so fall back to the site-wide 10.9% HP APR
+      // (same logic as the Finance Calculator in the admin UI).
       let financeDetails: {
         planType: string;
         apr: number;
@@ -1970,32 +1973,40 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         weeklyPayment: number;
       } | undefined;
 
-      if (quote.financePlanId && quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
-        const financePlan = await storage.getFinancePlan(quote.financePlanId);
-        if (financePlan) {
-          const depositAmount = quote.financeInputs.deposit;
-          const termMonths = quote.financeInputs.term;
-          const apr = financePlan.aprBps / 10000;
-          const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
-          if (principal > 0 && termMonths > 0) {
-            const monthlyRate = apr / 12;
-            let monthlyPayment: number;
-            if (monthlyRate === 0) {
-              monthlyPayment = Math.round(principal / termMonths);
-            } else {
-              const pv = Math.pow(1 + monthlyRate, termMonths);
-              monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
-            }
-            const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
-            financeDetails = {
-              planType: financePlan.type,
-              apr: financePlan.aprBps / 100,
-              depositAmount,
-              termMonths,
-              monthlyPayment,
-              weeklyPayment,
-            };
+      if (quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
+        const depositAmount = quote.financeInputs.deposit;
+        const termMonths = quote.financeInputs.term;
+        const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
+
+        // Prefer stored finance plan APR; fall back to the standard 10.9% HP rate
+        let aprDecimal = 0.109;
+        let planType = 'HP';
+        if (quote.financePlanId) {
+          const financePlan = await storage.getFinancePlan(quote.financePlanId);
+          if (financePlan) {
+            aprDecimal = financePlan.aprBps / 10000;
+            planType = financePlan.type;
           }
+        }
+
+        if (principal > 0 && termMonths > 0) {
+          const monthlyRate = aprDecimal / 12;
+          let monthlyPayment: number;
+          if (monthlyRate === 0) {
+            monthlyPayment = Math.round(principal / termMonths);
+          } else {
+            const pv = Math.pow(1 + monthlyRate, termMonths);
+            monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+          }
+          const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+          financeDetails = {
+            planType,
+            apr: aprDecimal * 100,
+            depositAmount,
+            termMonths,
+            monthlyPayment,
+            weeklyPayment,
+          };
         }
       }
 
@@ -2083,32 +2094,39 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         weeklyPayment: number;
       } | undefined;
 
-      if (quote.financePlanId && quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
-        const financePlan = await storage.getFinancePlan(quote.financePlanId);
-        if (financePlan) {
-          const depositAmount = quote.financeInputs.deposit;
-          const termMonths = quote.financeInputs.term;
-          const apr = financePlan.aprBps / 10000;
-          const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
-          if (principal > 0 && termMonths > 0) {
-            const monthlyRate = apr / 12;
-            let monthlyPayment: number;
-            if (monthlyRate === 0) {
-              monthlyPayment = Math.round(principal / termMonths);
-            } else {
-              const pv = Math.pow(1 + monthlyRate, termMonths);
-              monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
-            }
-            const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
-            financeDetails = {
-              planType: financePlan.type,
-              apr: financePlan.aprBps / 100,
-              depositAmount,
-              termMonths,
-              monthlyPayment,
-              weeklyPayment,
-            };
+      if (quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
+        const depositAmount = quote.financeInputs.deposit;
+        const termMonths = quote.financeInputs.term;
+        const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
+
+        let aprDecimal = 0.109;
+        let planType = 'HP';
+        if (quote.financePlanId) {
+          const financePlan = await storage.getFinancePlan(quote.financePlanId);
+          if (financePlan) {
+            aprDecimal = financePlan.aprBps / 10000;
+            planType = financePlan.type;
           }
+        }
+
+        if (principal > 0 && termMonths > 0) {
+          const monthlyRate = aprDecimal / 12;
+          let monthlyPayment: number;
+          if (monthlyRate === 0) {
+            monthlyPayment = Math.round(principal / termMonths);
+          } else {
+            const pv = Math.pow(1 + monthlyRate, termMonths);
+            monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+          }
+          const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+          financeDetails = {
+            planType,
+            apr: aprDecimal * 100,
+            depositAmount,
+            termMonths,
+            monthlyPayment,
+            weeklyPayment,
+          };
         }
       }
 
