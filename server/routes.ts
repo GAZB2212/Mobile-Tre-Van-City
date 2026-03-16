@@ -2044,8 +2044,9 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   app.post("/api/admin/quotes/:id/send-finance-preview", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const adminUser = req.user as any;
-      if (!adminUser?.email) {
-        return res.status(400).json({ error: "Your account does not have an email address on file." });
+      const recipientEmail: string = req.body.previewEmail?.trim() || adminUser?.email;
+      if (!recipientEmail) {
+        return res.status(400).json({ error: "Please enter an email address to send the preview to." });
       }
 
       const quote = await storage.getQuote(req.params.id);
@@ -2111,7 +2112,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
       const { sendFinanceSubmissionEmail } = await import('./email.js');
       await sendFinanceSubmissionEmail({
-        financeCompanyEmail: adminUser.email,
+        financeCompanyEmail: recipientEmail,
         customerName: quote.userName,
         customerPhone: quote.phone,
         customerEmail: quote.email,
@@ -2128,7 +2129,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         financeDetails,
       });
 
-      res.json({ success: true, sentTo: adminUser.email });
+      res.json({ success: true, sentTo: recipientEmail });
     } catch (error) {
       console.error('Error sending finance preview email:', error);
       res.status(500).json({ error: "Failed to send finance preview email" });
