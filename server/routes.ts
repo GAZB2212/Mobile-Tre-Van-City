@@ -1892,6 +1892,24 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           discount = quote.discountValue;
         }
       }
+      const totalAfterDiscount = discount > 0 ? totalWithVat - discount : totalWithVat;
+
+      // Calculate finance info if financeInputs are set on the quote
+      let specFinanceInfo: { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number } | null = null;
+      const fi = (quote as any).financeInputs;
+      if (fi && fi.deposit !== undefined && fi.deposit !== null && fi.term) {
+        const depositAmount: number = fi.deposit;
+        const termMonths: number = fi.term;
+        const principal = totalAfterDiscount - depositAmount;
+        if (principal > 0 && termMonths > 0) {
+          const FINANCE_APR = 0.109;
+          const monthlyRate = FINANCE_APR / 12;
+          const pv = Math.pow(1 + monthlyRate, termMonths);
+          const monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+          const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+          specFinanceInfo = { depositAmount, termMonths, monthlyPayment, weeklyPayment };
+        }
+      }
 
       // Get latest customer-facing note
       const customerNotesHistory = quote.customerNotesHistory || [];
@@ -1922,6 +1940,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         customerNote: latestCustomerNote,
         approvalToken,
         siteBaseUrl,
+        financeInfo: specFinanceInfo,
       });
 
       // Record specSentAt, store approval token (resets prior approval), add auto-audit note

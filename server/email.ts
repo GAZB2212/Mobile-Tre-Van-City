@@ -155,6 +155,7 @@ export async function sendQuoteSpecSummaryEmail({
   customerNote,
   approvalToken,
   siteBaseUrl,
+  financeInfo,
 }: {
   to: string;
   customerName: string;
@@ -169,6 +170,12 @@ export async function sendQuoteSpecSummaryEmail({
   customerNote?: string | null;
   approvalToken?: string;
   siteBaseUrl?: string;
+  financeInfo?: {
+    depositAmount: number;
+    termMonths: number;
+    monthlyPayment: number;
+    weeklyPayment: number;
+  } | null;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
@@ -180,6 +187,20 @@ export async function sendQuoteSpecSummaryEmail({
     ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
     : '';
   const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+
+  // Build finance section if financeInfo is provided
+  const financeBlock = financeInfo ? `
+    <h3 style="margin-bottom:8px; margin-top:24px;">Finance Option (HP — 10.9% APR)</h3>
+    <table>
+      <tr><td>Deposit</td><td>${fmt(financeInfo.depositAmount)}</td></tr>
+      <tr><td>Finance Term</td><td>${financeInfo.termMonths} months (${Math.round(financeInfo.termMonths / 12)} year${financeInfo.termMonths / 12 !== 1 ? 's' : ''})</td></tr>
+      <tr><td>Estimated Monthly Payment</td><td style="font-weight:bold; color:${brandGreen};">${fmt(financeInfo.monthlyPayment)}/month</td></tr>
+      <tr><td>Estimated Weekly Payment</td><td>${fmt(financeInfo.weeklyPayment)}/week (approx.)</td></tr>
+    </table>
+    <p style="font-size:12px; color:#6b7280; margin-top:-8px;">Finance figures are estimates based on Hire Purchase at 10.9% APR. Subject to status and final agreement.</p>
+  ` : '';
+
+  const financeText = financeInfo ? `\nFinance Option (HP — 10.9% APR)\nDeposit: ${fmt(financeInfo.depositAmount)}\nTerm: ${financeInfo.termMonths} months\nMonthly payment: ${fmt(financeInfo.monthlyPayment)}\nWeekly payment (approx.): ${fmt(financeInfo.weeklyPayment)}\n` : '';
 
   // Build approval button block if a token is provided
   const siteBase = siteBaseUrl || process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
@@ -258,6 +279,7 @@ export async function sendQuoteSpecSummaryEmail({
         <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
         <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
       </table>
+      ${financeBlock}
       ${customerNote ? `<div class="note-box"><strong>Note from our team:</strong><br>${customerNote}</div>` : ''}
       ${approvalBlock}
       <p>If you have any questions or would like to make changes, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
@@ -269,7 +291,7 @@ export async function sendQuoteSpecSummaryEmail({
   </div>
 </body>
 </html>`,
-    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
 

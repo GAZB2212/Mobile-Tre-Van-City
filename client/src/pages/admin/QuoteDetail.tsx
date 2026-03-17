@@ -931,17 +931,31 @@ export default function AdminQuoteDetail() {
             <TabsTrigger value="notes" data-testid="tab-notes">Internal Notes</TabsTrigger>
           </TabsList>
 
-          <div className={`grid gap-6 ${activeTab === "finance" ? "lg:grid-cols-3" : ""}`}>
+          <div className={`grid gap-6 ${activeTab === "finance" || activeTab === "overview" ? "lg:grid-cols-3" : ""}`}>
           {/* Left Column / Main content */}
-          <div className={`space-y-6 ${activeTab === "finance" ? "lg:col-span-2" : ""}`}>
-            {/* Customer Information — Overview tab */}
+          <div className={`space-y-6 ${activeTab === "finance" || activeTab === "overview" ? "lg:col-span-2" : ""}`}>
+            {/* Combined Overview Card — Customer Header + Journey Timeline + Actions */}
             {activeTab === "overview" && <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <CardTitle className="flex items-center gap-2">
-                    <UserIcon className="w-5 h-5" />
-                    Customer Information
-                  </CardTitle>
+              {/* ── Customer Header ── */}
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg" data-testid="text-customer-name">
+                      {editingCustomer ? "Edit Customer Details" : quote.userName}
+                    </CardTitle>
+                    {!editingCustomer && (
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                        <span className="text-sm text-muted-foreground" data-testid="text-customer-email">{quote.email}</span>
+                        <span className="text-sm text-muted-foreground" data-testid="text-customer-phone">{quote.phone}</span>
+                        {quote.company && <span className="text-sm text-muted-foreground" data-testid="text-customer-company">{quote.company}</span>}
+                        {quote.createdAt && (
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(quote.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {canEdit && !editingCustomer && (
                     <Button
                       variant="outline"
@@ -961,56 +975,34 @@ export default function AdminQuoteDetail() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
-                {editingCustomer ? (
+
+              {/* Edit Form */}
+              {editingCustomer && (
+                <CardContent className="pt-0">
                   <div className="space-y-3">
                     <div className="grid md:grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">Name</label>
-                        <Input
-                          value={editCustomerName}
-                          onChange={(e) => setEditCustomerName(e.target.value)}
-                          data-testid="input-edit-customer-name"
-                        />
+                        <Input value={editCustomerName} onChange={(e) => setEditCustomerName(e.target.value)} data-testid="input-edit-customer-name" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">Email</label>
-                        <Input
-                          type="email"
-                          value={editCustomerEmail}
-                          onChange={(e) => setEditCustomerEmail(e.target.value)}
-                          data-testid="input-edit-customer-email"
-                        />
+                        <Input type="email" value={editCustomerEmail} onChange={(e) => setEditCustomerEmail(e.target.value)} data-testid="input-edit-customer-email" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                        <Input
-                          type="tel"
-                          value={editCustomerPhone}
-                          onChange={(e) => setEditCustomerPhone(e.target.value)}
-                          data-testid="input-edit-customer-phone"
-                        />
+                        <Input type="tel" value={editCustomerPhone} onChange={(e) => setEditCustomerPhone(e.target.value)} data-testid="input-edit-customer-phone" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">Business Name</label>
-                        <Input
-                          value={editCustomerCompany}
-                          onChange={(e) => setEditCustomerCompany(e.target.value)}
-                          placeholder="e.g. Smith Tyres Ltd"
-                          data-testid="input-edit-customer-company"
-                        />
+                        <Input value={editCustomerCompany} onChange={(e) => setEditCustomerCompany(e.target.value)} placeholder="e.g. Smith Tyres Ltd" data-testid="input-edit-customer-company" />
                       </div>
                     </div>
                     <div className="flex gap-2 pt-1">
                       <Button
                         size="sm"
                         onClick={() => {
-                          updateMutation.mutate({
-                            userName: editCustomerName,
-                            email: editCustomerEmail,
-                            phone: editCustomerPhone,
-                            company: editCustomerCompany || null,
-                          } as any);
+                          updateMutation.mutate({ userName: editCustomerName, email: editCustomerEmail, phone: editCustomerPhone, company: editCustomerCompany || null } as any);
                           setEditingCustomer(false);
                         }}
                         disabled={updateMutation.isPending}
@@ -1018,39 +1010,242 @@ export default function AdminQuoteDetail() {
                       >
                         Save
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingCustomer(false)}
-                        data-testid="button-cancel-edit-customer"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setEditingCustomer(false)} data-testid="button-cancel-edit-customer">
                         Cancel
                       </Button>
                     </div>
                   </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Name</div>
-                      <div className="text-base">{quote.userName}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Email</div>
-                      <div className="text-base">{quote.email}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Phone</div>
-                      <div className="text-base">{quote.phone}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Business Name</div>
-                      <div className="text-base">
-                        {quote.company || <span className="text-muted-foreground italic text-sm">Not set</span>}
+                </CardContent>
+              )}
+
+              {!editingCustomer && (<>
+                <Separator />
+
+                {/* ── Journey Timeline ── */}
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Customer Journey</p>
+                  {(() => {
+                    const isCancelled = status === "cancelled";
+                    const paymentStatuses = ["awaiting_deposit", "awaiting_finance", "deposit_taken", "finance_approved"];
+                    const paymentSubLabel = paymentStatuses.includes(status) ? STATUS_LABELS[status] : null;
+                    const steps = [
+                      { id: "enquiry", label: "Enquiry Received", isDone: true, detail: quote.createdAt ? new Date(quote.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+                      { id: "contacted", label: "Customer Contacted", isDone: status !== "new", detail: null },
+                      { id: "spec_sent", label: "Spec Sent to Customer", isDone: !!(quote as any).specSentAt, detail: (quote as any).specSentAt ? new Date((quote as any).specSentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+                      { id: "spec_confirmed", label: "Spec Confirmed", isDone: (quote as any).specApprovalStatus === "approved", detail: null },
+                      { id: "payment", label: "Payment / Finance", isDone: ["deposit_taken", "finance_approved", "in_build", "completed"].includes(status), detail: paymentSubLabel },
+                      { id: "in_build", label: "In Build", isDone: ["in_build", "completed"].includes(status), detail: null },
+                      { id: "complete", label: "Conversion Complete", isDone: status === "completed", detail: null },
+                    ];
+                    const firstIncompleteIdx = isCancelled ? -1 : steps.findIndex(s => !s.isDone);
+                    const currentIdx = firstIncompleteIdx === -1 ? steps.length : firstIncompleteIdx;
+
+                    if (isCancelled) {
+                      return (
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-destructive/10">
+                            <XCircle className="w-3.5 h-3.5 text-destructive" />
+                          </div>
+                          <span className="text-sm font-medium text-destructive">Quote Cancelled</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div>
+                        {steps.map((step, i) => {
+                          const isDone = step.isDone;
+                          const isCurrent = i === currentIdx;
+                          const isLast = i === steps.length - 1;
+                          const specRejected = step.id === "spec_confirmed" && (quote as any).specApprovalStatus === "rejected";
+                          const specAwaiting = step.id === "spec_confirmed" && !!(quote as any).specSentAt && !(quote as any).specApprovalStatus;
+                          return (
+                            <div key={step.id} className="flex gap-3">
+                              <div className="flex flex-col items-center">
+                                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  isDone ? "bg-accent text-accent-foreground" :
+                                  isCurrent ? "ring-2 ring-accent bg-accent/10 text-accent" :
+                                  "bg-muted text-muted-foreground"
+                                }`}>
+                                  {isDone ? <Check className="w-3.5 h-3.5" /> : <span>{i + 1}</span>}
+                                </div>
+                                {!isLast && <div className={`w-0.5 flex-1 mt-0.5 mb-0.5 min-h-[1rem] ${isDone ? "bg-accent/40" : "bg-muted"}`} />}
+                              </div>
+                              <div className="pb-2.5 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap min-h-[1.5rem]">
+                                  <span className={`text-sm font-medium ${isDone ? "text-foreground" : isCurrent ? "text-accent" : "text-muted-foreground"}`}>
+                                    {step.label}
+                                  </span>
+                                  {step.detail && <span className="text-xs text-muted-foreground">({step.detail})</span>}
+                                  {specAwaiting && (
+                                    <Badge variant="secondary" className="text-xs no-default-active-elevate">Awaiting response</Badge>
+                                  )}
+                                  {specRejected && (
+                                    <Badge variant="outline" className="text-xs border-orange-500 text-orange-500 no-default-active-elevate">Issues flagged</Badge>
+                                  )}
+                                </div>
+                                {specRejected && (quote as any).specApprovalComments && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 italic">"{(quote as any).specApprovalComments}"</p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+                    );
+                  })()}
+                </CardContent>
+
+                {/* ── Primary Action Area ── */}
+                {canEdit && status !== "completed" && status !== "cancelled" && (<>
+                  <Separator />
+                  <CardContent className="pt-4 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Next Step</p>
+                    <div className="flex flex-col gap-2">
+                      {status === "new" && (
+                        <Button size="sm" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-mark-contacted">
+                          Mark as Contacted
+                        </Button>
+                      )}
+                      {status === "contacted" && (
+                        <>
+                          <Button size="sm" onClick={() => quickStatusMutation.mutate("awaiting_deposit")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-deposit">
+                            Awaiting Deposit
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("awaiting_finance")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-finance">
+                            Submit to Finance
+                          </Button>
+                        </>
+                      )}
+                      {status === "awaiting_deposit" && (
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("deposit_taken")} disabled={quickStatusMutation.isPending} data-testid="button-deposit-taken">
+                          Confirm Deposit Taken
+                        </Button>
+                      )}
+                      {status === "awaiting_finance" && (
+                        <>
+                          <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("finance_approved")} disabled={quickStatusMutation.isPending} data-testid="button-finance-approved">
+                            Finance Approved
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
+                            Finance Declined
+                          </Button>
+                        </>
+                      )}
+                      {(status === "deposit_taken" || status === "finance_approved") && (
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("in_build")} disabled={quickStatusMutation.isPending} data-testid="button-move-to-build">
+                          Move to Build
+                        </Button>
+                      )}
+                      {status === "in_build" && allBuildStagesDone && (
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("completed")} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
+                          Mark as Completed
+                        </Button>
+                      )}
                     </div>
-                  </div>
-                )}
-              </CardContent>
+
+                    {/* Spec Email — shown after initial contact while spec not yet confirmed */}
+                    {status !== "new" && (quote as any).specApprovalStatus !== "approved" && (
+                      <div className="space-y-2">
+                        <Button
+                          onClick={() => sendConfirmationMutation.mutate()}
+                          disabled={sendConfirmationMutation.isPending}
+                          variant={(quote as any).specSentAt ? "outline" : "default"}
+                          size="sm"
+                          className="w-full"
+                          data-testid="button-send-confirmation"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {sendConfirmationMutation.isPending ? "Sending..." : (quote as any).specSentAt ? "Resend Spec Summary Email" : "Send Spec Summary Email"}
+                        </Button>
+                        {(quote as any).specSentAt && (
+                          <p className="text-xs text-muted-foreground text-center" data-testid="text-spec-sent-at">
+                            Last sent: {new Date((quote as any).specSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        )}
+                        {(quote as any).specSentAt && (
+                          <div className="rounded-md border p-3 space-y-1.5" data-testid="section-spec-approval">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Response</p>
+                            {!(quote as any).specApprovalStatus && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                                <span className="text-sm text-muted-foreground" data-testid="text-approval-pending">Awaiting customer response</span>
+                              </div>
+                            )}
+                            {(quote as any).specApprovalStatus === "rejected" && (
+                              <div className="space-y-2" data-testid="section-approval-rejected">
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                  <span className="text-sm font-medium text-orange-500">Customer flagged as incorrect</span>
+                                </div>
+                                {(quote as any).specApprovalComments && (
+                                  <div className="bg-orange-500/10 rounded p-3 text-xs whitespace-pre-wrap" data-testid="text-approval-comments">
+                                    <p className="font-medium text-foreground mb-1">Their comments:</p>
+                                    <p className="text-muted-foreground">{(quote as any).specApprovalComments}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Sends the van, pack, upgrades, and price to {quote.email}. Customer can approve or flag issues via a link.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Spec confirmed — option to resend */}
+                    {status !== "new" && (quote as any).specApprovalStatus === "approved" && (
+                      <div className="rounded-md border border-accent/30 p-3 bg-accent/5 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-accent" />
+                          <span className="text-sm font-medium text-accent">Spec confirmed by customer</span>
+                        </div>
+                        <Button
+                          onClick={() => sendConfirmationMutation.mutate()}
+                          disabled={sendConfirmationMutation.isPending}
+                          variant="outline"
+                          size="sm"
+                          data-testid="button-send-confirmation"
+                        >
+                          <Send className="w-3 h-3 mr-1" />
+                          Resend if needed
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </>)}
+
+                {/* ── Manual Status Override ── */}
+                <Separator />
+                <CardContent className="pt-3 pb-4">
+                  <Label htmlFor="quote-status" className="text-xs text-muted-foreground">Manual status override</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(val) => {
+                      if (val === "completed" && !allBuildStagesDone) {
+                        toast({
+                          title: "Build stages incomplete",
+                          description: `Please tick all ${activeStages.length} build stages in Build Stage Management before marking as Complete.`,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setStatus(val);
+                    }}
+                  >
+                    <SelectTrigger id="quote-status" data-testid="select-quote-status" className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {quoteStatuses.map((s) => (
+                        <SelectItem key={s} value={s}>{STATUS_LABELS[s] ?? s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Save changes to apply.</p>
+                </CardContent>
+              </>)}
             </Card>}
 
             {/* Configuration Editor — Configuration tab */}
@@ -1825,186 +2020,6 @@ export default function AdminQuoteDetail() {
           {(activeTab === "overview" || activeTab === "finance") && <div className="lg:col-span-1 space-y-6">
             {/* Overview-only sections */}
             {activeTab === "overview" && <>
-            {/* Workflow Pipeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Workflow Status
-                </CardTitle>
-                <CardDescription>Current stage in the build journey</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Pipeline visual */}
-                {(() => {
-                  const pipelineStages = [
-                    { key: "new", label: "New" },
-                    { key: "contacted", label: "Contacted" },
-                    { key: "payment", label: "Payment / Finance" },
-                    { key: "in_build", label: "In Build" },
-                    { key: "completed", label: "Completed" },
-                  ];
-                  const paymentStatuses = ["awaiting_deposit", "awaiting_finance", "deposit_taken", "finance_approved"];
-                  const currentKey = status === "cancelled" ? null :
-                    paymentStatuses.includes(status) ? "payment" : status;
-                  const stageOrder = pipelineStages.map(s => s.key);
-                  const currentIdx = currentKey ? stageOrder.indexOf(currentKey) : -1;
-                  return (
-                    <div className="flex items-center gap-1 flex-wrap" data-testid="workflow-pipeline">
-                      {pipelineStages.map((stage, i) => {
-                        const isActive = stage.key === currentKey;
-                        const isPast = currentIdx > -1 && i < currentIdx;
-                        const isCancelled = status === "cancelled";
-                        return (
-                          <div key={stage.key} className="flex items-center gap-1">
-                            <div className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                              isCancelled ? "bg-destructive/10 text-destructive" :
-                              isActive ? "bg-accent text-accent-foreground" :
-                              isPast ? "bg-accent/20 text-accent" :
-                              "bg-muted text-muted-foreground"
-                            }`}>
-                              {isCancelled && i === 0 ? "Cancelled" : stage.label}
-                            </div>
-                            {i < pipelineStages.length - 1 && (
-                              <div className={`text-xs ${isPast && !isCancelled ? "text-accent" : "text-muted-foreground"}`}>→</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-
-                {/* Payment sub-status */}
-                {["awaiting_deposit", "awaiting_finance", "deposit_taken", "finance_approved"].includes(status) && (
-                  <div className="text-sm font-medium">
-                    Payment stage: <span className="text-accent">{STATUS_LABELS[status]}</span>
-                  </div>
-                )}
-
-                {/* Quick action buttons based on current status */}
-                {canEdit && status !== "completed" && status !== "cancelled" && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Next Step</Label>
-                    <div className="flex flex-col gap-2">
-                      {status === "new" && (
-                        <Button size="sm" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-mark-contacted">
-                          Mark as Contacted
-                        </Button>
-                      )}
-                      {status === "contacted" && (
-                        <>
-                          <Button size="sm" onClick={() => quickStatusMutation.mutate("awaiting_deposit")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-deposit">
-                            Awaiting Deposit
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("awaiting_finance")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-finance">
-                            Submit to Finance
-                          </Button>
-                        </>
-                      )}
-                      {status === "awaiting_deposit" && (
-                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("deposit_taken")} disabled={quickStatusMutation.isPending} data-testid="button-deposit-taken">
-                          Confirm Deposit Taken
-                        </Button>
-                      )}
-                      {status === "awaiting_finance" && (
-                        <>
-                          <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("finance_approved")} disabled={quickStatusMutation.isPending} data-testid="button-finance-approved">
-                            Finance Approved
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
-                            Finance Declined
-                          </Button>
-                        </>
-                      )}
-                      {(status === "deposit_taken" || status === "finance_approved") && (
-                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("in_build")} disabled={quickStatusMutation.isPending} data-testid="button-move-to-build">
-                          Move to Build
-                        </Button>
-                      )}
-                      {status === "in_build" && allBuildStagesDone && (
-                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("completed")} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
-                          Mark as Completed
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Manual override dropdown */}
-                <div>
-                  <Label htmlFor="quote-status" className="text-xs text-muted-foreground">Manual override</Label>
-                  <Select
-                    value={status}
-                    onValueChange={(val) => {
-                      if (val === "completed" && !allBuildStagesDone) {
-                        toast({
-                          title: "Build stages incomplete",
-                          description: `Please tick all ${activeStages.length} build stages in Build Stage Management before marking as Complete.`,
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      setStatus(val);
-                    }}
-                  >
-                    <SelectTrigger id="quote-status" data-testid="select-quote-status" className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {quoteStatuses.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {STATUS_LABELS[s] ?? s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">Save changes to apply manual override.</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Customer Confirmation Status */}
-            <Card className={quote.confirmedAt ? "border-accent bg-accent/5" : ""}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  Customer Confirmation
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {quote.confirmedAt ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default" className="bg-accent text-accent-foreground">
-                        ✓ Confirmed
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Confirmed on {new Date(quote.confirmedAt).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </div>
-                    <p className="text-xs text-muted-foreground pt-2">
-                      Customer has reviewed and confirmed this quote
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Badge variant="secondary">Awaiting Confirmation</Badge>
-                    <p className="text-sm text-muted-foreground">
-                      Customer has not yet confirmed this quote
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-
             {/* Discount */}
             <Card>
               <CardHeader>
@@ -2373,72 +2388,6 @@ export default function AdminQuoteDetail() {
                       </p>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Send Spec Summary Email - Only for full admins in overview */}
-            {activeTab === "overview" && canEdit && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="w-5 h-5" />
-                    Send to Customer
-                  </CardTitle>
-                  <CardDescription>
-                    Email the customer their van spec and agreed price — send after discussing on the phone
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    onClick={() => sendConfirmationMutation.mutate()}
-                    disabled={sendConfirmationMutation.isPending}
-                    className="w-full"
-                    data-testid="button-send-confirmation"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    {sendConfirmationMutation.isPending ? "Sending..." : "Send Spec Summary Email"}
-                  </Button>
-                  {(quote as any).specSentAt && (
-                    <p className="text-xs text-muted-foreground text-center" data-testid="text-spec-sent-at">
-                      Last sent: {new Date((quote as any).specSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                  )}
-                  {/* Customer approval status */}
-                  {(quote as any).specSentAt && (
-                    <div className="rounded-md border p-3 space-y-2" data-testid="section-spec-approval">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Response</p>
-                      {!(quote as any).specApprovalStatus && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                          <span className="text-sm text-muted-foreground" data-testid="text-approval-pending">Awaiting customer response</span>
-                        </div>
-                      )}
-                      {(quote as any).specApprovalStatus === 'approved' && (
-                        <div className="flex items-center gap-2" data-testid="text-approval-confirmed">
-                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span className="text-sm font-medium text-green-500">Customer confirmed — looks correct</span>
-                        </div>
-                      )}
-                      {(quote as any).specApprovalStatus === 'rejected' && (
-                        <div className="space-y-2" data-testid="section-approval-rejected">
-                          <div className="flex items-center gap-2">
-                            <XCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                            <span className="text-sm font-medium text-orange-500">Customer flagged as incorrect</span>
-                          </div>
-                          {(quote as any).specApprovalComments && (
-                            <div className="bg-orange-500/10 rounded p-3 text-xs whitespace-pre-wrap" data-testid="text-approval-comments">
-                              <p className="font-medium text-foreground mb-1">Their comments:</p>
-                              <p className="text-muted-foreground">{(quote as any).specApprovalComments}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Sends the van, pack, upgrades, and price to {quote.email}. The customer can approve or flag issues via a link in the email.
-                  </p>
                 </CardContent>
               </Card>
             )}
