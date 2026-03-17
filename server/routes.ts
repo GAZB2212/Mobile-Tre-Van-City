@@ -1899,6 +1899,14 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         ? customerNotesHistory[customerNotesHistory.length - 1].text
         : null;
 
+      // Derive site base URL — use SITE_URL env var (for production) or fall back to the
+      // incoming request headers, respecting any X-Forwarded-Proto from the proxy
+      const siteBaseUrl = process.env.SITE_URL || (() => {
+        const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+        const host = (req.headers['x-forwarded-host'] as string) || req.get('host');
+        return `${proto}://${host}`;
+      })();
+
       const { sendQuoteSpecSummaryEmail } = await import('./email.js');
       await sendQuoteSpecSummaryEmail({
         to: quote.email,
@@ -1913,6 +1921,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         discount: discount > 0 ? discount : undefined,
         customerNote: latestCustomerNote,
         approvalToken,
+        siteBaseUrl,
       });
 
       // Record specSentAt, store approval token (resets prior approval), add auto-audit note

@@ -167,6 +167,7 @@ export async function sendQuoteSpecSummaryEmail({
   discount?: number;
   customerNote?: string | null;
   approvalToken?: string;
+  siteBaseUrl?: string;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
@@ -180,7 +181,7 @@ export async function sendQuoteSpecSummaryEmail({
   const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
 
   // Build approval button block if a token is provided
-  const siteBase = process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
+  const siteBase = siteBaseUrl || process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
   const approvalBlock = approvalToken ? `
     <div style="margin: 28px 0; padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center;">
       <p style="font-size: 15px; font-weight: bold; margin: 0 0 6px;">Does this look correct?</p>

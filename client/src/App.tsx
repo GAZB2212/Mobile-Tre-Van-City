@@ -119,6 +119,13 @@ function PublicChatBubble() {
   return <ChatBubble />;
 }
 
+function ConditionalLoadingScreen() {
+  const [location] = useLocation();
+  // Skip splash screen for pages that customers land on directly from email links
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/")) return null;
+  return <LoadingScreen />;
+}
+
 function App() {
   const [showCookieBanner, setShowCookieBanner] = useState(false);
 
@@ -140,7 +147,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ConfiguratorProvider>
         <TooltipProvider>
-          <LoadingScreen />
+          <ConditionalLoadingScreen />
           <ScrollRestoration />
           <Toaster />
           <AnalyticsProvider>
