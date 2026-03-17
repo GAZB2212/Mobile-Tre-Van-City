@@ -1183,7 +1183,7 @@ export default function AdminQuoteDetail() {
                   <p className="text-xs text-muted-foreground mt-1 mb-3">
                     Items with a green outline were originally selected by the customer
                   </p>
-                  <div className="mt-2 space-y-4 max-h-96 overflow-y-auto border rounded-md p-4">
+                  <div className="mt-2 space-y-4 border rounded-md p-4">
                     {upgradeCategories.map((category) => {
                       // Hide the "commercial" category entirely for car/personal customers
                       if (category === "commercial" && serviceType === "car") return null;
