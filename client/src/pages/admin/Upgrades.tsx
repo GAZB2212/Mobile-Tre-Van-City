@@ -41,7 +41,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Upgrade } from "@shared/schema";
+import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import { UpgradeVideoUploader } from "@/components/UpgradeVideoUploader";
@@ -265,6 +265,10 @@ interface UpgradeDialogProps {
 function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDialogProps) {
   const { toast } = useToast();
   const isEditing = !!upgrade;
+
+  const { data: allKits = [] } = useQuery<Kit[]>({ queryKey: ["/api/admin/kits"], enabled: open });
+  const [showKitItems, setShowKitItems] = useState(false);
+  const uniqueKitItems = Array.from(new Set(allKits.flatMap(k => k.includes))).sort();
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<VariantOption[]>([]);
   const [cachedPrice, setCachedPrice] = useState<string>("");
@@ -1211,6 +1215,35 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   <p className="text-sm text-muted-foreground">
                     One kit item per line (exact text match). On the build sheet, this upgrade will appear <strong>in place of</strong> these kit items — the kit items will be hidden and the upgrade name shown instead. Leave blank if this upgrade does not supersede any kit items.
                   </p>
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+                      onClick={() => setShowKitItems(v => !v)}
+                    >
+                      {showKitItems ? "Hide kit items" : "View current kit item names"}
+                    </button>
+                    {showKitItems && (
+                      <div className="mt-2 p-2 rounded-md bg-muted text-xs font-mono space-y-0.5 max-h-36 overflow-y-auto">
+                        {uniqueKitItems.length === 0
+                          ? <span className="text-muted-foreground">No kit items found</span>
+                          : uniqueKitItems.map(item => (
+                            <div
+                              key={item}
+                              className="cursor-pointer hover:bg-background px-1 rounded transition-colors"
+                              title="Click to append to supersedes list"
+                              onClick={() => {
+                                const current = (form.getValues("supersedesKitItems") || "").trimEnd();
+                                form.setValue("supersedesKitItems", current ? `${current}\n${item}` : item);
+                              }}
+                            >
+                              {item}
+                            </div>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
                 </FormItem>
               )}
             />

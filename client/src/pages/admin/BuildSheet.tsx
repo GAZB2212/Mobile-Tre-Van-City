@@ -129,19 +129,35 @@ export default function BuildSheet() {
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
 
   // ── Build-sheet supersession logic ──────────────────────────────────────────
-  // Upgrades with supersedesKitItems move INTO the kit section, replacing those
-  // kit items. They are removed from the upgrades section.
-  const supersedingUpgrades = upgrades.filter(
-    (u) => Array.isArray((u as any).supersedesKitItems) && (u as any).supersedesKitItems.length > 0
+  // Variants inherit their parent's supersedesKitItems if the variant itself has none.
+  // This allows the admin to configure supersession on the parent and have it apply
+  // when any variant of that upgrade is selected by a customer.
+  const upgradesWithSupersession = upgrades.map((u) => {
+    const uAny = u as any;
+    const ownItems: string[] = Array.isArray(uAny.supersedesKitItems) ? uAny.supersedesKitItems : [];
+    if (ownItems.length === 0 && uAny.parentId) {
+      const parent = allUpgrades.find((p) => p.id === uAny.parentId);
+      const parentItems: string[] = parent && Array.isArray((parent as any).supersedesKitItems)
+        ? (parent as any).supersedesKitItems : [];
+      if (parentItems.length > 0) {
+        // Use parent name for display so build sheet shows the upgrade family name
+        return { ...u, supersedesKitItems: parentItems, _displayName: parent!.name } as any;
+      }
+    }
+    return { ...u, _displayName: u.name } as any;
+  });
+
+  const supersedingUpgrades = upgradesWithSupersession.filter(
+    (u) => Array.isArray(u.supersedesKitItems) && u.supersedesKitItems.length > 0
   );
-  const regularUpgrades = upgrades.filter(
-    (u) => !Array.isArray((u as any).supersedesKitItems) || (u as any).supersedesKitItems.length === 0
+  const regularUpgrades = upgradesWithSupersession.filter(
+    (u) => !Array.isArray(u.supersedesKitItems) || u.supersedesKitItems.length === 0
   );
 
   // Build a lookup: lower-cased kit item text → the upgrade that supersedes it
-  const kitItemToUpgrade = new Map<string, typeof upgrades[0]>();
+  const kitItemToUpgrade = new Map<string, typeof upgradesWithSupersession[0]>();
   for (const upgrade of supersedingUpgrades) {
-    for (const item of ((upgrade as any).supersedesKitItems as string[])) {
+    for (const item of (upgrade.supersedesKitItems as string[])) {
       kitItemToUpgrade.set(item.trim().toLowerCase(), upgrade);
     }
   }
@@ -150,7 +166,7 @@ export default function BuildSheet() {
   // Each entry is either a plain kit string or a superseding upgrade.
   type KitEntry =
     | { kind: "kit"; text: string; origIdx: number }
-    | { kind: "upgrade"; upgrade: typeof upgrades[0]; origIdx: number };
+    | { kind: "upgrade"; upgrade: typeof upgradesWithSupersession[0]; origIdx: number };
 
   const effectiveKitItems: KitEntry[] = [];
   const renderedUpgradeIds = new Set<string>();
@@ -401,7 +417,7 @@ export default function BuildSheet() {
                                 className={`text-sm font-semibold flex-1 ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
                                 data-testid={`text-kit-includes-${idx}`}
                               >
-                                {entry.upgrade.name}
+                                {(entry.upgrade as any)._displayName ?? entry.upgrade.name}
                               </span>
                               <span className="ml-2 text-xs font-bold uppercase tracking-wide text-accent print:text-black">
                                 (Upgraded)
