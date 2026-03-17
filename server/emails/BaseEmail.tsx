@@ -15,9 +15,9 @@ import {
 
 const BRAND_GREEN = '#8bc440';
 const BRAND_DARK = '#191919';
-const BRAND_DARK_SECONDARY = '#2a2a2a';
 const GRAY_TEXT = '#6b7280';
 const BORDER_COLOR = '#e5e7eb';
+const BG_LIGHT = '#f5f5f5';
 
 export interface BaseEmailProps {
   previewText: string;
@@ -28,52 +28,47 @@ export interface BaseEmailProps {
 export function BaseEmail({ previewText, eyebrow = 'Custom-Built & Ready to Earn', children }: BaseEmailProps) {
   return (
     <Html lang="en">
-      <Head />
+      <Head>
+        <style>{`
+          a { color: ${BRAND_GREEN}; }
+          .footer-link { color: ${BRAND_GREEN} !important; text-decoration: underline !important; }
+        `}</style>
+      </Head>
       <Preview>{previewText}</Preview>
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
 
-          {/* Header */}
+          {/* ── Header ─────────────────────────────────────────── */}
           <Section style={headerStyle}>
-            {eyebrow && (
-              <Text style={eyebrowStyle}>{eyebrow}</Text>
-            )}
+            <Text style={eyebrowStyle}>{eyebrow}</Text>
             <Text style={logoStyle}>Mobile Tyre Van City</Text>
-            <Text style={headerSubStyle}>www.mobiletyrevancity.co.uk</Text>
+            <Text style={headerSubStyle}>
+              <Link href="https://www.mobiletyrevancity.co.uk" style={headerLinkStyle}>
+                www.mobiletyrevancity.co.uk
+              </Link>
+            </Text>
           </Section>
 
-          {/* Main card */}
+          {/* ── Main card ──────────────────────────────────────── */}
           <Section style={cardStyle}>
             {children}
           </Section>
 
-          {/* Footer */}
-          <Section style={footerStyle}>
-            <Hr style={footerDivider} />
-            <Text style={footerBrand}>Mobile Tyre Van City</Text>
-            <Text style={footerAddress}>
-              5–7 Bassendale Road, Bromborough, Wirral, CH62 3QL
+          {/* ── Footer ─────────────────────────────────────────── */}
+          <Section style={footerWrap}>
+            <Hr style={footerHr} />
+            <Text style={footerBrandText}>Mobile Tyre Van City</Text>
+            <Text style={footerDetailText}>5–7 Bassendale Road, Bromborough, Wirral, CH62 3QL</Text>
+            <Text style={footerDetailText}>
+              <Link href="tel:01512038500" style={footerInlineLinkStyle}>0151 203 8500</Link>
             </Text>
-            <Text style={footerPhone}>
-              <Link href="tel:01512038500" style={footerLinkStyle}>0151 203 8500</Link>
+            <Text style={footerNavText}>
+              <Link href="https://www.mobiletyrevancity.co.uk/vans" style={footerInlineLinkStyle}>Our Vans</Link>
+              {'  ·  '}
+              <Link href="https://www.mobiletyrevancity.co.uk/configurator" style={footerInlineLinkStyle}>Van Configurator</Link>
+              {'  ·  '}
+              <Link href="https://www.mobiletyrevancity.co.uk/finance" style={footerInlineLinkStyle}>Finance</Link>
             </Text>
-            <Row style={footerLinksRow}>
-              <Column>
-                <Link href="https://www.mobiletyrevancity.co.uk/vans" style={footerLinkStyle}>Our Vans</Link>
-              </Column>
-              <Column>
-                <Text style={footerDotSep}>&bull;</Text>
-              </Column>
-              <Column>
-                <Link href="https://www.mobiletyrevancity.co.uk/configurator" style={footerLinkStyle}>Van Configurator</Link>
-              </Column>
-              <Column>
-                <Text style={footerDotSep}>&bull;</Text>
-              </Column>
-              <Column>
-                <Link href="https://www.mobiletyrevancity.co.uk/finance" style={footerLinkStyle}>Finance</Link>
-              </Column>
-            </Row>
           </Section>
 
         </Container>
@@ -103,7 +98,9 @@ export function EmailCta({ href, children }: { href: string; children: React.Rea
 export function EmailRefBox({ reference, subText }: { reference: string; subText?: string }) {
   return (
     <Section style={refBoxStyle}>
-      <Text style={refBoxTextStyle}><strong>Reference:</strong> #{reference}</Text>
+      <Text style={refBoxHeadStyle}>
+        Reference: <strong style={{ color: BRAND_DARK }}>#{reference}</strong>
+      </Text>
       {subText && <Text style={refBoxSubStyle}>{subText}</Text>}
     </Section>
   );
@@ -115,9 +112,9 @@ export function EmailSectionTitle({ children }: { children: React.ReactNode }) {
 
 export function EmailTable({ rows }: { rows: Array<[string, React.ReactNode]> }) {
   return (
-    <Section style={tableContainerStyle}>
+    <Section style={tableWrapStyle}>
       {rows.map(([label, value], i) => (
-        <Row key={i} style={tableRowStyle}>
+        <Row key={i} style={i < rows.length - 1 ? tableRowStyle : tableRowLastStyle}>
           <Column style={tableLabelStyle}>{label}</Column>
           <Column style={tableValueStyle}>{value}</Column>
         </Row>
@@ -128,7 +125,7 @@ export function EmailTable({ rows }: { rows: Array<[string, React.ReactNode]> })
 
 export function EmailTotalRow({ label, value }: { label: string; value: string }) {
   return (
-    <Section style={totalRowContainerStyle}>
+    <Section style={totalWrapStyle}>
       <Row>
         <Column style={totalLabelStyle}>{label}</Column>
         <Column style={totalValueStyle}>{value}</Column>
@@ -157,110 +154,104 @@ export function EmailSavingsBadge({ children }: { children: React.ReactNode }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const bodyStyle: React.CSSProperties = {
-  backgroundColor: '#f0f0f0',
+  backgroundColor: '#ebebeb',
   fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
   margin: 0,
-  padding: '32px 0',
+  padding: '40px 0',
 };
 
 const containerStyle: React.CSSProperties = {
   maxWidth: '600px',
   margin: '0 auto',
+  borderRadius: '10px',
+  overflow: 'hidden',
 };
 
 const headerStyle: React.CSSProperties = {
   backgroundColor: BRAND_DARK,
-  padding: '32px 40px 24px',
+  padding: '36px 48px 28px',
   textAlign: 'center',
-  borderRadius: '8px 8px 0 0',
 };
 
 const eyebrowStyle: React.CSSProperties = {
   color: BRAND_GREEN,
   fontSize: '11px',
   fontWeight: '700',
-  letterSpacing: '0.12em',
+  letterSpacing: '0.14em',
   textTransform: 'uppercase',
-  margin: '0 0 8px',
+  margin: '0 0 10px',
 };
 
 const logoStyle: React.CSSProperties = {
   color: '#ffffff',
-  fontSize: '26px',
+  fontSize: '28px',
   fontWeight: '800',
-  margin: '0',
+  margin: '0 0 8px',
   letterSpacing: '-0.5px',
+  lineHeight: '1.2',
 };
 
 const headerSubStyle: React.CSSProperties = {
-  color: '#888888',
+  margin: '0',
   fontSize: '13px',
-  margin: '6px 0 0',
+};
+
+const headerLinkStyle: React.CSSProperties = {
+  color: '#888888',
+  textDecoration: 'none',
 };
 
 const cardStyle: React.CSSProperties = {
   backgroundColor: '#ffffff',
-  padding: '36px 40px',
-  borderLeft: '1px solid ' + BORDER_COLOR,
-  borderRight: '1px solid ' + BORDER_COLOR,
+  padding: '40px 48px',
 };
 
-const footerStyle: React.CSSProperties = {
-  backgroundColor: '#ffffff',
-  padding: '0 40px 32px',
+const footerWrap: React.CSSProperties = {
+  backgroundColor: '#f9f9f9',
+  padding: '4px 48px 32px',
+  borderTop: `3px solid ${BRAND_GREEN}`,
   textAlign: 'center',
-  borderLeft: '1px solid ' + BORDER_COLOR,
-  borderRight: '1px solid ' + BORDER_COLOR,
-  borderBottom: '1px solid ' + BORDER_COLOR,
-  borderRadius: '0 0 8px 8px',
 };
 
-const footerDivider: React.CSSProperties = {
+const footerHr: React.CSSProperties = {
   borderColor: BORDER_COLOR,
   margin: '0 0 20px',
 };
 
-const footerBrand: React.CSSProperties = {
+const footerBrandText: React.CSSProperties = {
   color: BRAND_DARK,
   fontSize: '13px',
   fontWeight: '700',
   margin: '0 0 4px',
 };
 
-const footerAddress: React.CSSProperties = {
+const footerDetailText: React.CSSProperties = {
   color: GRAY_TEXT,
   fontSize: '12px',
   margin: '0 0 4px',
+  lineHeight: '1.5',
 };
 
-const footerPhone: React.CSSProperties = {
+const footerNavText: React.CSSProperties = {
   color: GRAY_TEXT,
   fontSize: '12px',
-  margin: '0 0 12px',
+  margin: '12px 0 0',
+  lineHeight: '1.5',
 };
 
-const footerLinksRow: React.CSSProperties = {
-  textAlign: 'center',
-};
-
-const footerLinkStyle: React.CSSProperties = {
+const footerInlineLinkStyle: React.CSSProperties = {
   color: BRAND_GREEN,
-  fontSize: '12px',
-  textDecoration: 'none',
-};
-
-const footerDotSep: React.CSSProperties = {
-  color: GRAY_TEXT,
-  fontSize: '12px',
-  margin: '0 4px',
+  textDecoration: 'underline',
+  fontWeight: '500',
 };
 
 export const headingStyle: React.CSSProperties = {
   color: BRAND_DARK,
-  fontSize: '22px',
+  fontSize: '24px',
   fontWeight: '800',
-  margin: '0 0 16px',
-  letterSpacing: '-0.3px',
+  margin: '0 0 20px',
+  letterSpacing: '-0.4px',
+  lineHeight: '1.3',
 };
 
 export const paragraphStyle: React.CSSProperties = {
@@ -272,7 +263,7 @@ export const paragraphStyle: React.CSSProperties = {
 
 const ctaSectionStyle: React.CSSProperties = {
   textAlign: 'center',
-  margin: '28px 0',
+  margin: '32px 0',
 };
 
 const ctaButtonStyle: React.CSSProperties = {
@@ -281,22 +272,22 @@ const ctaButtonStyle: React.CSSProperties = {
   display: 'inline-block',
   fontSize: '15px',
   fontWeight: '700',
-  padding: '14px 40px',
+  padding: '16px 48px',
   borderRadius: '6px',
   textDecoration: 'none',
   letterSpacing: '0.01em',
 };
 
 const refBoxStyle: React.CSSProperties = {
-  backgroundColor: '#f8f8f8',
+  backgroundColor: '#f0f7e6',
   borderLeft: `4px solid ${BRAND_GREEN}`,
   padding: '14px 20px',
   borderRadius: '4px',
   margin: '20px 0',
 };
 
-const refBoxTextStyle: React.CSSProperties = {
-  color: BRAND_DARK,
+const refBoxHeadStyle: React.CSSProperties = {
+  color: GRAY_TEXT,
   fontSize: '14px',
   margin: '0',
 };
@@ -309,55 +300,58 @@ const refBoxSubStyle: React.CSSProperties = {
 
 const sectionTitleStyle: React.CSSProperties = {
   color: GRAY_TEXT,
-  fontSize: '11px',
-  fontWeight: '700',
-  letterSpacing: '0.1em',
+  fontSize: '10px',
+  fontWeight: '800',
+  letterSpacing: '0.14em',
   textTransform: 'uppercase',
   borderBottom: `2px solid ${BRAND_GREEN}`,
   paddingBottom: '6px',
-  margin: '28px 0 12px',
+  margin: '32px 0 12px',
 };
 
-const tableContainerStyle: React.CSSProperties = {
+const tableWrapStyle: React.CSSProperties = {
   width: '100%',
-  margin: '0 0 8px',
+  margin: '0 0 4px',
 };
 
 const tableRowStyle: React.CSSProperties = {
   borderBottom: '1px solid ' + BORDER_COLOR,
 };
 
+const tableRowLastStyle: React.CSSProperties = {};
+
 const tableLabelStyle: React.CSSProperties = {
   color: GRAY_TEXT,
   fontSize: '13px',
-  padding: '8px 12px 8px 0',
-  width: '40%',
+  padding: '9px 12px 9px 0',
+  width: '42%',
   verticalAlign: 'top',
 };
 
 const tableValueStyle: React.CSSProperties = {
   color: BRAND_DARK,
   fontSize: '13px',
-  padding: '8px 0',
+  padding: '9px 0',
   fontWeight: '500',
+  verticalAlign: 'top',
 };
 
-const totalRowContainerStyle: React.CSSProperties = {
+const totalWrapStyle: React.CSSProperties = {
   borderTop: `2px solid ${BRAND_GREEN}`,
-  margin: '4px 0 0',
-  paddingTop: '4px',
+  marginTop: '4px',
+  paddingTop: '2px',
 };
 
 const totalLabelStyle: React.CSSProperties = {
   color: BRAND_DARK,
-  fontSize: '16px',
+  fontSize: '15px',
   fontWeight: '700',
-  padding: '10px 12px 10px 0',
+  padding: '12px 12px 12px 0',
 };
 
 const totalValueStyle: React.CSSProperties = {
   color: BRAND_GREEN,
-  fontSize: '20px',
+  fontSize: '22px',
   fontWeight: '800',
   padding: '10px 0',
 };
@@ -367,7 +361,7 @@ const noteBoxStyle: React.CSSProperties = {
   borderLeft: '4px solid #3b82f6',
   padding: '14px 18px',
   borderRadius: '4px',
-  margin: '20px 0',
+  margin: '24px 0',
 };
 
 const noteTitleStyle: React.CSSProperties = {
@@ -388,7 +382,7 @@ const savingsBadgeStyle: React.CSSProperties = {
   backgroundColor: '#dcfce7',
   padding: '12px 18px',
   borderRadius: '6px',
-  margin: '16px 0',
+  margin: '16px 0 24px',
 };
 
 const savingsTextStyle: React.CSSProperties = {
