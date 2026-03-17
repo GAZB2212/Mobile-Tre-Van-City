@@ -866,3 +866,25 @@ export async function sendPasswordResetEmail({
     text: `Hi ${displayName},\n\nWe received a request to reset the password for your account (${username}).\n\nReset your password here:\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you did not request a password reset, you can safely ignore this email.\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
+
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const recipients = Array.isArray(to) ? to : [to];
+  await client.emails.send({
+    from: fromEmail,
+    to: recipients,
+    subject,
+    html,
+    ...(text ? { text } : {}),
+  });
+}

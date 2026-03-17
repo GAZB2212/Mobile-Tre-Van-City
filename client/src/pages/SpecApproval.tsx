@@ -1,10 +1,10 @@
-import { useParams, useSearch, useLocation } from "wouter";
+import { useParams, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, AlertCircle, Loader2, Phone } from "lucide-react";
 import Header from "@/components/Header";
@@ -33,7 +33,7 @@ export default function SpecApproval() {
   });
 
   useEffect(() => {
-    if (preselectedStatus && (preselectedStatus === "approved" || preselectedStatus === "rejected")) {
+    if (preselectedStatus === "approved" || preselectedStatus === "rejected") {
       setSelectedStatus(preselectedStatus);
     }
   }, [preselectedStatus]);
@@ -45,9 +45,7 @@ export default function SpecApproval() {
         comments: comments.trim() || undefined,
       });
     },
-    onSuccess: () => {
-      setSubmitted(true);
-    },
+    onSuccess: () => setSubmitted(true),
   });
 
   if (isLoading) {
@@ -66,20 +64,20 @@ export default function SpecApproval() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center px-4">
+        <main className="flex-1 flex items-center justify-center px-4 py-16">
           <Card className="max-w-md w-full">
-            <CardContent className="py-12 text-center">
-              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Link Not Found</h2>
-              <p className="text-muted-foreground mb-6">
-                This approval link is invalid or has expired. Please contact us if you need to provide feedback on your specification.
-              </p>
-              <div className="flex items-center justify-center gap-2 text-sm">
-                <Phone className="w-4 h-4 text-accent" />
-                <a href="tel:01512038500" className="text-accent font-medium hover:underline">
-                  0151 203 8500
-                </a>
+            <CardContent className="py-12 text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
+                <AlertCircle className="w-8 h-8 text-destructive" />
               </div>
+              <h2 className="text-xl font-bold">Link Not Found</h2>
+              <p className="text-muted-foreground text-sm">
+                This approval link is invalid or has expired. Contact us directly if you need to give feedback on your specification.
+              </p>
+              <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
+                <Phone className="w-4 h-4" />
+                0151 203 8500
+              </a>
             </CardContent>
           </Card>
         </main>
@@ -88,60 +86,51 @@ export default function SpecApproval() {
     );
   }
 
-  // Already responded (in DB)
   const alreadyAnswered = info.specApprovalStatus !== null;
+  const finalStatus = submitted ? selectedStatus : info.specApprovalStatus;
+  const isApproved = finalStatus === "approved";
 
-  // Just submitted in this session
   if (submitted || alreadyAnswered) {
-    const status = alreadyAnswered ? info.specApprovalStatus : selectedStatus;
-    const isApproved = status === "approved";
-
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <main className="flex-1 flex items-center justify-center px-4 py-16">
           <Card className="max-w-lg w-full" data-testid="card-approval-submitted">
-            <CardContent className="py-12 text-center">
-              {isApproved ? (
-                <>
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
-                  </div>
-                  <Badge variant="outline" className="mb-4 border-green-500 text-green-600">
-                    Confirmed
-                  </Badge>
-                  <h2 className="text-2xl font-bold mb-3">Thanks, {info.customerName.split(" ")[0]}!</h2>
-                  <p className="text-muted-foreground">
-                    We've noted that your specification looks correct. Our team will be in touch shortly to progress your order.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 mb-4">
-                    <XCircle className="w-8 h-8 text-orange-500" />
-                  </div>
-                  <Badge variant="outline" className="mb-4 border-orange-500 text-orange-500">
-                    Feedback Received
-                  </Badge>
-                  <h2 className="text-2xl font-bold mb-3">Got it, {info.customerName.split(" ")[0]}</h2>
-                  <p className="text-muted-foreground mb-4">
-                    We've received your feedback and a member of our team will review it and be in touch to discuss the changes.
-                  </p>
-                  {(info.specApprovalComments || comments) && (
-                    <div className="text-left bg-muted rounded-md p-4 text-sm text-muted-foreground mt-2">
-                      <p className="font-medium mb-1">Your comments:</p>
-                      <p className="whitespace-pre-wrap">{info.specApprovalComments || comments}</p>
-                    </div>
-                  )}
-                </>
-              )}
-              <div className="flex items-center justify-center gap-2 text-sm mt-6">
-                <Phone className="w-4 h-4 text-accent" />
-                <span className="text-muted-foreground">Questions?</span>
-                <a href="tel:01512038500" className="text-accent font-medium hover:underline">
-                  0151 203 8500
-                </a>
+            <CardContent className="py-12 text-center space-y-4">
+              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mx-auto ${isApproved ? "bg-accent/10" : "bg-orange-500/10"}`}>
+                {isApproved
+                  ? <CheckCircle className="w-8 h-8 text-accent" />
+                  : <XCircle className="w-8 h-8 text-orange-500" />
+                }
               </div>
+
+              <Badge variant="outline" className={isApproved ? "border-accent text-accent" : "border-orange-500 text-orange-500"}>
+                {isApproved ? "Confirmed" : "Feedback Received"}
+              </Badge>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-2">
+                  {isApproved ? `Thanks, ${info.customerName.split(" ")[0]}!` : `Got it, ${info.customerName.split(" ")[0]}`}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  {isApproved
+                    ? "We've noted that your specification looks correct. Our team will be in touch shortly to progress your order."
+                    : "We've received your feedback and a member of our team will review it and be in touch to discuss the changes."
+                  }
+                </p>
+              </div>
+
+              {!isApproved && (info.specApprovalComments || comments) && (
+                <div className="text-left bg-muted rounded-md p-4 text-sm">
+                  <p className="font-medium text-foreground mb-1">Your comments:</p>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{info.specApprovalComments || comments}</p>
+                </div>
+              )}
+
+              <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm pt-2">
+                <Phone className="w-4 h-4" />
+                0151 203 8500
+              </a>
             </CardContent>
           </Card>
         </main>
@@ -156,53 +145,63 @@ export default function SpecApproval() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="max-w-lg w-full space-y-6">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-1">Reference <span className="font-mono font-semibold">#{info.ref}</span></p>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Hi {info.customerName.split(" ")[0]},</h1>
-            <p className="text-muted-foreground">
-              Please let us know whether the van conversion specification we discussed is correct.
+        <div className="max-w-lg w-full space-y-8">
+
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <p className="text-xs text-muted-foreground font-mono tracking-wider uppercase">
+              Reference #{info.ref}
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold">
+              Hi {info.customerName.split(" ")[0]},
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Please let us know whether the van conversion specification we discussed looks correct.
             </p>
           </div>
 
-          {/* Choice buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Choice cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Approve */}
             <button
               type="button"
               onClick={() => setSelectedStatus("approved")}
               data-testid="button-approve"
-              className={`rounded-md p-5 border-2 text-left transition-colors ${
+              className={[
+                "rounded-md p-5 border text-left transition-all duration-150",
                 selectedStatus === "approved"
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                  : "border-border hover-elevate"
-              }`}
+                  ? "border-accent ring-2 ring-accent bg-accent/5"
+                  : "border-border bg-card hover-elevate",
+              ].join(" ")}
             >
-              <CheckCircle className={`w-6 h-6 mb-2 ${selectedStatus === "approved" ? "text-green-500" : "text-muted-foreground"}`} />
-              <p className="font-semibold">This looks correct</p>
-              <p className="text-sm text-muted-foreground mt-1">I'm happy with the specification</p>
+              <CheckCircle className={`w-6 h-6 mb-3 ${selectedStatus === "approved" ? "text-accent" : "text-muted-foreground"}`} />
+              <p className="font-semibold text-sm leading-snug">This looks correct</p>
+              <p className="text-xs text-muted-foreground mt-1">I'm happy with the spec</p>
             </button>
 
+            {/* Reject */}
             <button
               type="button"
               onClick={() => setSelectedStatus("rejected")}
               data-testid="button-reject"
-              className={`rounded-md p-5 border-2 text-left transition-colors ${
+              className={[
+                "rounded-md p-5 border text-left transition-all duration-150",
                 selectedStatus === "rejected"
-                  ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
-                  : "border-border hover-elevate"
-              }`}
+                  ? "border-orange-500 ring-2 ring-orange-500 bg-orange-500/5"
+                  : "border-border bg-card hover-elevate",
+              ].join(" ")}
             >
-              <XCircle className={`w-6 h-6 mb-2 ${selectedStatus === "rejected" ? "text-orange-500" : "text-muted-foreground"}`} />
-              <p className="font-semibold">Something needs changing</p>
-              <p className="text-sm text-muted-foreground mt-1">I'd like to flag an issue</p>
+              <XCircle className={`w-6 h-6 mb-3 ${selectedStatus === "rejected" ? "text-orange-500" : "text-muted-foreground"}`} />
+              <p className="font-semibold text-sm leading-snug">Something needs changing</p>
+              <p className="text-xs text-muted-foreground mt-1">I'd like to flag an issue</p>
             </button>
           </div>
 
-          {/* Comments area — only when rejecting */}
+          {/* Comments — shown only when rejecting */}
           {selectedStatus === "rejected" && (
             <div className="space-y-2" data-testid="section-comments">
-              <label htmlFor="comments" className="text-sm font-medium">
-                Please describe what needs changing <span className="text-destructive">*</span>
+              <label htmlFor="comments" className="text-sm font-medium block">
+                What needs changing? <span className="text-destructive">*</span>
               </label>
               <Textarea
                 id="comments"
@@ -210,7 +209,8 @@ export default function SpecApproval() {
                 placeholder="e.g. The compressor type is wrong, I wanted the 12V version..."
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
-                rows={5}
+                rows={4}
+                className="resize-none"
               />
             </div>
           )}
@@ -243,13 +243,13 @@ export default function SpecApproval() {
             </Button>
           )}
 
-          {submitMutation.error && (
+          {submitMutation.isError && (
             <p className="text-sm text-destructive text-center" data-testid="text-approval-error">
-              {(submitMutation.error as any)?.message || "Something went wrong. Please try again or call us on 0151 203 8500."}
+              Something went wrong. Please try again or call us on 0151 203 8500.
             </p>
           )}
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-xs text-muted-foreground">
             Prefer to speak to someone?{" "}
             <a href="tel:01512038500" className="text-accent font-medium hover:underline">
               Call 0151 203 8500
