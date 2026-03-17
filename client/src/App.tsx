@@ -121,8 +121,14 @@ function PublicChatBubble() {
 
 function ConditionalLoadingScreen() {
   const [location] = useLocation();
-  // Skip splash screen for pages that customers land on directly from email links
-  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/")) return null;
+  // Skip splash screen for pages that customers land on directly from email links.
+  // Also mark the session as loaded so navigating away doesn't trigger the splash.
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/")) {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("hasLoadedBefore", "true");
+    }
+    return null;
+  }
   return <LoadingScreen />;
 }
 
