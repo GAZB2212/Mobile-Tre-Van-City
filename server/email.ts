@@ -193,7 +193,7 @@ export async function sendQuoteSpecSummaryEmail({
     <h3 style="margin-bottom:8px; margin-top:24px;">Finance Option (HP — 10.9% APR)</h3>
     <table>
       <tr><td>Deposit</td><td>${fmt(financeInfo.depositAmount)}</td></tr>
-      <tr><td>Finance Term</td><td>${financeInfo.termMonths} months (${Math.round(financeInfo.termMonths / 12)} year${financeInfo.termMonths / 12 !== 1 ? 's' : ''})</td></tr>
+      <tr><td>Finance Term</td><td>${financeInfo.termMonths} months${financeInfo.termMonths % 12 === 0 ? ` (${financeInfo.termMonths / 12} year${financeInfo.termMonths / 12 !== 1 ? 's' : ''})` : ''}</td></tr>
       <tr><td>Estimated Monthly Payment</td><td style="font-weight:bold; color:${brandGreen};">${fmt(financeInfo.monthlyPayment)}/month</td></tr>
       <tr><td>Estimated Weekly Payment</td><td>${fmt(financeInfo.weeklyPayment)}/week (approx.)</td></tr>
     </table>
