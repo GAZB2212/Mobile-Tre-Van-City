@@ -1683,13 +1683,30 @@ export default function AdminQuoteDetail() {
                   {quote?.adminNotesHistory && quote.adminNotesHistory.length > 0 ? (
                     <div className="space-y-3">
                       {quote.adminNotesHistory.map((note, index) => {
-                        const isEditing = editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
+                        const isCustomerEntry = note.author === 'Customer';
+                        const isApprovedEntry = isCustomerEntry && note.text.toLowerCase().includes('confirmed');
+                        const isEditing = !isCustomerEntry && editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
                         return (
-                          <div key={index} className="p-3 rounded-lg bg-muted/50 border">
+                          <div
+                            key={index}
+                            className={`p-3 rounded-lg border ${isCustomerEntry
+                              ? isApprovedEntry
+                                ? 'bg-accent/5 border-accent/30'
+                                : 'bg-orange-500/5 border-orange-500/30'
+                              : 'bg-muted/50'
+                            }`}
+                          >
                             <div className="flex items-start justify-between gap-2 mb-1">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                {note.author || 'Admin'}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                {isCustomerEntry && (
+                                  isApprovedEntry
+                                    ? <CheckCircle className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                                    : <XCircle className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+                                )}
+                                <span className={`text-xs font-medium ${isCustomerEntry ? (isApprovedEntry ? 'text-accent' : 'text-orange-500') : 'text-muted-foreground'}`}>
+                                  {note.author || 'Admin'}
+                                </span>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(note.timestamp).toLocaleString('en-GB', {
@@ -1700,7 +1717,7 @@ export default function AdminQuoteDetail() {
                                     minute: '2-digit'
                                   })}
                                 </span>
-                                {!isEditing && (
+                                {!isCustomerEntry && !isEditing && (
                                   <div className="flex gap-1">
                                     <Button
                                       size="icon"
