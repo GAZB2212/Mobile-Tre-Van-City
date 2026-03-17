@@ -1869,6 +1869,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         return res.status(404).json({ error: "Quote not found" });
       }
 
+      // Generate a fresh approval token (resets any prior approval when resending)
+      const { randomBytes } = await import('crypto');
+      const approvalToken = randomBytes(32).toString('hex');
+
       // Fetch van, kit, upgrade details for the email
       const [van, kit, selectedUpgrades] = await Promise.all([
         quote.vanId ? storage.getVan(quote.vanId) : Promise.resolve(null),
@@ -1908,14 +1912,18 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         total: totalWithVat,
         discount: discount > 0 ? discount : undefined,
         customerNote: latestCustomerNote,
+        approvalToken,
       });
 
-      // Record specSentAt and add auto-audit note
+      // Record specSentAt, store approval token (resets prior approval), add auto-audit note
       const specUser = req.user as any;
       const specAuthor = specUser?.username || 'System';
       const specNoteText = `Spec summary email sent to customer (${quote.email})`;
       await storage.updateQuote(req.params.id, {
         specSentAt: new Date(),
+        approvalToken,
+        specApprovalStatus: null,
+        specApprovalComments: null,
         adminNotesHistory: [
           ...(quote.adminNotesHistory || []),
           { text: specNoteText, timestamp: new Date().toISOString(), author: specAuthor }
@@ -2317,6 +2325,97 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     } catch (error) {
       console.error('Error saving quote correction:', error);
       res.status(500).json({ error: "Failed to save corrections" });
+    }
+  });
+
+  // Public spec approval — get quote info by approval token
+  app.get("/api/spec-approval/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const quotes = await storage.getQuotes();
+      const quote = (quotes as any[]).find(q => q.approvalToken === token);
+      if (!quote) {
+        return res.status(404).json({ error: "Approval link not found or has expired" });
+      }
+      // Return only safe fields needed for the approval page
+      const ref = quote.id.slice(0, 8).toUpperCase();
+      res.json({
+        ref,
+        customerName: quote.userName,
+        specApprovalStatus: quote.specApprovalStatus || null,
+        specApprovalComments: quote.specApprovalComments || null,
+      });
+    } catch (error) {
+      console.error('Error fetching spec approval:', error);
+      res.status(500).json({ error: "Failed to fetch approval info" });
+    }
+  });
+
+  // Public spec approval — submit customer approval or rejection
+  app.post("/api/spec-approval/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { status, comments } = req.body;
+
+      if (!status || !['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
+      }
+      if (status === 'rejected' && (!comments || !comments.trim())) {
+        return res.status(400).json({ error: "Please describe what needs changing" });
+      }
+
+      const quotes = await storage.getQuotes();
+      const quote = (quotes as any[]).find(q => q.approvalToken === token);
+      if (!quote) {
+        return res.status(404).json({ error: "Approval link not found or has expired" });
+      }
+
+      const auditNote = {
+        text: status === 'approved'
+          ? `Customer confirmed the spec is correct`
+          : `Customer flagged spec as incorrect: "${comments.trim()}"`,
+        timestamp: new Date().toISOString(),
+        author: 'Customer',
+      };
+
+      await storage.updateQuote(quote.id, {
+        specApprovalStatus: status,
+        specApprovalComments: status === 'rejected' ? comments.trim() : null,
+        adminNotesHistory: [...(quote.adminNotesHistory || []), auditNote],
+      } as any);
+
+      // Notify internal team
+      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'info@gfukgroup.co.uk'];
+      const ref = quote.id.slice(0, 8).toUpperCase();
+      try {
+        const { sendEmail } = await import('./email.js');
+        const subject = status === 'approved'
+          ? `Spec Approved — ${quote.userName} (Ref #${ref})`
+          : `Spec Flagged as Incorrect — ${quote.userName} (Ref #${ref})`;
+        const html = status === 'approved'
+          ? `<h2>Customer confirmed their spec is correct</h2>
+             <p><strong>Customer:</strong> ${quote.userName}</p>
+             <p><strong>Email:</strong> ${quote.email}</p>
+             <p><strong>Reference:</strong> #${ref}</p>
+             <p style="color:#166534;">The customer is happy with their specification.</p>`
+          : `<h2>Customer flagged their spec as incorrect</h2>
+             <p><strong>Customer:</strong> ${quote.userName}</p>
+             <p><strong>Email:</strong> ${quote.email}</p>
+             <p><strong>Reference:</strong> #${ref}</p>
+             <hr/>
+             <h3>Customer's comments:</h3>
+             <p style="white-space:pre-wrap; background:#fef2f2; padding:12px; border-radius:6px; border-left:4px solid #ef4444;">${comments.trim()}</p>
+             <hr/>
+             <p>Please review and update the quote in the admin panel.</p>`;
+        await sendEmail({ to: INTERNAL_NOTIFY_EMAILS, subject, html });
+      } catch (emailErr) {
+        console.error('Failed to send spec approval notification:', emailErr);
+      }
+
+      res.json({ success: true, status });
+    } catch (error) {
+      console.error('Error saving spec approval:', error);
+      res.status(500).json({ error: "Failed to save approval" });
     }
   });
 

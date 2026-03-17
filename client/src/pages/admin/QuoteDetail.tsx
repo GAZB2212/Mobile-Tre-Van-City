@@ -2387,8 +2387,40 @@ export default function AdminQuoteDetail() {
                       Last sent: {new Date((quote as any).specSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   )}
+                  {/* Customer approval status */}
+                  {(quote as any).specSentAt && (
+                    <div className="rounded-md border p-3 space-y-2" data-testid="section-spec-approval">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Response</p>
+                      {!(quote as any).specApprovalStatus && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                          <span className="text-sm text-muted-foreground" data-testid="text-approval-pending">Awaiting customer response</span>
+                        </div>
+                      )}
+                      {(quote as any).specApprovalStatus === 'approved' && (
+                        <div className="flex items-center gap-2" data-testid="text-approval-confirmed">
+                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span className="text-sm font-medium text-green-600">Customer confirmed — looks correct</span>
+                        </div>
+                      )}
+                      {(quote as any).specApprovalStatus === 'rejected' && (
+                        <div className="space-y-2" data-testid="section-approval-rejected">
+                          <div className="flex items-center gap-2">
+                            <XCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                            <span className="text-sm font-medium text-orange-600">Customer flagged as incorrect</span>
+                          </div>
+                          {(quote as any).specApprovalComments && (
+                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-3 text-xs text-muted-foreground whitespace-pre-wrap" data-testid="text-approval-comments">
+                              <p className="font-medium text-foreground mb-1">Their comments:</p>
+                              {(quote as any).specApprovalComments}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Sends the van, pack, upgrades, and price to {quote.email}.
+                    Sends the van, pack, upgrades, and price to {quote.email}. The customer can approve or flag issues via a link in the email.
                   </p>
                 </CardContent>
               </Card>

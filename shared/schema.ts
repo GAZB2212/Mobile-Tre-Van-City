@@ -181,6 +181,11 @@ export const quotes = pgTable("quotes", {
   financeSentAt: timestamp("finance_sent_at"), // When finance submission email was last sent
   specSentAt: timestamp("spec_sent_at"), // When spec summary email was last sent to customer
   
+  // Customer approval of spec summary
+  approvalToken: text("approval_token").unique(), // Unique token for customer approval link
+  specApprovalStatus: text("spec_approval_status"), // null | 'approved' | 'rejected'
+  specApprovalComments: text("spec_approval_comments"), // Customer comments if rejected
+  
   featuredInPortfolio: boolean("featured_in_portfolio").notNull().default(false),
   status: text("status").notNull().default("pending"),
   buildStage: text("build_stage"),

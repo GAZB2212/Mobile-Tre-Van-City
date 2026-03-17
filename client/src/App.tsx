@@ -44,6 +44,7 @@ import AdminAnalytics from "@/pages/admin/Analytics";
 import AdminVideos from "@/pages/admin/Videos";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
+import SpecApproval from "@/pages/SpecApproval";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsConditions from "@/pages/TermsConditions";
 import CookiePolicy from "@/pages/CookiePolicy";
@@ -83,6 +84,8 @@ function Router() {
       <Route path="/login" component={Login} />
       {/* Quote confirmation (public) */}
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
+      {/* Spec approval (public) */}
+      <Route path="/spec-approval/:token" component={SpecApproval} />
       {/* Legal pages */}
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsConditions} />

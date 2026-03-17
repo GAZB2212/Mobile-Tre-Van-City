@@ -126,6 +126,14 @@ app.use((req, res, next) => {
       pool.query("ALTER TABLE analytics_sessions ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE")
         .then(() => log("✅ Analytics admin filter column ready"))
         .catch((err: Error) => console.error("Analytics migration:", err.message));
+      // Add spec approval columns to quotes if not present
+      pool.query(`
+        ALTER TABLE quotes ADD COLUMN IF NOT EXISTS approval_token TEXT UNIQUE;
+        ALTER TABLE quotes ADD COLUMN IF NOT EXISTS spec_approval_status TEXT;
+        ALTER TABLE quotes ADD COLUMN IF NOT EXISTS spec_approval_comments TEXT;
+      `)
+        .then(() => log("✅ Spec approval columns ready"))
+        .catch((err: Error) => console.error("Spec approval migration:", err.message));
     });
   });
 })();

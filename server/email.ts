@@ -153,6 +153,7 @@ export async function sendQuoteSpecSummaryEmail({
   total,
   discount,
   customerNote,
+  approvalToken,
 }: {
   to: string;
   customerName: string;
@@ -165,6 +166,7 @@ export async function sendQuoteSpecSummaryEmail({
   total: number;
   discount?: number;
   customerNote?: string | null;
+  approvalToken?: string;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
@@ -176,6 +178,31 @@ export async function sendQuoteSpecSummaryEmail({
     ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
     : '';
   const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+
+  // Build approval button block if a token is provided
+  const siteBase = process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
+  const approvalBlock = approvalToken ? `
+    <div style="margin: 28px 0; padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center;">
+      <p style="font-size: 15px; font-weight: bold; margin: 0 0 6px;">Does this look correct?</p>
+      <p style="font-size: 13px; color: #6b7280; margin: 0 0 20px;">Please let us know whether the spec above is right, or if anything needs changing.</p>
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+        <tr>
+          <td style="padding-right: 12px;">
+            <a href="${siteBase}/spec-approval/${approvalToken}?status=approved"
+               style="display:inline-block; background:${brandGreen}; color:${brandDark}; font-weight:bold; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:4px;">
+              This looks correct
+            </a>
+          </td>
+          <td>
+            <a href="${siteBase}/spec-approval/${approvalToken}?status=rejected"
+               style="display:inline-block; background:#fff; color:#374151; font-weight:bold; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:4px; border:1px solid #d1d5db;">
+              Something needs changing
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+  ` : '';
 
   await client.emails.send({
     to,
@@ -230,6 +257,7 @@ export async function sendQuoteSpecSummaryEmail({
         <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
       </table>
       ${customerNote ? `<div class="note-box"><strong>Note from our team:</strong><br>${customerNote}</div>` : ''}
+      ${approvalBlock}
       <p>If you have any questions or would like to make changes, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
       <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
     </div>
@@ -239,7 +267,7 @@ export async function sendQuoteSpecSummaryEmail({
   </div>
 </body>
 </html>`,
-    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
 
