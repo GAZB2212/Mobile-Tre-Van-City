@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { createUser, getSession } from "./auth";
+import { pool } from "./db";
 
 const app = express();
 
@@ -115,12 +116,16 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Bootstrap admin user AFTER server is listening
+    // Bootstrap admin user and run DB migrations AFTER server is listening
     // This prevents blocking deployment initialization
     setImmediate(() => {
       bootstrapAdmin().catch(err => {
         console.error("Failed to bootstrap admin:", err);
       });
+      // Add is_admin column to analytics_sessions if it doesn't exist yet (production safe)
+      pool.query("ALTER TABLE analytics_sessions ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE")
+        .then(() => log("✅ Analytics admin filter column ready"))
+        .catch((err: Error) => console.error("Analytics migration:", err.message));
     });
   });
 })();

@@ -2486,16 +2486,32 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const ip = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
       const ipHash = hashIp(ip);
 
+      // Detect if this request is from a logged-in admin — exclude from customer analytics
+      const sessionUser = (req.session as any)?.user;
+      const isAdmin = !!(sessionUser?.id);
+
       // Upsert session
       await pool.query(`
-        INSERT INTO analytics_sessions (session_id, user_agent, device_type, browser, os, ip_hash, referrer, utm_source, utm_medium, utm_campaign, utm_term, utm_content, entry_page, last_seen_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
-        ON CONFLICT (session_id) DO UPDATE SET last_seen_at = NOW()
-      `, [sessionId, userAgent, deviceType, browser, os, ipHash, referrer, utmSource, utmMedium, utmCampaign, utmTerm, utmContent, entryPage]);
+        INSERT INTO analytics_sessions (session_id, user_agent, device_type, browser, os, ip_hash, referrer, utm_source, utm_medium, utm_campaign, utm_term, utm_content, entry_page, is_admin, last_seen_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+        ON CONFLICT (session_id) DO UPDATE SET last_seen_at = NOW(), is_admin = GREATEST(analytics_sessions.is_admin, $14)
+      `, [sessionId, userAgent, deviceType, browser, os, ipHash, referrer, utmSource, utmMedium, utmCampaign, utmTerm, utmContent, entryPage, isAdmin]);
 
       res.json({ ok: true });
     } catch (error) {
       console.error("Analytics session error:", error);
+      res.json({ ok: false });
+    }
+  });
+
+  // POST /api/analytics/mark-admin - mark the current analytics session as admin traffic
+  app.post("/api/analytics/mark-admin", async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      if (!sessionId) return res.json({ ok: false });
+      await pool.query(`UPDATE analytics_sessions SET is_admin = TRUE WHERE session_id = $1`, [sessionId]);
+      res.json({ ok: true });
+    } catch (error) {
       res.json({ ok: false });
     }
   });
@@ -2506,21 +2522,26 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const { sessionId, url, title, referrer } = req.body;
       if (!sessionId || !url) return res.json({ ok: false });
 
+      const sessionUser = (req.session as any)?.user;
+      const isAdmin = !!(sessionUser?.id);
+
       await pool.query(`
         INSERT INTO analytics_pageviews (session_id, url, title, referrer)
         VALUES ($1, $2, $3, $4)
       `, [sessionId, url, title, referrer]);
 
       // Update session: increment page count, set bounce=false if more than 1 page, update exit page
+      // Also ensure is_admin is set if this is an admin browsing
       await pool.query(`
         UPDATE analytics_sessions
         SET page_count = page_count + 1,
             bounce = (page_count + 1 <= 1),
             exit_page = $2,
             last_seen_at = NOW(),
-            duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER
+            duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER,
+            is_admin = GREATEST(is_admin, $3)
         WHERE session_id = $1
-      `, [sessionId, url]);
+      `, [sessionId, url, isAdmin]);
 
       res.json({ ok: true });
     } catch (error) {
@@ -2535,15 +2556,18 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const { sessionId, eventName, eventData, url } = req.body;
       if (!sessionId || !eventName) return res.json({ ok: false });
 
+      const sessionUser = (req.session as any)?.user;
+      const isAdmin = !!(sessionUser?.id);
+
       await pool.query(`
         INSERT INTO analytics_events (session_id, event_name, event_data, url)
         VALUES ($1, $2, $3, $4)
       `, [sessionId, eventName, JSON.stringify(eventData || {}), url]);
 
-      // Update session last seen
+      // Update session last seen and admin status
       await pool.query(`
-        UPDATE analytics_sessions SET last_seen_at = NOW(), duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER WHERE session_id = $1
-      `, [sessionId]);
+        UPDATE analytics_sessions SET last_seen_at = NOW(), duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER, is_admin = GREATEST(is_admin, $2) WHERE session_id = $1
+      `, [sessionId, isAdmin]);
 
       res.json({ ok: true });
     } catch (error) {
@@ -2562,12 +2586,15 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       cutoff.setDate(cutoff.getDate() - days);
       const cutoffStr = cutoff.toISOString();
 
+      // All session queries exclude admin traffic so stats reflect real customers only
+      const EXCL_ADMIN = "AND NOT is_admin";
+
       // Overview stats
       const [sessionsResult, pageviewsResult, avgDurationResult, bounceResult] = await Promise.all([
-        pool.query(`SELECT COUNT(*) as count FROM analytics_sessions WHERE started_at >= $1`, [cutoffStr]),
-        pool.query(`SELECT COUNT(*) as count FROM analytics_pageviews WHERE created_at >= $1`, [cutoffStr]),
-        pool.query(`SELECT AVG(duration_seconds) as avg FROM analytics_sessions WHERE started_at >= $1 AND duration_seconds IS NOT NULL`, [cutoffStr]),
-        pool.query(`SELECT COUNT(*) FILTER (WHERE bounce = true) as bounced, COUNT(*) as total FROM analytics_sessions WHERE started_at >= $1`, [cutoffStr]),
+        pool.query(`SELECT COUNT(*) as count FROM analytics_sessions WHERE started_at >= $1 ${EXCL_ADMIN}`, [cutoffStr]),
+        pool.query(`SELECT COUNT(*) as count FROM analytics_pageviews pv JOIN analytics_sessions s ON pv.session_id = s.session_id WHERE pv.created_at >= $1 ${EXCL_ADMIN}`, [cutoffStr]),
+        pool.query(`SELECT AVG(duration_seconds) as avg FROM analytics_sessions WHERE started_at >= $1 AND duration_seconds IS NOT NULL ${EXCL_ADMIN}`, [cutoffStr]),
+        pool.query(`SELECT COUNT(*) FILTER (WHERE bounce = true) as bounced, COUNT(*) as total FROM analytics_sessions WHERE started_at >= $1 ${EXCL_ADMIN}`, [cutoffStr]),
       ]);
 
       const totalSessions = parseInt(sessionsResult.rows[0].count);
@@ -2583,7 +2610,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           COUNT(*) as sessions,
           SUM(page_count) as pageviews
         FROM analytics_sessions
-        WHERE started_at >= $1
+        WHERE started_at >= $1 ${EXCL_ADMIN}
         GROUP BY DATE(started_at)
         ORDER BY date ASC
       `, [cutoffStr]);
@@ -2601,17 +2628,18 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           END as source,
           COUNT(*) as count
         FROM analytics_sessions
-        WHERE started_at >= $1
+        WHERE started_at >= $1 ${EXCL_ADMIN}
         GROUP BY 1
         ORDER BY count DESC
       `, [cutoffStr]);
 
       // Top pages
       const topPagesResult = await pool.query(`
-        SELECT url, COUNT(*) as views, COUNT(DISTINCT session_id) as unique_visitors
-        FROM analytics_pageviews
-        WHERE created_at >= $1
-        GROUP BY url
+        SELECT pv.url, COUNT(*) as views, COUNT(DISTINCT pv.session_id) as unique_visitors
+        FROM analytics_pageviews pv
+        JOIN analytics_sessions s ON pv.session_id = s.session_id
+        WHERE pv.created_at >= $1 AND NOT s.is_admin
+        GROUP BY pv.url
         ORDER BY views DESC
         LIMIT 20
       `, [cutoffStr]);
@@ -2620,7 +2648,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const devicesResult = await pool.query(`
         SELECT COALESCE(device_type, 'Unknown') as device, COUNT(*) as count
         FROM analytics_sessions
-        WHERE started_at >= $1
+        WHERE started_at >= $1 ${EXCL_ADMIN}
         GROUP BY device_type
         ORDER BY count DESC
       `, [cutoffStr]);
@@ -2629,7 +2657,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const browsersResult = await pool.query(`
         SELECT COALESCE(browser, 'Unknown') as browser, COUNT(*) as count
         FROM analytics_sessions
-        WHERE started_at >= $1
+        WHERE started_at >= $1 ${EXCL_ADMIN}
         GROUP BY browser
         ORDER BY count DESC
         LIMIT 10
@@ -2639,7 +2667,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const osResult = await pool.query(`
         SELECT COALESCE(os, 'Unknown') as os, COUNT(*) as count
         FROM analytics_sessions
-        WHERE started_at >= $1
+        WHERE started_at >= $1 ${EXCL_ADMIN}
         GROUP BY os
         ORDER BY count DESC
         LIMIT 10
@@ -2647,10 +2675,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
       // Top events
       const eventsResult = await pool.query(`
-        SELECT event_name, COUNT(*) as count
-        FROM analytics_events
-        WHERE created_at >= $1
-        GROUP BY event_name
+        SELECT ae.event_name, COUNT(*) as count
+        FROM analytics_events ae
+        JOIN analytics_sessions s ON ae.session_id = s.session_id
+        WHERE ae.created_at >= $1 AND NOT s.is_admin
+        GROUP BY ae.event_name
         ORDER BY count DESC
         LIMIT 15
       `, [cutoffStr]);
@@ -2665,16 +2694,17 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           SUM(page_count) as pageviews,
           AVG(duration_seconds)::INTEGER as avg_duration
         FROM analytics_sessions
-        WHERE started_at >= $1 AND utm_source IS NOT NULL AND utm_source != ''
+        WHERE started_at >= $1 AND utm_source IS NOT NULL AND utm_source != '' ${EXCL_ADMIN}
         GROUP BY utm_source, utm_medium, utm_campaign
         ORDER BY sessions DESC
         LIMIT 20
       `, [cutoffStr]);
 
-      // Recent sessions
+      // Recent sessions (exclude admin sessions)
       const recentSessionsResult = await pool.query(`
         SELECT session_id, device_type, browser, os, referrer, entry_page, exit_page, page_count, bounce, duration_seconds, utm_source, utm_medium, utm_campaign, started_at, last_seen_at
         FROM analytics_sessions
+        WHERE NOT is_admin
         ORDER BY started_at DESC
         LIMIT 50
       `);
@@ -2691,7 +2721,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           ) as domain,
           COUNT(*) as count
         FROM analytics_sessions
-        WHERE started_at >= $1 AND referrer IS NOT NULL AND referrer != ''
+        WHERE started_at >= $1 AND referrer IS NOT NULL AND referrer != '' ${EXCL_ADMIN}
         GROUP BY 1
         ORDER BY count DESC
         LIMIT 15

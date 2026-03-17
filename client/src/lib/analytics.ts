@@ -103,6 +103,20 @@ export async function trackPageview(url: string, title: string): Promise<void> {
   }
 }
 
+export async function markSessionAsAdmin(): Promise<void> {
+  const sessionId = getSessionId();
+  try {
+    await fetch("/api/analytics/mark-admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+      keepalive: true,
+    });
+  } catch {
+    // silent fail
+  }
+}
+
 export async function trackEvent(eventName: string, eventData?: Record<string, unknown>): Promise<void> {
   const sessionId = getSessionId();
   try {

@@ -390,6 +390,7 @@ export const analyticsSessions = pgTable("analytics_sessions", {
   pageCount: integer("page_count").default(1),
   bounce: boolean("bounce").default(true),
   durationSeconds: integer("duration_seconds"),
+  isAdmin: boolean("is_admin").notNull().default(false),
   startedAt: timestamp("started_at").defaultNow(),
   lastSeenAt: timestamp("last_seen_at").defaultNow(),
 }, (table) => [
