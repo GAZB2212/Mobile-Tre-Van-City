@@ -413,15 +413,23 @@ export default function BuildSheet() {
                           />
                           {entry.kind === "upgrade" ? (
                             <div className="flex-1 min-w-0">
-                              <span
-                                className={`text-sm font-semibold flex-1 ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
-                                data-testid={`text-kit-includes-${idx}`}
-                              >
-                                {(entry.upgrade as any)._displayName ?? entry.upgrade.name}
-                              </span>
-                              <span className="ml-2 text-xs font-bold uppercase tracking-wide text-accent print:text-black">
-                                (Upgraded)
-                              </span>
+                              <div className="flex flex-wrap items-baseline gap-x-2">
+                                <span
+                                  className={`text-sm font-semibold ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                                  data-testid={`text-kit-includes-${idx}`}
+                                >
+                                  {(entry.upgrade as any)._displayName ?? entry.upgrade.name}
+                                </span>
+                                {/* Show variant name when it differs from the parent display name */}
+                                {(entry.upgrade as any)._displayName && (entry.upgrade as any)._displayName !== entry.upgrade.name && (
+                                  <span className="text-xs font-medium text-muted-foreground print:text-black">
+                                    {entry.upgrade.name}
+                                  </span>
+                                )}
+                                <span className="text-xs font-bold uppercase tracking-wide text-accent print:text-black">
+                                  (Upgraded)
+                                </span>
+                              </div>
                               {entry.upgrade.description && (
                                 <p className="text-xs text-muted-foreground print:text-black mt-0.5">
                                   {entry.upgrade.description}
@@ -468,14 +476,23 @@ export default function BuildSheet() {
                           onChange={v => setChecked(itemKey, v)}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2">
+                          <div className="flex flex-wrap items-baseline gap-x-2">
                             {quantity > 1 && (
                               <span className="font-bold text-accent print:text-black text-base flex-shrink-0">
                                 {quantity}&times;
                               </span>
                             )}
+                            {/* If this is a variant, show parent name as context */}
+                            {(upgrade as any).parentId && (() => {
+                              const parent = allUpgrades.find(p => p.id === (upgrade as any).parentId);
+                              return parent ? (
+                                <span className="text-sm font-semibold text-foreground print:text-black">
+                                  {parent.name}
+                                </span>
+                              ) : null;
+                            })()}
                             <p
-                              className={`font-semibold text-sm ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                              className={`font-semibold text-sm ${(upgrade as any).parentId ? 'text-muted-foreground print:text-black' : ''} ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
                               data-testid={`text-upgrade-name-${upgrade.id}`}
                             >
                               {upgrade.name}
