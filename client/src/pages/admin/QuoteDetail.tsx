@@ -1146,46 +1146,44 @@ export default function AdminQuoteDetail() {
 
                     {/* Spec Email — shown after initial contact while spec not yet confirmed */}
                     {status !== "new" && (quote as any).specApprovalStatus !== "approved" && (
-                      <div className="space-y-2">
-                        <Button
-                          onClick={() => sendConfirmationMutation.mutate()}
-                          disabled={sendConfirmationMutation.isPending}
-                          variant={(quote as any).specSentAt ? "outline" : "default"}
-                          size="sm"
-                          className="w-full"
-                          data-testid="button-send-confirmation"
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          {sendConfirmationMutation.isPending ? "Sending..." : (quote as any).specSentAt ? "Resend Spec Summary Email" : "Send Spec Summary Email"}
-                        </Button>
+                      <div className="space-y-1.5">
+                        {/* Send button + approval badge inline */}
+                        <div className="flex flex-wrap gap-2 items-center" data-testid="section-spec-approval">
+                          <Button
+                            onClick={() => sendConfirmationMutation.mutate()}
+                            disabled={sendConfirmationMutation.isPending}
+                            variant={(quote as any).specSentAt ? "outline" : "default"}
+                            size="sm"
+                            className="flex-1 min-w-0"
+                            data-testid="button-send-confirmation"
+                          >
+                            <Send className="w-3.5 h-3.5 mr-1.5" />
+                            {sendConfirmationMutation.isPending ? "Sending..." : (quote as any).specSentAt ? "Resend Spec Email" : "Send Spec Summary Email"}
+                          </Button>
+                          {(quote as any).specSentAt && !(quote as any).specApprovalStatus && (
+                            <Badge variant="secondary" className="no-default-active-elevate gap-1.5" data-testid="text-approval-pending">
+                              <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                              Awaiting response
+                            </Badge>
+                          )}
+                          {(quote as any).specApprovalStatus === "rejected" && (
+                            <Badge variant="outline" className="border-orange-500 text-orange-500 no-default-active-elevate gap-1" data-testid="section-approval-rejected">
+                              <XCircle className="w-3 h-3" />
+                              Issues flagged
+                            </Badge>
+                          )}
+                        </div>
+                        {/* Last sent timestamp */}
                         {(quote as any).specSentAt && (
-                          <p className="text-xs text-muted-foreground text-center" data-testid="text-spec-sent-at">
+                          <p className="text-xs text-muted-foreground" data-testid="text-spec-sent-at">
                             Last sent: {new Date((quote as any).specSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
                           </p>
                         )}
-                        {(quote as any).specSentAt && (
-                          <div className="rounded-md border p-3 space-y-1.5" data-testid="section-spec-approval">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Response</p>
-                            {!(quote as any).specApprovalStatus && (
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                                <span className="text-sm text-muted-foreground" data-testid="text-approval-pending">Awaiting customer response</span>
-                              </div>
-                            )}
-                            {(quote as any).specApprovalStatus === "rejected" && (
-                              <div className="space-y-2" data-testid="section-approval-rejected">
-                                <div className="flex items-center gap-2">
-                                  <XCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                                  <span className="text-sm font-medium text-orange-500">Customer flagged as incorrect</span>
-                                </div>
-                                {(quote as any).specApprovalComments && (
-                                  <div className="bg-orange-500/10 rounded p-3 text-xs whitespace-pre-wrap" data-testid="text-approval-comments">
-                                    <p className="font-medium text-foreground mb-1">Their comments:</p>
-                                    <p className="text-muted-foreground">{(quote as any).specApprovalComments}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                        {/* Customer rejection comments */}
+                        {(quote as any).specApprovalStatus === "rejected" && (quote as any).specApprovalComments && (
+                          <div className="bg-orange-500/10 rounded p-2.5 text-xs whitespace-pre-wrap" data-testid="text-approval-comments">
+                            <span className="font-medium text-foreground">Their comments: </span>
+                            <span className="text-muted-foreground">{(quote as any).specApprovalComments}</span>
                           </div>
                         )}
                         <p className="text-xs text-muted-foreground">
@@ -1196,11 +1194,7 @@ export default function AdminQuoteDetail() {
 
                     {/* Spec confirmed — option to resend */}
                     {status !== "new" && (quote as any).specApprovalStatus === "approved" && (
-                      <div className="rounded-md border border-accent/30 p-3 bg-accent/5 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-accent" />
-                          <span className="text-sm font-medium text-accent">Spec confirmed by customer</span>
-                        </div>
+                      <div className="flex flex-wrap gap-2 items-center">
                         <Button
                           onClick={() => sendConfirmationMutation.mutate()}
                           disabled={sendConfirmationMutation.isPending}
@@ -1209,8 +1203,12 @@ export default function AdminQuoteDetail() {
                           data-testid="button-send-confirmation"
                         >
                           <Send className="w-3 h-3 mr-1" />
-                          Resend if needed
+                          Resend Spec Email
                         </Button>
+                        <Badge variant="default" className="bg-accent text-accent-foreground no-default-active-elevate gap-1" data-testid="text-approval-confirmed">
+                          <CheckCircle className="w-3 h-3" />
+                          Spec confirmed
+                        </Badge>
                       </div>
                     )}
                   </CardContent>
@@ -2247,147 +2245,6 @@ export default function AdminQuoteDetail() {
                   >
                     {saveFinanceMutation.isPending ? "Saving..." : "Save Finance Settings"}
                   </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Finance Submission Card — now in Finance tab left col; hidden here */}
-            {false && canEdit && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PoundSterling className="w-5 h-5" />
-                    Finance Submission
-                  </CardTitle>
-                  <CardDescription>
-                    Send the full spec to the finance company
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {/* Step 1: Customer confirms */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 1 — Customer confirmation</Label>
-                    <div className="flex items-start gap-3 p-3 rounded-md border">
-                      <Checkbox
-                        id="customer-confirmed"
-                        checked={customerConfirmed}
-                        onCheckedChange={(v) => setCustomerConfirmed(!!v)}
-                        data-testid="checkbox-customer-confirmed"
-                      />
-                      <div className="flex-1">
-                        <label htmlFor="customer-confirmed" className="text-sm font-medium cursor-pointer select-none">
-                          Customer confirms the configurator
-                        </label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Tick once the customer has verbally agreed their configuration and spec on the phone
-                        </p>
-                      </div>
-                    </div>
-                    {customerConfirmed && (
-                      <p className="text-xs text-accent font-medium">Confirmed — ready to submit to finance</p>
-                    )}
-                  </div>
-
-                  {/* Step 2: Vehicle details */}
-                  <div className="space-y-3">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 2 — Vehicle details</Label>
-                    <div className="space-y-2">
-                      <Label htmlFor="van-registration" className="text-sm">Van Registration</Label>
-                      <Input
-                        id="van-registration"
-                        placeholder="e.g. AB12 CDE"
-                        value={vanRegistration}
-                        onChange={(e) => setVanRegistration(e.target.value.toUpperCase())}
-                        className="font-mono uppercase"
-                        data-testid="input-van-registration"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="van-mileage" className="text-sm">Van Mileage</Label>
-                      <Input
-                        id="van-mileage"
-                        type="number"
-                        placeholder="e.g. 15000"
-                        value={vanMileage}
-                        onChange={(e) => setVanMileage(e.target.value)}
-                        data-testid="input-van-mileage"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Save changes above to store registration and mileage.</p>
-                  </div>
-
-                  {/* Step 3: Finance company email */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 3 — Finance company</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="Finance company email"
-                        value={financeEmailOverride || defaultFinanceEmail}
-                        onChange={(e) => setFinanceEmailOverride(e.target.value)}
-                        className="text-sm"
-                        data-testid="input-finance-email"
-                      />
-                      {financeEmailOverride && financeEmailOverride !== defaultFinanceEmail && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => saveFinanceEmailMutation.mutate(financeEmailOverride)}
-                          disabled={saveFinanceEmailMutation.isPending}
-                          data-testid="button-save-finance-email"
-                        >
-                          Save
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Default: Jigsaw Finance (Stephen Quinn). Editing and saving will update the default for all quotes.
-                    </p>
-                  </div>
-
-                  {/* Step 4: Send button */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 4 — Send application</Label>
-                    <Button
-                      className="w-full bg-[#8bc440e6] text-[#191919] border-green-600"
-                      onClick={() => sendFinanceMutation.mutate()}
-                      disabled={!customerConfirmed || sendFinanceMutation.isPending}
-                      data-testid="button-send-finance"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      {sendFinanceMutation.isPending ? "Sending..." : "Send to Finance Company"}
-                    </Button>
-                    <div className="space-y-1">
-                      <Input
-                        type="email"
-                        placeholder="Email to send preview to"
-                        value={previewEmail}
-                        onChange={e => setPreviewEmail(e.target.value)}
-                        className="text-xs"
-                        data-testid="input-preview-email-mobile"
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => sendFinancePreviewMutation.mutate()}
-                        disabled={sendFinancePreviewMutation.isPending || !previewEmail.trim()}
-                        data-testid="button-send-finance-preview-mobile"
-                      >
-                        <Send className="w-3 h-3 mr-2" />
-                        {sendFinancePreviewMutation.isPending ? "Sending..." : "Send preview to me"}
-                      </Button>
-                    </div>
-                    {!customerConfirmed && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        Tick "Customer confirms the configurator" to enable
-                      </p>
-                    )}
-                    {quote.financeSentAt && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        Last sent: {new Date(quote.financeSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
-                      </p>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             )}
