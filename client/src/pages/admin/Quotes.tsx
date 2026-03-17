@@ -824,7 +824,7 @@ export default function AdminQuotes() {
                         <Button variant="default" asChild data-testid={`button-manage-${quote.id}`}>
                           <Link href={`/admin/quotes/${quote.id}`}>
                             <Wrench className="w-4 h-4 mr-2" />
-                            Manage Configurator
+                            View Details
                           </Link>
                         </Button>
                         <Button variant="outline" asChild data-testid={`button-build-sheet-${quote.id}`}>
