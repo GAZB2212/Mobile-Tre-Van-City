@@ -154,6 +154,7 @@ export async function sendQuoteSpecSummaryEmail({
   discount,
   customerNote,
   approvalToken,
+  siteBaseUrl,
 }: {
   to: string;
   customerName: string;
