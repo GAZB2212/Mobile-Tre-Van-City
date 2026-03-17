@@ -2400,19 +2400,19 @@ export default function AdminQuoteDetail() {
                       {(quote as any).specApprovalStatus === 'approved' && (
                         <div className="flex items-center gap-2" data-testid="text-approval-confirmed">
                           <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span className="text-sm font-medium text-green-600">Customer confirmed — looks correct</span>
+                          <span className="text-sm font-medium text-green-500">Customer confirmed — looks correct</span>
                         </div>
                       )}
                       {(quote as any).specApprovalStatus === 'rejected' && (
                         <div className="space-y-2" data-testid="section-approval-rejected">
                           <div className="flex items-center gap-2">
                             <XCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                            <span className="text-sm font-medium text-orange-600">Customer flagged as incorrect</span>
+                            <span className="text-sm font-medium text-orange-500">Customer flagged as incorrect</span>
                           </div>
                           {(quote as any).specApprovalComments && (
-                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-3 text-xs text-muted-foreground whitespace-pre-wrap" data-testid="text-approval-comments">
+                            <div className="bg-orange-500/10 rounded p-3 text-xs whitespace-pre-wrap" data-testid="text-approval-comments">
                               <p className="font-medium text-foreground mb-1">Their comments:</p>
-                              {(quote as any).specApprovalComments}
+                              <p className="text-muted-foreground">{(quote as any).specApprovalComments}</p>
                             </div>
                           )}
                         </div>
