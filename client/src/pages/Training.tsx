@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import SEO, { createServiceStructuredData } from "@/components/SEO";
+import SEO from "@/components/SEO";
 import Header from "@/components/Header";
 import { 
   GraduationCap, 
@@ -9,7 +9,7 @@ import {
   Award, 
   Clock, 
   CheckCircle2,
-  AlertTriangle,
+  Bell,
   FileText,
   Users,
   Wrench,
@@ -105,72 +105,39 @@ export default function Training() {
     <div className="min-h-screen">
       <Header />
       <SEO 
-        title="Mobile Tyre Fitting Training | REACT & Tyre Certification UK"
-        description="Get fully certified to operate your mobile tyre business. We offer professional tyre fitting courses and REACT motorway certification. Start legally and safely. Based in Wirral, training UK-wide."
+        title="Mobile Tyre Fitting Training | Coming Soon | Mobile Tyre Van City"
+        description="Professional REACT motorway certification and tyre fitting training is coming soon. Register your interest today. Based in Wirral, serving customers UK-wide."
         canonical="/training"
         keywords="mobile tyre fitting training, REACT motorway certification, tyre fitting course UK, mobile tyre technician training, tyre fitting qualification"
-        structuredData={[
-          createServiceStructuredData({
-            name: "Mobile Tyre Fitting Training & REACT Certification",
-            description: "Comprehensive in-house training covering both REACT motorway certification and professional tyre fitting. Full legal compliance for motorway and roadside operations, industry-recognized certification, and ongoing support.",
-            url: "/training",
-          }),
-          {
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": [
-              {
-                "@type": "Question",
-                "name": "What is REACT training and do I need it?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Recovery Equipment And Carriageway Training (REACT) is the industry-standard qualification and legal requirement for operating on UK motorways and high-speed roads. It is essential for insurance coverage and legally operating your mobile tyre business on motorways."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "What are the entry requirements for the training?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "You need a valid UK driving licence, no medical conditions affecting roadside work, a basic understanding of vehicle operations, and commitment to full training attendance."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Is training included with a van purchase?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes, every van purchase includes both REACT motorway certification and professional tyre fitting training, with all training materials provided. You also receive hands-on practical experience and ongoing support."
-                }
-              }
-            ]
-          }
-        ]}
       />
-      {/* Hero Section */}
+
+      {/* Coming Soon Hero */}
       <section className="bg-gradient-to-br from-primary/10 via-background to-background py-16 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center max-w-3xl mx-auto">
-            <Badge variant="outline" className="mb-4" data-testid="badge-certification">
-              <GraduationCap className="w-4 h-4 mr-2" />
-              Professional Certification Included
+            <Badge variant="outline" className="mb-4" data-testid="badge-coming-soon">
+              <Bell className="w-4 h-4 mr-2" />
+              Coming Soon
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6" data-testid="text-page-title">
-              Complete Training Programme
+              Training Programme
             </h1>
-            <p className="text-xl text-muted-foreground mb-8" data-testid="text-page-subtitle">
-              Comprehensive in-house training covering both REACT motorway certification and professional tyre fitting. Everything you need to start your mobile tyre business with confidence.
+            <p className="text-xl text-muted-foreground mb-4" data-testid="text-page-subtitle">
+              We are working hard to bring you a comprehensive in-house training programme covering REACT motorway certification and professional tyre fitting.
+            </p>
+            <p className="text-base text-muted-foreground mb-8">
+              Training is not yet available. In the meantime, please contact us to discuss your requirements and we can point you in the right direction.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Link href="/configurator/van">
-                <Button size="lg" className="border-green-600 font-semibold bg-[#8bc440e6] text-[#191919]" data-testid="button-start-configurator">
-                  <ShieldCheck className="w-5 h-5 mr-2" />
-                  Start Your Van Build
+              <Link href="/contact">
+                <Button size="lg" className="border-green-600 font-semibold bg-[#8bc440e6] text-[#191919]" data-testid="button-contact-us">
+                  <GraduationCap className="w-5 h-5 mr-2" />
+                  Contact Us About Training
                 </Button>
               </Link>
-              <Link href="/stock">
-                <Button variant="outline" size="lg" className="!border-2 !border-accent text-accent hover:bg-accent/10" data-testid="button-view-stock">
-                  View Van Stock
+              <Link href="/configurator/van">
+                <Button variant="outline" size="lg" className="!border-2 !border-accent text-accent hover:bg-accent/10" data-testid="button-start-configurator">
+                  Start Your Van Build
                 </Button>
               </Link>
             </div>
@@ -178,11 +145,31 @@ export default function Training() {
         </div>
       </section>
 
-      {/* Training Overview */}
+      {/* Notice Banner */}
+      <section className="py-6 px-4 border-y bg-muted/40">
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex items-start gap-4 p-4 rounded-md bg-background border">
+            <Bell className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Training coming soon</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                We are developing a full training programme for REACT motorway certification and professional tyre fitting. The information below gives you a preview of what will be covered. Call us on <a href="tel:01512038500" className="text-accent font-medium hover:underline">0151 203 8500</a> to find out more or register your interest.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Training Overview - Preview of what's coming */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-7xl">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold text-muted-foreground" data-testid="text-preview-label">
+              What the programme will cover
+            </h2>
+          </div>
           <div className="grid md:grid-cols-2 gap-8 mb-12">
-            <Card className="border-primary/20" data-testid="card-react-overview">
+            <Card className="border-primary/20 opacity-75" data-testid="card-react-overview">
               <CardHeader>
                 <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
                   <ShieldCheck className="w-6 h-6 text-accent" />
@@ -210,7 +197,7 @@ export default function Training() {
               </CardContent>
             </Card>
 
-            <Card className="border-accent/20" data-testid="card-tyre-overview">
+            <Card className="border-accent/20 opacity-75" data-testid="card-tyre-overview">
               <CardHeader>
                 <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
                   <Wrench className="w-6 h-6 text-accent" />
@@ -241,24 +228,25 @@ export default function Training() {
         </div>
       </section>
 
-      {/* REACT Training Modules */}
+      {/* REACT Training Modules Preview */}
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
               <ShieldCheck className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-3xl font-bold mb-4" data-testid="text-react-modules-title">
+            <h2 className="text-3xl font-bold mb-2" data-testid="text-react-modules-title">
               REACT Training Modules
             </h2>
+            <Badge variant="outline" className="mb-4">Coming Soon</Badge>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="text-react-modules-description">
               Essential certification for safe and legal motorway operations
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-70">
             {reactModules.map((module, index) => (
-              <Card key={index} className="hover-elevate" data-testid={`card-react-module-${index}`}>
+              <Card key={index} data-testid={`card-react-module-${index}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
@@ -282,24 +270,25 @@ export default function Training() {
         </div>
       </section>
 
-      {/* Tyre Fitting Training Modules */}
+      {/* Tyre Fitting Training Modules Preview */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 mb-4">
               <Wrench className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="text-3xl font-bold mb-4" data-testid="text-tyre-modules-title">
+            <h2 className="text-3xl font-bold mb-2" data-testid="text-tyre-modules-title">
               Tyre Fitting Training Modules
             </h2>
+            <Badge variant="outline" className="mb-4">Coming Soon</Badge>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto" data-testid="text-tyre-modules-description">
               Professional mobile tyre fitting and service expertise
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-70">
             {tyreFittingModules.map((module, index) => (
-              <Card key={index} className="hover-elevate" data-testid={`card-tyre-module-${index}`}>
+              <Card key={index} data-testid={`card-tyre-module-${index}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
@@ -323,10 +312,10 @@ export default function Training() {
         </div>
       </section>
 
-      {/* Benefits & Requirements */}
+      {/* Benefits & Requirements Preview */}
       <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-7xl">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 opacity-70">
             <Card data-testid="card-benefits">
               <CardHeader>
                 <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
@@ -362,58 +351,6 @@ export default function Training() {
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* What's Included */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4" data-testid="text-included-title">
-              What's Included With Every Van Purchase
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Complete training package to get you operational from day one
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="hover-elevate" data-testid="card-full-certification">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <FileText className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Full Certification</h3>
-                <p className="text-muted-foreground">
-                  Both REACT and tyre fitting certifications included with all training materials
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover-elevate" data-testid="card-hands-on">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <CarFront className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Hands-On Practice</h3>
-                <p className="text-muted-foreground">
-                  Real-world practical training with professional equipment and scenarios
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover-elevate" data-testid="card-ongoing-support">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Ongoing Support</h3>
-                <p className="text-muted-foreground">
-                  Continued guidance and access to refresher training whenever you need it
-                </p>
               </CardContent>
             </Card>
           </div>
@@ -463,21 +400,21 @@ export default function Training() {
       <section className="py-16 px-4 bg-gradient-to-br from-primary/10 via-background to-background">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="text-3xl font-bold mb-4" data-testid="text-cta-title">
-            Ready to Start Your Mobile Tyre Business?
+            Interested in Training?
           </h2>
           <p className="text-lg text-muted-foreground mb-8" data-testid="text-cta-description">
-            Every van purchase includes complete REACT and tyre fitting training - get certified and start earning from day one
+            Training is coming soon. Get in touch and we will let you know as soon as it is available.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/configurator/van">
-              <Button size="lg" data-testid="button-configure-van">
-                <GraduationCap className="w-5 h-5 mr-2" />
-                Configure Your Van
+            <Link href="/contact">
+              <Button size="lg" className="bg-[#8bc440e6] text-[#191919] border-green-600 font-semibold" data-testid="button-contact-training">
+                <Bell className="w-5 h-5 mr-2" />
+                Register Your Interest
               </Button>
             </Link>
-            <Link href="/stock">
-              <Button variant="outline" size="lg" className="!border-2 !border-accent text-accent hover:bg-accent/10" data-testid="button-browse-stock">
-                Browse Van Stock
+            <Link href="/configurator/van">
+              <Button variant="outline" size="lg" className="!border-2 !border-accent text-accent hover:bg-accent/10" data-testid="button-configure-van">
+                Configure Your Van
               </Button>
             </Link>
           </div>
