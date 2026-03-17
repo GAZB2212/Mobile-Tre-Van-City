@@ -1896,7 +1896,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
       // Calculate finance info if financeInputs are set on the quote
       let specFinanceInfo: { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number } | null = null;
-      const fi = (quote as any).financeInputs;
+      const fi = quote.financeInputs;
       if (fi && fi.deposit !== undefined && fi.deposit !== null && fi.term) {
         const depositAmount: number = fi.deposit;
         const termMonths: number = fi.term;
