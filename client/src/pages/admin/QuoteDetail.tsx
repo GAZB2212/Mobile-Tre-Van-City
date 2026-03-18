@@ -2073,48 +2073,43 @@ export default function AdminQuoteDetail() {
                 <CardTitle>Price Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {pricing.discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Original Price (inc. VAT)</span>
+                    <span className="font-medium">
+                      £{((pricing.total + pricing.discount) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+                {pricing.discount > 0 && (
+                  <div className="flex justify-between text-sm text-accent">
+                    <span className="font-medium">
+                      Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                    </span>
+                    <span className="font-medium">
+                      -£{(pricing.discount / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">Subtotal (ex. VAT)</span>
                   <span className="font-medium">
-                    £{(pricing.subtotal / 100).toLocaleString()}
+                    £{(pricing.subtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-                {pricing.discount > 0 && (
-                  <>
-                    <div className="flex justify-between text-sm text-accent">
-                      <span className="font-medium">
-                        Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
-                      </span>
-                      <span className="font-medium">
-                        -£{(pricing.discount / 100).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotal After Discount</span>
-                      <span className="font-medium">
-                        £{(pricing.subtotalAfterDiscount / 100).toLocaleString()}
-                      </span>
-                    </div>
-                  </>
-                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">VAT (20%)</span>
                   <span className="font-medium">
-                    £{(pricing.vat / 100).toLocaleString()}
+                    £{(pricing.vat / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Total</span>
+                  <span className="text-lg font-semibold">Total (inc. VAT)</span>
                   <span className="text-2xl font-bold text-accent">
-                    £{(pricing.total / 100).toLocaleString()}
+                    £{(pricing.total / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-                {pricing.discount > 0 && (
-                  <div className="text-xs text-muted-foreground text-center pt-2">
-                    Original: £{(quote.estTotal / 100).toLocaleString()}
-                  </div>
-                )}
                 
                 {/* Finance Summary (if saved) */}
                 {financeInfo && (

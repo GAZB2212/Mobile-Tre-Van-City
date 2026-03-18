@@ -183,10 +183,13 @@ export async function sendQuoteSpecSummaryEmail({
   const brandDark = '#191919';
 
   const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+  const originalPriceLine = discount && discount > 0
+    ? `<tr><td>Original Price (inc. VAT)</td><td>${fmt(total)}</td></tr>`
+    : '';
   const discountLine = discount && discount > 0
     ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
     : '';
-  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
 
   // Build finance section if financeInfo is provided
   const financeBlock = financeInfo ? `
@@ -274,8 +277,9 @@ export async function sendQuoteSpecSummaryEmail({
       </table>
       <h3 style="margin-bottom:8px;">Pricing</h3>
       <table>
-        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
+        ${originalPriceLine}
         ${discountLine}
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
         <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
         <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
       </table>
@@ -291,7 +295,7 @@ export async function sendQuoteSpecSummaryEmail({
   </div>
 </body>
 </html>`,
-    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
 
@@ -342,10 +346,13 @@ export async function sendFinanceSubmissionEmail({
   const brandDark = '#191919';
 
   const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+  const originalPriceLine = discount && discount > 0
+    ? `<tr><td>Original Price (inc. VAT)</td><td>${fmt(total)}</td></tr>`
+    : '';
   const discountLine = discount && discount > 0
     ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
     : '';
-  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
 
   const emailHtml = `<!DOCTYPE html>
 <html>
@@ -400,8 +407,9 @@ export async function sendFinanceSubmissionEmail({
 
       <div class="section-title">Pricing</div>
       <table>
-        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
+        ${originalPriceLine}
         ${discountLine}
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
         <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
         <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
       </table>
@@ -429,7 +437,7 @@ ${financeDetails ? `
 
   const financeText = financeDetails ? `\nFinance Details:\nPlan Type: ${financeDetails.planType}\nAPR: ${financeDetails.apr.toFixed(2)}%\nDeposit: ${fmt(financeDetails.depositAmount)}\nTerm: ${financeDetails.termMonths} months\nMonthly Payment: ${fmt(financeDetails.monthlyPayment)}\nWeekly Payment: ${fmt(financeDetails.weeklyPayment)}\n` : '';
 
-  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nPricing:\nSubtotal (ex. VAT): ${fmt(subtotal)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}VAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
 
   await client.emails.send({
     to: financeCompanyEmail,
