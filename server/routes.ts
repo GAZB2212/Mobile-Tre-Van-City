@@ -1882,17 +1882,12 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           : Promise.resolve([]),
       ]);
 
-      // Calculate discount
-      const totalWithVat = quote.estSubtotal + quote.estVAT;
-      let discount = 0;
-      if (quote.discountType && quote.discountValue) {
-        if (quote.discountType === 'percentage') {
-          discount = Math.round((totalWithVat * quote.discountValue) / 100);
-        } else {
-          discount = quote.discountValue;
-        }
-      }
-      const totalAfterDiscount = discount > 0 ? totalWithVat - discount : totalWithVat;
+      // estSubtotal + estVAT are already post-discount values stored at save time.
+      // estDiscount holds the discount amount in pence. Use these directly.
+      const discount = quote.estDiscount || 0;
+      const totalAfterDiscount = quote.estTotal; // already the correct post-discount total
+      // Pre-discount total (for email display: template subtracts discount from this)
+      const totalWithVat = totalAfterDiscount + discount;
 
       // Calculate finance info if financeInputs are set on the quote
       let specFinanceInfo: { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number } | null = null;
@@ -1986,16 +1981,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           : Promise.resolve([]),
       ]);
 
-      // Calculate discount
-      const totalWithVat = quote.estSubtotal + quote.estVAT;
-      let discount = 0;
-      if (quote.discountType && quote.discountValue) {
-        if (quote.discountType === 'percentage') {
-          discount = Math.round((totalWithVat * quote.discountValue) / 100);
-        } else {
-          discount = quote.discountValue;
-        }
-      }
+      // estSubtotal + estVAT are already post-discount values stored at save time.
+      // Use estDiscount and estTotal directly to avoid double-discounting.
+      const discount = quote.estDiscount || 0;
+      const totalAfterDiscount = quote.estTotal;
+      const totalWithVat = totalAfterDiscount + discount; // pre-discount total for email display
 
       // Build finance details from saved financeInputs.
       // Admin saves nullify financePlanId, so fall back to the site-wide 10.9% HP APR
@@ -2012,7 +2002,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
         const depositAmount = quote.financeInputs.deposit;
         const termMonths = quote.financeInputs.term;
-        const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
+        const principal = totalAfterDiscount - depositAmount;
 
         // Prefer stored finance plan APR; fall back to the standard 10.9% HP rate
         let aprDecimal = 0.109;
@@ -2111,15 +2101,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           : Promise.resolve([]),
       ]);
 
-      const totalWithVat = quote.estSubtotal + quote.estVAT;
-      let discount = 0;
-      if (quote.discountType && quote.discountValue) {
-        if (quote.discountType === 'percentage') {
-          discount = Math.round((totalWithVat * quote.discountValue) / 100);
-        } else {
-          discount = quote.discountValue;
-        }
-      }
+      // estSubtotal + estVAT are already post-discount values stored at save time.
+      // Use estDiscount and estTotal directly to avoid double-discounting.
+      const discount = quote.estDiscount || 0;
+      const totalAfterDiscount = quote.estTotal;
+      const totalWithVat = totalAfterDiscount + discount; // pre-discount total for email display
 
       let financeDetails: {
         planType: string;
@@ -2133,7 +2119,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (quote.financeInputs?.deposit !== undefined && quote.financeInputs?.deposit !== null && quote.financeInputs?.term) {
         const depositAmount = quote.financeInputs.deposit;
         const termMonths = quote.financeInputs.term;
-        const principal = totalWithVat - (discount > 0 ? discount : 0) - depositAmount;
+        const principal = totalAfterDiscount - depositAmount;
 
         let aprDecimal = 0.109;
         let planType = 'HP';
