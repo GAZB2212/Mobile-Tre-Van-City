@@ -179,7 +179,7 @@ export default function AdminDashboard() {
 
   const allLeadsItems = [
     {
-      title: "Phone Configurator",
+      title: "Admin Configurator",
       description: "Build a spec live on a call — compare vans, add kit and upgrades, calculate monthly payments in real time, then save as a quote",
       icon: UserRound,
       href: "/admin/configurator",
