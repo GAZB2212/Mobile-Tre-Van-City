@@ -459,6 +459,7 @@ export async function sendQuoteReceivedEmails({
   upgradeNames,
   comparisonSlotB,
   chosenOption,
+  baseUrl,
 }: {
   quote: {
     id: string;
@@ -483,6 +484,8 @@ export async function sendQuoteReceivedEmails({
   } | null;
   /** When set, highlights the chosen option in the comparison sections */
   chosenOption?: 'A' | 'B' | null;
+  /** Base URL for the choose-option links in comparison emails (e.g. https://mobiletyrevancity.co.uk) */
+  baseUrl?: string;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
 
@@ -534,7 +537,7 @@ export async function sendQuoteReceivedEmails({
         <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
       </div>
       <h3 style="margin-bottom: 8px;">Your Configuration Summary</h3>
-      ${comparisonSlotB ? `<p style="font-size:13px;color:#6b7280;margin-bottom:8px;">You submitted two options for our team to compare. Both are shown below.${chosenOption ? ` <strong>Option ${chosenOption}</strong> has been selected as your final choice.` : ''}</p>` : ''}
+      ${comparisonSlotB ? `<p style="font-size:13px;color:#6b7280;margin-bottom:8px;">You submitted two options for our team to compare. Both are shown below.${chosenOption ? ` <strong>Option ${chosenOption}</strong> has been selected as your final choice.` : ' If you already know which option you prefer, you can select it using the button below each option and we\'ll be notified straight away.'}</p>` : ''}
       ${comparisonSlotB
         ? `<p style="font-weight:bold;font-size:14px;margin-bottom:4px;color:#191919;">Option A${chosenOption === 'A' ? ' <span style="background:#8bc440;color:#191919;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>' : ''}</p>`
         : ''}
@@ -546,6 +549,10 @@ export async function sendQuoteReceivedEmails({
         <tr><td>VAT (20%)</td><td>${vat}</td></tr>
         <tr class="total-row"><td>Total</td><td>${total}</td></tr>
       </table>
+      ${comparisonSlotB && !chosenOption && baseUrl ? `
+      <div style="text-align:center;margin:12px 0 24px;">
+        <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=A" style="display:inline-block;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:12px 32px;border-radius:4px;text-decoration:none;">I choose Option A</a>
+      </div>` : ''}
       ${comparisonSlotB ? `
       <p style="font-weight:bold;font-size:14px;margin-top:20px;margin-bottom:4px;color:#191919;">Option B${chosenOption === 'B' ? ' <span style="background:#8bc440;color:#191919;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>' : ''}</p>
       <table class="summary" style="${chosenOption === 'B' ? 'border:2px solid #8bc440;border-radius:4px;' : ''}">
@@ -556,6 +563,10 @@ export async function sendQuoteReceivedEmails({
         ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estTotal != null ? `<tr class="total-row"><td>Total</td><td>£${(comparisonSlotB.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
       </table>
+      ${!chosenOption && baseUrl ? `
+      <div style="text-align:center;margin:12px 0 24px;">
+        <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=B" style="display:inline-block;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:12px 32px;border-radius:4px;text-decoration:none;">I choose Option B</a>
+      </div>` : ''}
       ` : ''}
       <p>If you have any questions in the meantime, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
       <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
@@ -612,6 +623,90 @@ export async function sendQuoteReceivedEmails({
 </body>
 </html>`,
     text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades: ${upgradeNames.join(', ')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}`,
+  });
+}
+
+// ── Customer chose an option from a comparison quote ─────────────────────────
+
+export async function sendOptionChosenAdminNotification({
+  quoteId,
+  customerName,
+  customerEmail,
+  customerPhone,
+  chosenOption,
+  optionDetails,
+}: {
+  quoteId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  chosenOption: 'A' | 'B';
+  optionDetails: {
+    vanTitle?: string | null;
+    kitName?: string | null;
+    upgradeNames?: string[];
+    estTotal?: number;
+  };
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+
+  const ref = quoteId.slice(0, 8).toUpperCase();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+  const totalStr = optionDetails.estTotal != null
+    ? `£${(optionDetails.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
+    : null;
+
+  await client.emails.send({
+    to: INTERNAL_NOTIFY_EMAILS,
+    from: fromEmail,
+    subject: `Customer chose Option ${chosenOption} – ${customerName} – Ref #${ref}`,
+    html: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: ${brandDark}; padding: 24px 30px; border-radius: 4px 4px 0 0; }
+    .header h2 { color: ${brandGreen}; margin: 0; font-size: 20px; }
+    .header p { color: #ccc; margin: 4px 0 0; font-size: 13px; }
+    .body { background: #fff; padding: 24px 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 4px 4px; }
+    .badge { display: inline-block; background: ${brandGreen}; color: ${brandDark}; font-weight: bold; font-size: 13px; padding: 4px 14px; border-radius: 4px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    td:first-child { font-weight: bold; color: #6b7280; width: 35%; }
+    .total td { font-weight: bold; font-size: 15px; border-top: 2px solid ${brandGreen}; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Customer Option Selection</h2>
+      <p>A customer has chosen their preferred option from a comparison quote.</p>
+    </div>
+    <div class="body">
+      <p class="badge">Option ${chosenOption} Selected</p>
+      <h3 style="margin-top:0;">Customer Details</h3>
+      <table>
+        <tr><td>Name</td><td>${customerName}</td></tr>
+        <tr><td>Email</td><td><a href="mailto:${customerEmail}">${customerEmail}</a></td></tr>
+        <tr><td>Phone</td><td>${customerPhone}</td></tr>
+        <tr><td>Reference</td><td>#${ref}</td></tr>
+      </table>
+      <h3>Chosen Configuration (Option ${chosenOption})</h3>
+      <table>
+        ${optionDetails.vanTitle ? `<tr><td>Van</td><td>${optionDetails.vanTitle}</td></tr>` : ''}
+        ${optionDetails.kitName ? `<tr><td>Pack</td><td>${optionDetails.kitName}</td></tr>` : ''}
+        ${optionDetails.upgradeNames && optionDetails.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${optionDetails.upgradeNames.join('<br>')}</td></tr>` : ''}
+        ${totalStr ? `<tr class="total"><td>Total (inc. VAT)</td><td>${totalStr}</td></tr>` : ''}
+      </table>
+      <p style="margin-top:16px;font-size:13px;color:#6b7280;">Log in to the admin panel to view the full quote and continue the build process.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: `Customer Option Selection\n\nA customer has selected Option ${chosenOption} from their comparison quote.\n\nName: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone}\nReference: #${ref}\n${optionDetails.vanTitle ? `Van: ${optionDetails.vanTitle}\n` : ''}${optionDetails.kitName ? `Pack: ${optionDetails.kitName}\n` : ''}${optionDetails.upgradeNames && optionDetails.upgradeNames.length > 0 ? `Upgrades: ${optionDetails.upgradeNames.join(', ')}\n` : ''}${totalStr ? `Total: ${totalStr}\n` : ''}`,
   });
 }
 

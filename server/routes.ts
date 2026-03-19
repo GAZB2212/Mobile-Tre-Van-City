@@ -517,6 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
 
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
         await sendQuoteReceivedEmails({
           quote,
           vanTitle: van?.title ?? null,
@@ -526,6 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // chosenOption is null at submission time (admin chooses later), but wired here
           // so resend/re-trigger email paths can pass the current chosen state
           chosenOption: null,
+          baseUrl: comparisonSlotBEmail ? baseUrl : undefined,
         });
       } catch (emailErr) {
         console.error('Failed to send quote received emails:', emailErr);
@@ -1883,6 +1885,158 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     } catch (error) {
       console.error('Error updating note:', error);
       res.status(500).json({ error: "Failed to update note" });
+    }
+  });
+
+  // Public: customer clicks "I choose Option A/B" link from their confirmation email
+  app.get("/api/quotes/:id/choose-option", async (req, res) => {
+    const brandGreen = '#8bc440';
+    const brandDark = '#191919';
+
+    function htmlPage(title: string, heading: string, body: string, isError = false) {
+      return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} – Mobile Tyre Van City</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: ${brandDark}; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #fff; max-width: 480px; width: 100%; border-radius: 8px; overflow: hidden; }
+    .card-header { background: ${brandDark}; padding: 28px 32px; border-bottom: 3px solid ${brandGreen}; }
+    .card-header h1 { color: ${brandGreen}; font-size: 22px; }
+    .card-header p { color: #ccc; font-size: 13px; margin-top: 4px; }
+    .card-body { padding: 28px 32px; }
+    .card-body h2 { color: ${isError ? '#dc2626' : brandDark}; font-size: 20px; margin-bottom: 12px; }
+    .card-body p { color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+    .badge { display: inline-block; background: ${brandGreen}; color: ${brandDark}; font-weight: bold; font-size: 14px; padding: 6px 18px; border-radius: 4px; margin-bottom: 16px; }
+    .phone { color: ${brandDark}; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>www.mobiletyrevancity.co.uk</p>
+    </div>
+    <div class="card-body">
+      <h2>${heading}</h2>
+      ${body}
+    </div>
+  </div>
+</body>
+</html>`;
+    }
+
+    try {
+      const { option } = req.query;
+      if (option !== 'A' && option !== 'B') {
+        res.status(400).send(htmlPage('Invalid Request', 'Invalid request', '<p>The link you followed is not valid. Please contact us directly.</p>', true));
+        return;
+      }
+
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        res.status(404).send(htmlPage('Not Found', 'Quote not found', '<p>We could not find your quote. Please contact us and we\'ll be happy to help.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        return;
+      }
+
+      if (!quote.comparisonConfig?.slotA || !quote.comparisonConfig?.slotB) {
+        res.status(400).send(htmlPage('Not Available', 'Option selection not available', '<p>This quote does not have two options to choose from. Please contact us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        return;
+      }
+
+      if (quote.chosenOption) {
+        const alreadyOption = quote.chosenOption;
+        const sameChoice = alreadyOption === option;
+        res.send(htmlPage(
+          'Already Selected',
+          sameChoice ? 'Choice already recorded' : 'An option has already been selected',
+          sameChoice
+            ? `<p class="badge">Option ${alreadyOption}</p><p>We already have your preference for <strong>Option ${alreadyOption}</strong> on record. Our team will be in touch shortly.</p><p>Call us on <span class="phone">0151 203 8500</span> if you have any questions.</p>`
+            : `<p>You have already selected <strong>Option ${alreadyOption}</strong> for this quote. If you'd like to change your preference, please call us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>`,
+        ));
+        return;
+      }
+
+      if (quote.buildStage != null) {
+        res.send(htmlPage('Selection Closed', 'Selection period has closed', '<p>Your build has already started so we\'re unable to accept a new option selection via this link. Please call us if you have any queries.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>'));
+        return;
+      }
+
+      // Promote the chosen slot data into the primary quote fields (same logic as admin endpoint)
+      const slotData = option === 'B' ? quote.comparisonConfig.slotB : quote.comparisonConfig.slotA;
+      const updateData: any = { chosenOption: option };
+
+      if (slotData) {
+        updateData.vanId = slotData.vanId ?? null;
+        updateData.customVanDescription = slotData.customVanDescription ?? null;
+        updateData.customVanValue = slotData.customVanValue ?? null;
+        updateData.vanRegistration = slotData.vanRegistration ?? null;
+        updateData.serviceType = slotData.serviceType ?? null;
+        updateData.kitId = slotData.kitId ?? null;
+        updateData.selectedUpgradeIds = slotData.upgradeIds ?? [];
+        const upgradeQtyMap: Record<string, number> = {};
+        (slotData.upgradeIds ?? []).forEach((uid: string) => { upgradeQtyMap[uid] = 1; });
+        updateData.selectedUpgrades = upgradeQtyMap;
+        updateData.trainingOptionIds = slotData.trainingOptionIds ?? [];
+        updateData.financePlanId = slotData.financePlanId ?? null;
+        updateData.financeInputs = slotData.financeInputs ?? null;
+        if (slotData.estSubtotal != null) updateData.estSubtotal = slotData.estSubtotal;
+        if (slotData.estVAT != null) updateData.estVAT = slotData.estVAT;
+        if (slotData.estTotal != null) updateData.estTotal = slotData.estTotal;
+      }
+
+      const adminNotesHistory = Array.isArray(quote.adminNotesHistory) ? [...quote.adminNotesHistory] : [];
+      adminNotesHistory.push({
+        text: `Customer selected Option ${option} via the email link.`,
+        timestamp: new Date().toISOString(),
+        author: 'Customer',
+      });
+      updateData.adminNotesHistory = adminNotesHistory;
+
+      await storage.updateQuote(req.params.id, updateData);
+
+      // Send admin notification (non-blocking)
+      try {
+        const { sendOptionChosenAdminNotification } = await import('./email.js');
+        const van = slotData?.vanId ? await storage.getVan(slotData.vanId) : null;
+        const kit = slotData?.kitId ? await storage.getKit(slotData.kitId) : null;
+        const upgradeIds: string[] = slotData?.upgradeIds ?? [];
+        const upgrades = upgradeIds.length > 0
+          ? (await Promise.all(upgradeIds.map((uid) => storage.getUpgrade(uid)))).filter(Boolean)
+          : [];
+
+        await sendOptionChosenAdminNotification({
+          quoteId: quote.id,
+          customerName: quote.userName,
+          customerEmail: quote.email,
+          customerPhone: quote.phone,
+          chosenOption: option,
+          optionDetails: {
+            vanTitle: van?.title ?? (slotData?.vanRegistration ? `Own van (${slotData.vanRegistration})` : null),
+            kitName: kit?.name ?? null,
+            upgradeNames: upgrades.map((u: any) => u.name),
+            estTotal: slotData?.estTotal,
+          },
+        });
+      } catch (emailErr) {
+        console.error('Failed to send option chosen notification:', emailErr);
+      }
+
+      const ref = quote.id.slice(0, 8).toUpperCase();
+      res.send(htmlPage(
+        `Option ${option} Selected`,
+        `Thank you — Option ${option} confirmed!`,
+        `<p class="badge">Option ${option} Selected</p>
+        <p>We've recorded your choice and our team has been notified. We'll be in touch shortly to discuss the next steps.</p>
+        <p>Your reference is <strong>#${ref}</strong>.</p>
+        <p>If you have any questions in the meantime, please call us on <span class="phone">0151 203 8500</span> or email <a href="mailto:info@mobiletyrevancity.co.uk" style="color:${brandGreen}">info@mobiletyrevancity.co.uk</a>.</p>`,
+      ));
+    } catch (error) {
+      console.error('Error processing customer option choice:', error);
+      res.status(500).send(htmlPage('Error', 'Something went wrong', '<p>We were unable to record your choice at this time. Please call us on <span class="phone">0151 203 8500</span> and we\'ll sort it out for you.</p>', true));
     }
   });
 
