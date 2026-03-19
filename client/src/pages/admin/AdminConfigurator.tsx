@@ -347,6 +347,23 @@ export default function AdminConfigurator() {
     };
   }, [selectedVanData, state.customVanValue, state.kitId, state.upgradeIds, configData, allUpgradesList, upgradeQuantities]);
 
+  // ── SlotA pricing — always computed from slotA regardless of active slot.
+  // Used for quote submission so the server validation (which uses slotA fields) passes.
+  const slotAPricing = useMemo(() => {
+    const slotAVan = allVans.find(v => v.id === slotA.vanId);
+    const vanPrice = slotAVan?.price ?? slotA.customVanValue ?? 0;
+    const kit = configData?.kits.find((k: any) => k.id === slotA.kitId);
+    const kitPrice = kit?.price ?? 0;
+    const upgradesTotal = slotA.upgradeIds.reduce((sum, id) => {
+      const u = allUpgradesList.find(x => x.id === id);
+      const qty = upgradeQuantities[id] ?? 1;
+      return sum + (u?.price ?? 0) * qty;
+    }, 0);
+    const subtotalPence = vanPrice + kitPrice + upgradesTotal;
+    const vatPence = Math.round(subtotalPence * 0.2);
+    return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
+  }, [allVans, slotA, configData, allUpgradesList, upgradeQuantities]);
+
   const financeBase = deferVat ? pricing.subtotal : pricing.total;
 
   const financeCalc = useMemo(() => {
@@ -383,9 +400,9 @@ export default function AdminConfigurator() {
           deposit: Math.round((parseFloat(depositAmount) || 0) * 100),
           term: termYears * 12,
         } : undefined,
-        estSubtotal: pricing.subtotalPence,
-        estVAT: pricing.vatPence,
-        estTotal: pricing.totalPence,
+        estSubtotal: slotAPricing.subtotalPence,
+        estVAT: slotAPricing.vatPence,
+        estTotal: slotAPricing.totalPence,
         estDiscount: 0,
         status: "new",
         comparisonConfig: (compareMode && slotBHasData)
