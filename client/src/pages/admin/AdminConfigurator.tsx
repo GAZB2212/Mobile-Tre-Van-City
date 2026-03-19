@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import {
-  ArrowLeft, ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal,
+  ArrowLeft, ArrowRight, Car, Gauge, Settings, Info, SlidersHorizontal,
   X, Truck, Shuffle, Package, Zap, CheckCircle, AlertTriangle, AlertCircle,
   Star, Calculator, PoundSterling, CheckCircle2, Loader2, UserRound, RotateCcw,
 } from "lucide-react";
@@ -501,7 +501,7 @@ export default function AdminConfigurator() {
                   </Card>
 
                   {/* Van grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
                     {filteredVans.length === 0 ? (
                       <div className="col-span-full text-center py-12">
                         <p className="text-muted-foreground">No vans match your filters.</p>
@@ -513,52 +513,26 @@ export default function AdminConfigurator() {
                         <Card
                           key={van.id}
                           className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${isSelected ? "ring-2 ring-accent" : ""}`}
-                          onClick={() => { setVan(van.id); }}
+                          onClick={() => setVan(van.id)}
                           data-testid={`card-van-${van.id}`}
                         >
-                          {firstImage && (
-                            <div className="relative w-full h-36 overflow-hidden rounded-t-md">
-                              <img src={firstImage} alt={`${van.make} ${van.model}`} className="w-full h-full object-cover" loading="lazy" />
-                            </div>
-                          )}
-                          <CardHeader className="space-y-0 pb-3 pt-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <Badge variant="secondary" className="text-xs">{van.year}</Badge>
-                              {van.euroStatus && <Badge variant="outline" className="text-xs">{van.euroStatus}</Badge>}
-                            </div>
-                            <CardTitle className="text-base leading-tight mb-1">{van.make} {van.model}</CardTitle>
-                            <p className="text-xl font-bold text-accent">{fmt(van.price)}</p>
-                          </CardHeader>
-                          <CardContent className="pt-0 pb-3 flex-1 flex flex-col">
-                            <div className="space-y-1.5 mb-3 flex-1">
-                              {[
-                                { Icon: Gauge, val: `${van.mileage.toLocaleString()} miles` },
-                                { Icon: Settings, val: van.specs.transmission },
-                                { Icon: Fuel, val: van.specs.fuel },
-                                { Icon: Car, val: van.specs.size },
-                              ].map(({ Icon, val }) => val && (
-                                <div key={val} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Icon className="w-3.5 h-3.5" />
-                                  <span>{val}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="space-y-2">
-                              {(van.heroImage || van.images?.length > 0 || van.description) && (
-                                <Button type="button" variant="ghost" size="sm" className="w-full" onClick={e => { e.stopPropagation(); setModalVan(van); }}>
-                                  <Info className="w-3.5 h-3.5 mr-1.5" />More Info
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                className={`w-full ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
-                                variant={isSelected ? "default" : "outline"}
-                                onClick={e => { e.stopPropagation(); if (isSelected) setVan(state.vanId!); else setVan(van.id); }}
-                                data-testid={`button-select-van-${van.id}`}
-                              >
-                                {isSelected ? "Selected" : "Select Van"}<ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                              </Button>
-                            </div>
+                          <div className="relative w-full h-28 overflow-hidden rounded-t-md bg-muted">
+                            {firstImage
+                              ? <img src={firstImage} alt={`${van.make} ${van.model}`} className="w-full h-full object-cover" loading="lazy" />
+                              : <div className="w-full h-full flex items-center justify-center"><Car className="w-8 h-8 text-muted-foreground/40" /></div>
+                            }
+                          </div>
+                          <CardContent className="px-2 py-2 flex flex-col gap-1.5">
+                            <p className="text-xs font-medium leading-tight line-clamp-2">{van.year} {van.make} {van.model}</p>
+                            <Button
+                              size="sm"
+                              className={`w-full h-7 text-xs ${isSelected ? "bg-accent text-accent-foreground" : "!border !border-accent text-accent"}`}
+                              variant={isSelected ? "default" : "outline"}
+                              onClick={e => { e.stopPropagation(); setVan(van.id); }}
+                              data-testid={`button-select-van-${van.id}`}
+                            >
+                              {isSelected ? "Selected" : "Select"}
+                            </Button>
                           </CardContent>
                         </Card>
                       );
