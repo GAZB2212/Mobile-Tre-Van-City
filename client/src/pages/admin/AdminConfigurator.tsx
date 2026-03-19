@@ -146,8 +146,8 @@ export default function AdminConfigurator() {
   const [filterModel, setFilterModel] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
   const [filterFuel, setFilterFuel] = useState("all");
-  const [ownVanReg, setOwnVanReg] = useState("");
-  const [ownVanPrice, setOwnVanPrice] = useState("");
+  const [ownVanReg, setOwnVanReg] = useState(state.vanReg ?? "");
+  const [ownVanPrice, setOwnVanPrice] = useState(state.customVanValue ? (state.customVanValue / 100).toFixed(0) : "");
 
   // ── Kit section state
   const [modalKit, setModalKit] = useState<Kit | null>(null);
@@ -170,6 +170,10 @@ export default function AdminConfigurator() {
   // ── Auth guard
   useEffect(() => { if (!isLoading && !isAuthenticated) window.location.href = "/login"; }, [isLoading, isAuthenticated]);
   useEffect(() => { if (user && (!user.adminRole || user.adminRole === "none")) navigate("/"); }, [user, navigate]);
+
+  // ── Sync own-van inputs when context changes (e.g. edited via ConfiguratorSummary)
+  useEffect(() => { setOwnVanReg(state.vanReg ?? ""); }, [state.vanReg]);
+  useEffect(() => { setOwnVanPrice(state.customVanValue ? (state.customVanValue / 100).toFixed(0) : ""); }, [state.customVanValue]);
 
   // ── Data
   const { data: allVans = [], isLoading: vansLoading } = useQuery<Van[]>({ queryKey: ["/api/vans"] });
