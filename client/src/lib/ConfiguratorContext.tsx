@@ -144,7 +144,14 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setFullState(prev => ({
       ...prev,
       compareMode: true,
-      slotB: defaultSlotState,
+      // Slot B inherits the full config from slot A — only the van will differ
+      slotB: {
+        ...prev.slotA,
+        vanId: null,
+        customVanDescription: null,
+        customVanValue: null,
+        vanReg: null,
+      },
       activeSlot: 'B',
     }));
   };
@@ -172,35 +179,73 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const setVan = (vanId: string | null) => {
-    updateActiveSlot(prev => ({
-      ...prev,
-      vanId,
-      customVanDescription: null,
-      customVanValue: null,
-      serviceType: null,
-      kitId: null,
-      upgradeIds: [],
-      trainingOptionIds: [],
-      financePlanId: null,
-      financeInputs: null,
-      pricingSnapshot: null,
-    }));
+    setFullState(prev => {
+      // In compare mode, slot B only changes the van — config (kit/upgrades) is shared with slot A
+      if (prev.compareMode && prev.activeSlot === 'B') {
+        return {
+          ...prev,
+          slotB: {
+            ...prev.slotB,
+            vanId,
+            customVanDescription: null,
+            customVanValue: null,
+            vanReg: null,
+          },
+        };
+      }
+      // Normal mode: update active slot and reset all downstream selections
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      return {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          vanId,
+          customVanDescription: null,
+          customVanValue: null,
+          serviceType: null,
+          kitId: null,
+          upgradeIds: [],
+          trainingOptionIds: [],
+          financePlanId: null,
+          financeInputs: null,
+          pricingSnapshot: null,
+        },
+      };
+    });
   };
 
   const setCustomVan = (description: string, valueInPence: number) => {
-    updateActiveSlot(prev => ({
-      ...prev,
-      vanId: null,
-      customVanDescription: description,
-      customVanValue: valueInPence,
-      serviceType: null,
-      kitId: null,
-      upgradeIds: [],
-      trainingOptionIds: [],
-      financePlanId: null,
-      financeInputs: null,
-      pricingSnapshot: null,
-    }));
+    setFullState(prev => {
+      // In compare mode, slot B only changes the van
+      if (prev.compareMode && prev.activeSlot === 'B') {
+        return {
+          ...prev,
+          slotB: {
+            ...prev.slotB,
+            vanId: null,
+            customVanDescription: description,
+            customVanValue: valueInPence,
+          },
+        };
+      }
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      return {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          vanId: null,
+          customVanDescription: description,
+          customVanValue: valueInPence,
+          serviceType: null,
+          kitId: null,
+          upgradeIds: [],
+          trainingOptionIds: [],
+          financePlanId: null,
+          financeInputs: null,
+          pricingSnapshot: null,
+        },
+      };
+    });
   };
 
   const setCustomVanValue = (valueInPence: number | null) => {

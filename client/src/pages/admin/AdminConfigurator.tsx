@@ -383,7 +383,8 @@ export default function AdminConfigurator() {
     mutationFn: async (form: SaveForm) => {
       const upgradesMap: Record<string, number> = {};
       state.upgradeIds.forEach(id => { upgradesMap[id] = upgradeQuantities[id] ?? 1; });
-      const slotBHasData = !!(slotB.vanId || slotB.vanReg || slotB.customVanValue || slotB.kitId || slotB.upgradeIds.length > 0 || slotB.trainingOptionIds.length > 0);
+      // In compare mode, slot B only needs a van to be a valid comparison
+      const slotBHasData = !!(slotB.vanId || slotB.vanReg || slotB.customVanValue);
 
       const body: Record<string, unknown> = {
         userName: form.userName, email: form.email, phone: form.phone,
@@ -424,12 +425,13 @@ export default function AdminConfigurator() {
                 customVanDescription: slotB.customVanDescription ?? undefined,
                 customVanValue: slotB.customVanValue ?? undefined,
                 vanRegistration: slotB.vanReg ?? undefined,
-                serviceType: slotB.serviceType,
-                kitId: slotB.kitId,
-                upgradeIds: slotB.upgradeIds,
-                trainingOptionIds: slotB.trainingOptionIds,
-                financePlanId: slotB.financePlanId,
-                financeInputs: slotB.financeInputs,
+                // Config is shared from slot A — only the van differs in compare mode
+                serviceType: slotA.serviceType,
+                kitId: slotA.kitId,
+                upgradeIds: slotA.upgradeIds,
+                trainingOptionIds: slotA.trainingOptionIds,
+                financePlanId: slotA.financePlanId,
+                financeInputs: slotA.financeInputs,
               },
             }
           : undefined,
@@ -643,6 +645,20 @@ export default function AdminConfigurator() {
                 </>
               )}
             </section>
+
+            {/* ── COMPARE MODE: shared config notice shown when on slot B ── */}
+            {compareMode && activeSlot === 'B' && (
+              <div className="p-4 rounded-md bg-accent/10 border border-accent/20 flex items-start gap-3">
+                <GitCompare className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">Service type, kit &amp; upgrades are shared from Option A</p>
+                  <p className="text-sm text-muted-foreground mt-1">Switch back to Option A to change the configuration. Option B only differs by van.</p>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEPS 2–4: only shown when editing slot A (config is shared) ── */}
+            {(!compareMode || activeSlot === 'A') && (<>
 
             {/* ── STEP 2: SERVICE TYPE ──────────────────────────── */}
             <section>
@@ -929,6 +945,8 @@ export default function AdminConfigurator() {
                 )}
               </section>
             )}
+
+            </>)}
 
           </div>
 
