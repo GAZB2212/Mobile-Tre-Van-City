@@ -27,6 +27,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   // Refs for direct DOM manipulation
+  const regRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const slugRef = useRef<HTMLInputElement>(null);
   const makeRef = useRef<HTMLInputElement>(null);
@@ -52,6 +53,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
       const slug = `${data.make}-${data.model}-${data.year}`.toLowerCase().replace(/\s+/g, '-');
       
       // Directly update DOM values
+      if (regRef.current) regRef.current.value = registration.toUpperCase().trim();
       if (titleRef.current) titleRef.current.value = data.title;
       if (slugRef.current) slugRef.current.value = slug;
       if (makeRef.current) makeRef.current.value = data.make;
@@ -170,7 +172,20 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </Card>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="reg">Reg Plate</Label>
+            <Input
+              ref={regRef}
+              id="reg"
+              name="reg"
+              defaultValue={van?.reg || ''}
+              placeholder="AB12 CDE"
+              className="font-mono uppercase"
+              onChange={e => { e.target.value = e.target.value.toUpperCase(); }}
+              data-testid="input-van-reg"
+            />
+          </div>
           <div>
             <Label htmlFor="title">Title</Label>
             <Input

@@ -523,7 +523,8 @@ export default function AdminConfigurator() {
                             }
                           </div>
                           <CardContent className="px-2 py-2 flex flex-col gap-1.5">
-                            <p className="text-xs font-medium leading-tight line-clamp-2">{van.year} {van.make} {van.model}</p>
+                            <p className="text-xs font-mono font-semibold leading-tight">{van.reg || `${van.year} ${van.make}`}</p>
+                            <p className="text-xs font-bold text-accent leading-tight">{fmt(van.price)}</p>
                             <Button
                               size="sm"
                               className={`w-full h-7 text-xs ${isSelected ? "bg-accent text-accent-foreground" : "!border !border-accent text-accent"}`}

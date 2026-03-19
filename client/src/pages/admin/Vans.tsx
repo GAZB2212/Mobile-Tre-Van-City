@@ -185,6 +185,7 @@ export default function AdminVans() {
 
     const vanData: InsertVan = {
       slug: formData.get('slug') as string,
+      reg: (formData.get('reg') as string)?.toUpperCase().trim() || undefined,
       title: formData.get('title') as string,
       make: formData.get('make') as string,
       model: formData.get('model') as string,
@@ -274,6 +275,7 @@ export default function AdminVans() {
 
     const vanData: Partial<InsertVan> = {
       slug: formData.get('slug') as string,
+      reg: (formData.get('reg') as string)?.toUpperCase().trim() || undefined,
       title: formData.get('title') as string,
       make: formData.get('make') as string,
       model: formData.get('model') as string,

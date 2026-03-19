@@ -37,6 +37,7 @@ export const users = pgTable("users", {
 export const vans = pgTable("vans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   slug: text("slug").notNull().unique(),
+  reg: text("reg"), // Vehicle registration plate
   title: text("title").notNull(),
   make: text("make").notNull(),
   model: text("model").notNull(),
