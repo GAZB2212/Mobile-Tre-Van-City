@@ -878,8 +878,10 @@ export default function AdminConfigurator() {
 
           {/* Right column — summary + finance calculator */}
           <div className="xl:col-span-1">
-            <div className="sticky top-[65px] z-10 space-y-4 max-h-[calc(100vh-75px)] overflow-y-auto pb-2">
-            <ConfiguratorSummary />
+            <div className="sticky top-[56px] z-10 space-y-4">
+            <div className="max-h-[40vh] overflow-y-auto">
+              <ConfiguratorSummary />
+            </div>
 
             {/* Finance Calculator */}
             <Card className="border-2">
