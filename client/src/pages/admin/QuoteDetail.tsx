@@ -651,6 +651,16 @@ export default function AdminQuoteDetail() {
     
     // Check if upgrade quantities changed
     if (JSON.stringify(selectedUpgrades) !== JSON.stringify(originalSelectedUpgrades)) return true;
+
+    // Check if van registration changed
+    if (vanRegistration !== (quote?.vanRegistration ?? "")) return true;
+
+    // Check if discount changed
+    if (discountType !== (quote?.discountType || "")) return true;
+    const origDiscountValue = quote?.discountValue
+      ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
+      : "";
+    if (discountValue !== origDiscountValue) return true;
     
     return false;
   };
@@ -1699,23 +1709,96 @@ export default function AdminQuoteDetail() {
                   </p>
                 </div>
 
+                {/* Van Registration — shown for all van types */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="config-van-registration">Vehicle Registration</Label>
+                  <Input
+                    id="config-van-registration"
+                    placeholder="e.g. AB12 CDE"
+                    value={vanRegistration}
+                    onChange={(e) => setVanRegistration(e.target.value.toUpperCase())}
+                    className="font-mono uppercase"
+                    data-testid="input-config-van-registration"
+                  />
+                </div>
+
+                {/* Discount */}
+                <div className="space-y-2">
+                  <Label>Discount</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={discountType || "none"}
+                      onValueChange={(v: any) => setDiscountType(v === "none" ? "" : v)}
+                    >
+                      <SelectTrigger className="w-44" data-testid="select-config-discount-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No discount</SelectItem>
+                        <SelectItem value="percentage">Percentage (%)</SelectItem>
+                        <SelectItem value="fixed">Fixed amount (£)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {discountType && (
+                      <div className="relative flex-1">
+                        {discountType === "percentage"
+                          ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
+                          : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
+                        }
+                        <Input
+                          type="number"
+                          min="0"
+                          max={discountType === "percentage" ? "100" : undefined}
+                          step={discountType === "percentage" ? "1" : "0.01"}
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                          className={discountType === "percentage" ? "pr-8" : "pl-7"}
+                          placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
+                          data-testid="input-config-discount-value"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Pricing Preview */}
                 <div className="pt-4 border-t">
                   <div className="text-sm font-medium mb-2">Updated Pricing:</div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal:</span>
-                      <span className="font-medium">£{(recalculatePricing() / 100).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">VAT (20%):</span>
-                      <span className="font-medium">£{(Math.round(recalculatePricing() * 0.2) / 100).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between pt-1 border-t">
-                      <span className="font-semibold">Total:</span>
-                      <span className="font-semibold">£{((recalculatePricing() + Math.round(recalculatePricing() * 0.2)) / 100).toLocaleString()}</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const subtotal = recalculatePricing();
+                    const vat = Math.round(subtotal * 0.2);
+                    const preTotalPence = subtotal + vat;
+                    const adj = calculateAdjustedPrice();
+                    const hasDiscount = adj.discount > 0;
+                    return (
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Subtotal:</span>
+                          <span className="font-medium">£{(subtotal / 100).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">VAT (20%):</span>
+                          <span className="font-medium">£{(vat / 100).toLocaleString()}</span>
+                        </div>
+                        {hasDiscount && (
+                          <>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Before discount:</span>
+                              <span className="line-through">£{(preTotalPence / 100).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-destructive font-medium">
+                              <span>Discount:</span>
+                              <span>-£{(adj.discount / 100).toLocaleString()}</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="flex justify-between pt-1 border-t">
+                          <span className="font-semibold">Total:</span>
+                          <span className="font-semibold">£{(adj.total / 100).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Confirm Changes Button - Only show if changes detected */}
