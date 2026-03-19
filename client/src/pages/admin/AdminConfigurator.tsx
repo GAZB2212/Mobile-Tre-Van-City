@@ -1,300 +1,418 @@
-import { useAuth } from "@/hooks/useAuth";
-import type { User, Van, Kit, Upgrade } from "@shared/schema";
-import { useEffect, useState, useMemo } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useConfigurator } from "@/lib/ConfiguratorContext";
+import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { User, Van, Kit, Upgrade } from "@shared/schema";
+import type { KitServiceType } from "@shared/schema";
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft,
-  Car,
-  Package,
-  Wrench,
-  Calculator,
-  CheckCircle2,
-  Circle,
-  ChevronRight,
-  Loader2,
-  PoundSterling,
-  Phone,
+  Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Separator } from "@/components/ui/separator";
+import {
+  ArrowLeft, ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal,
+  X, Truck, Shuffle, Package, Zap, CheckCircle, AlertTriangle, AlertCircle,
+  Star, Calculator, PoundSterling, CheckCircle2, Loader2, Phone, RotateCcw,
 } from "lucide-react";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const FINANCE_APR = 0.109;
 
+const SERVICE_OPTIONS: {
+  value: KitServiceType;
+  label: string;
+  description: string;
+  detail: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  nextPath: string;
+}[] = [
+  {
+    value: "car",
+    label: "Car & Van Tyres",
+    description: "Passenger cars, vans & SUVs",
+    detail:
+      "Your conversion will be set up for fitting standard car and light-van tyres. Choose from our range of equipment packs in the next step.",
+    Icon: Car,
+    nextPath: "kit",
+  },
+  {
+    value: "commercial",
+    label: "Commercial Only",
+    description: "HGVs, lorries & heavy commercial fleet",
+    detail:
+      "For heavy goods vehicles and large commercial fleets only. No equipment pack required — select your commercial extras and equipment in the next step.",
+    Icon: Truck,
+    nextPath: "upgrades",
+  },
+  {
+    value: "hybrid",
+    label: "Car & Commercial",
+    description: "Mixed fleet — car tyres and commercial",
+    detail:
+      "Your van will handle both standard car/van tyres and commercial vehicles. You'll choose an equipment pack first, then select your commercial extras on top.",
+    Icon: Shuffle,
+    nextPath: "kit",
+  },
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  "air-systems": "Air Systems",
+  "air-system": "Air Systems",
+  "equipment": "Equipment",
+  "equipment-options": "Equipment Options",
+  "branding": "Branding",
+  "security": "Security",
+  "lighting": "Lighting",
+  "business": "Business",
+  "technology": "Technology",
+  "comfort": "Comfort",
+  "storage": "Storage",
+  "safety": "Safety",
+  "power": "Power",
+  "accessories": "Accessories",
+  "commercial": "Commercial / Hybrid",
+};
+
+const CATEGORY_ORDER = [
+  "commercial", "air-systems", "air-system", "equipment", "equipment-options",
+  "branding", "lighting", "comfort", "power", "technology", "security",
+];
+
+function getCategoryOrder(cat: string) {
+  const i = CATEGORY_ORDER.indexOf(cat);
+  return i === -1 ? 999 : i;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function fmt(pence: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    minimumFractionDigits: 2,
-  }).format(pence / 100);
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0 }).format(pence / 100);
+}
+function fmtDec(pence: number) {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 }).format(pence / 100);
 }
 
-function calcMonthlyPayment(principalPence: number, termMonths: number): number {
-  if (principalPence <= 0 || termMonths <= 0) return 0;
-  const monthlyRate = FINANCE_APR / 12;
-  const pv = Math.pow(1 + monthlyRate, termMonths);
-  return Math.round((principalPence * monthlyRate * pv) / (pv - 1));
+function groupUpgrades(upgrades: Upgrade[]) {
+  const parentIds = new Set(upgrades.filter(u => u.parentId).map(u => u.parentId!));
+  const parentMap = new Map<string, { parent: Upgrade; variants: Upgrade[] }>();
+  upgrades.filter(u => u.parentId).forEach(u => {
+    if (!parentMap.has(u.parentId!)) {
+      const parent = upgrades.find(p => p.id === u.parentId);
+      if (parent) parentMap.set(u.parentId!, { parent, variants: [] });
+    }
+    parentMap.get(u.parentId!)?.variants.push(u);
+  });
+  const standalone = upgrades.filter(u => !u.parentId && !parentIds.has(u.id));
+  return { groups: Array.from(parentMap.values()), standalone };
 }
 
-type ServiceType = "car" | "commercial" | "hybrid";
+interface SaveForm { userName: string; email: string; phone: string; company: string; notes: string; }
+interface ConfiguratorData { kits: any[]; upgrades: Record<string, Upgrade[]>; financePlans: any[]; }
 
-interface SaveQuoteForm {
-  userName: string;
-  email: string;
-  phone: string;
-  company: string;
-  notes: string;
-}
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminConfigurator() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth() as {
-    user: User | undefined;
-    isAuthenticated: boolean;
-    isLoading: boolean;
+    user: User | undefined; isAuthenticated: boolean; isLoading: boolean;
   };
 
-  // Configurator selections
-  const [selectedVanId, setSelectedVanId] = useState<string | null>(null);
-  const [serviceType, setServiceType] = useState<ServiceType>("car");
-  const [selectedKitId, setSelectedKitId] = useState<string | null>(null);
-  const [selectedUpgrades, setSelectedUpgrades] = useState<Record<string, number>>({});
+  const {
+    state, setVan, setVanReg, setCustomVanValue, setServiceType, setKit,
+    addUpgrade, removeUpgrade, replaceUpgrades, clearAll,
+  } = useConfigurator();
 
-  // Finance inputs
-  const [depositInput, setDepositInput] = useState<string>("");
-  const [termMonths, setTermMonths] = useState<number>(60);
+  // ── Van section state
+  const [modalVan, setModalVan] = useState<Van | null>(null);
+  const [filterMake, setFilterMake] = useState("all");
+  const [filterModel, setFilterModel] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
+  const [filterFuel, setFilterFuel] = useState("all");
+  const [ownVanReg, setOwnVanReg] = useState("");
+  const [ownVanPrice, setOwnVanPrice] = useState("");
 
-  // Save as quote dialog
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [saveForm, setSaveForm] = useState<SaveQuoteForm>({
-    userName: "",
-    email: "",
-    phone: "",
-    company: "",
-    notes: "",
+  // ── Kit section state
+  const [modalKit, setModalKit] = useState<Kit | null>(null);
+  const [warnKit, setWarnKit] = useState<Kit | null>(null);
+
+  // ── Upgrades section state
+  const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
+  const [modalUpgrade, setModalUpgrade] = useState<{ upgrade: Upgrade; variants: Upgrade[] } | null>(null);
+
+  // ── Finance section state
+  const [termYears, setTermYears] = useState(3);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [deferVat, setDeferVat] = useState(false);
+
+  // ── Save as quote dialog
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveForm, setSaveForm] = useState<SaveForm>({ userName: "", email: "", phone: "", company: "", notes: "" });
+
+  // ── Auth guard
+  useEffect(() => { if (!isLoading && !isAuthenticated) window.location.href = "/login"; }, [isLoading, isAuthenticated]);
+  useEffect(() => { if (user && (!user.adminRole || user.adminRole === "none")) navigate("/"); }, [user, navigate]);
+
+  // ── Data
+  const { data: allVans = [], isLoading: vansLoading } = useQuery<Van[]>({ queryKey: ["/api/vans"] });
+  const { data: configData, isLoading: configLoading } = useQuery<ConfiguratorData>({ queryKey: ["/api/configurator/data"] });
+
+  const { data: selectedVanData } = useQuery<Van>({
+    queryKey: ["/api/vans", state.vanId],
+    queryFn: async () => { const r = await fetch(`/api/vans/${state.vanId}`); return r.json(); },
+    enabled: !!state.vanId,
   });
 
-  // Auth redirect
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/login";
-    }
-  }, [isAuthenticated, isLoading]);
+  // ── Van filters
+  const filterOptions = useMemo(() => ({
+    makes: Array.from(new Set(allVans.map(v => v.make))).sort(),
+    models: Array.from(new Set(allVans.map(v => v.model))).sort(),
+    years: Array.from(new Set(allVans.map(v => v.year))).sort((a, b) => b - a),
+    fuels: Array.from(new Set(allVans.map(v => v.specs.fuel).filter(Boolean))).sort(),
+  }), [allVans]);
 
-  useEffect(() => {
-    if (user && (!user.adminRole || user.adminRole === "none")) {
-      navigate("/");
-    }
-  }, [user, navigate]);
+  const filteredVans = useMemo(() => allVans.filter(v => {
+    if (filterMake !== "all" && v.make !== filterMake) return false;
+    if (filterModel !== "all" && v.model !== filterModel) return false;
+    if (filterYear !== "all" && v.year.toString() !== filterYear) return false;
+    if (filterFuel !== "all" && v.specs.fuel !== filterFuel) return false;
+    return true;
+  }), [allVans, filterMake, filterModel, filterYear, filterFuel]);
 
-  // Data fetching
-  const { data: vans = [], isLoading: vansLoading } = useQuery<Van[]>({
-    queryKey: ["/api/vans"],
-  });
+  const hasActiveFilters = filterMake !== "all" || filterModel !== "all" || filterYear !== "all" || filterFuel !== "all";
 
-  const { data: kits = [], isLoading: kitsLoading } = useQuery<Kit[]>({
-    queryKey: ["/api/kits"],
-  });
+  // ── Euro 6
+  const isEuro6Van = useMemo(() => {
+    if (!selectedVanData?.euroStatus) return null;
+    const s = selectedVanData.euroStatus.toLowerCase();
+    if (s.includes("euro 6") || s.includes("euro6")) return true;
+    return false;
+  }, [selectedVanData]);
 
-  const { data: upgrades = [], isLoading: upgradesLoading } = useQuery<Upgrade[]>({
-    queryKey: ["/api/upgrades"],
-  });
+  const kitNeedsWarning = (kit: Kit) => {
+    if (isEuro6Van === null) return false;
+    if (isEuro6Van && !kit.euroSixCompatible) return true;
+    if (!isEuro6Van && kit.euroSixCompatible) return true;
+    return false;
+  };
 
-  // Derived data
-  const selectedVan = vans.find((v) => v.id === selectedVanId) ?? null;
-
-  const isEuroSix = selectedVan?.euroStatus?.toLowerCase().includes("euro 6") ?? false;
-
-  const filteredKits = useMemo(() => {
-    return kits
-      .filter((k) => {
-        const types = k.serviceType as string[];
-        if (!types.includes(serviceType)) return false;
-        if (isEuroSix && !k.euroSixCompatible) return false;
-        return true;
+  // ── Kit filtering
+  const kits = useMemo(() => {
+    if (!configData) return [];
+    return configData.kits
+      .filter(kit => {
+        const types: string[] = Array.isArray(kit.serviceType) ? kit.serviceType : ["car", "commercial", "hybrid"];
+        if (types.length === 0 || types.length === 3) {
+          if (!state.serviceType) return true;
+          return true;
+        }
+        if (!state.serviceType) return true;
+        if (state.serviceType === "hybrid") return types.includes("hybrid") || types.includes("car");
+        return types.includes(state.serviceType);
       })
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [kits, serviceType, isEuroSix]);
+      .sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+  }, [configData, state.serviceType]);
 
-  // Clear kit if no longer compatible after van/service type change
+  // ── Upgrade filtering
+  const isCommercial = state.serviceType === "commercial" || state.serviceType === "hybrid";
+  const isHybrid = state.serviceType === "hybrid";
+
+  const filteredUpgrades = useMemo<Record<string, Upgrade[]>>(() => {
+    if (!configData) return {};
+    if (isCommercial) {
+      const result: Record<string, Upgrade[]> = {};
+      for (const [cat, ups] of Object.entries(configData.upgrades)) {
+        const visible = ups.filter((u: any) => !u.carOnly && !(isHybrid && u.hideForHybrid));
+        if (visible.length > 0) result[cat] = visible;
+      }
+      return result;
+    }
+    const result: Record<string, Upgrade[]> = {};
+    for (const [cat, ups] of Object.entries(configData.upgrades)) {
+      const visible = ups.filter((u: any) => !u.forCommercial);
+      if (visible.length > 0) result[cat] = visible;
+    }
+    return result;
+  }, [configData, isCommercial, isHybrid]);
+
+  // Exclusive group helper
+  const getExclusiveGroup = (upgrade: Upgrade, all: Upgrade[]): string | null => {
+    if ((upgrade as any).exclusiveGroup) return (upgrade as any).exclusiveGroup;
+    if (upgrade.parentId) {
+      const parent = all.find(u => u.id === upgrade.parentId);
+      if ((parent as any)?.exclusiveGroup) return (parent as any).exclusiveGroup;
+    }
+    return null;
+  };
+
+  // Auto-remove duplicate exclusive groups
   useEffect(() => {
-    if (selectedKitId && !filteredKits.find((k) => k.id === selectedKitId)) {
-      setSelectedKitId(null);
-    }
-  }, [filteredKits, selectedKitId]);
-
-  const selectedKit = kits.find((k) => k.id === selectedKitId) ?? null;
-
-  // Parent upgrades (not variants)
-  const parentUpgrades = useMemo(
-    () => upgrades.filter((u) => !u.parentId),
-    [upgrades]
-  );
-
-  // Group upgrade variants by parent
-  const variantsByParent = useMemo(() => {
-    const map: Record<string, Upgrade[]> = {};
-    upgrades
-      .filter((u) => u.parentId)
-      .forEach((u) => {
-        if (!map[u.parentId!]) map[u.parentId!] = [];
-        map[u.parentId!].push(u);
-      });
-    return map;
-  }, [upgrades]);
-
-  // Organize upgrades by category
-  const upgradesByCategory = useMemo(() => {
-    const map: Record<string, Upgrade[]> = {};
-    parentUpgrades.forEach((u) => {
-      const cat = u.category || "other";
-      if (!map[cat]) map[cat] = [];
-      map[cat].push(u);
+    if (!configData) return;
+    const all = Object.values(filteredUpgrades).flat();
+    const selected = all.filter(u => state.upgradeIds.includes(u.id));
+    const groupMap = new Map<string, string[]>();
+    selected.forEach(u => {
+      const g = getExclusiveGroup(u, all);
+      if (g) { if (!groupMap.has(g)) groupMap.set(g, []); groupMap.get(g)!.push(u.id); }
     });
-    return map;
-  }, [parentUpgrades]);
+    groupMap.forEach(ids => { if (ids.length > 1) { const [keep, ...rem] = ids; replaceUpgrades(rem, keep); } });
+  }, [configData, state.upgradeIds, replaceUpgrades, filteredUpgrades]);
 
-  // Pricing calculation (all in pence)
-  const vanPrice = selectedVan?.price ?? 0;
-  const kitPrice = selectedKit?.price ?? 0;
-  const upgradesTotal = useMemo(() => {
-    return Object.entries(selectedUpgrades).reduce((sum, [id, qty]) => {
-      const upgrade = upgrades.find((u) => u.id === id);
-      return sum + (upgrade?.price ?? 0) * qty;
-    }, 0);
-  }, [selectedUpgrades, upgrades]);
-
-  const subtotal = vanPrice + kitPrice + upgradesTotal;
-  const vat = Math.round(subtotal * 0.2);
-  const total = subtotal + vat;
-
-  // Finance calculation
-  const depositPence = Math.round((parseFloat(depositInput) || 0) * 100);
-  const principal = Math.max(0, total - depositPence);
-  const monthlyPayment = calcMonthlyPayment(principal, termMonths);
-  const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
-
-  // Toggle upgrade selection (handles variants)
-  function toggleUpgrade(upgrade: Upgrade) {
-    const variants = variantsByParent[upgrade.id] ?? [];
-
-    if (variants.length > 0) {
-      // Parent with variants — selecting parent deselects all its variants and selects parent
-      setSelectedUpgrades((prev) => {
-        const next = { ...prev };
-        if (next[upgrade.id]) {
-          delete next[upgrade.id];
-        } else {
-          variants.forEach((v) => delete next[v.id]);
-          next[upgrade.id] = 1;
-        }
-        return next;
-      });
+  const handleUpgradeToggle = (upgradeId: string) => {
+    const all = Object.values(filteredUpgrades).flat();
+    const upgrade = all.find(u => u.id === upgradeId);
+    if (state.upgradeIds.includes(upgradeId)) {
+      removeUpgrade(upgradeId);
     } else {
-      setSelectedUpgrades((prev) => {
-        const next = { ...prev };
-        if (next[upgrade.id]) {
-          delete next[upgrade.id];
-        } else {
-          // If this is a variant, deselect sibling variants and parent
-          if (upgrade.parentId) {
-            const siblings = variantsByParent[upgrade.parentId] ?? [];
-            siblings.forEach((s) => delete next[s.id]);
-            delete next[upgrade.parentId];
-          }
-          next[upgrade.id] = 1;
+      const toRemove: string[] = [];
+      if (upgrade) {
+        const g = getExclusiveGroup(upgrade, all);
+        if (g) {
+          state.upgradeIds.forEach(id => {
+            const u = all.find(x => x.id === id);
+            if (u && getExclusiveGroup(u, all) === g && id !== upgradeId) toRemove.push(id);
+          });
         }
-        return next;
-      });
+      }
+      if (toRemove.length > 0) replaceUpgrades(toRemove, upgradeId);
+      else addUpgrade(upgradeId);
     }
-  }
+  };
 
-  function isUpgradeSelected(id: string) {
-    return !!selectedUpgrades[id];
-  }
+  const handleVariantSelect = (parentId: string, variantId: string | null) => {
+    const all = Object.values(filteredUpgrades).flat();
+    const toRemove: string[] = all.filter(u => u.parentId === parentId && state.upgradeIds.includes(u.id)).map(u => u.id);
+    if (variantId) {
+      const v = all.find(u => u.id === variantId);
+      if (v) {
+        const g = getExclusiveGroup(v, all);
+        if (g) {
+          state.upgradeIds.forEach(id => {
+            const u = all.find(x => x.id === id);
+            if (u && getExclusiveGroup(u, all) === g && !toRemove.includes(id)) toRemove.push(id);
+          });
+        }
+      }
+      replaceUpgrades(toRemove, variantId);
+    } else {
+      toRemove.forEach(id => removeUpgrade(id));
+    }
+  };
 
-  // Save as quote mutation
-  const saveQuoteMutation = useMutation({
-    mutationFn: async (form: SaveQuoteForm) => {
+  // ── Pricing (in pence)
+  const allUpgradesList = useMemo(() => Object.values(filteredUpgrades).flat(), [filteredUpgrades]);
+
+  const pricing = useMemo(() => {
+    const vanPrice = selectedVanData?.price ?? state.customVanValue ?? 0;
+    const kit = configData?.kits.find((k: any) => k.id === state.kitId);
+    const kitPrice = kit?.price ?? 0;
+    const upgradesTotal = state.upgradeIds.reduce((sum, id) => {
+      const u = allUpgradesList.find(x => x.id === id);
+      const qty = upgradeQuantities[id] ?? 1;
+      return sum + (u?.price ?? 0) * qty;
+    }, 0);
+    const subtotalPence = vanPrice + kitPrice + upgradesTotal;
+    const vatPence = Math.round(subtotalPence * 0.2);
+    return {
+      subtotal: subtotalPence / 100,
+      vat: vatPence / 100,
+      total: (subtotalPence + vatPence) / 100,
+      subtotalPence,
+      vatPence,
+      totalPence: subtotalPence + vatPence,
+    };
+  }, [selectedVanData, state.customVanValue, state.kitId, state.upgradeIds, configData, allUpgradesList, upgradeQuantities]);
+
+  const financeBase = deferVat ? pricing.subtotal : pricing.total;
+
+  const financeCalc = useMemo(() => {
+    const deposit = parseFloat(depositAmount) || 0;
+    const total = financeBase;
+    if (total <= 0 || deposit >= total) return null;
+    const principal = total - deposit;
+    const r = FINANCE_APR / 12;
+    const n = termYears * 12;
+    const monthly = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    const weekly = (monthly * 12) / 52;
+    return { principal, monthly, weekly, totalRepayable: monthly * n, totalInterest: monthly * n - principal, deposit, total };
+  }, [financeBase, depositAmount, termYears]);
+
+  // ── Save as quote
+  const saveMutation = useMutation({
+    mutationFn: async (form: SaveForm) => {
+      const upgradesMap: Record<string, number> = {};
+      state.upgradeIds.forEach(id => { upgradesMap[id] = upgradeQuantities[id] ?? 1; });
       const body = {
-        userName: form.userName,
-        email: form.email,
-        phone: form.phone,
-        company: form.company || undefined,
-        notes: form.notes || undefined,
-        serviceType,
-        vanId: selectedVanId || undefined,
-        kitId: selectedKitId || undefined,
-        selectedUpgradeIds: Object.keys(selectedUpgrades),
-        selectedUpgrades,
+        userName: form.userName, email: form.email, phone: form.phone,
+        company: form.company || undefined, notes: form.notes || undefined,
+        serviceType: state.serviceType,
+        vanId: state.vanId || undefined,
+        customVanDescription: state.customVanDescription || undefined,
+        customVanValue: state.customVanValue || undefined,
+        kitId: state.kitId || undefined,
+        selectedUpgradeIds: state.upgradeIds,
+        selectedUpgrades: upgradesMap,
         trainingOptionIds: [],
-        financeInputs: depositPence > 0 || termMonths > 0
-          ? { deposit: depositPence, term: termMonths }
-          : undefined,
-        estSubtotal: subtotal,
-        estVAT: vat,
-        estTotal: total,
+        financeInputs: depositAmount || termYears ? {
+          deposit: Math.round((parseFloat(depositAmount) || 0) * 100),
+          term: termYears * 12,
+        } : undefined,
+        estSubtotal: pricing.subtotalPence,
+        estVAT: pricing.vatPence,
+        estTotal: pricing.totalPence,
         estDiscount: 0,
         status: "new",
       };
       const res = await apiRequest("POST", "/api/quotes", body);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to save quote");
-      }
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
       return res.json();
     },
     onSuccess: (quote) => {
       toast({ title: "Quote saved", description: `Quote created for ${saveForm.userName}` });
-      setSaveDialogOpen(false);
+      setSaveOpen(false);
       setSaveForm({ userName: "", email: "", phone: "", company: "", notes: "" });
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       navigate(`/admin/quotes/${quote.id}`);
     },
-    onError: (err: Error) => {
-      toast({ title: "Save failed", description: err.message, variant: "destructive" });
-    },
+    onError: (err: Error) => toast({ title: "Save failed", description: err.message, variant: "destructive" }),
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+    </div>
+  );
   if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
 
-  const dataLoading = vansLoading || kitsLoading || upgradesLoading;
+  const skippedKit = state.serviceType === "commercial";
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Admin header */}
       <div className="border-b sticky top-0 z-50 bg-background">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin">
-                  <ArrowLeft className="w-4 h-4 mr-1" />
-                  Admin
-                </Link>
+                <Link href="/admin"><ArrowLeft className="w-4 h-4 mr-1" />Admin</Link>
               </Button>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-accent" />
@@ -302,580 +420,842 @@ export default function AdminConfigurator() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedVanId(null);
-                  setSelectedKitId(null);
-                  setSelectedUpgrades({});
-                  setDepositInput("");
-                  setTermMonths(60);
-                }}
-                data-testid="button-reset-configurator"
-              >
-                Reset
+              <Button variant="ghost" size="sm" onClick={() => {
+                clearAll();
+                setFilterMake("all"); setFilterModel("all"); setFilterYear("all"); setFilterFuel("all");
+                setOwnVanReg(""); setOwnVanPrice("");
+                setUpgradeQuantities({}); setTermYears(3); setDepositAmount(""); setVatRegistered(false); setDeferVat(false);
+              }} data-testid="button-reset-configurator">
+                <RotateCcw className="w-4 h-4 mr-1" />Reset
               </Button>
               <Button
                 size="sm"
                 className="bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440]"
-                disabled={total === 0}
-                onClick={() => setSaveDialogOpen(true)}
+                disabled={pricing.totalPence === 0}
+                onClick={() => setSaveOpen(true)}
                 data-testid="button-save-as-quote"
               >
-                Save as Quote
-                <ChevronRight className="w-4 h-4 ml-1" />
+                Save as Quote<ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {dataLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-            {/* Left Column — Configurator */}
-            <div className="space-y-6">
-              {/* Van Selection */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Car className="w-4 h-4 text-accent" />
-                    Select Van
-                    {selectedVan && (
-                      <Badge variant="secondary" className="ml-auto font-normal">
-                        {selectedVan.title}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {vans.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No vans available.</p>
-                  ) : (
-                    <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-                      {vans.map((van) => {
-                        const selected = van.id === selectedVanId;
-                        return (
-                          <button
-                            key={van.id}
-                            data-testid={`button-van-${van.id}`}
-                            onClick={() => {
-                              setSelectedVanId(selected ? null : van.id);
-                              setSelectedKitId(null);
-                            }}
-                            className={`
-                              flex-shrink-0 w-44 rounded-md border text-left p-3 transition-colors
-                              ${selected
-                                ? "border-accent bg-accent/10"
-                                : "border-border hover-elevate"
-                              }
-                            `}
-                          >
-                            {van.heroImage ? (
-                              <img
-                                src={van.heroImage}
-                                alt={van.title}
-                                className="w-full h-20 object-cover rounded-sm mb-2"
-                              />
-                            ) : (
-                              <div className="w-full h-20 bg-muted rounded-sm mb-2 flex items-center justify-center">
-                                <Car className="w-6 h-6 text-muted-foreground" />
-                              </div>
-                            )}
-                            <p className="font-medium text-sm leading-snug line-clamp-2">{van.title}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{van.euroStatus || "—"}</p>
-                            <p className="text-sm font-semibold text-accent mt-1">
-                              {fmt(van.price)}
-                            </p>
-                            {selected && (
-                              <CheckCircle2 className="w-4 h-4 text-accent mt-1" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+          {/* Left column — steps */}
+          <div className="xl:col-span-2 space-y-10">
 
-              {/* Service Type */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Service Type</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2 flex-wrap">
-                    {(["car", "commercial", "hybrid"] as ServiceType[]).map((type) => (
-                      <Button
-                        key={type}
-                        variant={serviceType === type ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => {
-                          setServiceType(type);
-                          setSelectedKitId(null);
-                        }}
-                        data-testid={`button-service-${type}`}
-                      >
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            {/* ── STEP 1: VAN SELECTION ─────────────────────────── */}
+            <section>
+              <h2 className="text-2xl font-bold mb-2">1. Select Your Van</h2>
+              <p className="text-muted-foreground mb-5">
+                Browse our ready-to-convert stock, or scroll down to use an existing van.
+              </p>
 
-              {/* Equipment Pack */}
-              {serviceType !== "commercial" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Package className="w-4 h-4 text-accent" />
-                      Equipment Pack
-                      {selectedKit && (
-                        <Badge variant="secondary" className="ml-auto font-normal">
-                          {selectedKit.name}
-                        </Badge>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {filteredKits.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No compatible packs for this van and service type.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {filteredKits.map((kit) => {
-                          const selected = kit.id === selectedKitId;
-                          return (
-                            <button
-                              key={kit.id}
-                              data-testid={`button-kit-${kit.id}`}
-                              onClick={() =>
-                                setSelectedKitId(selected ? null : kit.id)
-                              }
-                              className={`
-                                rounded-md border text-left p-3 transition-colors
-                                ${selected
-                                  ? "border-accent bg-accent/10"
-                                  : "border-border hover-elevate"
-                                }
-                              `}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <p className="font-medium text-sm">{kit.name}</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                    {kit.description}
-                                  </p>
+              {vansLoading ? (
+                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+              ) : (
+                <>
+                  {/* Filters */}
+                  <Card className="mb-6">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <SlidersHorizontal className="w-5 h-5 text-accent" />
+                          <CardTitle className="text-lg">Filter Vans</CardTitle>
+                        </div>
+                        {hasActiveFilters && (
+                          <Button variant="ghost" size="sm" onClick={() => { setFilterMake("all"); setFilterModel("all"); setFilterYear("all"); setFilterFuel("all"); }}>
+                            <X className="w-4 h-4 mr-1" />Clear Filters
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[
+                          { label: "Make", value: filterMake, set: setFilterMake, options: filterOptions.makes },
+                          { label: "Model", value: filterModel, set: setFilterModel, options: filterOptions.models },
+                          { label: "Year", value: filterYear, set: setFilterYear, options: filterOptions.years.map(String) },
+                          { label: "Fuel Type", value: filterFuel, set: setFilterFuel, options: filterOptions.fuels },
+                        ].map(({ label, value, set, options }) => (
+                          <div key={label} className="space-y-2">
+                            <label className="text-sm font-medium">{label}</label>
+                            <Select value={value} onValueChange={set}>
+                              <SelectTrigger><SelectValue placeholder={`All ${label}s`} /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All {label}s</SelectItem>
+                                {options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-4">Showing {filteredVans.length} of {allVans.length} vans</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Van grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {filteredVans.length === 0 ? (
+                      <div className="col-span-full text-center py-12">
+                        <p className="text-muted-foreground">No vans match your filters.</p>
+                      </div>
+                    ) : filteredVans.map(van => {
+                      const firstImage = van.heroImage || van.images?.[0];
+                      const isSelected = state.vanId === van.id;
+                      return (
+                        <Card
+                          key={van.id}
+                          className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${isSelected ? "ring-2 ring-accent" : ""}`}
+                          onClick={() => { setVan(van.id); }}
+                          data-testid={`card-van-${van.id}`}
+                        >
+                          {firstImage && (
+                            <div className="relative w-full h-36 overflow-hidden rounded-t-md">
+                              <img src={firstImage} alt={`${van.make} ${van.model}`} className="w-full h-full object-cover" loading="lazy" />
+                            </div>
+                          )}
+                          <CardHeader className="space-y-0 pb-3 pt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <Badge variant="secondary" className="text-xs">{van.year}</Badge>
+                              {van.euroStatus && <Badge variant="outline" className="text-xs">{van.euroStatus}</Badge>}
+                            </div>
+                            <CardTitle className="text-base leading-tight mb-1">{van.make} {van.model}</CardTitle>
+                            <p className="text-xl font-bold text-accent">{fmt(van.price)}</p>
+                          </CardHeader>
+                          <CardContent className="pt-0 pb-3 flex-1 flex flex-col">
+                            <div className="space-y-1.5 mb-3 flex-1">
+                              {[
+                                { Icon: Gauge, val: `${van.mileage.toLocaleString()} miles` },
+                                { Icon: Settings, val: van.specs.transmission },
+                                { Icon: Fuel, val: van.specs.fuel },
+                                { Icon: Car, val: van.specs.size },
+                              ].map(({ Icon, val }) => val && (
+                                <div key={val} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <Icon className="w-3.5 h-3.5" />
+                                  <span>{val}</span>
                                 </div>
-                                {selected ? (
-                                  <CheckCircle2 className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                                ) : (
-                                  <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                                )}
-                              </div>
-                              <p className="text-sm font-semibold text-accent mt-2">
-                                {fmt(kit.price)}
-                              </p>
-                              {kit.powerKw && (
-                                <p className="text-xs text-muted-foreground">{kit.powerKw} kW</p>
+                              ))}
+                            </div>
+                            <div className="space-y-2">
+                              {(van.heroImage || van.images?.length > 0 || van.description) && (
+                                <Button type="button" variant="ghost" size="sm" className="w-full" onClick={e => { e.stopPropagation(); setModalVan(van); }}>
+                                  <Info className="w-3.5 h-3.5 mr-1.5" />More Info
+                                </Button>
                               )}
-                            </button>
+                              <Button
+                                size="sm"
+                                className={`w-full ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
+                                variant={isSelected ? "default" : "outline"}
+                                onClick={e => { e.stopPropagation(); if (isSelected) setVan(state.vanId!); else setVan(van.id); }}
+                                data-testid={`button-select-van-${van.id}`}
+                              >
+                                {isSelected ? "Selected" : "Select Van"}<ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+
+                  {/* Own van */}
+                  <Card className="border-dashed" id="own-van-section">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <Car className="w-5 h-5 text-muted-foreground" />
+                        <CardTitle className="text-lg">Already have your own van?</CardTitle>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Enter the customer's registration and optionally the van value.</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 max-w-md">
+                        <div className="space-y-1.5">
+                          <Label>Registration Plate</Label>
+                          <Input placeholder="e.g. AB12 CDE" value={ownVanReg}
+                            onChange={e => { const v = e.target.value.toUpperCase(); setOwnVanReg(v); setVanReg(v.trim() || null); }}
+                            data-testid="input-own-van-reg" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Van Value (optional)</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">£</span>
+                            <Input className="pl-7" placeholder="Optional" value={ownVanPrice}
+                              onChange={e => {
+                                const raw = e.target.value.replace(/[^0-9.]/g, "");
+                                setOwnVanPrice(raw);
+                                const n = parseFloat(raw);
+                                setCustomVanValue(!isNaN(n) && n > 0 ? Math.round(n * 100) : null);
+                              }}
+                              data-testid="input-own-van-price" />
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        size="lg"
+                        className="w-full sm:w-auto bg-accent text-accent-foreground"
+                        onClick={() => {
+                          setVan(null);
+                          setVanReg(ownVanReg.trim().toUpperCase() || null);
+                        }}
+                        data-testid="button-continue-own-van"
+                      >
+                        Use This Van<ArrowRight className="w-5 h-5 ml-2" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </section>
+
+            {/* ── STEP 2: SERVICE TYPE ──────────────────────────── */}
+            <section>
+              <h2 className="text-2xl font-bold mb-2">2. What Will You Be Fitting?</h2>
+              <p className="text-muted-foreground mb-5">Tell us what type of vehicles the mobile tyre service will cover.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {SERVICE_OPTIONS.map(({ value, label, description, detail, Icon }) => {
+                  const isSelected = state.serviceType === value;
+                  return (
+                    <Card
+                      key={value}
+                      className={`cursor-pointer hover-elevate transition-all ${isSelected ? "ring-2 ring-accent" : ""}`}
+                      onClick={() => setServiceType(value)}
+                      data-testid={`card-service-type-${value}`}
+                    >
+                      <CardContent className="p-6 flex flex-col gap-4 h-full">
+                        <div className={`w-12 h-12 rounded-md flex items-center justify-center ${isSelected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}>
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold mb-1">{label}</h3>
+                          <p className="text-sm font-medium text-muted-foreground mb-3">{description}</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{detail}</p>
+                        </div>
+                        <Button
+                          className={`w-full mt-2 ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={e => { e.stopPropagation(); setServiceType(value); }}
+                          data-testid={`button-select-service-type-${value}`}
+                        >
+                          {isSelected ? <>Selected<ArrowRight className="w-4 h-4 ml-2" /></> : "Select"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* ── STEP 3: EQUIPMENT KIT ─────────────────────────── */}
+            {state.serviceType && !skippedKit && (
+              <section>
+                <h2 className="text-2xl font-bold mb-2">3. Choose Your Equipment Kit</h2>
+                <p className="text-muted-foreground mb-5">Select the perfect equipment package.</p>
+
+                {configLoading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <>
+                    {isEuro6Van !== null && selectedVanData && (
+                      <div className="mb-6 p-4 rounded-md flex items-start gap-3 bg-accent/10 border border-accent/20">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-accent" />
+                        <div>
+                          <p className="font-medium text-sm">{isEuro6Van ? "Your van has a Euro 6 engine" : "Your van has a non-Euro 6 engine"}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {isEuro6Van
+                              ? `Your ${selectedVanData.make} ${selectedVanData.model} has a Euro 6 engine. Packs marked Euro 6 are fully compatible.`
+                              : `Your ${selectedVanData.make} ${selectedVanData.model} has a non-Euro 6 engine. Packs not marked Euro 6 are fully compatible.`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {kits.length === 0 ? (
+                      <div className="py-12 text-center rounded-md border border-dashed">
+                        <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                        <p className="font-medium mb-1">No kits available</p>
+                        <p className="text-sm text-muted-foreground">No equipment kits for the selected service type.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {kits.map((kit: any) => {
+                          const incompatible = kitNeedsWarning(kit);
+                          const isSelected = state.kitId === kit.id;
+                          return (
+                            <Card
+                              key={kit.id}
+                              className={`hover-elevate cursor-pointer ${isSelected ? "ring-2 ring-accent" : ""} ${incompatible ? "opacity-75" : ""}`}
+                              onClick={() => incompatible ? setWarnKit(kit) : setKit(kit.id)}
+                              data-testid={`card-kit-${kit.id}`}
+                            >
+                              <CardHeader>
+                                <div className="flex items-start justify-between mb-2 gap-1 flex-wrap">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                      <Zap className="w-3 h-3" />{kit.powerKw}kW
+                                    </Badge>
+                                    {kit.euroSixCompatible && <Badge className="bg-accent/20 text-accent border-accent/30">Euro 6</Badge>}
+                                    {incompatible && <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Non Euro 6</Badge>}
+                                  </div>
+                                  <p className="text-2xl font-bold text-accent">{fmt(kit.price)}</p>
+                                </div>
+                                <CardTitle className="text-xl">{kit.name}</CardTitle>
+                                <CardDescription>{kit.description}</CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-2 mb-4">
+                                  <div className="flex items-center gap-2 text-sm font-medium">
+                                    <Package className="w-4 h-4 text-accent" /><span>Includes:</span>
+                                  </div>
+                                  <ul className="space-y-1 ml-6">
+                                    {kit.includes?.map((item: string, idx: number) => (
+                                      <li key={idx} className="text-sm text-muted-foreground list-disc">{item}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <Button type="button" variant="ghost" className="w-full mb-2"
+                                  onClick={e => { e.stopPropagation(); setModalKit(kit); }}>
+                                  <Info className="w-4 h-4 mr-2" />More Info
+                                </Button>
+                                <Button
+                                  className={`w-full ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
+                                  variant={isSelected ? "default" : "outline"}
+                                  onClick={e => { e.stopPropagation(); incompatible ? setWarnKit(kit) : setKit(kit.id); }}
+                                  data-testid={`button-select-kit-${kit.id}`}
+                                >
+                                  {isSelected ? "Selected" : "Select Kit"}<ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
+                              </CardContent>
+                            </Card>
                           );
                         })}
                       </div>
                     )}
+                  </>
+                )}
+              </section>
+            )}
+
+            {/* ── STEP 4: UPGRADES ──────────────────────────────── */}
+            {state.serviceType && (skippedKit || state.kitId) && (
+              <section>
+                <h2 className="text-2xl font-bold mb-2">
+                  {skippedKit ? "3." : "4."}{" "}
+                  {state.serviceType === "hybrid" ? "Add Commercial & Extra Equipment"
+                    : state.serviceType === "commercial" ? "Configure Your Commercial Setup"
+                    : "Add Upgrades & Extras"}
+                </h2>
+                <p className="text-muted-foreground mb-5">
+                  {state.serviceType === "hybrid" ? "Select the commercial equipment and any additional extras for your hybrid setup"
+                    : state.serviceType === "commercial" ? "Select the commercial equipment and extras for your van conversion"
+                    : "Enhance your van with additional features and equipment upgrades"}
+                </p>
+
+                {configLoading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(filteredUpgrades)
+                      .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
+                      .map(([category, upgrades]) => {
+                        const sorted = [...upgrades].sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+                        const { groups, standalone } = groupUpgrades(sorted);
+                        const allItems = [
+                          ...groups.map(g => ({ type: "group" as const, sortOrder: (g.parent as any).sortOrder ?? 0, data: g })),
+                          ...standalone.map(u => ({ type: "standalone" as const, sortOrder: (u as any).sortOrder ?? 0, data: u })),
+                        ].sort((a, b) => a.sortOrder - b.sortOrder);
+                        if (allItems.length === 0) return null;
+                        return (
+                          <Card key={category}>
+                            <CardHeader>
+                              <CardTitle className="text-lg">
+                                {CATEGORY_LABELS[category] ?? category.replace(/-/g, " ")} Options
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid gap-3">
+                                {allItems.map(item => {
+                                  if (item.type === "standalone") {
+                                    const upgrade = item.data as Upgrade;
+                                    const isSelected = state.upgradeIds.includes(upgrade.id);
+                                    const qty = upgradeQuantities[upgrade.id] ?? 1;
+                                    return (
+                                      <div key={upgrade.id} className="p-3 rounded-lg border hover-elevate">
+                                        <div className="flex items-center gap-3">
+                                          <Checkbox
+                                            id={upgrade.id}
+                                            checked={isSelected}
+                                            onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
+                                            data-testid={`checkbox-upgrade-${upgrade.id}`}
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
+                                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                <label htmlFor={upgrade.id} className="font-medium cursor-pointer leading-tight">
+                                                  {upgrade.name}
+                                                </label>
+                                                <Button variant="outline" size="sm" className="h-7 text-xs w-fit"
+                                                  onClick={() => setModalUpgrade({ upgrade, variants: [] })}
+                                                  data-testid={`button-info-${upgrade.id}`}>
+                                                  <Info className="w-3 h-3 mr-1" />More Info
+                                                </Button>
+                                              </div>
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                {isSelected && (upgrade as any).allowQuantity && (
+                                                  <div className="flex items-center gap-1">
+                                                    <label className="text-xs text-muted-foreground">Qty:</label>
+                                                    <Input type="number" min="1" max="10" value={qty}
+                                                      onChange={e => setUpgradeQuantities(p => ({ ...p, [upgrade.id]: parseInt(e.target.value) || 1 }))}
+                                                      className="w-16 h-8 text-center" />
+                                                  </div>
+                                                )}
+                                                <Badge variant="secondary">
+                                                  {fmt(upgrade.price * ((upgrade as any).allowQuantity && isSelected ? qty : 1))}
+                                                </Badge>
+                                              </div>
+                                            </div>
+                                            {upgrade.description && <p className="text-sm text-muted-foreground mb-2">{upgrade.description}</p>}
+                                            {(upgrade as any).popular && (
+                                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
+                                                <Star className="w-3 h-3 fill-current" />Popular Upgrade
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  } else {
+                                    const { parent, variants } = item.data as { parent: Upgrade; variants: Upgrade[] };
+                                    const selectedVariantId = state.upgradeIds.find(id => variants.some(v => v.id === id));
+                                    const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                                    const isSelected = !!selectedVariantId;
+                                    const minPrice = variants.length ? Math.min(...variants.map(v => v.price)) : null;
+                                    return (
+                                      <div key={parent.id} className="p-3 rounded-lg border hover-elevate">
+                                        <div className="flex items-center gap-3">
+                                          <Checkbox
+                                            id={`variant-group-${parent.id}`}
+                                            checked={isSelected}
+                                            onCheckedChange={checked => {
+                                              if (checked && variants.length > 0) handleVariantSelect(parent.id, variants[0].id);
+                                              else handleVariantSelect(parent.id, null);
+                                            }}
+                                            data-testid={`checkbox-variant-${parent.id}`}
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
+                                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                <label htmlFor={`variant-group-${parent.id}`} className="font-medium cursor-pointer">
+                                                  {parent.name}
+                                                </label>
+                                                <Button variant="outline" size="sm" className="h-7 text-xs w-fit"
+                                                  onClick={() => setModalUpgrade({ upgrade: parent, variants })}
+                                                  data-testid={`button-info-${parent.id}`}>
+                                                  <Info className="w-3 h-3 mr-1" />More Info
+                                                </Button>
+                                              </div>
+                                              {selectedVariant
+                                                ? <Badge variant="secondary">{fmt(selectedVariant.price)}</Badge>
+                                                : minPrice !== null && <Badge variant="secondary">From {fmt(minPrice)}</Badge>}
+                                            </div>
+                                            {parent.description && <p className="text-sm text-muted-foreground mb-2">{parent.description}</p>}
+                                            {(parent as any).popular && (
+                                              <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium mb-2">
+                                                <Star className="w-3 h-3 fill-current" />Popular Upgrade
+                                              </span>
+                                            )}
+                                            {isSelected && (
+                                              <Select value={selectedVariantId ?? ""} onValueChange={v => v && handleVariantSelect(parent.id, v)}>
+                                                <SelectTrigger data-testid={`select-variant-${parent.id}`}>
+                                                  <SelectValue placeholder="Select option..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {variants.map(v => (
+                                                    <SelectItem key={v.id} value={v.id}>
+                                                      {v.variantName || v.name} — {fmt(v.price)}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── STEP 5: FINANCE ───────────────────────────────── */}
+            {state.serviceType && (skippedKit || state.kitId) && (
+              <section>
+                <h2 className="text-2xl font-bold mb-2">{skippedKit ? "4." : "5."} Finance Options</h2>
+                <p className="text-muted-foreground mb-5">Calculate monthly payments at 10.9% APR.</p>
+
+                <Card className="border-2">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                        <Calculator className="w-5 h-5 text-accent" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Finance Calculator</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">Calculate payments at 10.9% APR</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* VAT registration */}
+                    <div className="mb-6 pb-6 border-b space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Checkbox id="vat-reg" checked={vatRegistered}
+                          onCheckedChange={c => { setVatRegistered(!!c); if (!c) setDeferVat(false); }}
+                          data-testid="checkbox-vat-registered" />
+                        <Label htmlFor="vat-reg" className="text-sm font-medium cursor-pointer">Are you VAT registered?</Label>
+                      </div>
+                      {vatRegistered && (
+                        <div className="ml-7 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Checkbox id="defer-vat" checked={deferVat} onCheckedChange={c => setDeferVat(!!c)} data-testid="checkbox-defer-vat" />
+                            <Label htmlFor="defer-vat" className="text-sm font-medium cursor-pointer">Defer VAT for 3 months?</Label>
+                          </div>
+                          {deferVat && (
+                            <div className="flex items-start gap-2 bg-accent/5 border border-accent/20 rounded-md p-3">
+                              <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                              <p className="text-xs text-muted-foreground">
+                                VAT of <strong>{fmt(pricing.vatPence)}</strong> will be deferred. Finance is on the ex-VAT amount of <strong>{fmt(pricing.subtotalPence)}</strong>.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">{deferVat ? "Finance Amount (ex-VAT)" : "Total Amount (inc. VAT)"}</Label>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
+                          <Input type="text" value={fmt(deferVat ? pricing.subtotalPence : pricing.totalPence).replace("£", "")} disabled className="pl-9 bg-muted/50 font-bold text-lg text-foreground" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="finance-deposit" className="text-sm font-medium">Deposit Amount</Label>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input id="finance-deposit" type="number" placeholder="0" value={depositAmount}
+                            onChange={e => setDepositAmount(e.target.value)} className="pl-9" min="0"
+                            data-testid="input-deposit" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label className="text-sm font-medium">Finance Term</Label>
+                        <Select value={termYears.toString()} onValueChange={v => setTermYears(parseInt(v))}>
+                          <SelectTrigger data-testid="select-term"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5].map(y => (
+                              <SelectItem key={y} value={y.toString()}>{y} Year{y > 1 ? "s" : ""} ({y * 12} months)</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {financeCalc ? (
+                      <div className="mt-6 pt-6 border-t space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                            <p className="text-sm text-muted-foreground mb-1">Monthly Payment</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-monthly-payment">
+                              {fmtDec(financeCalc.monthly * 100)}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">for {termYears * 12} months</p>
+                          </div>
+                          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                            <p className="text-sm text-muted-foreground mb-1">Weekly Payment</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-weekly-payment">
+                              {fmtDec(financeCalc.weekly * 100)}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">approximate weekly cost</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 pt-4 border-t">
+                          <div><p className="text-xs text-muted-foreground">Amount Financed</p><p className="font-semibold">{fmt(financeCalc.principal * 100)}</p></div>
+                          <div><p className="text-xs text-muted-foreground">Total Interest</p><p className="font-semibold">{fmt(financeCalc.totalInterest * 100)}</p></div>
+                          <div><p className="text-xs text-muted-foreground">Total Repayable</p><p className="font-semibold">{fmt(financeCalc.totalRepayable * 100)}</p></div>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-xs text-muted-foreground">
+                            <strong>Representative Example:</strong> {fmt(financeCalc.total * 100)} cash price, {fmt(financeCalc.deposit * 100)} deposit, amount of credit {fmt(financeCalc.principal * 100)}, {termYears * 12} monthly payments of {fmtDec(financeCalc.monthly * 100)}, total amount payable {fmt((financeCalc.totalRepayable + financeCalc.deposit) * 100)}, 10.9% APR representative.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-6 pt-6 border-t text-center">
+                        <p className="text-sm text-muted-foreground">Enter a deposit amount to calculate payments</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              )}
 
-              {/* Upgrades */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Wrench className="w-4 h-4 text-accent" />
-                    Upgrades
-                    {Object.keys(selectedUpgrades).length > 0 && (
-                      <Badge variant="secondary" className="ml-auto font-normal">
-                        {Object.keys(selectedUpgrades).length} selected
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {parentUpgrades.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No upgrades available.</p>
-                  ) : (
-                    <div className="space-y-5">
-                      {Object.entries(upgradesByCategory).map(([category, items]) => (
-                        <div key={category}>
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                            {category.replace(/-/g, " ")}
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {items.map((upgrade) => {
-                              const variants = variantsByParent[upgrade.id] ?? [];
-                              const hasVariants = variants.length > 0;
-                              const parentSelected = isUpgradeSelected(upgrade.id);
-                              const anyVariantSelected = hasVariants &&
-                                variants.some((v) => isUpgradeSelected(v.id));
+                {/* Save button */}
+                <div className="pt-6 flex justify-end">
+                  <Button
+                    size="lg"
+                    className="bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440] w-full sm:w-auto"
+                    disabled={pricing.totalPence === 0}
+                    onClick={() => setSaveOpen(true)}
+                    data-testid="button-save-quote-bottom"
+                  >
+                    Save as Quote<ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </div>
+              </section>
+            )}
+          </div>
 
-                              return (
-                                <div key={upgrade.id}>
-                                  <button
-                                    data-testid={`button-upgrade-${upgrade.id}`}
-                                    onClick={() => toggleUpgrade(upgrade)}
-                                    className={`
-                                      w-full rounded-md border text-left px-3 py-2 transition-colors
-                                      ${(parentSelected || anyVariantSelected)
-                                        ? "border-accent bg-accent/10"
-                                        : "border-border hover-elevate"
-                                      }
-                                    `}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-sm line-clamp-1">{upgrade.name}</p>
-                                        <p className="text-sm text-accent font-semibold">{fmt(upgrade.price)}</p>
-                                      </div>
-                                      {(parentSelected && !hasVariants) ? (
-                                        <CheckCircle2 className="w-4 h-4 text-accent flex-shrink-0" />
-                                      ) : (
-                                        <Circle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                      )}
-                                    </div>
-                                  </button>
+          {/* Right column — sticky summary */}
+          <div className="xl:col-span-1">
+            <ConfiguratorSummary />
+          </div>
+        </div>
+      </div>
 
-                                  {/* Variants */}
-                                  {hasVariants && (
-                                    <div className="ml-3 mt-1 space-y-1">
-                                      {variants.map((variant) => {
-                                        const vSelected = isUpgradeSelected(variant.id);
-                                        return (
-                                          <button
-                                            key={variant.id}
-                                            data-testid={`button-upgrade-variant-${variant.id}`}
-                                            onClick={() => toggleUpgrade(variant)}
-                                            className={`
-                                              w-full rounded-md border text-left px-3 py-1.5 transition-colors
-                                              ${vSelected
-                                                ? "border-accent bg-accent/10"
-                                                : "border-border hover-elevate"
-                                              }
-                                            `}
-                                          >
-                                            <div className="flex items-center justify-between gap-2">
-                                              <div>
-                                                <p className="text-sm">{variant.variantName || variant.name}</p>
-                                                <p className="text-xs text-accent font-semibold">{fmt(variant.price)}</p>
-                                              </div>
-                                              {vSelected ? (
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-                                              ) : (
-                                                <Circle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                                              )}
-                                            </div>
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+      {/* ── Van Details Modal ─────────────────────────────────── */}
+      <Dialog open={!!modalVan} onOpenChange={o => !o && setModalVan(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {modalVan && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">{modalVan.make} {modalVan.model}</DialogTitle>
+                <DialogDescription>{modalVan.year} • {fmt(modalVan.price)}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6">
+                {(() => {
+                  const imgs = [...(modalVan.heroImage ? [modalVan.heroImage] : []), ...(modalVan.images || []).filter(i => i !== modalVan.heroImage)];
+                  return imgs.length > 0 ? (
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {imgs.map((img, i) => (
+                          <CarouselItem key={i}>
+                            <div className="relative aspect-video overflow-hidden rounded-md border bg-muted">
+                              <img src={img} alt={`${modalVan.make} ${modalVan.model} - ${i + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      {imgs.length > 1 && <><CarouselPrevious className="left-2" /><CarouselNext className="right-2" /></>}
+                    </Carousel>
+                  ) : null;
+                })()}
+                {modalVan.description && (
+                  <div><h3 className="font-semibold text-lg mb-2">Description</h3><p className="text-muted-foreground">{modalVan.description}</p></div>
+                )}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Specifications</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {[
+                      { Icon: Gauge, label: "Mileage", val: `${modalVan.mileage.toLocaleString()} miles` },
+                      { Icon: Settings, label: "Transmission", val: modalVan.specs.transmission },
+                      { Icon: Fuel, label: "Fuel", val: modalVan.specs.fuel },
+                      { Icon: Car, label: "Size", val: modalVan.specs.size },
+                      { Icon: Car, label: "Euro Status", val: modalVan.euroStatus },
+                    ].filter(r => r.val).map(({ Icon, label, val }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{label}:</span>
+                        <span className="font-medium">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <Button className="w-full bg-accent text-accent-foreground" onClick={() => { setVan(modalVan.id); setModalVan(null); }}>
+                    Select This Van<ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Kit Details Modal ─────────────────────────────────── */}
+      <Dialog open={!!modalKit} onOpenChange={o => !o && setModalKit(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {modalKit && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">{modalKit.name}</DialogTitle>
+                <DialogDescription>{modalKit.powerKw}kW • {fmt(modalKit.price)}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6">
+                {modalKit.images && modalKit.images.length > 0 && (
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {modalKit.images.map((img: string, i: number) => (
+                        <CarouselItem key={i}>
+                          <div className="relative aspect-video overflow-hidden rounded-md border bg-muted">
+                            <img src={img} alt={`${modalKit.name} - ${i + 1}`} className="w-full h-full object-cover" />
                           </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    {modalKit.images.length > 1 && <><CarouselPrevious className="left-2" /><CarouselNext className="right-2" /></>}
+                  </Carousel>
+                )}
+                <div><p className="text-muted-foreground">{modalKit.description}</p></div>
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-2 mb-3"><Package className="w-5 h-5 text-accent" />Complete Equipment List</h3>
+                  <div className="grid gap-2">
+                    {modalKit.includes?.map((item: string, i: number) => (
+                      <div key={i} className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" /><span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <Button className="w-full bg-accent text-accent-foreground" onClick={() => {
+                    if (kitNeedsWarning(modalKit)) { setWarnKit(modalKit); setModalKit(null); }
+                    else { setKit(modalKit.id); setModalKit(null); }
+                  }}>
+                    {state.kitId === modalKit.id ? "Selected — Continue" : "Select This Kit"}<ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Euro 6 Warning Dialog ─────────────────────────────── */}
+      <Dialog open={!!warnKit} onOpenChange={o => !o && setWarnKit(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <DialogTitle className="text-xl">Compatibility Notice</DialogTitle>
+            </div>
+            <DialogDescription className="text-sm text-muted-foreground pt-1 leading-relaxed">
+              {isEuro6Van
+                ? <>Your selected vehicle has a <strong className="text-foreground">Euro 6 engine</strong>. The <strong className="text-foreground">{warnKit?.name}</strong> pack is not designed for Euro 6 vehicles. We recommend a Euro 6 compatible pack.</>
+                : <>Your selected vehicle has a <strong className="text-foreground">non-Euro 6 engine</strong>. The <strong className="text-foreground">{warnKit?.name}</strong> pack is designed for Euro 6 vehicles. We recommend a non-Euro 6 pack.</>}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-2">
+            <Button className="w-full bg-accent text-accent-foreground" onClick={() => setWarnKit(null)}>Choose a Different Pack</Button>
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => { if (warnKit) setKit(warnKit.id); setWarnKit(null); }}>
+              I know what I'm doing — proceed anyway
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Upgrade Details Modal ─────────────────────────────── */}
+      <Dialog open={!!modalUpgrade} onOpenChange={o => !o && setModalUpgrade(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {modalUpgrade && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl">{modalUpgrade.upgrade.name}</DialogTitle>
+                {modalUpgrade.variants.length === 0 && <DialogDescription>{fmt(modalUpgrade.upgrade.price)}</DialogDescription>}
+              </DialogHeader>
+              <div className="space-y-4">
+                {modalUpgrade.upgrade.images && modalUpgrade.upgrade.images.length > 0 && (
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {modalUpgrade.upgrade.images.map((img, i) => (
+                        <CarouselItem key={i}>
+                          <div className="aspect-video overflow-hidden rounded-md border bg-muted">
+                            <img src={img} alt={`${modalUpgrade.upgrade.name} - ${i + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    {modalUpgrade.upgrade.images.length > 1 && <><CarouselPrevious className="left-2" /><CarouselNext className="right-2" /></>}
+                  </Carousel>
+                )}
+                {modalUpgrade.upgrade.description && <p className="text-muted-foreground">{modalUpgrade.upgrade.description}</p>}
+                {(modalUpgrade.upgrade as any).detailedInfo && <p className="text-sm text-muted-foreground">{(modalUpgrade.upgrade as any).detailedInfo}</p>}
+                {modalUpgrade.variants.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Available Options</h3>
+                    <div className="space-y-2">
+                      {modalUpgrade.variants.map(v => (
+                        <div key={v.id} className="flex justify-between items-center p-3 rounded-md border text-sm">
+                          <span>{v.variantName || v.name}</span>
+                          <Badge variant="secondary">{fmt(v.price)}</Badge>
                         </div>
                       ))}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column — Price Summary + Finance */}
-            <div className="space-y-4 lg:sticky lg:top-[57px]">
-              {/* Price Summary */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <PoundSterling className="w-4 h-4 text-accent" />
-                    Price Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {total === 0 ? (
-                    <p className="text-muted-foreground text-sm text-center py-4">
-                      Select a van or items to see pricing
-                    </p>
-                  ) : (
-                    <>
-                      {selectedVan && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground truncate mr-2">{selectedVan.make} {selectedVan.model}</span>
-                          <span>{fmt(vanPrice)}</span>
-                        </div>
-                      )}
-                      {selectedKit && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground truncate mr-2">{selectedKit.name}</span>
-                          <span>{fmt(kitPrice)}</span>
-                        </div>
-                      )}
-                      {Object.entries(selectedUpgrades).map(([id, qty]) => {
-                        const upgrade = upgrades.find((u) => u.id === id);
-                        if (!upgrade) return null;
-                        return (
-                          <div key={id} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground truncate mr-2">
-                              {upgrade.variantName ? `${upgrade.name} (${upgrade.variantName})` : upgrade.name}
-                              {qty > 1 && ` ×${qty}`}
-                            </span>
-                            <span>{fmt(upgrade.price * qty)}</span>
-                          </div>
-                        );
-                      })}
-                      <div className="border-t pt-2 mt-2 space-y-1.5">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal (ex. VAT)</span>
-                          <span>{fmt(subtotal)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">VAT (20%)</span>
-                          <span>{fmt(vat)}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold text-base border-t pt-2">
-                          <span>Total (inc. VAT)</span>
-                          <span className="text-accent">{fmt(total)}</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Finance Calculator */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Calculator className="w-4 h-4 text-accent" />
-                    Finance Calculator
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="deposit" className="text-sm mb-1.5 block">
-                      Deposit (£)
-                    </Label>
-                    <Input
-                      id="deposit"
-                      type="number"
-                      min="0"
-                      step="100"
-                      placeholder="0.00"
-                      value={depositInput}
-                      onChange={(e) => setDepositInput(e.target.value)}
-                      data-testid="input-deposit"
-                    />
                   </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-                  <div>
-                    <div className="flex justify-between mb-1.5">
-                      <Label className="text-sm">Term</Label>
-                      <span className="text-sm font-medium">
-                        {termMonths} months
-                        {termMonths % 12 === 0 && termMonths > 0
-                          ? ` (${termMonths / 12} yr)`
-                          : ""}
-                      </span>
-                    </div>
-                    <Slider
-                      min={12}
-                      max={120}
-                      step={6}
-                      value={[termMonths]}
-                      onValueChange={([v]) => setTermMonths(v)}
-                      data-testid="slider-term"
-                      className="mt-2"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>12 mo</span>
-                      <span>120 mo</span>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-3 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Amount financed</span>
-                      <span className="text-sm font-medium">{fmt(Math.max(0, principal))}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">APR</span>
-                      <span className="text-sm font-medium">
-                        {(FINANCE_APR * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    {monthlyPayment > 0 ? (
-                      <>
-                        <div className="flex justify-between items-center border-t pt-2">
-                          <span className="font-medium">Monthly</span>
-                          <span className="text-xl font-bold text-accent">{fmt(monthlyPayment)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Weekly (approx.)</span>
-                          <span className="text-sm font-semibold">{fmt(weeklyPayment)}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground text-sm text-center py-2">
-                        {total === 0
-                          ? "Add items to calculate finance"
-                          : depositPence >= total
-                          ? "Deposit covers full amount"
-                          : "Adjust deposit and term"}
-                      </p>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    Representative figure at {(FINANCE_APR * 100).toFixed(1)}% APR. Subject to credit check.
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Save CTA */}
-              <Button
-                className="w-full bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440]"
-                disabled={total === 0}
-                onClick={() => setSaveDialogOpen(true)}
-                data-testid="button-save-quote-bottom"
-              >
-                Save as Quote
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Save as Quote Dialog */}
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+      {/* ── Save as Quote Dialog ──────────────────────────────── */}
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Save as Quote</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Save as Quote</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="sq-name" className="text-sm mb-1.5 block">
-                  Full name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="sq-name"
-                  value={saveForm.userName}
-                  onChange={(e) =>
-                    setSaveForm((f) => ({ ...f, userName: e.target.value }))
-                  }
-                  placeholder="John Smith"
-                  data-testid="input-quote-name"
-                />
+                <Label htmlFor="sq-name" className="text-sm mb-1.5 block">Full name <span className="text-destructive">*</span></Label>
+                <Input id="sq-name" value={saveForm.userName} onChange={e => setSaveForm(f => ({ ...f, userName: e.target.value }))} placeholder="John Smith" data-testid="input-quote-name" />
               </div>
               <div>
-                <Label htmlFor="sq-phone" className="text-sm mb-1.5 block">
-                  Phone <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="sq-phone"
-                  type="tel"
-                  value={saveForm.phone}
-                  onChange={(e) =>
-                    setSaveForm((f) => ({ ...f, phone: e.target.value }))
-                  }
-                  placeholder="07700 900000"
-                  data-testid="input-quote-phone"
-                />
+                <Label htmlFor="sq-phone" className="text-sm mb-1.5 block">Phone <span className="text-destructive">*</span></Label>
+                <Input id="sq-phone" type="tel" value={saveForm.phone} onChange={e => setSaveForm(f => ({ ...f, phone: e.target.value }))} placeholder="07700 900000" data-testid="input-quote-phone" />
               </div>
             </div>
             <div>
-              <Label htmlFor="sq-email" className="text-sm mb-1.5 block">
-                Email <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="sq-email"
-                type="email"
-                value={saveForm.email}
-                onChange={(e) =>
-                  setSaveForm((f) => ({ ...f, email: e.target.value }))
-                }
-                placeholder="john@example.com"
-                data-testid="input-quote-email"
-              />
+              <Label htmlFor="sq-email" className="text-sm mb-1.5 block">Email <span className="text-destructive">*</span></Label>
+              <Input id="sq-email" type="email" value={saveForm.email} onChange={e => setSaveForm(f => ({ ...f, email: e.target.value }))} placeholder="john@example.com" data-testid="input-quote-email" />
             </div>
             <div>
-              <Label htmlFor="sq-company" className="text-sm mb-1.5 block">
-                Company (optional)
-              </Label>
-              <Input
-                id="sq-company"
-                value={saveForm.company}
-                onChange={(e) =>
-                  setSaveForm((f) => ({ ...f, company: e.target.value }))
-                }
-                placeholder="Acme Tyres Ltd"
-                data-testid="input-quote-company"
-              />
+              <Label htmlFor="sq-company" className="text-sm mb-1.5 block">Company (optional)</Label>
+              <Input id="sq-company" value={saveForm.company} onChange={e => setSaveForm(f => ({ ...f, company: e.target.value }))} placeholder="Acme Tyres Ltd" data-testid="input-quote-company" />
             </div>
             <div>
-              <Label htmlFor="sq-notes" className="text-sm mb-1.5 block">
-                Notes (optional)
-              </Label>
-              <Textarea
-                id="sq-notes"
-                value={saveForm.notes}
-                onChange={(e) =>
-                  setSaveForm((f) => ({ ...f, notes: e.target.value }))
-                }
-                placeholder="Any additional notes from the call…"
-                className="resize-none"
-                rows={3}
-                data-testid="input-quote-notes"
-              />
+              <Label htmlFor="sq-notes" className="text-sm mb-1.5 block">Notes (optional)</Label>
+              <textarea id="sq-notes" value={saveForm.notes} onChange={e => setSaveForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Any additional notes from the call…" rows={3}
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                data-testid="input-quote-notes" />
             </div>
-            <div className="bg-muted/50 rounded-md p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total (inc. VAT)</span>
-                <span className="font-semibold text-accent">{fmt(total)}</span>
-              </div>
-              {monthlyPayment > 0 && (
-                <div className="flex justify-between mt-1">
-                  <span className="text-muted-foreground">Monthly ({termMonths}mo)</span>
-                  <span className="font-semibold">{fmt(monthlyPayment)}/mo</span>
-                </div>
+            <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
+              <div className="flex justify-between"><span className="text-muted-foreground">Total (inc. VAT)</span><span className="font-semibold text-accent">{fmt(pricing.totalPence)}</span></div>
+              {financeCalc && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Monthly ({termYears * 12}mo)</span><span className="font-semibold">{fmtDec(financeCalc.monthly * 100)}/mo</span></div>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setSaveOpen(false)}>Cancel</Button>
             <Button
               className="bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440]"
-              disabled={
-                !saveForm.userName.trim() ||
-                !saveForm.email.trim() ||
-                !saveForm.phone.trim() ||
-                saveQuoteMutation.isPending
-              }
-              onClick={() => saveQuoteMutation.mutate(saveForm)}
+              disabled={!saveForm.userName.trim() || !saveForm.email.trim() || !saveForm.phone.trim() || saveMutation.isPending}
+              onClick={() => saveMutation.mutate(saveForm)}
               data-testid="button-confirm-save-quote"
             >
-              {saveQuoteMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-1" />
-              ) : null}
+              {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
               Save Quote
             </Button>
           </DialogFooter>
@@ -884,3 +1264,4 @@ export default function AdminConfigurator() {
     </div>
   );
 }
+
