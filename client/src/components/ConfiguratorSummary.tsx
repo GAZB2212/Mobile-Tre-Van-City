@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import type { ConfiguratorSlotState } from "@/lib/ConfiguratorContext";
@@ -295,7 +295,15 @@ function CompareSummary() {
   );
 }
 
-export function ConfiguratorSummary() {
+export function ConfiguratorSummary({
+  discountSection,
+  discountedTotal,
+  discountAmount,
+}: {
+  discountSection?: ReactNode;
+  discountedTotal?: number;
+  discountAmount?: number;
+} = {}) {
   const { state, setCustomVanValue, setVanReg, compareMode } = useConfigurator();
 
   // Local input state for own van price and reg (synced to context)
@@ -496,11 +504,26 @@ export function ConfiguratorSummary() {
                           {formatPrice(vat)}
                         </span>
                       </div>
+                      {discountSection && (
+                        <div className="pt-1">{discountSection}</div>
+                      )}
+                      {discountAmount && discountAmount > 0 ? (
+                        <>
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>Before discount</span>
+                            <span className="line-through">{formatPrice(total)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm text-destructive font-medium">
+                            <span>Discount</span>
+                            <span>-{formatPrice(discountAmount)}</span>
+                          </div>
+                        </>
+                      ) : null}
                       <Separator />
                       <div className="flex justify-between">
                         <span className="font-bold">Total</span>
                         <span className="font-bold text-lg text-accent" data-testid="text-summary-total">
-                          {formatPrice(total)}
+                          {formatPrice(discountedTotal ?? total)}
                         </span>
                       </div>
                     </div>

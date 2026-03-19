@@ -979,7 +979,45 @@ export default function AdminConfigurator() {
           {/* Middle column — configurator summary */}
           <div className="xl:col-span-1">
             <div className="sticky top-[56px] z-10">
-              <ConfiguratorSummary />
+              <ConfiguratorSummary
+                discountAmount={discountedPricing.discountAmount}
+                discountedTotal={discountedPricing.finalTotal}
+                discountSection={
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Discount</Label>
+                    <div className="flex gap-2">
+                      <Select value={discount.type} onValueChange={(v) => setDiscount({ type: v as DiscountState['type'], value: '' })}>
+                        <SelectTrigger className="w-36" data-testid="select-discount-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No discount</SelectItem>
+                          <SelectItem value="percentage">% off</SelectItem>
+                          <SelectItem value="fixed">£ off</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {discount.type !== 'none' && (
+                        <div className="relative flex-1">
+                          {discount.type === 'percentage'
+                            ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
+                            : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
+                          }
+                          <Input
+                            type="number" min="0"
+                            max={discount.type === 'percentage' ? "100" : undefined}
+                            step={discount.type === 'percentage' ? "1" : "0.01"}
+                            value={discount.value}
+                            onChange={e => setDiscount(d => ({ ...d, value: e.target.value }))}
+                            className={discount.type === 'percentage' ? 'pr-8' : 'pl-7'}
+                            placeholder={discount.type === 'percentage' ? "e.g. 10" : "e.g. 500"}
+                            data-testid="input-discount-value"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                }
+              />
             </div>
           </div>
 
@@ -1023,47 +1061,6 @@ export default function AdminConfigurator() {
                           </p>
                         </div>
                       )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Discount */}
-                <div className="space-y-2 pb-4 border-b">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Discount</Label>
-                  <div className="flex gap-2">
-                    <Select value={discount.type} onValueChange={(v) => setDiscount({ type: v as DiscountState['type'], value: '' })}>
-                      <SelectTrigger className="w-40" data-testid="select-discount-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No discount</SelectItem>
-                        <SelectItem value="percentage">Percentage (%)</SelectItem>
-                        <SelectItem value="fixed">Fixed amount (£)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {discount.type !== 'none' && (
-                      <div className="relative flex-1">
-                        {discount.type === 'percentage'
-                          ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
-                          : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
-                        }
-                        <Input
-                          type="number" min="0"
-                          max={discount.type === 'percentage' ? "100" : undefined}
-                          step={discount.type === 'percentage' ? "1" : "0.01"}
-                          value={discount.value}
-                          onChange={e => setDiscount(d => ({ ...d, value: e.target.value }))}
-                          className={discount.type === 'percentage' ? 'pr-8' : 'pl-7'}
-                          placeholder={discount.type === 'percentage' ? "e.g. 10" : "e.g. 500"}
-                          data-testid="input-discount-value"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  {discountedPricing.discountAmount > 0 && (
-                    <div className="text-xs space-y-0.5 bg-muted/40 rounded-md px-2.5 py-2">
-                      <div className="flex justify-between text-muted-foreground"><span>Before discount</span><span>{fmt(slotAPricing.totalPence)}</span></div>
-                      <div className="flex justify-between text-destructive font-medium"><span>Discount</span><span>-{fmt(discountedPricing.discountAmount)}</span></div>
                     </div>
                   )}
                 </div>
