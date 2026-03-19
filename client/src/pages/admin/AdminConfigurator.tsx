@@ -572,17 +572,6 @@ export default function AdminConfigurator() {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        size="lg"
-                        className="w-full sm:w-auto bg-accent text-accent-foreground"
-                        onClick={() => {
-                          setVan(null);
-                          setVanReg(ownVanReg.trim().toUpperCase() || null);
-                        }}
-                        data-testid="button-continue-own-van"
-                      >
-                        Use This Van<ArrowRight className="w-5 h-5 ml-2" />
-                      </Button>
                     </CardContent>
                   </Card>
                 </>
