@@ -23,7 +23,7 @@ import {
   Image,
   RefreshCw,
   Video,
-  Phone
+  UserRound
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
     {
       title: "Phone Configurator",
       description: "Build a spec live on a call — compare vans, add kit and upgrades, calculate monthly payments in real time, then save as a quote",
-      icon: Phone,
+      icon: UserRound,
       href: "/admin/configurator",
       badge: "Sales Tool",
       requiredRole: "basic" as const
