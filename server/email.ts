@@ -273,7 +273,7 @@ export async function sendQuoteSpecSummaryEmail({
       <table>
         ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
         ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
-        ${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `<tr><td>Upgrade</td><td>${u}</td></tr>`).join('') : ''}
+        ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
       </table>
       <h3 style="margin-bottom:8px;">Pricing</h3>
       <table>
@@ -295,7 +295,7 @@ export async function sendQuoteSpecSummaryEmail({
   </div>
 </body>
 </html>`,
-    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
 
@@ -402,7 +402,7 @@ export async function sendFinanceSubmissionEmail({
       <div class="section-title">Conversion Specification</div>
       <table>
         ${kitName ? `<tr><td>Equipment Pack</td><td>${kitName}</td></tr>` : ''}
-        ${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `<tr><td>Upgrade</td><td>${u}</td></tr>`).join('') : ''}
+        ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
       </table>
 
       <div class="section-title">Pricing</div>
@@ -437,7 +437,7 @@ ${financeDetails ? `
 
   const financeText = financeDetails ? `\nFinance Details:\nPlan Type: ${financeDetails.planType}\nAPR: ${financeDetails.apr.toFixed(2)}%\nDeposit: ${fmt(financeDetails.depositAmount)}\nTerm: ${financeDetails.termMonths} months\nMonthly Payment: ${fmt(financeDetails.monthlyPayment)}\nWeekly Payment: ${fmt(financeDetails.weeklyPayment)}\n` : '';
 
-  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `Upgrade: ${u}`).join('\n') + '\n' : ''}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
 
   await client.emails.send({
     to: financeCompanyEmail,
@@ -549,7 +549,7 @@ export async function sendQuoteReceivedEmails({
       <table class="summary" style="${comparisonSlotB && chosenOption === 'A' ? 'border:2px solid #8bc440;border-radius:4px;' : ''}">
         ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
         ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
-        ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${upgradeNames.join(', ')}</td></tr>` : ''}
+        ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
         <tr><td>Subtotal</td><td>${subtotal}</td></tr>
         <tr><td>VAT (20%)</td><td>${vat}</td></tr>
         ${originalTotal ? `<tr><td style="color:#6b7280;">Before discount</td><td style="color:#6b7280;text-decoration:line-through;">${originalTotal}</td></tr>` : ''}
@@ -565,7 +565,7 @@ export async function sendQuoteReceivedEmails({
       <table class="summary" style="${chosenOption === 'B' ? 'border:2px solid #8bc440;border-radius:4px;' : ''}">
         ${comparisonSlotB.vanTitle ? `<tr><td>Van</td><td>${comparisonSlotB.vanTitle}</td></tr>` : ''}
         ${comparisonSlotB.kitName ? `<tr><td>Pack</td><td>${comparisonSlotB.kitName}</td></tr>` : ''}
-        ${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${comparisonSlotB.upgradeNames.join(', ')}</td></tr>` : ''}
+        ${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${comparisonSlotB.upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
         ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal</td><td>£${(comparisonSlotB.estSubtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estTotal != null ? `<tr class="total-row"><td>Total</td><td>£${(comparisonSlotB.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
@@ -584,7 +584,7 @@ export async function sendQuoteReceivedEmails({
   </div>
 </body>
 </html>`,
-    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades: ${upgradeNames.join(', ')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 
   // 2. Admin notification
@@ -621,7 +621,7 @@ export async function sendQuoteReceivedEmails({
     <table>
       ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
       ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
-      ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${upgradeNames.join('<br>')}</td></tr>` : ''}
+      ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
       <tr><td>Subtotal</td><td>${subtotal}</td></tr>
       <tr><td>VAT (20%)</td><td>${vat}</td></tr>
       <tr class="total"><td>Total</td><td>${total}</td></tr>
@@ -629,7 +629,7 @@ export async function sendQuoteReceivedEmails({
   </div>
 </body>
 </html>`,
-    text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades: ${upgradeNames.join(', ')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}`,
+    text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}`,
   });
 }
 
