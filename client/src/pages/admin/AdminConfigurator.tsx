@@ -125,6 +125,7 @@ function groupUpgrades(upgrades: Upgrade[]) {
 }
 
 interface SaveForm { userName: string; email: string; phone: string; company: string; notes: string; }
+interface DiscountState { type: 'none' | 'percentage' | 'fixed'; value: string; }
 interface ConfiguratorData { kits: any[]; upgrades: Record<string, Upgrade[]>; financePlans: any[]; }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -168,6 +169,7 @@ export default function AdminConfigurator() {
   // ── Save as quote dialog
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveForm, setSaveForm] = useState<SaveForm>({ userName: "", email: "", phone: "", company: "", notes: "" });
+  const [discount, setDiscount] = useState<DiscountState>({ type: 'none', value: '' });
 
   // ── Auth guard
   useEffect(() => { if (!isLoading && !isAuthenticated) window.location.href = "/login"; }, [isLoading, isAuthenticated]);
@@ -364,6 +366,20 @@ export default function AdminConfigurator() {
     return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
   }, [allVans, slotA, configData, allUpgradesList, upgradeQuantities]);
 
+  // ── Discount preview (for the Save dialog UI only — server recalculates definitively via PATCH)
+  const discountedPricing = useMemo(() => {
+    const totalWithVat = slotAPricing.totalPence;
+    let discountAmount = 0;
+    if (discount.type === 'percentage') {
+      const pct = parseFloat(discount.value) || 0;
+      if (pct > 0 && pct <= 100) discountAmount = Math.round(totalWithVat * pct / 100);
+    } else if (discount.type === 'fixed') {
+      const fixedPence = Math.round((parseFloat(discount.value) || 0) * 100);
+      if (fixedPence > 0 && fixedPence < totalWithVat) discountAmount = fixedPence;
+    }
+    return { discountAmount, finalTotal: totalWithVat - discountAmount };
+  }, [slotAPricing.totalPence, discount]);
+
   const financeBase = deferVat ? pricing.subtotal : pricing.total;
 
   const financeCalc = useMemo(() => {
@@ -438,12 +454,27 @@ export default function AdminConfigurator() {
       };
       const res = await apiRequest("POST", "/api/quotes", body);
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
-      return res.json();
+      const quote = await res.json();
+
+      // Apply discount via PATCH if one is set (server recalculates definitive discounted total)
+      if (discount.type !== 'none' && discount.value) {
+        const discountBody: Record<string, unknown> = {
+          discountType: discount.type,
+          discountValue: discount.type === 'percentage'
+            ? Math.round(parseFloat(discount.value) || 0)
+            : Math.round((parseFloat(discount.value) || 0) * 100),
+        };
+        const patchRes = await apiRequest("PATCH", `/api/admin/quotes/${quote.id}`, discountBody);
+        if (patchRes.ok) return patchRes.json();
+      }
+      return quote;
     },
     onSuccess: (quote) => {
-      toast({ title: "Quote saved", description: `Quote created for ${saveForm.userName}` });
+      const hasDiscount = discount.type !== 'none' && discount.value;
+      toast({ title: "Quote saved", description: `Quote created for ${saveForm.userName}${hasDiscount ? ' with discount applied' : ''}` });
       setSaveOpen(false);
       setSaveForm({ userName: "", email: "", phone: "", company: "", notes: "" });
+      setDiscount({ type: 'none', value: '' });
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       navigate(`/admin/quotes/${quote.id}`);
     },
@@ -1294,8 +1325,56 @@ export default function AdminConfigurator() {
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                 data-testid="input-quote-notes" />
             </div>
+            {/* ── Discount ───────────────────────────────────── */}
+            <div className="space-y-2">
+              <Label className="text-sm">Discount (optional)</Label>
+              <div className="flex gap-2">
+                <Select value={discount.type} onValueChange={(v) => setDiscount({ type: v as DiscountState['type'], value: '' })}>
+                  <SelectTrigger className="w-44" data-testid="select-discount-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No discount</SelectItem>
+                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                    <SelectItem value="fixed">Fixed amount (£)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {discount.type !== 'none' && (
+                  <div className="relative flex-1">
+                    {discount.type === 'percentage'
+                      ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
+                      : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
+                    }
+                    <Input
+                      type="number"
+                      min="0"
+                      max={discount.type === 'percentage' ? "100" : undefined}
+                      step={discount.type === 'percentage' ? "1" : "0.01"}
+                      value={discount.value}
+                      onChange={e => setDiscount(d => ({ ...d, value: e.target.value }))}
+                      className={discount.type === 'percentage' ? 'pr-8' : 'pl-7'}
+                      placeholder={discount.type === 'percentage' ? "e.g. 10" : "e.g. 500"}
+                      data-testid="input-discount-value"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* ── Pricing summary ─────────────────────────────── */}
             <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">Total (inc. VAT)</span><span className="font-semibold text-accent">{fmt(pricing.totalPence)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (ex. VAT)</span><span>{fmt(slotAPricing.subtotalPence)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">VAT (20%)</span><span>{fmt(slotAPricing.vatPence)}</span></div>
+              {discountedPricing.discountAmount > 0 && (
+                <>
+                  <div className="flex justify-between text-muted-foreground"><span>Total before discount</span><span>{fmt(slotAPricing.totalPence)}</span></div>
+                  <div className="flex justify-between text-destructive font-medium"><span>Discount</span><span>-{fmt(discountedPricing.discountAmount)}</span></div>
+                  <Separator className="my-1" />
+                  <div className="flex justify-between font-semibold text-accent text-base"><span>Total (inc. VAT)</span><span>{fmt(discountedPricing.finalTotal)}</span></div>
+                </>
+              )}
+              {discountedPricing.discountAmount === 0 && (
+                <div className="flex justify-between font-semibold text-accent"><span>Total (inc. VAT)</span><span>{fmt(slotAPricing.totalPence)}</span></div>
+              )}
               {financeCalc && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Monthly ({termYears * 12}mo)</span><span className="font-semibold">{fmtDec(financeCalc.monthly * 100)}/mo</span></div>
               )}
