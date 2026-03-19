@@ -380,7 +380,9 @@ export default function AdminConfigurator() {
     return { discountAmount, finalTotal: totalWithVat - discountAmount };
   }, [slotAPricing.totalPence, discount]);
 
-  const financeBase = deferVat ? pricing.subtotal : pricing.total;
+  const financeBase = deferVat
+    ? (discountedPricing.finalTotal / 1.2) / 100
+    : discountedPricing.finalTotal / 100;
 
   const financeCalc = useMemo(() => {
     const deposit = parseFloat(depositAmount) || 0;
@@ -1032,6 +1034,47 @@ export default function AdminConfigurator() {
                   )}
                 </div>
 
+                {/* Discount */}
+                <div className="space-y-2 pb-4 border-b">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Discount</Label>
+                  <div className="flex gap-2">
+                    <Select value={discount.type} onValueChange={(v) => setDiscount({ type: v as DiscountState['type'], value: '' })}>
+                      <SelectTrigger className="w-40" data-testid="select-discount-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No discount</SelectItem>
+                        <SelectItem value="percentage">Percentage (%)</SelectItem>
+                        <SelectItem value="fixed">Fixed amount (£)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {discount.type !== 'none' && (
+                      <div className="relative flex-1">
+                        {discount.type === 'percentage'
+                          ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
+                          : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
+                        }
+                        <Input
+                          type="number" min="0"
+                          max={discount.type === 'percentage' ? "100" : undefined}
+                          step={discount.type === 'percentage' ? "1" : "0.01"}
+                          value={discount.value}
+                          onChange={e => setDiscount(d => ({ ...d, value: e.target.value }))}
+                          className={discount.type === 'percentage' ? 'pr-8' : 'pl-7'}
+                          placeholder={discount.type === 'percentage' ? "e.g. 10" : "e.g. 500"}
+                          data-testid="input-discount-value"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {discountedPricing.discountAmount > 0 && (
+                    <div className="text-xs space-y-0.5 bg-muted/40 rounded-md px-2.5 py-2">
+                      <div className="flex justify-between text-muted-foreground"><span>Before discount</span><span>{fmt(slotAPricing.totalPence)}</span></div>
+                      <div className="flex justify-between text-destructive font-medium"><span>Discount</span><span>-{fmt(discountedPricing.discountAmount)}</span></div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Total display */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1041,7 +1084,10 @@ export default function AdminConfigurator() {
                     <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
                     <Input
                       type="text"
-                      value={fmt(deferVat ? pricing.subtotalPence : pricing.totalPence).replace("£", "")}
+                      value={fmt(deferVat
+                        ? Math.round(discountedPricing.finalTotal / 1.2)
+                        : discountedPricing.finalTotal
+                      ).replace("£", "")}
                       disabled
                       className="pl-9 bg-muted/50 font-bold text-base text-foreground"
                     />
@@ -1297,9 +1343,9 @@ export default function AdminConfigurator() {
       </Dialog>
       {/* ── Save as Quote Dialog ──────────────────────────────── */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Save as Quote</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
+        <DialogContent className="sm:max-w-md flex flex-col max-h-[90vh]">
+          <DialogHeader className="shrink-0"><DialogTitle>Save as Quote</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2 overflow-y-auto flex-1 pr-1">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="sq-name" className="text-sm mb-1.5 block">Full name <span className="text-destructive">*</span></Label>
@@ -1325,41 +1371,6 @@ export default function AdminConfigurator() {
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                 data-testid="input-quote-notes" />
             </div>
-            {/* ── Discount ───────────────────────────────────── */}
-            <div className="space-y-2">
-              <Label className="text-sm">Discount (optional)</Label>
-              <div className="flex gap-2">
-                <Select value={discount.type} onValueChange={(v) => setDiscount({ type: v as DiscountState['type'], value: '' })}>
-                  <SelectTrigger className="w-44" data-testid="select-discount-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No discount</SelectItem>
-                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed amount (£)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {discount.type !== 'none' && (
-                  <div className="relative flex-1">
-                    {discount.type === 'percentage'
-                      ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
-                      : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
-                    }
-                    <Input
-                      type="number"
-                      min="0"
-                      max={discount.type === 'percentage' ? "100" : undefined}
-                      step={discount.type === 'percentage' ? "1" : "0.01"}
-                      value={discount.value}
-                      onChange={e => setDiscount(d => ({ ...d, value: e.target.value }))}
-                      className={discount.type === 'percentage' ? 'pr-8' : 'pl-7'}
-                      placeholder={discount.type === 'percentage' ? "e.g. 10" : "e.g. 500"}
-                      data-testid="input-discount-value"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
             {/* ── Pricing summary ─────────────────────────────── */}
             <div className="bg-muted/50 rounded-md p-3 text-sm space-y-1">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (ex. VAT)</span><span>{fmt(slotAPricing.subtotalPence)}</span></div>
@@ -1380,7 +1391,7 @@ export default function AdminConfigurator() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-2 border-t">
             <Button variant="outline" onClick={() => setSaveOpen(false)}>Cancel</Button>
             <Button
               className="bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440]"
