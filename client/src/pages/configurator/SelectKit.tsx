@@ -117,7 +117,7 @@ export default function SelectKit() {
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
               Choose Your Equipment Kit
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Select the perfect equipment package for your mobile tyre business
             </p>
           </div>

@@ -23,7 +23,8 @@ import {
   quoteStatuses,
   financeStatuses,
   buildStages,
-  type User
+  type User,
+  type Quote
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -389,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate server-side pricing (all prices in pence) with quantities
       // Use custom van value when no system van is selected
-      const vanPrice = van?.price ?? (validatedData as any).customVanValue ?? 0;
+      const vanPrice = van?.price ?? validatedData.customVanValue ?? 0;
       const kitPrice = kit?.price || 0;
       const upgradesTotal = upgrades.reduce((sum: number, upgrade: any) => {
         const quantity = validatedData.selectedUpgrades?.[upgrade.id] || 1;
@@ -426,6 +427,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // If comparison mode: compute pricing for slotB server-side and normalize slotA from server-validated primary fields.
+      // This ensures that the comparisonConfig stored in the DB is authoritative for both slots —
+      // client-submitted slotA pricing is overwritten with server-computed values.
+      let enrichedComparisonConfig: Quote['comparisonConfig'] = validatedData.comparisonConfig as Quote['comparisonConfig'] ?? null;
+      if (enrichedComparisonConfig?.slotA) {
+        // Normalize slotA with server-validated primary quote data (already computed above)
+        // This prevents client-crafted slotA prices from being promoted later via choose-option
+        enrichedComparisonConfig = {
+          ...enrichedComparisonConfig,
+          slotA: {
+            ...enrichedComparisonConfig.slotA,
+            estSubtotal: subtotal,
+            estVAT: vat,
+            estTotal: total,
+          },
+        };
+      }
+      if (enrichedComparisonConfig?.slotB) {
+        const slotB = enrichedComparisonConfig.slotB;
+        try {
+          const slotBUpgradeIds: string[] = slotB.upgradeIds || [];
+          const slotBTrainingIds: string[] = slotB.trainingOptionIds || [];
+          const [slotBVanData, slotBKitData, slotBUpgradeData, slotBTrainingData] = await Promise.all([
+            slotB.vanId ? storage.getVan(slotB.vanId) : Promise.resolve(null),
+            slotB.kitId ? storage.getKit(slotB.kitId) : Promise.resolve(null),
+            slotBUpgradeIds.length > 0
+              ? Promise.all(slotBUpgradeIds.map((uid) => storage.getUpgrade(uid)))
+              : Promise.resolve([]),
+            slotBTrainingIds.length > 0
+              ? Promise.all(slotBTrainingIds.map((tid) => storage.getTrainingOption(tid)))
+              : Promise.resolve([]),
+          ]);
+          const slotBSubtotal =
+            (slotBVanData?.price ?? slotB.customVanValue ?? 0) +
+            (slotBKitData?.price ?? 0) +
+            slotBUpgradeData.filter(Boolean).reduce((s, u) => s + ((u as { price: number })?.price ?? 0), 0) +
+            slotBTrainingData.filter(Boolean).reduce((s, t) => s + ((t as { price: number })?.price ?? 0), 0);
+          const slotBVat = Math.round(slotBSubtotal * 0.2);
+          enrichedComparisonConfig = {
+            ...enrichedComparisonConfig,
+            slotB: {
+              ...slotB,
+              estSubtotal: slotBSubtotal,
+              estVAT: slotBVat,
+              estTotal: slotBSubtotal + slotBVat,
+            },
+          };
+        } catch (err) {
+          console.error('Failed to compute slotB pricing:', err);
+        }
+      }
+
       // Create quote with server-validated prices and user ID if authenticated
       const quoteData = {
         ...validatedData,
@@ -433,6 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         estSubtotal: subtotal,
         estVAT: vat,
         estTotal: total,
+        ...(enrichedComparisonConfig !== null ? { comparisonConfig: enrichedComparisonConfig } : {}),
       };
 
       const quote = await storage.createQuote(quoteData);
@@ -440,11 +494,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send confirmation email to customer + notification to admin (non-blocking)
       try {
         const { sendQuoteReceivedEmails } = await import('./email.js');
+
+        // If comparison mode: fetch slotB details for email (pricing already computed in enrichedComparisonConfig)
+        let comparisonSlotBEmail: { vanTitle?: string | null; kitName?: string | null; upgradeNames?: string[]; estSubtotal?: number; estVAT?: number; estTotal?: number } | null = null;
+        const emailSlotB = enrichedComparisonConfig?.slotB;
+        if (emailSlotB) {
+          const emailSlotBUpgradeIds: string[] = emailSlotB.upgradeIds || [];
+          const [slotBVan, slotBKit, slotBUpgrades] = await Promise.all([
+            emailSlotB.vanId ? storage.getVan(emailSlotB.vanId) : Promise.resolve(null),
+            emailSlotB.kitId ? storage.getKit(emailSlotB.kitId) : Promise.resolve(null),
+            emailSlotBUpgradeIds.length > 0
+              ? Promise.all(emailSlotBUpgradeIds.map((uid) => storage.getUpgrade(uid)))
+              : Promise.resolve([]),
+          ]);
+          comparisonSlotBEmail = {
+            vanTitle: slotBVan?.title ?? (emailSlotB.vanRegistration ? `Own van (${emailSlotB.vanRegistration})` : null),
+            kitName: slotBKit?.name ?? null,
+            upgradeNames: slotBUpgrades.filter(Boolean).map((u) => (u as { name: string }).name),
+            estSubtotal: emailSlotB.estSubtotal,
+            estVAT: emailSlotB.estVAT,
+            estTotal: emailSlotB.estTotal,
+          };
+        }
+
         await sendQuoteReceivedEmails({
           quote,
           vanTitle: van?.title ?? null,
           kitName: kit?.name ?? null,
           upgradeNames: upgrades.filter(Boolean).map((u: any) => u.name),
+          comparisonSlotB: comparisonSlotBEmail,
+          // chosenOption is null at submission time (admin chooses later), but wired here
+          // so resend/re-trigger email paths can pass the current chosen state
+          chosenOption: null,
         });
       } catch (emailErr) {
         console.error('Failed to send quote received emails:', emailErr);
@@ -1816,6 +1897,90 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Lock in a customer's chosen option (A or B) for a comparison quote
+  app.patch("/api/admin/quotes/:id/choose-option", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { option } = req.body; // 'A' or 'B'
+      if (option !== 'A' && option !== 'B') {
+        return res.status(400).json({ error: "option must be 'A' or 'B'" });
+      }
+
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Guard: this endpoint is only valid for comparison quotes that have both slots configured
+      if (!quote.comparisonConfig?.slotA || !quote.comparisonConfig?.slotB) {
+        return res.status(400).json({ error: "Quote does not have a comparison configuration" });
+      }
+
+      // Guard: cannot change chosen option once the build has started
+      if (quote.buildStage != null) {
+        return res.status(409).json({ error: "Cannot change chosen option after build has started" });
+      }
+
+      const updateData: Partial<Quote> = {
+        chosenOption: option,
+      };
+
+      // Promote the selected slot's configuration into the primary quote fields.
+      // This is done for BOTH A and B so that primary fields always reflect the chosen option,
+      // which is critical when an admin switches back from B to A (or vice versa).
+      const slotData = option === 'B'
+        ? quote.comparisonConfig?.slotB
+        : quote.comparisonConfig?.slotA;
+
+      if (slotData) {
+        updateData.vanId = slotData.vanId ?? null;
+        updateData.customVanDescription = slotData.customVanDescription ?? null;
+        updateData.customVanValue = slotData.customVanValue ?? null;
+        updateData.vanRegistration = slotData.vanRegistration ?? null;
+        updateData.serviceType = (slotData.serviceType as Quote['serviceType']) ?? null;
+        updateData.kitId = slotData.kitId ?? null;
+        updateData.selectedUpgradeIds = slotData.upgradeIds ?? [];
+        // Rebuild upgrade quantity map (all 1 for comparison quotes)
+        const upgradeQtyMap: Record<string, number> = {};
+        (slotData.upgradeIds ?? []).forEach((uid) => { upgradeQtyMap[uid] = 1; });
+        updateData.selectedUpgrades = upgradeQtyMap;
+        updateData.trainingOptionIds = slotData.trainingOptionIds ?? [];
+        updateData.financePlanId = slotData.financePlanId ?? null;
+        updateData.financeInputs = slotData.financeInputs ?? null;
+        // Promote pricing if stored in the slot
+        if (slotData.estSubtotal != null) updateData.estSubtotal = slotData.estSubtotal;
+        if (slotData.estVAT != null) updateData.estVAT = slotData.estVAT;
+        if (slotData.estTotal != null) updateData.estTotal = slotData.estTotal;
+      }
+
+      // Append an admin note with actor identity (session only has id/username, look up full name if possible)
+      const sessionUser = req.session?.user;
+      let actorName = sessionUser?.username ?? 'Admin';
+      if (sessionUser?.id) {
+        const adminUserRecord = await storage.getUser(sessionUser.id);
+        if (adminUserRecord?.firstName) {
+          actorName = adminUserRecord.firstName + (adminUserRecord.lastName ? ' ' + adminUserRecord.lastName : '');
+        }
+      }
+      const adminNotesHistory = Array.isArray(quote.adminNotesHistory) ? [...quote.adminNotesHistory] : [];
+      adminNotesHistory.push({
+        text: `Customer chose Option ${option} from the comparison quote.`,
+        timestamp: new Date().toISOString(),
+        author: actorName,
+      });
+      updateData.adminNotesHistory = adminNotesHistory;
+
+      const updated = await storage.updateQuote(req.params.id, updateData);
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update quote" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error choosing option:', error);
+      res.status(500).json({ error: "Failed to choose option" });
+    }
+  });
+
   // Delete a specific note from the history
   app.delete("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
     try {
@@ -2218,6 +2383,78 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         financePlan = await storage.getFinancePlan(quote.financePlanId);
       }
 
+      // Enrich comparison config slots with human-readable names if present
+      let enrichedComparisonForCustomer: {
+        slotA: {
+          vanTitle?: string | null;
+          vanRegistration?: string | null;
+          customVanDescription?: string | null;
+          kitName?: string | null;
+          upgradeNames?: string[];
+          trainingOptionNames?: string[];
+          estSubtotal?: number;
+          estVAT?: number;
+          estTotal?: number;
+        } | null;
+        slotB: {
+          vanTitle?: string | null;
+          vanRegistration?: string | null;
+          customVanDescription?: string | null;
+          kitName?: string | null;
+          upgradeNames?: string[];
+          trainingOptionNames?: string[];
+          estSubtotal?: number;
+          estVAT?: number;
+          estTotal?: number;
+        } | null;
+      } | null = null;
+
+      if (quote.comparisonConfig) {
+        const enrichSlot = async (slot: {
+          vanId?: string | null;
+          customVanDescription?: string | null;
+          vanRegistration?: string | null;
+          kitId?: string | null;
+          upgradeIds?: string[];
+          trainingOptionIds?: string[];
+          estSubtotal?: number;
+          estVAT?: number;
+          estTotal?: number;
+        }) => {
+          const [slotVan, slotKit, slotUpgrades, slotTraining] = await Promise.all([
+            slot.vanId ? storage.getVan(slot.vanId) : Promise.resolve(null),
+            slot.kitId ? storage.getKit(slot.kitId) : Promise.resolve(null),
+            (slot.upgradeIds || []).length > 0
+              ? Promise.all((slot.upgradeIds || []).map((uid) => storage.getUpgrade(uid)))
+              : Promise.resolve([]),
+            (slot.trainingOptionIds || []).length > 0
+              ? Promise.all((slot.trainingOptionIds || []).map((tid) => storage.getTrainingOption(tid)))
+              : Promise.resolve([]),
+          ]);
+          return {
+            vanTitle: slotVan?.title ?? null,
+            vanRegistration: slot.vanRegistration ?? null,
+            customVanDescription: slot.customVanDescription ?? null,
+            kitName: slotKit?.name ?? null,
+            upgradeNames: slotUpgrades.filter(Boolean).map((u: any) => u.name),
+            trainingOptionNames: slotTraining.filter(Boolean).map((t: any) => t.name),
+            estSubtotal: slot.estSubtotal,
+            estVAT: slot.estVAT,
+            estTotal: slot.estTotal,
+          };
+        };
+
+        const [enrichedSlotA, enrichedSlotB] = await Promise.all([
+          enrichSlot(quote.comparisonConfig.slotA),
+          enrichSlot(quote.comparisonConfig.slotB),
+        ]);
+
+        enrichedComparisonForCustomer = {
+          slotA: enrichedSlotA,
+          slotB: enrichedSlotB,
+        };
+      }
+
       // Return full configuration details (no internal admin fields)
       const customerSafeQuote = {
         id: quote.id,
@@ -2240,6 +2477,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         status: quote.status,
         createdAt: quote.createdAt,
         confirmedAt: quote.confirmedAt,
+        comparisonConfig: enrichedComparisonForCustomer,
+        chosenOption: quote.chosenOption ?? null,
       };
 
       res.json(customerSafeQuote);

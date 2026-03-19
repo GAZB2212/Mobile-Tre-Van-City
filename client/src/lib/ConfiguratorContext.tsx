@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { KitServiceType } from '@shared/schema';
 
-export interface ConfiguratorState {
+export interface ConfiguratorSlotState {
   vanId: string | null;
   customVanDescription: string | null;
   customVanValue: number | null; // in pence
@@ -23,8 +23,19 @@ export interface ConfiguratorState {
   } | null;
 }
 
+// Legacy alias for backwards compatibility
+export type ConfiguratorState = ConfiguratorSlotState;
+
 interface ConfiguratorContextValue {
-  state: ConfiguratorState;
+  state: ConfiguratorSlotState; // always reflects the active slot
+  slotA: ConfiguratorSlotState;
+  slotB: ConfiguratorSlotState;
+  compareMode: boolean;
+  activeSlot: 'A' | 'B';
+  enableCompareMode: () => void;
+  setActiveSlot: (slot: 'A' | 'B') => void;
+  clearSlotA: () => void;
+  clearSlotB: () => void;
   setVan: (vanId: string | null) => void;
   setCustomVan: (description: string, valueInPence: number) => void;
   setCustomVanValue: (valueInPence: number | null) => void;
@@ -39,8 +50,8 @@ interface ConfiguratorContextValue {
   addTrainingOption: (trainingOptionId: string) => void;
   removeTrainingOption: (trainingOptionId: string) => void;
   setFinancePlan: (financePlanId: string | null) => void;
-  setFinanceInputs: (inputs: ConfiguratorState['financeInputs']) => void;
-  setPricingSnapshot: (pricing: ConfiguratorState['pricingSnapshot']) => void;
+  setFinanceInputs: (inputs: ConfiguratorSlotState['financeInputs']) => void;
+  setPricingSnapshot: (pricing: ConfiguratorSlotState['pricingSnapshot']) => void;
   clearAll: () => void;
   resetFromVan: () => void;
   resetFromServiceType: () => void;
@@ -49,9 +60,9 @@ interface ConfiguratorContextValue {
   resetFromFinance: () => void;
 }
 
-const STORAGE_KEY = 'configurator:v4';
+const STORAGE_KEY = 'configurator:v5';
 
-const defaultState: ConfiguratorState = {
+const defaultSlotState: ConfiguratorSlotState = {
   vanId: null,
   customVanDescription: null,
   customVanValue: null,
@@ -65,35 +76,103 @@ const defaultState: ConfiguratorState = {
   pricingSnapshot: null,
 };
 
+interface FullState {
+  slotA: ConfiguratorSlotState;
+  slotB: ConfiguratorSlotState;
+  compareMode: boolean;
+  activeSlot: 'A' | 'B';
+}
+
+const defaultFullState: FullState = {
+  slotA: defaultSlotState,
+  slotB: defaultSlotState,
+  compareMode: false,
+  activeSlot: 'A',
+};
+
 const ConfiguratorContext = createContext<ConfiguratorContextValue | undefined>(undefined);
 
 export function ConfiguratorProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<ConfiguratorState>(() => {
-    // Hydrate from localStorage on mount
+  const [fullState, setFullState] = useState<FullState>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        return { ...defaultState, ...parsed };
+        return {
+          ...defaultFullState,
+          slotA: { ...defaultSlotState, ...(parsed.slotA || parsed) },
+          slotB: { ...defaultSlotState, ...(parsed.slotB || {}) },
+          compareMode: parsed.compareMode ?? false,
+          activeSlot: parsed.activeSlot ?? 'A',
+        };
+      }
+      // Try upgrading from old v4 key
+      const oldStored = localStorage.getItem('configurator:v4');
+      if (oldStored) {
+        const parsed = JSON.parse(oldStored);
+        return {
+          ...defaultFullState,
+          slotA: { ...defaultSlotState, ...parsed },
+        };
       }
     } catch (error) {
       console.error('Failed to load configurator state:', error);
     }
-    return defaultState;
+    return defaultFullState;
   });
 
-  // Persist to localStorage whenever state changes
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fullState));
     } catch (error) {
       console.error('Failed to save configurator state:', error);
     }
-  }, [state]);
+  }, [fullState]);
+
+  // Helper to update the currently active slot
+  const updateActiveSlot = (updater: (prev: ConfiguratorSlotState) => ConfiguratorSlotState) => {
+    setFullState(prev => {
+      if (prev.activeSlot === 'A') {
+        return { ...prev, slotA: updater(prev.slotA) };
+      } else {
+        return { ...prev, slotB: updater(prev.slotB) };
+      }
+    });
+  };
+
+  const enableCompareMode = () => {
+    setFullState(prev => ({
+      ...prev,
+      compareMode: true,
+      slotB: defaultSlotState,
+      activeSlot: 'B',
+    }));
+  };
+
+  const setActiveSlot = (slot: 'A' | 'B') => {
+    setFullState(prev => ({ ...prev, activeSlot: slot }));
+  };
+
+  const clearSlotA = () => {
+    // Resets slot A config back to default while keeping compare mode active
+    setFullState(prev => ({
+      ...prev,
+      slotA: defaultSlotState,
+      activeSlot: 'A',
+    }));
+  };
+
+  const clearSlotB = () => {
+    setFullState(prev => ({
+      ...prev,
+      compareMode: false,
+      slotB: defaultSlotState,
+      activeSlot: 'A',
+    }));
+  };
 
   const setVan = (vanId: string | null) => {
-    // Clear downstream selections and custom van when a listed van is selected
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       vanId,
       customVanDescription: null,
@@ -109,7 +188,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const setCustomVan = (description: string, valueInPence: number) => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       vanId: null,
       customVanDescription: description,
@@ -125,16 +204,15 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const setCustomVanValue = (valueInPence: number | null) => {
-    setState(prev => ({ ...prev, customVanValue: valueInPence }));
+    updateActiveSlot(prev => ({ ...prev, customVanValue: valueInPence }));
   };
 
   const setVanReg = (reg: string | null) => {
-    setState(prev => ({ ...prev, vanReg: reg }));
+    updateActiveSlot(prev => ({ ...prev, vanReg: reg }));
   };
 
   const setServiceType = (serviceType: KitServiceType | null) => {
-    // Clear downstream selections when service type changes
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       serviceType,
       kitId: null,
@@ -147,8 +225,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const setKit = (kitId: string | null) => {
-    // Clear downstream selections when kit changes
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       kitId,
       upgradeIds: [],
@@ -160,73 +237,53 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const setUpgrades = (upgradeIds: string[]) => {
-    setState(prev => ({ ...prev, upgradeIds }));
+    updateActiveSlot(prev => ({ ...prev, upgradeIds }));
   };
 
   const addUpgrade = (upgradeId: string) => {
-    setState(prev => {
-      // Prevent duplicates
-      if (prev.upgradeIds.includes(upgradeId)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        upgradeIds: [...prev.upgradeIds, upgradeId]
-      };
+    updateActiveSlot(prev => {
+      if (prev.upgradeIds.includes(upgradeId)) return prev;
+      return { ...prev, upgradeIds: [...prev.upgradeIds, upgradeId] };
     });
   };
 
   const removeUpgrade = (upgradeId: string) => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
-      upgradeIds: prev.upgradeIds.filter(id => id !== upgradeId)
+      upgradeIds: prev.upgradeIds.filter(id => id !== upgradeId),
     }));
   };
 
   const replaceUpgrades = (toRemove: string[], toAdd: string) => {
-    setState(prev => {
-      // Remove all items in toRemove array and add the new item in a single atomic update
+    updateActiveSlot(prev => {
       let newUpgradeIds = prev.upgradeIds.filter(id => !toRemove.includes(id));
-      
-      // Prevent duplicates when adding
       if (!newUpgradeIds.includes(toAdd)) {
         newUpgradeIds = [...newUpgradeIds, toAdd];
       }
-      
-      return {
-        ...prev,
-        upgradeIds: newUpgradeIds
-      };
+      return { ...prev, upgradeIds: newUpgradeIds };
     });
   };
 
   const setTrainingOptions = (trainingOptionIds: string[]) => {
-    setState(prev => ({ ...prev, trainingOptionIds }));
+    updateActiveSlot(prev => ({ ...prev, trainingOptionIds }));
   };
 
   const addTrainingOption = (trainingOptionId: string) => {
-    setState(prev => {
-      // Prevent duplicates
-      if (prev.trainingOptionIds.includes(trainingOptionId)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        trainingOptionIds: [...prev.trainingOptionIds, trainingOptionId]
-      };
+    updateActiveSlot(prev => {
+      if (prev.trainingOptionIds.includes(trainingOptionId)) return prev;
+      return { ...prev, trainingOptionIds: [...prev.trainingOptionIds, trainingOptionId] };
     });
   };
 
   const removeTrainingOption = (trainingOptionId: string) => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
-      trainingOptionIds: prev.trainingOptionIds.filter(id => id !== trainingOptionId)
+      trainingOptionIds: prev.trainingOptionIds.filter(id => id !== trainingOptionId),
     }));
   };
 
   const setFinancePlan = (financePlanId: string | null) => {
-    // Clear finance inputs and pricing when plan changes
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       financePlanId,
       financeInputs: null,
@@ -234,16 +291,16 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const setFinanceInputs = (financeInputs: ConfiguratorState['financeInputs']) => {
-    setState(prev => ({ ...prev, financeInputs }));
+  const setFinanceInputs = (financeInputs: ConfiguratorSlotState['financeInputs']) => {
+    updateActiveSlot(prev => ({ ...prev, financeInputs }));
   };
 
-  const setPricingSnapshot = (pricingSnapshot: ConfiguratorState['pricingSnapshot']) => {
-    setState(prev => ({ ...prev, pricingSnapshot }));
+  const setPricingSnapshot = (pricingSnapshot: ConfiguratorSlotState['pricingSnapshot']) => {
+    updateActiveSlot(prev => ({ ...prev, pricingSnapshot }));
   };
 
   const clearAll = () => {
-    setState(defaultState);
+    setFullState(defaultFullState);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
@@ -251,9 +308,8 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Reset later steps when earlier step changes
   const resetFromVan = () => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       customVanDescription: null,
       customVanValue: null,
@@ -269,7 +325,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromServiceType = () => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       kitId: null,
       upgradeIds: [],
@@ -281,7 +337,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromKit = () => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       upgradeIds: [],
       trainingOptionIds: [],
@@ -292,7 +348,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromUpgrades = () => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       trainingOptionIds: [],
       financePlanId: null,
@@ -302,14 +358,24 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromFinance = () => {
-    setState(prev => ({
+    updateActiveSlot(prev => ({
       ...prev,
       pricingSnapshot: null,
     }));
   };
 
+  const activeSlotState = fullState.activeSlot === 'A' ? fullState.slotA : fullState.slotB;
+
   const value: ConfiguratorContextValue = {
-    state,
+    state: activeSlotState,
+    slotA: fullState.slotA,
+    slotB: fullState.slotB,
+    compareMode: fullState.compareMode,
+    activeSlot: fullState.activeSlot,
+    enableCompareMode,
+    setActiveSlot,
+    clearSlotA,
+    clearSlotB,
     setVan,
     setCustomVan,
     setCustomVanValue,

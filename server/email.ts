@@ -457,6 +457,8 @@ export async function sendQuoteReceivedEmails({
   vanTitle,
   kitName,
   upgradeNames,
+  comparisonSlotB,
+  chosenOption,
 }: {
   quote: {
     id: string;
@@ -471,6 +473,16 @@ export async function sendQuoteReceivedEmails({
   vanTitle?: string | null;
   kitName?: string | null;
   upgradeNames?: string[];
+  comparisonSlotB?: {
+    vanTitle?: string | null;
+    kitName?: string | null;
+    upgradeNames?: string[];
+    estSubtotal?: number;
+    estVAT?: number;
+    estTotal?: number;
+  } | null;
+  /** When set, highlights the chosen option in the comparison sections */
+  chosenOption?: 'A' | 'B' | null;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
 
@@ -522,7 +534,11 @@ export async function sendQuoteReceivedEmails({
         <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
       </div>
       <h3 style="margin-bottom: 8px;">Your Configuration Summary</h3>
-      <table class="summary">
+      ${comparisonSlotB ? `<p style="font-size:13px;color:#6b7280;margin-bottom:8px;">You submitted two options for our team to compare. Both are shown below.${chosenOption ? ` <strong>Option ${chosenOption}</strong> has been selected as your final choice.` : ''}</p>` : ''}
+      ${comparisonSlotB
+        ? `<p style="font-weight:bold;font-size:14px;margin-bottom:4px;color:#191919;">Option A${chosenOption === 'A' ? ' <span style="background:#8bc440;color:#191919;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>' : ''}</p>`
+        : ''}
+      <table class="summary" style="${comparisonSlotB && chosenOption === 'A' ? 'border:2px solid #8bc440;border-radius:4px;' : ''}">
         ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
         ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
         ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${upgradeNames.join(', ')}</td></tr>` : ''}
@@ -530,6 +546,17 @@ export async function sendQuoteReceivedEmails({
         <tr><td>VAT (20%)</td><td>${vat}</td></tr>
         <tr class="total-row"><td>Total</td><td>${total}</td></tr>
       </table>
+      ${comparisonSlotB ? `
+      <p style="font-weight:bold;font-size:14px;margin-top:20px;margin-bottom:4px;color:#191919;">Option B${chosenOption === 'B' ? ' <span style="background:#8bc440;color:#191919;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>' : ''}</p>
+      <table class="summary" style="${chosenOption === 'B' ? 'border:2px solid #8bc440;border-radius:4px;' : ''}">
+        ${comparisonSlotB.vanTitle ? `<tr><td>Van</td><td>${comparisonSlotB.vanTitle}</td></tr>` : ''}
+        ${comparisonSlotB.kitName ? `<tr><td>Pack</td><td>${comparisonSlotB.kitName}</td></tr>` : ''}
+        ${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${comparisonSlotB.upgradeNames.join(', ')}</td></tr>` : ''}
+        ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal</td><td>£${(comparisonSlotB.estSubtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
+        ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
+        ${comparisonSlotB.estTotal != null ? `<tr class="total-row"><td>Total</td><td>£${(comparisonSlotB.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
+      </table>
+      ` : ''}
       <p>If you have any questions in the meantime, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
       <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
     </div>

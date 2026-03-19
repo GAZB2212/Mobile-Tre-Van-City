@@ -398,7 +398,7 @@ export default function SelectUpgrades() {
                 ? 'Configure Your Commercial Setup'
                 : 'Add Upgrades & Extras'}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               {state.serviceType === "hybrid"
                 ? 'Select the commercial equipment and any additional extras for your hybrid setup'
                 : isCommercial

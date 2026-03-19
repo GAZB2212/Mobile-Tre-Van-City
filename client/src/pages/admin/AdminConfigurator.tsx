@@ -25,10 +25,11 @@ import {
   Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
+import { CompareSlotToggle } from "@/components/CompareSlotToggle";
 import {
   ArrowLeft, ArrowRight, Car, Gauge, Settings, Info, SlidersHorizontal,
   X, Truck, Shuffle, Package, Zap, CheckCircle, AlertTriangle, AlertCircle,
-  Star, Calculator, PoundSterling, CheckCircle2, Loader2, UserRound, RotateCcw,
+  Star, Calculator, PoundSterling, CheckCircle2, Loader2, UserRound, RotateCcw, GitCompare,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ export default function AdminConfigurator() {
   const {
     state, setVan, setVanReg, setCustomVanValue, setServiceType, setKit,
     addUpgrade, removeUpgrade, replaceUpgrades, clearAll,
+    compareMode, activeSlot, enableCompareMode, slotA, slotB,
   } = useConfigurator();
 
   // ── Van section state
@@ -364,17 +366,19 @@ export default function AdminConfigurator() {
     mutationFn: async (form: SaveForm) => {
       const upgradesMap: Record<string, number> = {};
       state.upgradeIds.forEach(id => { upgradesMap[id] = upgradeQuantities[id] ?? 1; });
-      const body = {
+      const slotBHasData = !!(slotB.vanId || slotB.vanReg || slotB.customVanValue || slotB.kitId || slotB.upgradeIds.length > 0 || slotB.trainingOptionIds.length > 0);
+
+      const body: Record<string, unknown> = {
         userName: form.userName, email: form.email, phone: form.phone,
         company: form.company || undefined, notes: form.notes || undefined,
-        serviceType: state.serviceType,
-        vanId: state.vanId || undefined,
-        customVanDescription: state.customVanDescription || undefined,
-        customVanValue: state.customVanValue || undefined,
-        kitId: state.kitId || undefined,
-        selectedUpgradeIds: state.upgradeIds,
+        serviceType: slotA.serviceType,
+        vanId: slotA.vanId || undefined,
+        customVanDescription: slotA.customVanDescription || undefined,
+        customVanValue: slotA.customVanValue || undefined,
+        kitId: slotA.kitId || undefined,
+        selectedUpgradeIds: slotA.upgradeIds,
         selectedUpgrades: upgradesMap,
-        trainingOptionIds: [],
+        trainingOptionIds: slotA.trainingOptionIds,
         financeInputs: depositAmount || termYears ? {
           deposit: Math.round((parseFloat(depositAmount) || 0) * 100),
           term: termYears * 12,
@@ -384,6 +388,34 @@ export default function AdminConfigurator() {
         estTotal: pricing.totalPence,
         estDiscount: 0,
         status: "new",
+        comparisonConfig: (compareMode && slotBHasData)
+          ? {
+              slotA: {
+                vanId: slotA.vanId,
+                customVanDescription: slotA.customVanDescription ?? undefined,
+                customVanValue: slotA.customVanValue ?? undefined,
+                vanRegistration: slotA.vanReg ?? undefined,
+                serviceType: slotA.serviceType,
+                kitId: slotA.kitId,
+                upgradeIds: slotA.upgradeIds,
+                trainingOptionIds: slotA.trainingOptionIds,
+                financePlanId: slotA.financePlanId,
+                financeInputs: slotA.financeInputs,
+              },
+              slotB: {
+                vanId: slotB.vanId,
+                customVanDescription: slotB.customVanDescription ?? undefined,
+                customVanValue: slotB.customVanValue ?? undefined,
+                vanRegistration: slotB.vanReg ?? undefined,
+                serviceType: slotB.serviceType,
+                kitId: slotB.kitId,
+                upgradeIds: slotB.upgradeIds,
+                trainingOptionIds: slotB.trainingOptionIds,
+                financePlanId: slotB.financePlanId,
+                financeInputs: slotB.financeInputs,
+              },
+            }
+          : undefined,
       };
       const res = await apiRequest("POST", "/api/quotes", body);
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
@@ -452,10 +484,27 @@ export default function AdminConfigurator() {
 
             {/* ── STEP 1: VAN SELECTION ─────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-bold mb-2">1. Select Your Van</h2>
+              <div className="flex items-start justify-between gap-4 mb-2">
+                <h2 className="text-2xl font-bold">
+                  {compareMode ? `1. Select Van — Option ${activeSlot}` : '1. Select Your Van'}
+                </h2>
+                {!compareMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={enableCompareMode}
+                    className="flex-shrink-0 !border-2 !border-accent text-accent"
+                    data-testid="button-enable-compare"
+                  >
+                    <GitCompare className="w-4 h-4 mr-1.5" />
+                    Compare two vans
+                  </Button>
+                )}
+              </div>
               <p className="text-muted-foreground mb-5">
                 Browse our ready-to-convert stock, or scroll down to use an existing van.
               </p>
+              <CompareSlotToggle />
 
               {vansLoading ? (
                 <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>

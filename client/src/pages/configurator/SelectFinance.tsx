@@ -144,7 +144,7 @@ export default function SelectFinance() {
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
               Finance Options
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">
               Choose a finance plan or pay outright
             </p>
           </div>

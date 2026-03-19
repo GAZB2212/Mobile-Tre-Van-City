@@ -116,9 +116,11 @@ export default function SelectVan() {
           <ConfiguratorStepper currentPath="/configurator/van" />
 
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2" data-testid="text-page-title">
-              Select Your Van
-            </h1>
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold" data-testid="text-page-title">
+                Select Your Van
+              </h1>
+            </div>
             <p className="text-muted-foreground mb-5">
               Browse our ready-to-convert stock below and select the van you'd like built around — or if you already have your own van, scroll down to enter your details.
             </p>
@@ -351,6 +353,7 @@ export default function SelectVan() {
                                 size="sm"
                                 className={`w-full ${state.vanId === van.id ? 'bg-accent text-accent-foreground' : '!border-2 !border-accent text-accent hover:bg-accent/10'}`}
                                 variant={state.vanId === van.id ? "default" : "outline"}
+                                onClick={(e) => { e.stopPropagation(); handleSelectVan(van.id); }}
                                 data-testid={`button-select-van-${van.id}`}
                               >
                                 {state.vanId === van.id ? 'Selected' : 'Select Van'}

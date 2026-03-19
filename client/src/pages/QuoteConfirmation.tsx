@@ -12,7 +12,186 @@ import { CheckCircle, Loader2, XCircle, MessageSquare, Truck, Wrench, PoundSterl
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
-import type { Quote } from "@shared/schema";
+// Helper to format pence as pounds
+function poundsStr(pence: number | null | undefined) {
+  if (pence == null) return "—";
+  return `£${(pence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Enriched comparison slot returned by GET /api/quote/confirm/:token */
+interface EnrichedSlot {
+  vanTitle?: string | null;
+  vanRegistration?: string | null;
+  customVanDescription?: string | null;
+  kitName?: string | null;
+  upgradeNames?: string[];
+  trainingOptionNames?: string[];
+  estSubtotal?: number;
+  estVAT?: number;
+  estTotal?: number;
+}
+
+interface CustomerNoteEntry {
+  text: string;
+  author?: string;
+  timestamp: string;
+}
+
+/** DTO returned by GET /api/quote/confirm/:token — enriched customer-safe view */
+interface CustomerQuoteDTO {
+  id: string;
+  userName: string;
+  email: string;
+  phone: string;
+  company?: string | null;
+  status: string;
+  createdAt: string | null;
+  confirmedAt?: string | null;
+  estSubtotal: number;
+  estVAT: number;
+  estTotal: number;
+  estDiscount?: number | null;
+  discountType?: string | null;
+  discountValue?: number | null;
+  customerNotesHistory?: CustomerNoteEntry[];
+  chosenOption?: "A" | "B" | null;
+  comparisonConfig?: {
+    slotA: EnrichedSlot | null;
+    slotB: EnrichedSlot | null;
+  } | null;
+  // Joined relation fields returned by the server
+  van?: {
+    title?: string;
+    make: string;
+    model: string;
+    year: number;
+    mileage?: number;
+    transmission?: string;
+    fuel?: string;
+    engineSize?: number;
+    price: number;
+  } | null;
+  kit?: {
+    name: string;
+    description?: string;
+    price: number;
+  } | null;
+  upgrades?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    variantName?: string;
+  }>;
+  financePlan?: {
+    name: string;
+    type: string;
+    depositPercent: number;
+    termMonths: number;
+    balloonPercent?: number;
+    aprBps: number;
+  } | null;
+  financeInputs?: { deposit?: number; term?: number; balloon?: number } | null;
+}
+
+interface ComparisonSlotCardProps {
+  label: "A" | "B";
+  slot: EnrichedSlot | null | undefined;
+  chosen: boolean;
+}
+
+function ComparisonSlotCard({ label, slot, chosen }: ComparisonSlotCardProps) {
+  if (!slot) return null;
+  return (
+    <Card
+      className={chosen ? "border-2 border-green-600" : ""}
+      data-testid={`card-comparison-slot-${label.toLowerCase()}`}
+    >
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+        <CardTitle className="text-base font-semibold">
+          Option {label}
+        </CardTitle>
+        {chosen && (
+          <Badge
+            className="bg-green-600 text-white no-default-active-elevate"
+            data-testid={`badge-chosen-option-${label.toLowerCase()}`}
+          >
+            Chosen
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {/* Van */}
+        {(slot.vanTitle || slot.vanRegistration || slot.customVanDescription) && (
+          <div>
+            <div className="font-medium text-muted-foreground mb-1 flex items-center gap-1">
+              <Truck className="w-3 h-3" /> Van
+            </div>
+            {slot.vanTitle ? (
+              <div className="font-semibold">{slot.vanTitle}</div>
+            ) : slot.customVanDescription ? (
+              <div className="font-semibold">{slot.customVanDescription}</div>
+            ) : null}
+            {slot.vanRegistration && (
+              <div className="text-muted-foreground text-xs">{slot.vanRegistration}</div>
+            )}
+          </div>
+        )}
+
+        {/* Kit */}
+        {slot.kitName && (
+          <div>
+            <div className="font-medium text-muted-foreground mb-1 flex items-center gap-1">
+              <Wrench className="w-3 h-3" /> Kit
+            </div>
+            <div className="font-semibold">{slot.kitName}</div>
+          </div>
+        )}
+
+        {/* Upgrades */}
+        {slot.upgradeNames && slot.upgradeNames.length > 0 && (
+          <div>
+            <div className="font-medium text-muted-foreground mb-1">Upgrades</div>
+            <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+              {slot.upgradeNames.map((name: string, i: number) => (
+                <li key={i}>{name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Training */}
+        {slot.trainingOptionNames && slot.trainingOptionNames.length > 0 && (
+          <div>
+            <div className="font-medium text-muted-foreground mb-1">Training</div>
+            <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+              {slot.trainingOptionNames.map((name: string, i: number) => (
+                <li key={i}>{name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Pricing */}
+        <Separator />
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span>{poundsStr(slot.estSubtotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT (20%)</span>
+            <span>{poundsStr(slot.estVAT)}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Total</span>
+            <span className="text-accent">{poundsStr(slot.estTotal)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function QuoteConfirmation() {
   const { token } = useParams();
@@ -23,7 +202,7 @@ export default function QuoteConfirmation() {
   const [correctionText, setCorrectionText] = useState("");
   const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
 
-  const { data: quote, isLoading, error } = useQuery<Quote>({
+  const { data: quote, isLoading, error } = useQuery<CustomerQuoteDTO>({
     queryKey: [`/api/quote/confirm/${token}`],
     enabled: !!token,
   });
@@ -180,7 +359,7 @@ export default function QuoteConfirmation() {
             
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               {/* Van Details */}
-              {(quote as any).van && (
+              {quote.van && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -190,36 +369,36 @@ export default function QuoteConfirmation() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <div className="text-lg font-semibold">{(quote as any).van.make} {(quote as any).van.model}</div>
-                      <div className="text-sm text-muted-foreground">{(quote as any).van.year}</div>
+                      <div className="text-lg font-semibold">{quote.van.make} {quote.van.model}</div>
+                      <div className="text-sm text-muted-foreground">{quote.van.year}</div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <div className="text-muted-foreground">Mileage</div>
-                        <div className="font-medium">{(quote as any).van.mileage?.toLocaleString()} miles</div>
+                        <div className="font-medium">{quote.van.mileage?.toLocaleString()} miles</div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">Transmission</div>
-                        <div className="font-medium">{(quote as any).van.transmission}</div>
+                        <div className="font-medium">{quote.van.transmission}</div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">Fuel</div>
-                        <div className="font-medium">{(quote as any).van.fuel}</div>
+                        <div className="font-medium">{quote.van.fuel}</div>
                       </div>
                       <div>
                         <div className="text-muted-foreground">Engine</div>
-                        <div className="font-medium">{(quote as any).van.engineSize}L</div>
+                        <div className="font-medium">{quote.van.engineSize}L</div>
                       </div>
                     </div>
                     <div className="text-sm font-semibold text-accent pt-2">
-                      £{((quote as any).van.price / 100).toLocaleString()}
+                      £{(quote.van.price / 100).toLocaleString()}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
               {/* Kit Details */}
-              {(quote as any).kit && (
+              {quote.kit && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -229,11 +408,11 @@ export default function QuoteConfirmation() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <div className="text-lg font-semibold">{(quote as any).kit.name}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{(quote as any).kit.description}</div>
+                      <div className="text-lg font-semibold">{quote.kit.name}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{quote.kit.description}</div>
                     </div>
                     <div className="text-sm font-semibold text-accent pt-2">
-                      £{((quote as any).kit.price / 100).toLocaleString()}
+                      £{(quote.kit.price / 100).toLocaleString()}
                     </div>
                   </CardContent>
                 </Card>
@@ -241,14 +420,14 @@ export default function QuoteConfirmation() {
             </div>
 
             {/* Equipment & Upgrades List */}
-            {(quote as any).upgrades && (quote as any).upgrades.length > 0 && (
+            {quote.upgrades && quote.upgrades.length > 0 && (
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle>Additional Equipment & Upgrades</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {(quote as any).upgrades.map((upgrade: any) => (
+                    {quote.upgrades.map((upgrade) => (
                       <div key={upgrade.id} className="flex justify-between items-start pb-3 border-b last:border-0">
                         <div className="flex-1">
                           <div className="font-medium">{upgrade.name}</div>
@@ -269,6 +448,33 @@ export default function QuoteConfirmation() {
               </Card>
             )}
           </div>
+
+          {/* Comparison Mode: Option A vs Option B */}
+          {quote.comparisonConfig && (
+            <div className="mb-8" data-testid="section-comparison-options">
+              <h2 className="text-2xl font-bold mb-2">Quoted Options</h2>
+              <p className="text-muted-foreground text-sm mb-4">
+                Your quote includes two options for comparison. Please review both and let our team know if you have a preference.
+              </p>
+              {quote.chosenOption && (
+                <div className="mb-4 p-3 rounded-md bg-green-600/10 border border-green-600/30 text-green-700 dark:text-green-400 text-sm font-medium" data-testid="notice-chosen-option">
+                  Option {quote.chosenOption} has been selected as your preferred configuration.
+                </div>
+              )}
+              <div className="grid md:grid-cols-2 gap-6">
+                <ComparisonSlotCard
+                  label="A"
+                  slot={quote.comparisonConfig.slotA}
+                  chosen={quote.chosenOption === 'A'}
+                />
+                <ComparisonSlotCard
+                  label="B"
+                  slot={quote.comparisonConfig.slotB}
+                  chosen={quote.chosenOption === 'B'}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Left Column - Customer Info */}
@@ -396,7 +602,7 @@ export default function QuoteConfirmation() {
               </Card>
 
               {/* Finance Details */}
-              {(quote as any).financePlan && (
+              {quote.financePlan && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -407,13 +613,13 @@ export default function QuoteConfirmation() {
                   <CardContent className="space-y-4">
                     <div>
                       <div className="text-sm font-medium text-muted-foreground">Finance Plan</div>
-                      <div className="font-semibold">{(quote as any).financePlan.name}</div>
-                      <div className="text-xs text-muted-foreground">{(quote as any).financePlan.type}</div>
+                      <div className="font-semibold">{quote.financePlan.name}</div>
+                      <div className="text-xs text-muted-foreground">{quote.financePlan.type}</div>
                     </div>
 
                     {(() => {
-                      const plan = (quote as any).financePlan;
-                      const inputs = (quote as any).financeInputs || {};
+                      const plan = quote.financePlan!;
+                      const inputs = quote.financeInputs || {};
                       const depositPercent = inputs.deposit || plan.depositPercent;
                       const termMonths = inputs.term || plan.termMonths;
                       const balloonPercent = inputs.balloon || plan.balloonPercent || 0;
@@ -577,7 +783,7 @@ export default function QuoteConfirmation() {
           </div>
 
           {/* FCA-Compliant Finance Disclaimers */}
-          {(quote as any).financePlan && (
+          {quote.financePlan && (
             <Card className="mt-8 border-muted-foreground/20 bg-muted/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">

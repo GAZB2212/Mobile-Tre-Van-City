@@ -49,7 +49,8 @@ import {
   XCircle,
   Calculator,
   Plus,
-  RefreshCw
+  RefreshCw,
+  GitCompare
 } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -481,6 +482,27 @@ export default function AdminQuoteDetail() {
         variant: "destructive",
         title: "Error",
         description: "Failed to delete note",
+      });
+    },
+  });
+
+  const chooseOptionMutation = useMutation({
+    mutationFn: async (option: 'A' | 'B') => {
+      return await apiRequest("PATCH", `/api/admin/quotes/${id}/choose-option`, { option });
+    },
+    onSuccess: (_, option) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/quotes'] });
+      toast({
+        title: "Option locked in",
+        description: `Customer's choice of Option ${option} has been saved.`,
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save option choice",
       });
     },
   });
@@ -1245,6 +1267,150 @@ export default function AdminQuoteDetail() {
                 </CardContent>
               </>)}
             </Card>}
+
+            {/* Comparison Options — Configuration tab (shown only when comparisonConfig present) */}
+            {activeTab === "configuration" && quote?.comparisonConfig && (
+              <Card data-testid="card-comparison-options">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GitCompare className="w-5 h-5" />
+                    Comparison Quote
+                    {quote.chosenOption && (
+                      <Badge variant="default" className="bg-accent text-accent-foreground ml-2 no-default-active-elevate">
+                        Option {quote.chosenOption} chosen
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Two configurations were submitted. Review both options and lock in the customer's choice.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Option A */}
+                    <div className={`rounded-md border p-4 space-y-2 ${quote.chosenOption === 'A' ? 'border-accent bg-accent/5' : ''}`} data-testid="card-option-a">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm">Option A (Primary)</p>
+                        {quote.chosenOption === 'A' && (
+                          <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">Chosen</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm space-y-1 text-muted-foreground">
+                        {(() => {
+                          const slotAVan = vans.find(v => v.id === quote.comparisonConfig!.slotA?.vanId);
+                          return slotAVan ? (
+                            <p><span className="text-foreground font-medium">Van:</span> {slotAVan.year} {slotAVan.make} {slotAVan.model}</p>
+                          ) : quote.comparisonConfig!.slotA?.vanRegistration ? (
+                            <p><span className="text-foreground font-medium">Van Reg:</span> {quote.comparisonConfig!.slotA.vanRegistration}</p>
+                          ) : (
+                            <p className="italic">No van specified</p>
+                          );
+                        })()}
+                        {(() => {
+                          const slotAKit = kits.find(k => k.id === quote.comparisonConfig!.slotA?.kitId);
+                          return slotAKit ? (
+                            <p><span className="text-foreground font-medium">Pack:</span> {slotAKit.name}</p>
+                          ) : null;
+                        })()}
+                        {(quote.comparisonConfig.slotA?.upgradeIds?.length ?? 0) > 0 && (
+                          <p><span className="text-foreground font-medium">Upgrades:</span> {quote.comparisonConfig.slotA!.upgradeIds!.length} selected</p>
+                        )}
+                        {quote.comparisonConfig.slotA?.estTotal != null && (
+                          <p className="font-medium text-foreground">
+                            Est. Total: £{((quote.comparisonConfig.slotA.estTotal!) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Option B */}
+                    <div className={`rounded-md border p-4 space-y-2 ${quote.chosenOption === 'B' ? 'border-accent bg-accent/5' : ''}`} data-testid="card-option-b">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm">Option B (Alternative)</p>
+                        {quote.chosenOption === 'B' && (
+                          <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">Chosen</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm space-y-1 text-muted-foreground">
+                        {(() => {
+                          const slotBVan = vans.find(v => v.id === quote.comparisonConfig!.slotB?.vanId);
+                          return slotBVan ? (
+                            <p><span className="text-foreground font-medium">Van:</span> {slotBVan.year} {slotBVan.make} {slotBVan.model}</p>
+                          ) : quote.comparisonConfig!.slotB?.vanRegistration ? (
+                            <p><span className="text-foreground font-medium">Van Reg:</span> {quote.comparisonConfig!.slotB.vanRegistration}</p>
+                          ) : (
+                            <p className="italic">No van specified</p>
+                          );
+                        })()}
+                        {(() => {
+                          const slotBKit = kits.find(k => k.id === quote.comparisonConfig!.slotB?.kitId);
+                          return slotBKit ? (
+                            <p><span className="text-foreground font-medium">Pack:</span> {slotBKit.name}</p>
+                          ) : null;
+                        })()}
+                        {(quote.comparisonConfig.slotB?.upgradeIds?.length ?? 0) > 0 && (
+                          <p><span className="text-foreground font-medium">Upgrades:</span> {quote.comparisonConfig.slotB!.upgradeIds!.length} selected</p>
+                        )}
+                        {quote.comparisonConfig.slotB?.estTotal != null && (
+                          <p className="font-medium text-foreground">
+                            Est. Total: £{((quote.comparisonConfig.slotB.estTotal!) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Option choice buttons */}
+                  {!quote.chosenOption ? (
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      <p className="text-sm text-muted-foreground w-full">Lock in the customer's final choice:</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => chooseOptionMutation.mutate('A')}
+                        disabled={chooseOptionMutation.isPending}
+                        data-testid="button-choose-option-a"
+                      >
+                        <Check className="w-4 h-4 mr-1.5" />
+                        Customer chose Option A
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => chooseOptionMutation.mutate('B')}
+                        disabled={chooseOptionMutation.isPending}
+                        data-testid="button-choose-option-b"
+                      >
+                        <Check className="w-4 h-4 mr-1.5" />
+                        Customer chose Option B
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 pt-2">
+                      <CheckCircle className="w-4 h-4 text-accent" />
+                      <p className="text-sm text-muted-foreground">
+                        Option {quote.chosenOption} has been locked in as the customer's final choice.
+                      </p>
+                      {/* Only allow changing choice before build starts */}
+                      {!quote.buildStage ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => chooseOptionMutation.mutate(quote.chosenOption === 'A' ? 'B' : 'A')}
+                          disabled={chooseOptionMutation.isPending}
+                          className="ml-auto text-xs"
+                          data-testid="button-change-choice"
+                        >
+                          Change to Option {quote.chosenOption === 'A' ? 'B' : 'A'}
+                        </Button>
+                      ) : (
+                        <p className="ml-auto text-xs text-muted-foreground italic" data-testid="text-choice-locked">
+                          Cannot change — build in progress
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Configuration Editor — Configuration tab */}
             {activeTab === "configuration" && <Card>

@@ -197,6 +197,42 @@ export const quotes = pgTable("quotes", {
   graphicsArtworkApproved: boolean("graphics_artwork_approved").notNull().default(false),
   graphicsArtworkNotes: text("graphics_artwork_notes"),
   customerLogoUrls: json("customer_logo_urls").$type<string[]>().notNull().default([]),
+
+  // Comparison mode fields
+  comparisonConfig: json("comparison_config").$type<{
+    slotA: {
+      vanId?: string | null;
+      customVanDescription?: string | null;
+      customVanValue?: number | null;
+      vanRegistration?: string | null;
+      serviceType?: string | null;
+      kitId?: string | null;
+      upgradeIds?: string[];
+      trainingOptionIds?: string[];
+      financePlanId?: string | null;
+      financeInputs?: { deposit?: number; term?: number; balloon?: number } | null;
+      estSubtotal?: number;
+      estVAT?: number;
+      estTotal?: number;
+    };
+    slotB: {
+      vanId?: string | null;
+      customVanDescription?: string | null;
+      customVanValue?: number | null;
+      vanRegistration?: string | null;
+      serviceType?: string | null;
+      kitId?: string | null;
+      upgradeIds?: string[];
+      trainingOptionIds?: string[];
+      financePlanId?: string | null;
+      financeInputs?: { deposit?: number; term?: number; balloon?: number } | null;
+      estSubtotal?: number;
+      estVAT?: number;
+      estTotal?: number;
+    };
+  } | null>(),
+  chosenOption: text("chosen_option"), // null | 'A' | 'B'
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),
@@ -300,6 +336,9 @@ export const insertUpgradeSchema = createInsertSchema(upgrades).omit({
   updatedAt: true,
 });
 
+export const chosenOptionValues = ['A', 'B'] as const;
+export type ChosenOption = typeof chosenOptionValues[number];
+
 export const insertQuoteSchema = createInsertSchema(quotes).omit({
   id: true,
   createdAt: true,
@@ -307,6 +346,7 @@ export const insertQuoteSchema = createInsertSchema(quotes).omit({
   status: z.enum(quoteStatuses).optional(),
   buildStage: z.enum(buildStages).nullable().optional(),
   financeStatus: z.enum(financeStatuses).optional(),
+  chosenOption: z.enum(chosenOptionValues).nullable().optional(),
 });
 
 export const insertLeadSchema = createInsertSchema(leads).omit({

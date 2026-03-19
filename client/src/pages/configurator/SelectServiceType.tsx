@@ -77,7 +77,7 @@ export default function SelectServiceType() {
           >
             What Will You Be Fitting?
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Tell us what type of vehicles your mobile tyre service will cover
           </p>
         </div>

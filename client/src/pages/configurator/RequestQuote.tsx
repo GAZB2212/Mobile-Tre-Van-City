@@ -19,7 +19,6 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle, Package, Truck, CreditCard, Phone, Mail, Clock, FileText, MessageSquare } from "lucide-react";
 import type { Van, Kit, FinancePlan, Upgrade, TrainingOption } from "@shared/schema";
-
 const quoteFormSchema = z.object({
   userName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
@@ -80,20 +79,17 @@ export default function RequestQuote() {
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (formData: QuoteFormData) => {
-      // Build selectedUpgrades object with quantities (all 1 for now)
       const selectedUpgrades: Record<string, number> = {};
       state.upgradeIds.forEach(id => {
         selectedUpgrades[id] = 1;
       });
       
-      // Calculate pricing including upgrades and training with quantities
       let subtotal = 0;
       if (van) subtotal += van.price;
-      if (!van) subtotal += ownVanPricePence;
+      else subtotal += ownVanPricePence;
       if (kit) subtotal += kit.price;
       upgrades.forEach(upgrade => {
-        const quantity = selectedUpgrades[upgrade.id] || 1;
-        subtotal += upgrade.price * quantity;
+        subtotal += upgrade.price * (selectedUpgrades[upgrade.id] || 1);
       });
       trainingOptions.forEach(option => {
         subtotal += option.price;
@@ -314,7 +310,7 @@ export default function RequestQuote() {
             <h1 className="text-3xl md:text-4xl font-bold mb-2 mt-4" data-testid="text-page-title">
               Request Your Quote
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Review your configuration and enter your details
             </p>
           </div>
