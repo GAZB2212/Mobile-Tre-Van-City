@@ -420,12 +420,16 @@ export default function BuildSheet() {
                                 >
                                   {(entry.upgrade as any)._displayName ?? entry.upgrade.name}
                                 </span>
-                                {/* Show variant name when it differs from the parent display name */}
-                                {(entry.upgrade as any)._displayName && (entry.upgrade as any)._displayName !== entry.upgrade.name && (
-                                  <span className="text-xs font-medium text-muted-foreground print:text-black">
-                                    {entry.upgrade.name}
-                                  </span>
-                                )}
+                                {/* Show variant/option label when available */}
+                                {(() => {
+                                  const variantLabel = (entry.upgrade as any).variantName ||
+                                    ((entry.upgrade as any)._displayName && (entry.upgrade as any)._displayName !== entry.upgrade.name ? entry.upgrade.name : null);
+                                  return variantLabel ? (
+                                    <span className="text-xs font-medium text-muted-foreground print:text-black">
+                                      — {variantLabel}
+                                    </span>
+                                  ) : null;
+                                })()}
                                 <span className="text-xs font-bold uppercase tracking-wide text-accent print:text-black">
                                   (Upgraded)
                                 </span>
@@ -482,21 +486,30 @@ export default function BuildSheet() {
                                 {quantity}&times;
                               </span>
                             )}
-                            {/* If this is a variant, show parent name as context */}
-                            {(upgrade as any).parentId && (() => {
+                            {/* If this is a variant, show parent name + selected option */}
+                            {(upgrade as any).parentId ? (() => {
                               const parent = allUpgrades.find(p => p.id === (upgrade as any).parentId);
-                              return parent ? (
-                                <span className="text-sm font-semibold text-foreground print:text-black">
-                                  {parent.name}
-                                </span>
-                              ) : null;
-                            })()}
-                            <p
-                              className={`font-semibold text-sm ${(upgrade as any).parentId ? 'text-muted-foreground print:text-black' : ''} ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
-                              data-testid={`text-upgrade-name-${upgrade.id}`}
-                            >
-                              {upgrade.name}
-                            </p>
+                              const variantLabel = (upgrade as any).variantName || upgrade.name;
+                              return (
+                                <>
+                                  {parent && (
+                                    <span className={`text-sm font-semibold text-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`} data-testid={`text-upgrade-name-${upgrade.id}`}>
+                                      {parent.name}
+                                    </span>
+                                  )}
+                                  <span className={`text-sm font-medium text-muted-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`}>
+                                    — {variantLabel}
+                                  </span>
+                                </>
+                              );
+                            })() : (
+                              <p
+                                className={`font-semibold text-sm ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                                data-testid={`text-upgrade-name-${upgrade.id}`}
+                              >
+                                {upgrade.name}
+                              </p>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground print:text-black mt-0.5" data-testid={`text-upgrade-description-${upgrade.id}`}>
                             {upgrade.description}
