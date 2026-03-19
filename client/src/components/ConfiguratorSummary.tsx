@@ -197,6 +197,19 @@ function SlotSummary({
 function CompareSummary() {
   const { slotA, slotB, activeSlot } = useConfigurator();
 
+  // In compare mode, kit/upgrades/training are always shared from slot A.
+  // Only the van differs between the two options.
+  // Build a merged slot B that has slot B's van but slot A's config for display.
+  const mergedSlotB: ConfiguratorSlotState = {
+    ...slotB,
+    serviceType: slotA.serviceType,
+    kitId: slotA.kitId,
+    upgradeIds: slotA.upgradeIds,
+    trainingOptionIds: slotA.trainingOptionIds,
+    financePlanId: slotA.financePlanId,
+    financeInputs: slotA.financeInputs,
+  };
+
   const { data: vanA } = useQuery<Van>({
     queryKey: ['/api/vans', slotA.vanId],
     enabled: !!slotA.vanId,
@@ -220,20 +233,6 @@ function CompareSummary() {
     queryKey: ['/api/vans', slotB.vanId],
     enabled: !!slotB.vanId,
   });
-  const { data: kitB } = useQuery<Kit>({
-    queryKey: ['/api/kits', slotB.kitId],
-    enabled: !!slotB.kitId,
-  });
-  const { data: upgradesB = [] } = useQuery<Upgrade[]>({
-    queryKey: ['/api/upgrades'],
-    select: (data) => data.filter(u => slotB.upgradeIds.includes(u.id)),
-    enabled: slotB.upgradeIds.length > 0,
-  });
-  const { data: trainingB = [] } = useQuery<TrainingOption[]>({
-    queryKey: ['/api/training-options'],
-    select: (data) => data.filter(t => slotB.trainingOptionIds.includes(t.id)),
-    enabled: slotB.trainingOptionIds.length > 0,
-  });
 
   const calcTotal = (
     slot: ConfiguratorSlotState,
@@ -252,13 +251,14 @@ function CompareSummary() {
   };
 
   const totalA = calcTotal(slotA, vanA, kitA, upgradesA, trainingA);
-  const totalB = calcTotal(slotB, vanB, kitB, upgradesB, trainingB);
+  // Slot B uses slot A's kit/upgrades/training — only the van differs
+  const totalB = calcTotal(mergedSlotB, vanB, kitA, upgradesA, trainingA);
   const diff = totalB - totalA;
 
   return (
     <div className="space-y-3" data-testid="compare-summary">
       <SlotSummary slot={slotA} label="Option A" isActive={activeSlot === 'A'} />
-      <SlotSummary slot={slotB} label="Option B" isActive={activeSlot === 'B'} />
+      <SlotSummary slot={mergedSlotB} label="Option B" isActive={activeSlot === 'B'} />
 
       {(totalA > 0 || totalB > 0) && (
         <div className="text-center text-xs text-muted-foreground p-2 bg-muted/30 rounded-md border">
