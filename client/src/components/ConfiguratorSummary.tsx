@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Car, Package, Wrench, GraduationCap } from "lucide-react";
+import { Car, Package, Wrench, GraduationCap, ChevronRight } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
 function OwnVanDetails({
@@ -80,10 +80,12 @@ function SlotSummary({
   slot,
   label,
   isActive,
+  onClick,
 }: {
   slot: ConfiguratorSlotState;
   label?: string;
   isActive?: boolean;
+  onClick?: () => void;
 }) {
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', slot.vanId],
@@ -121,13 +123,20 @@ function SlotSummary({
     ? true
     : (kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0);
 
+  const clickableClass = onClick ? 'cursor-pointer hover-elevate' : '';
+
   if (!hasItems) {
     return (
-      <div className={`rounded-md p-3 border ${isActive ? 'border-accent/40 bg-accent/5' : 'border-border bg-muted/30'}`}>
+      <div
+        className={`rounded-md p-3 border ${isActive ? 'border-accent/40 bg-accent/5' : 'border-border bg-muted/30'} ${clickableClass}`}
+        onClick={onClick}
+        data-testid={label ? `slot-summary-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined}
+      >
         {label && (
-          <p className="text-xs font-bold uppercase tracking-wide mb-1">
-            {label}
-          </p>
+          <div className="flex items-center justify-between mb-1">
+            <p className={`text-xs font-bold uppercase tracking-wide ${isActive ? 'text-accent' : 'text-muted-foreground'}`}>{label}</p>
+            {onClick && !isActive && <span className="text-xs text-muted-foreground">Switch</span>}
+          </div>
         )}
         <p className="text-xs text-muted-foreground">Not yet configured</p>
       </div>
@@ -135,9 +144,20 @@ function SlotSummary({
   }
 
   return (
-    <div className={`rounded-md p-3 border space-y-2 ${isActive ? 'border-accent/40 bg-accent/5' : 'border-border bg-muted/30'}`}>
+    <div
+      className={`rounded-md p-3 border space-y-2 ${isActive ? 'border-accent/40 bg-accent/5' : 'border-border bg-muted/30'} ${clickableClass}`}
+      onClick={onClick}
+      data-testid={label ? `slot-summary-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined}
+    >
       {label && (
-        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
+        <div className="flex items-center justify-between mb-1">
+          <p className={`text-xs font-bold uppercase tracking-wide ${isActive ? 'text-accent' : 'text-muted-foreground'}`}>{label}</p>
+          {onClick && (
+            isActive
+              ? <ChevronRight className="w-3.5 h-3.5 text-accent" />
+              : <span className="text-xs text-muted-foreground">Switch</span>
+          )}
+        </div>
       )}
 
       {van && (
@@ -195,7 +215,7 @@ function SlotSummary({
 
 // Compare summary: shows both slots with totals and difference
 function CompareSummary() {
-  const { slotA, slotB, activeSlot } = useConfigurator();
+  const { slotA, slotB, activeSlot, setActiveSlot } = useConfigurator();
 
   // In compare mode, kit/upgrades/training are always shared from slot A.
   // Only the van differs between the two options.
@@ -257,8 +277,8 @@ function CompareSummary() {
 
   return (
     <div className="space-y-3" data-testid="compare-summary">
-      <SlotSummary slot={slotA} label="Option A" isActive={activeSlot === 'A'} />
-      <SlotSummary slot={mergedSlotB} label="Option B" isActive={activeSlot === 'B'} />
+      <SlotSummary slot={slotA} label="Option A" isActive={activeSlot === 'A'} onClick={() => setActiveSlot('A')} />
+      <SlotSummary slot={mergedSlotB} label="Option B" isActive={activeSlot === 'B'} onClick={() => setActiveSlot('B')} />
 
       {(totalA > 0 || totalB > 0) && (
         <div className="text-center text-xs text-muted-foreground p-2 bg-muted/30 rounded-md border">
