@@ -897,137 +897,137 @@ export default function AdminConfigurator() {
               </section>
             )}
 
-            {/* ── STEP 5: FINANCE ───────────────────────────────── */}
-            {state.serviceType && (skippedKit || state.kitId) && (
-              <section>
-                <h2 className="text-2xl font-bold mb-2">{skippedKit ? "4." : "5."} Finance Options</h2>
-                <p className="text-muted-foreground mb-5">Calculate monthly payments at 10.9% APR.</p>
+          </div>
 
-                <Card className="border-2">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                        <Calculator className="w-5 h-5 text-accent" />
+          {/* Right column — summary + finance calculator */}
+          <div className="xl:col-span-1 space-y-6">
+            <ConfiguratorSummary />
+
+            {/* Finance Calculator */}
+            <Card className="border-2">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+                    <Calculator className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Finance Calculator</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">10.9% APR representative</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* VAT registration */}
+                <div className="space-y-3 pb-4 border-b">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="vat-reg" checked={vatRegistered}
+                      onCheckedChange={c => { setVatRegistered(!!c); if (!c) setDeferVat(false); }}
+                      data-testid="checkbox-vat-registered" />
+                    <Label htmlFor="vat-reg" className="text-sm cursor-pointer">VAT registered?</Label>
+                  </div>
+                  {vatRegistered && (
+                    <div className="ml-6 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox id="defer-vat" checked={deferVat} onCheckedChange={c => setDeferVat(!!c)} data-testid="checkbox-defer-vat" />
+                        <Label htmlFor="defer-vat" className="text-sm cursor-pointer">Defer VAT 3 months?</Label>
                       </div>
-                      <div>
-                        <CardTitle className="text-xl">Finance Calculator</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">Calculate payments at 10.9% APR</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {/* VAT registration */}
-                    <div className="mb-6 pb-6 border-b space-y-4">
-                      <div className="flex items-center gap-3">
-                        <Checkbox id="vat-reg" checked={vatRegistered}
-                          onCheckedChange={c => { setVatRegistered(!!c); if (!c) setDeferVat(false); }}
-                          data-testid="checkbox-vat-registered" />
-                        <Label htmlFor="vat-reg" className="text-sm font-medium cursor-pointer">Are you VAT registered?</Label>
-                      </div>
-                      {vatRegistered && (
-                        <div className="ml-7 space-y-3">
-                          <div className="flex items-center gap-3">
-                            <Checkbox id="defer-vat" checked={deferVat} onCheckedChange={c => setDeferVat(!!c)} data-testid="checkbox-defer-vat" />
-                            <Label htmlFor="defer-vat" className="text-sm font-medium cursor-pointer">Defer VAT for 3 months?</Label>
-                          </div>
-                          {deferVat && (
-                            <div className="flex items-start gap-2 bg-accent/5 border border-accent/20 rounded-md p-3">
-                              <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-                              <p className="text-xs text-muted-foreground">
-                                VAT of <strong>{fmt(pricing.vatPence)}</strong> will be deferred. Finance is on the ex-VAT amount of <strong>{fmt(pricing.subtotalPence)}</strong>.
-                              </p>
-                            </div>
-                          )}
+                      {deferVat && (
+                        <div className="flex items-start gap-2 bg-accent/5 border border-accent/20 rounded-md p-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
+                          <p className="text-xs text-muted-foreground">
+                            Finance on ex-VAT amount: <strong>{fmt(pricing.subtotalPence)}</strong>
+                          </p>
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">{deferVat ? "Finance Amount (ex-VAT)" : "Total Amount (inc. VAT)"}</Label>
-                        <div className="relative">
-                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
-                          <Input type="text" value={fmt(deferVat ? pricing.subtotalPence : pricing.totalPence).replace("£", "")} disabled className="pl-9 bg-muted/50 font-bold text-lg text-foreground" />
-                        </div>
+                {/* Total display */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {deferVat ? "Finance Amount (ex-VAT)" : "Total (inc. VAT)"}
+                  </Label>
+                  <div className="relative">
+                    <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
+                    <Input
+                      type="text"
+                      value={fmt(deferVat ? pricing.subtotalPence : pricing.totalPence).replace("£", "")}
+                      disabled
+                      className="pl-9 bg-muted/50 font-bold text-base text-foreground"
+                    />
+                  </div>
+                </div>
+
+                {/* Deposit */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="finance-deposit" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deposit</Label>
+                  <div className="relative">
+                    <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input id="finance-deposit" type="number" placeholder="0" value={depositAmount}
+                      onChange={e => setDepositAmount(e.target.value)} className="pl-9" min="0"
+                      data-testid="input-deposit" />
+                  </div>
+                </div>
+
+                {/* Term */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Term</Label>
+                  <Select value={termYears.toString()} onValueChange={v => setTermYears(parseInt(v))}>
+                    <SelectTrigger data-testid="select-term"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5].map(y => (
+                        <SelectItem key={y} value={y.toString()}>{y} Year{y > 1 ? "s" : ""} ({y * 12} months)</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Results */}
+                {financeCalc ? (
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-accent/5 border border-accent/20 rounded-md p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Monthly</p>
+                        <p className="text-lg font-bold text-accent" data-testid="text-monthly-payment">
+                          {fmtDec(financeCalc.monthly * 100)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{termYears * 12} months</p>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="finance-deposit" className="text-sm font-medium">Deposit Amount</Label>
-                        <div className="relative">
-                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <Input id="finance-deposit" type="number" placeholder="0" value={depositAmount}
-                            onChange={e => setDepositAmount(e.target.value)} className="pl-9" min="0"
-                            data-testid="input-deposit" />
-                        </div>
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label className="text-sm font-medium">Finance Term</Label>
-                        <Select value={termYears.toString()} onValueChange={v => setTermYears(parseInt(v))}>
-                          <SelectTrigger data-testid="select-term"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 4, 5].map(y => (
-                              <SelectItem key={y} value={y.toString()}>{y} Year{y > 1 ? "s" : ""} ({y * 12} months)</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="bg-accent/5 border border-accent/20 rounded-md p-3 text-center">
+                        <p className="text-xs text-muted-foreground mb-1">Weekly</p>
+                        <p className="text-lg font-bold text-accent" data-testid="text-weekly-payment">
+                          {fmtDec(financeCalc.weekly * 100)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">approx.</p>
                       </div>
                     </div>
-
-                    {financeCalc ? (
-                      <div className="mt-6 pt-6 border-t space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
-                            <p className="text-sm text-muted-foreground mb-1">Monthly Payment</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-monthly-payment">
-                              {fmtDec(financeCalc.monthly * 100)}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">for {termYears * 12} months</p>
-                          </div>
-                          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
-                            <p className="text-sm text-muted-foreground mb-1">Weekly Payment</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-weekly-payment">
-                              {fmtDec(financeCalc.weekly * 100)}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">approximate weekly cost</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 pt-4 border-t">
-                          <div><p className="text-xs text-muted-foreground">Amount Financed</p><p className="font-semibold">{fmt(financeCalc.principal * 100)}</p></div>
-                          <div><p className="text-xs text-muted-foreground">Total Interest</p><p className="font-semibold">{fmt(financeCalc.totalInterest * 100)}</p></div>
-                          <div><p className="text-xs text-muted-foreground">Total Repayable</p><p className="font-semibold">{fmt(financeCalc.totalRepayable * 100)}</p></div>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground">
-                            <strong>Representative Example:</strong> {fmt(financeCalc.total * 100)} cash price, {fmt(financeCalc.deposit * 100)} deposit, amount of credit {fmt(financeCalc.principal * 100)}, {termYears * 12} monthly payments of {fmtDec(financeCalc.monthly * 100)}, total amount payable {fmt((financeCalc.totalRepayable + financeCalc.deposit) * 100)}, 10.9% APR representative.
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-6 pt-6 border-t text-center">
-                        <p className="text-sm text-muted-foreground">Enter a deposit amount to calculate payments</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div><p className="text-muted-foreground">Financed</p><p className="font-semibold">{fmt(financeCalc.principal * 100)}</p></div>
+                      <div><p className="text-muted-foreground">Interest</p><p className="font-semibold">{fmt(financeCalc.totalInterest * 100)}</p></div>
+                      <div><p className="text-muted-foreground">Repayable</p><p className="font-semibold">{fmt(financeCalc.totalRepayable * 100)}</p></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 leading-relaxed">
+                      <strong>Rep. example:</strong> {fmt(financeCalc.total * 100)} cash, {fmt(financeCalc.deposit * 100)} deposit, {termYears * 12} × {fmtDec(financeCalc.monthly * 100)}, total {fmt((financeCalc.totalRepayable + financeCalc.deposit) * 100)}, 10.9% APR.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">Enter a deposit to calculate payments</p>
+                )}
 
                 {/* Save button */}
-                <div className="pt-6 flex justify-end">
+                <div className="pt-2">
                   <Button
-                    size="lg"
-                    className="bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440] w-full sm:w-auto"
+                    className="w-full bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440]"
                     disabled={pricing.totalPence === 0}
                     onClick={() => setSaveOpen(true)}
                     data-testid="button-save-quote-bottom"
                   >
-                    Save as Quote<ArrowRight className="w-5 h-5 ml-2" />
+                    Save as Quote<ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
-              </section>
-            )}
-          </div>
-
-          {/* Right column — sticky summary */}
-          <div className="xl:col-span-1">
-            <ConfiguratorSummary />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
