@@ -28,7 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, ArrowRight, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal,
   X, Truck, Shuffle, Package, Zap, CheckCircle, AlertTriangle, AlertCircle,
-  Star, Calculator, PoundSterling, CheckCircle2, Loader2, Phone, RotateCcw,
+  Star, Calculator, PoundSterling, CheckCircle2, Loader2, UserRound, RotateCcw,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -419,7 +419,7 @@ export default function AdminConfigurator() {
                 <Link href="/admin"><ArrowLeft className="w-4 h-4 mr-1" />Admin</Link>
               </Button>
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-accent" />
+                <UserRound className="w-4 h-4 text-accent" />
                 <span className="font-semibold">Admin Configurator</span>
               </div>
             </div>
