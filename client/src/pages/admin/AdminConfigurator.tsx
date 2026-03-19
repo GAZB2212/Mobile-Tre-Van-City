@@ -420,7 +420,7 @@ export default function AdminConfigurator() {
               </Button>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-accent" />
-                <span className="font-semibold">Phone Configurator</span>
+                <span className="font-semibold">Admin Configurator</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -445,7 +445,6 @@ export default function AdminConfigurator() {
           </div>
         </div>
       </div>
-
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
           {/* Left column — steps */}
@@ -1035,7 +1034,6 @@ export default function AdminConfigurator() {
           </div>
         </div>
       </div>
-
       {/* ── Van Details Modal ─────────────────────────────────── */}
       <Dialog open={!!modalVan} onOpenChange={o => !o && setModalVan(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -1094,7 +1092,6 @@ export default function AdminConfigurator() {
           )}
         </DialogContent>
       </Dialog>
-
       {/* ── Kit Details Modal ─────────────────────────────────── */}
       <Dialog open={!!modalKit} onOpenChange={o => !o && setModalKit(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -1143,7 +1140,6 @@ export default function AdminConfigurator() {
           )}
         </DialogContent>
       </Dialog>
-
       {/* ── Euro 6 Warning Dialog ─────────────────────────────── */}
       <Dialog open={!!warnKit} onOpenChange={o => !o && setWarnKit(null)}>
         <DialogContent className="max-w-md">
@@ -1168,7 +1164,6 @@ export default function AdminConfigurator() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* ── Upgrade Details Modal ─────────────────────────────── */}
       <Dialog open={!!modalUpgrade} onOpenChange={o => !o && setModalUpgrade(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1213,7 +1208,6 @@ export default function AdminConfigurator() {
           )}
         </DialogContent>
       </Dialog>
-
       {/* ── Save as Quote Dialog ──────────────────────────────── */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent className="sm:max-w-md">
