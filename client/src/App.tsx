@@ -30,6 +30,7 @@ import SelectFinance from "@/pages/configurator/SelectFinance";
 import RequestQuote from "@/pages/configurator/RequestQuote";
 import Login from "@/pages/Login";
 import AdminDashboard from "@/pages/admin/Dashboard";
+import AdminConfigurator from "@/pages/admin/AdminConfigurator";
 import AdminVans from "@/pages/admin/Vans";
 import AdminKits from "@/pages/admin/Kits";
 import AdminUpgrades from "@/pages/admin/Upgrades";
@@ -94,6 +95,7 @@ function Router() {
       <Route path="/reset-password/:token" component={ResetPassword} />
       {/* Admin routes */}
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/configurator" component={AdminConfigurator} />
       <Route path="/admin/analytics" component={AdminAnalytics} />
       <Route path="/admin/vans" component={AdminVans} />
       <Route path="/admin/kits" component={AdminKits} />

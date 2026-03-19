@@ -22,7 +22,8 @@ import {
   BarChart3,
   Image,
   RefreshCw,
-  Video
+  Video,
+  Phone
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -177,6 +178,14 @@ export default function AdminDashboard() {
   ];
 
   const allLeadsItems = [
+    {
+      title: "Phone Configurator",
+      description: "Build a spec live on a call — compare vans, add kit and upgrades, calculate monthly payments in real time, then save as a quote",
+      icon: Phone,
+      href: "/admin/configurator",
+      badge: "Sales Tool",
+      requiredRole: "basic" as const
+    },
     {
       title: "Configurators",
       description: "Review and manage all customer quote requests",
