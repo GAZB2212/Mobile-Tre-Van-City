@@ -422,7 +422,13 @@ export default function AdminConfigurator() {
         estSubtotal: slotAPricing.subtotalPence,
         estVAT: slotAPricing.vatPence,
         estTotal: slotAPricing.totalPence,
-        estDiscount: 0,
+        estDiscount: 0, // server recalculates from discountType/discountValue below
+        discountType: discount.type !== 'none' && discount.value ? discount.type : undefined,
+        discountValue: discount.type !== 'none' && discount.value
+          ? discount.type === 'percentage'
+            ? Math.round(parseFloat(discount.value) || 0)
+            : Math.round((parseFloat(discount.value) || 0) * 100)
+          : undefined,
         status: "new",
         comparisonConfig: (compareMode && slotBHasData)
           ? {
@@ -456,20 +462,7 @@ export default function AdminConfigurator() {
       };
       const res = await apiRequest("POST", "/api/quotes", body);
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
-      const quote = await res.json();
-
-      // Apply discount via PATCH if one is set (server recalculates definitive discounted total)
-      if (discount.type !== 'none' && discount.value) {
-        const discountBody: Record<string, unknown> = {
-          discountType: discount.type,
-          discountValue: discount.type === 'percentage'
-            ? Math.round(parseFloat(discount.value) || 0)
-            : Math.round((parseFloat(discount.value) || 0) * 100),
-        };
-        const patchRes = await apiRequest("PATCH", `/api/admin/quotes/${quote.id}`, discountBody);
-        if (patchRes.ok) return patchRes.json();
-      }
-      return quote;
+      return res.json();
     },
     onSuccess: (quote) => {
       const hasDiscount = discount.type !== 'none' && discount.value;
