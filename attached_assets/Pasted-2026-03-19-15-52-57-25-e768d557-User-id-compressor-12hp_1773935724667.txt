@@ -1,0 +1,234 @@
+2026-03-19 15:52:57.25
+e768d557
+User
+id: 'compressor-12hp-270l',
+2026-03-19 15:52:57.25
+e768d557
+User
+popular: true
+2026-03-19 15:52:57.25
+e768d557
+User
+Compressor upgrade being sent to frontend: {
+2026-03-19 15:52:57.25
+e768d557
+User
+}
+2026-03-19 15:52:57.25
+e768d557
+User
+name: 'Compressor Upgrade To 12hp 270 Litre Electric Start',
+2026-03-19 15:52:57.29
+e768d557
+User
+3:52:57 PM [express] GET /api/vans/98d88fd6-9977-4b63-b9dc-3110fe7dc10e 304 in 210ms :: {"id":"98d88…
+2026-03-19 15:52:57.29
+e768d557
+User
+3:52:57 PM [express] POST /api/analytics/pageview 200 in 98ms :: {"ok":true}
+2026-03-19 15:52:57.30
+e768d557
+User
+3:52:57 PM [express] GET /api/configurator/data 304 in 265ms :: {"kits":[{"id":"pack-1-non-euro6-t10…
+2026-03-19 15:52:57.30
+e768d557
+User
+3:52:57 PM [express] GET /api/kits/pack-2-euro6-t1000 304 in 233ms :: {"id":"pack-2-euro6-t1000","na…
+2026-03-19 15:53:01.99
+e768d557
+User
+3:53:01 PM [express] GET /api/vans 304 in 69ms :: [{"id":"98d88fd6-9977-4b63-b9dc-3110fe7dc10e","slu…
+2026-03-19 15:53:22.71
+e768d557
+User
+3:53:22 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:53:23.68
+e768d557
+User
+3:53:23 PM [express] POST /api/analytics/pageview 200 in 600ms :: {"ok":true}
+2026-03-19 15:53:33.30
+e768d557
+User
+3:53:33 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:53:33.46
+e768d557
+User
+3:53:33 PM [express] GET /api/kits 304 in 45ms :: [{"id":"pack-1-non-euro6-t1000","name":"Pack 1 - N…
+2026-03-19 15:53:33.64
+e768d557
+User
+3:53:33 PM [express] POST /api/analytics/pageview 200 in 50ms :: {"ok":true}
+2026-03-19 15:53:41.03
+e768d557
+User
+at async file:///home/runner/workspace/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2026-03-19 15:53:41.03
+e768d557
+User
+file: 'parse_target.c',
+2026-03-19 15:53:41.03
+e768d557
+User
+code: '42703',
+2026-03-19 15:53:41.03
+e768d557
+User
+column: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+table: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+schema: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+Quote creation error: error: column "chosen_option" of relation "quotes" does not exist
+2026-03-19 15:53:41.03
+e768d557
+User
+at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+2026-03-19 15:53:41.03
+e768d557
+User
+dataType: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+internalQuery: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+at async DbStorage.createQuote (file:///home/runner/workspace/dist/index.js:2049:20)
+2026-03-19 15:53:41.03
+e768d557
+User
+internalPosition: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+hint: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+detail: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+severity: 'ERROR',
+2026-03-19 15:53:41.03
+e768d557
+User
+where: undefined,
+2026-03-19 15:53:41.03
+e768d557
+User
+position: '855',
+2026-03-19 15:53:41.03
+e768d557
+User
+at async file:///home/runner/workspace/dist/index.js:2949:21 {
+2026-03-19 15:53:41.03
+e768d557
+User
+length: 133,
+2026-03-19 15:53:41.03
+e768d557
+User
+constraint: undefined,
+2026-03-19 15:53:48.64
+e768d557
+User
+3:53:48 PM [express] GET /api/auth/user 401 in 0ms :: {"message":"Unauthorized"}
+2026-03-19 15:53:49.01
+e768d557
+User
+3:53:49 PM [express] POST /api/analytics/pageview 200 in 70ms :: {"ok":true}
+2026-03-19 15:54:19.00
+e768d557
+User
+3:54:19 PM [express] GET /api/auth/user 401 in 0ms :: {"message":"Unauthorized"}
+2026-03-19 15:54:19.55
+e768d557
+User
+3:54:19 PM [express] POST /api/analytics/pageview 200 in 245ms :: {"ok":true}
+2026-03-19 15:54:23.61
+e768d557
+User
+3:54:23 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:54:23.94
+e768d557
+User
+3:54:23 PM [express] POST /api/analytics/pageview 200 in 77ms :: {"ok":true}
+2026-03-19 15:54:23.94
+e768d557
+User
+3:54:23 PM [express] POST /api/analytics/pageview 200 in 77ms :: {"ok":true}
+2026-03-19 15:54:44.59
+e768d557
+User
+3:54:44 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:54:45.33
+e768d557
+User
+3:54:45 PM [express] POST /api/analytics/pageview 200 in 489ms :: {"ok":true}
+2026-03-19 15:54:48.37
+6f4e753e
+System
+system: received signal terminated
+2026-03-19 15:54:52.18
+e768d557
+User
+3:54:52 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:54:52.55
+e768d557
+User
+3:54:52 PM [express] POST /api/analytics/pageview 200 in 111ms :: {"ok":true}
+2026-03-19 15:54:55.52
+e768d557
+User
+3:54:55 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:54:55.93
+e768d557
+User
+3:54:55 PM [express] POST /api/analytics/pageview 200 in 71ms :: {"ok":true}
+2026-03-19 15:54:55.93
+e768d557
+User
+3:54:55 PM [express] POST /api/analytics/pageview 200 in 71ms :: {"ok":true}
+2026-03-19 15:55:04.47
+e768d557
+User
+3:55:04 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2026-03-19 15:55:04.78
+e768d557
+User
+3:55:04 PM [express] POST /api/analytics/pageview 200 in 71ms :: {"ok":true}
+2026-03-19 15:55:05.04
+e768d557
+User
+name: 'Compressor Upgrade To 12hp 270 Litre Electric Start',
+2026-03-19 15:55:05.04
+e768d557
+User
+id: 'compressor-12hp-270l',
+2026-03-19 15:55:05.04
+e768d557
+User
+Compressor upgrade being sent to frontend: {
+2026-03-19 15:55:05.04
+e768d557
+User
+popular: true
+2026-03-19 15:55:05.04
+e768d557
+User
+}
+2026-03-19 15:55:05.04
+e768d557
+User
+3:55:05 PM [express] GET /api/configurator/data 304 in 569ms :: {"kits":[{"id":"pack-1-non-euro6-t10…
+Wrap
+Colors

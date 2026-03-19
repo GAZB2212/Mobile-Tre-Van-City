@@ -634,17 +634,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<string, typeof upgrades>);
       
-      // Debug: Log air-systems upgrades to check popular field
-      if (upgradesByCategory['air-systems']) {
-        const compressor = upgradesByCategory['air-systems'].find(u => u.id === 'compressor-12hp-270l');
-        if (compressor) {
-          console.log('Compressor upgrade being sent to frontend:', {
-            id: compressor.id,
-            name: compressor.name,
-            popular: compressor.popular
-          });
-        }
-      }
       
       res.json({
         kits,
