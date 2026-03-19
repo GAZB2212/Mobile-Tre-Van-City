@@ -228,7 +228,7 @@ export default function AdminQuoteDetail() {
       setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
       setCustomBuildStages(Array.isArray(quote.customBuildStages) ? quote.customBuildStages : null);
       setCustomerConfirmed(quote.customerConfirmed ?? false);
-      setVanRegistration(quote.vanRegistration ?? "");
+      setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
       setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
       setDiscountType(quote.discountType as any || "");
       // Convert discount from pence to pounds for fixed amounts
@@ -915,7 +915,7 @@ export default function AdminQuoteDetail() {
                         ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
                         : ""
                     );
-                    setVanRegistration(quote.vanRegistration ?? "");
+                    setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
                     setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
                     setCustomerConfirmed(quote.customerConfirmed ?? false);
                     setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
@@ -1489,20 +1489,25 @@ export default function AdminQuoteDetail() {
                     </SelectContent>
                   </Select>
 
+                  {/* Reg Number — shown for all van types */}
+                  {selectedVanId && selectedVanId !== "none" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="van-reg-inline" className="text-sm">Reg Number</Label>
+                      <Input
+                        id="van-reg-inline"
+                        placeholder="e.g. AB12 CDE"
+                        value={vanRegistration}
+                        onChange={(e) => setVanRegistration(e.target.value.toUpperCase())}
+                        className="font-mono uppercase"
+                        data-testid="input-config-van-registration"
+                      />
+                    </div>
+                  )}
+
                   {/* Custom van fields — shown only when custom is selected */}
                   {selectedVanId === "custom" && (
                     <div className="rounded-md border p-4 space-y-3 bg-muted/30">
-                      <p className="text-xs text-muted-foreground font-medium">Enter the customer's van details below. The cost will be included in the quote total.</p>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="custom-van-description" className="text-sm">Reg Number</Label>
-                        <Input
-                          id="custom-van-description"
-                          placeholder="e.g. AB12 CDE"
-                          value={customVanDescription}
-                          onChange={(e) => setCustomVanDescription(e.target.value)}
-                          data-testid="input-custom-van-description"
-                        />
-                      </div>
+                      <p className="text-xs text-muted-foreground font-medium">Enter the customer's van cost below. It will be included in the quote total.</p>
                       <div className="space-y-1.5">
                         <Label htmlFor="custom-van-value" className="text-sm">Van Cost (£)</Label>
                         <div className="relative">
@@ -1707,19 +1712,6 @@ export default function AdminQuoteDetail() {
                   <p className="text-xs text-muted-foreground mt-2">
                     Selected: {selectedUpgradeIds.length} items
                   </p>
-                </div>
-
-                {/* Van Registration — shown for all van types */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="config-van-registration">Vehicle Registration</Label>
-                  <Input
-                    id="config-van-registration"
-                    placeholder="e.g. AB12 CDE"
-                    value={vanRegistration}
-                    onChange={(e) => setVanRegistration(e.target.value.toUpperCase())}
-                    className="font-mono uppercase"
-                    data-testid="input-config-van-registration"
-                  />
                 </div>
 
                 {/* Discount */}
