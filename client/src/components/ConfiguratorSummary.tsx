@@ -75,17 +75,40 @@ const formatPrice = (pence: number): string => {
   }).format(pence / 100);
 };
 
+// Compute the discount for a given pre-discount total
+function applyDiscount(
+  totalPence: number,
+  discountType?: 'none' | 'percentage' | 'fixed',
+  discountValue?: string,
+): { discountAmount: number; finalTotal: number } {
+  if (!discountType || discountType === 'none' || !discountValue) {
+    return { discountAmount: 0, finalTotal: totalPence };
+  }
+  const val = parseFloat(discountValue);
+  if (isNaN(val) || val <= 0) return { discountAmount: 0, finalTotal: totalPence };
+  if (discountType === 'percentage') {
+    const amt = Math.round(totalPence * Math.min(val, 100) / 100);
+    return { discountAmount: amt, finalTotal: totalPence - amt };
+  }
+  const amt = Math.min(Math.round(val * 100), totalPence);
+  return { discountAmount: amt, finalTotal: totalPence - amt };
+}
+
 // Sub-component that renders a single slot's summary
 function SlotSummary({
   slot,
   label,
   isActive,
   onClick,
+  discountedTotal,
+  discountAmount,
 }: {
   slot: ConfiguratorSlotState;
   label?: string;
   isActive?: boolean;
   onClick?: () => void;
+  discountedTotal?: number;
+  discountAmount?: number;
 }) {
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', slot.vanId],
@@ -205,16 +228,39 @@ function SlotSummary({
       )}
 
       <Separator />
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-bold">Total</span>
-        <span className="text-sm font-bold text-accent">{formatPrice(total)}</span>
-      </div>
+      {discountAmount && discountAmount > 0 ? (
+        <div className="space-y-0.5">
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <span>Before discount</span>
+            <span className="line-through">{formatPrice(total)}</span>
+          </div>
+          <div className="flex justify-between items-center text-xs text-destructive font-medium">
+            <span>Discount</span>
+            <span>-{formatPrice(discountAmount)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-bold">Total</span>
+            <span className="text-sm font-bold text-accent">{formatPrice(discountedTotal ?? total)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-bold">Total</span>
+          <span className="text-sm font-bold text-accent">{formatPrice(total)}</span>
+        </div>
+      )}
     </div>
   );
 }
 
 // Compare summary: shows both slots with totals and difference
-function CompareSummary() {
+function CompareSummary({
+  discountType,
+  discountValue,
+}: {
+  discountType?: 'none' | 'percentage' | 'fixed';
+  discountValue?: string;
+} = {}) {
   const { slotA, slotB, activeSlot, setActiveSlot } = useConfigurator();
 
   // In compare mode, kit/upgrades/training are always shared from slot A.
@@ -273,14 +319,32 @@ function CompareSummary() {
   const totalA = calcTotal(slotA, vanA, kitA, upgradesA, trainingA);
   // Slot B uses slot A's kit/upgrades/training — only the van differs
   const totalB = calcTotal(mergedSlotB, vanB, kitA, upgradesA, trainingA);
-  const diff = totalB - totalA;
+
+  // Apply the same discount to both slots
+  const discA = applyDiscount(totalA, discountType, discountValue);
+  const discB = applyDiscount(totalB, discountType, discountValue);
+  const diff = discB.finalTotal - discA.finalTotal;
 
   return (
     <div className="space-y-3" data-testid="compare-summary">
-      <SlotSummary slot={slotA} label="Option A" isActive={activeSlot === 'A'} onClick={() => setActiveSlot('A')} />
-      <SlotSummary slot={mergedSlotB} label="Option B" isActive={activeSlot === 'B'} onClick={() => setActiveSlot('B')} />
+      <SlotSummary
+        slot={slotA}
+        label="Option A"
+        isActive={activeSlot === 'A'}
+        onClick={() => setActiveSlot('A')}
+        discountedTotal={discA.discountAmount > 0 ? discA.finalTotal : undefined}
+        discountAmount={discA.discountAmount > 0 ? discA.discountAmount : undefined}
+      />
+      <SlotSummary
+        slot={mergedSlotB}
+        label="Option B"
+        isActive={activeSlot === 'B'}
+        onClick={() => setActiveSlot('B')}
+        discountedTotal={discB.discountAmount > 0 ? discB.finalTotal : undefined}
+        discountAmount={discB.discountAmount > 0 ? discB.discountAmount : undefined}
+      />
 
-      {(totalA > 0 || totalB > 0) && (
+      {(discA.finalTotal > 0 || discB.finalTotal > 0) && (
         <div className="text-center text-xs text-muted-foreground p-2 bg-muted/30 rounded-md border">
           {diff === 0 && <span>Both options are the same price</span>}
           {diff > 0 && (
@@ -299,10 +363,14 @@ export function ConfiguratorSummary({
   discountSection,
   discountedTotal,
   discountAmount,
+  discountType,
+  discountValue,
 }: {
   discountSection?: ReactNode;
   discountedTotal?: number;
   discountAmount?: number;
+  discountType?: 'none' | 'percentage' | 'fixed';
+  discountValue?: string;
 } = {}) {
   const { state, setCustomVanValue, setVanReg, compareMode } = useConfigurator();
 
