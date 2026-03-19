@@ -982,6 +982,8 @@ export default function AdminConfigurator() {
               <ConfiguratorSummary
                 discountAmount={discountedPricing.discountAmount}
                 discountedTotal={discountedPricing.finalTotal}
+                discountType={discount.type}
+                discountValue={discount.value}
                 discountSection={
                   <div className="space-y-2">
                     <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Discount</Label>

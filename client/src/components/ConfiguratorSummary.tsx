@@ -451,7 +451,12 @@ export function ConfiguratorSummary({
       <CardContent className="space-y-4">
 
         {compareMode ? (
-          <CompareSummary />
+          <>
+            {discountSection && (
+              <div className="pb-3 border-b">{discountSection}</div>
+            )}
+            <CompareSummary discountType={discountType} discountValue={discountValue} />
+          </>
         ) : (
           <>
             {!hasItems && !!state.vanId && (
