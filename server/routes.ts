@@ -427,6 +427,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Apply discount if provided (discount is on the pre-VAT+VAT total)
+      const discountType = validatedData.discountType ?? null;
+      const discountValue = validatedData.discountValue ?? null;
+      let discountAmount = 0;
+      if (discountType && discountValue) {
+        if (discountType === 'percentage') {
+          discountAmount = Math.round((total * discountValue) / 100);
+        } else if (discountType === 'fixed') {
+          discountAmount = discountValue;
+        }
+        discountAmount = Math.min(discountAmount, total); // can't exceed total
+      }
+      const finalTotal = total - discountAmount;
+
       // If comparison mode: compute pricing for slotB server-side and normalize slotA from server-validated primary fields.
       // This ensures that the comparisonConfig stored in the DB is authoritative for both slots —
       // client-submitted slotA pricing is overwritten with server-computed values.
@@ -485,7 +499,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.session.user?.id || null,
         estSubtotal: subtotal,
         estVAT: vat,
-        estTotal: total,
+        estTotal: finalTotal,       // post-discount total
+        estDiscount: discountAmount, // 0 when no discount
         ...(enrichedComparisonConfig !== null ? { comparisonConfig: enrichedComparisonConfig } : {}),
       };
 

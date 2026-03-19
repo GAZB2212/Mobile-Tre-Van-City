@@ -470,6 +470,7 @@ export async function sendQuoteReceivedEmails({
     estTotal: number;
     estSubtotal: number;
     estVAT: number;
+    estDiscount?: number | null;
   };
   vanTitle?: string | null;
   kitName?: string | null;
@@ -490,9 +491,13 @@ export async function sendQuoteReceivedEmails({
   const { client, fromEmail } = await getUncachableResendClient();
 
   const ref = quote.id.slice(0, 8).toUpperCase();
-  const total = `£${(quote.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
-  const subtotal = `£${(quote.estSubtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
-  const vat = `£${(quote.estVAT / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const discountAmountPence = quote.estDiscount || 0;
+  const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const total = fmt(quote.estTotal);
+  const subtotal = fmt(quote.estSubtotal);
+  const vat = fmt(quote.estVAT);
+  const originalTotal = discountAmountPence > 0 ? fmt(quote.estTotal + discountAmountPence) : null;
+  const discountFmt = discountAmountPence > 0 ? fmt(discountAmountPence) : null;
 
   const brandGreen = '#8bc440';
   const brandDark = '#191919';
