@@ -445,8 +445,8 @@ export default function AdminConfigurator() {
           </div>
         </div>
       </div>
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+      <div className="container mx-auto px-4 py-8 max-w-[1600px]">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 md:gap-8">
           {/* Left column — steps */}
           <div className="xl:col-span-2 space-y-10">
 
@@ -545,7 +545,7 @@ export default function AdminConfigurator() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center gap-2">
                         <Car className="w-5 h-5 text-muted-foreground" />
-                        <CardTitle className="text-lg">Already have your own van?</CardTitle>
+                        <CardTitle className="text-lg">Not On Stock Van Details</CardTitle>
                       </div>
                       <p className="text-sm text-muted-foreground">Enter the customer's registration and optionally the van value.</p>
                     </CardHeader>
@@ -877,12 +877,16 @@ export default function AdminConfigurator() {
 
           </div>
 
-          {/* Right column — summary + finance calculator */}
+          {/* Middle column — configurator summary */}
           <div className="xl:col-span-1">
-            <div className="sticky top-[56px] z-10 space-y-4">
-            <div className="max-h-[40vh] overflow-y-auto">
+            <div className="sticky top-[56px] z-10">
               <ConfiguratorSummary />
             </div>
+          </div>
+
+          {/* Right column — finance calculator */}
+          <div className="xl:col-span-1">
+            <div className="sticky top-[56px] z-10">
 
             {/* Finance Calculator */}
             <Card className="border-2">
