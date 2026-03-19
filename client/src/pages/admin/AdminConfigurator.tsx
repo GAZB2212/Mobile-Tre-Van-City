@@ -903,7 +903,8 @@ export default function AdminConfigurator() {
           </div>
 
           {/* Right column — summary + finance calculator */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="xl:col-span-1">
+            <div className="sticky top-[180px] sm:top-[200px] xl:top-[220px] z-10 space-y-4 max-h-[calc(100vh-185px)] sm:max-h-[calc(100vh-205px)] xl:max-h-[calc(100vh-225px)] overflow-y-auto pb-2">
             <ConfiguratorSummary />
 
             {/* Finance Calculator */}
@@ -1031,6 +1032,7 @@ export default function AdminConfigurator() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </div>
         </div>
       </div>
