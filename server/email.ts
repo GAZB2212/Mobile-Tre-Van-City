@@ -705,7 +705,7 @@ export async function sendOptionChosenAdminNotification({
       <table>
         ${optionDetails.vanTitle ? `<tr><td>Van</td><td>${optionDetails.vanTitle}</td></tr>` : ''}
         ${optionDetails.kitName ? `<tr><td>Pack</td><td>${optionDetails.kitName}</td></tr>` : ''}
-        ${optionDetails.upgradeNames && optionDetails.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td>${optionDetails.upgradeNames.join('<br>')}</td></tr>` : ''}
+        ${optionDetails.upgradeNames && optionDetails.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${optionDetails.upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
         ${totalStr ? `<tr class="total"><td>Total (inc. VAT)</td><td>${totalStr}</td></tr>` : ''}
       </table>
       <p style="margin-top:16px;font-size:13px;color:#6b7280;">Log in to the admin panel to view the full quote and continue the build process.</p>
@@ -713,7 +713,7 @@ export async function sendOptionChosenAdminNotification({
   </div>
 </body>
 </html>`,
-    text: `Customer Option Selection\n\nA customer has selected Option ${chosenOption} from their comparison quote.\n\nName: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone}\nReference: #${ref}\n${optionDetails.vanTitle ? `Van: ${optionDetails.vanTitle}\n` : ''}${optionDetails.kitName ? `Pack: ${optionDetails.kitName}\n` : ''}${optionDetails.upgradeNames && optionDetails.upgradeNames.length > 0 ? `Upgrades: ${optionDetails.upgradeNames.join(', ')}\n` : ''}${totalStr ? `Total: ${totalStr}\n` : ''}`,
+    text: `Customer Option Selection\n\nA customer has selected Option ${chosenOption} from their comparison quote.\n\nName: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone}\nReference: #${ref}\n${optionDetails.vanTitle ? `Van: ${optionDetails.vanTitle}\n` : ''}${optionDetails.kitName ? `Pack: ${optionDetails.kitName}\n` : ''}${optionDetails.upgradeNames && optionDetails.upgradeNames.length > 0 ? `Upgrades:\n${optionDetails.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${totalStr ? `Total: ${totalStr}\n` : ''}`,
   });
 }
 
