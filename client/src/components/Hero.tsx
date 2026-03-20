@@ -7,7 +7,6 @@ const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const currentSrcRef = useRef<string>("");
 
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/site-settings"],
@@ -15,57 +14,38 @@ export default function Hero() {
 
   const videoSrc = settings?.hero_video_url ?? DEFAULT_HERO_VIDEO;
 
+  // React does not correctly apply the `muted` boolean attribute to the DOM
+  // video element (known React bug). We must set it imperatively to ensure
+  // browsers allow autoplay.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
     video.muted = true;
     video.volume = 0;
-
-    // Only reload if src actually changed
-    if (currentSrcRef.current === videoSrc) {
-      video.play().catch(() => {});
-      return;
-    }
-    currentSrcRef.current = videoSrc;
-
-    video.src = videoSrc;
-
-    const tryPlay = () => {
-      video.play().catch(() => {
-        const retry = () => {
-          video.play().catch(() => {});
-          window.removeEventListener("pointerdown", retry);
-          window.removeEventListener("scroll", retry);
-        };
-        window.addEventListener("pointerdown", retry, { once: true });
-        window.addEventListener("scroll", retry, { once: true });
-      });
-    };
-
-    video.load();
-    tryPlay();
-    video.addEventListener("loadedmetadata", tryPlay);
-    video.addEventListener("canplay", tryPlay);
-    video.addEventListener("canplaythrough", tryPlay);
-
-    return () => {
-      video.removeEventListener("loadedmetadata", tryPlay);
-      video.removeEventListener("canplay", tryPlay);
-      video.removeEventListener("canplaythrough", tryPlay);
-    };
+    video.play().catch(() => {
+      // Retry on first user gesture if autoplay is blocked
+      const retry = () => {
+        video.play().catch(() => {});
+        window.removeEventListener("pointerdown", retry);
+        window.removeEventListener("scroll", retry);
+      };
+      window.addEventListener("pointerdown", retry, { once: true });
+      window.addEventListener("scroll", retry, { once: true });
+    });
   }, [videoSrc]);
 
   return (
     <section className="relative bg-[#1a1a1a] min-h-[40vh] sm:min-h-[80vh] py-14 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
-      {/* Video Background */}
+      {/* Video Background — key forces a clean remount when the URL changes */}
       <video
+        key={videoSrc}
         ref={videoRef}
+        src={videoSrc}
         autoPlay
         loop
         muted
         playsInline
-        preload="metadata"
+        preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
       />
