@@ -33,9 +33,7 @@ export default function VanDesigns() {
           <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
             Inspiration
           </Badge>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-designs-title">
-            Van Design Gallery
-          </h2>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-designs-title">Van Gallery</h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             Browse our collection of design concepts, build processes, and finished conversions to inspire your perfect mobile tyre van
           </p>
