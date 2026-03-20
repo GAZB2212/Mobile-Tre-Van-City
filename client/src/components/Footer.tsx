@@ -11,6 +11,7 @@ export default function Footer() {
     { name: "Configurator", href: "/configurator/van" },
     { name: "Finance", href: "/finance" },
     { name: "Gallery", href: "/gallery" },
+    { name: "Blog", href: "/blog" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" }
   ];

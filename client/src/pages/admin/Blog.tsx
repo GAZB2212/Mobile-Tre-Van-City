@@ -1,0 +1,457 @@
+import { useState, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { AdminBackButton } from "@/components/AdminBackButton";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Upload, CheckCircle2, Loader2, Globe, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getImageUrl } from "@/lib/utils";
+import type { BlogPost } from "@shared/schema";
+
+const CATEGORIES = [
+  "Industry News",
+  "Business Tips",
+  "Technical Guides",
+  "Customer Stories",
+  "Product Updates",
+  "Company News",
+];
+
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function ImageUpload({
+  currentUrl,
+  onUploaded,
+}: {
+  currentUrl: string;
+  onUploaded: (url: string) => void;
+}) {
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const contentType = file.type || "image/jpeg";
+      const res = await apiRequest("POST", "/api/objects/upload", { filename: file.name, contentType });
+      const { uploadURL, objectPath } = await res.json();
+      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": contentType } });
+      onUploaded(getImageUrl(objectPath));
+      toast({ title: "Image uploaded" });
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>Featured Image</Label>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleChange} data-testid="input-featured-image" />
+      <div className="flex items-center gap-3">
+        <Button type="button" variant="outline" disabled={uploading} onClick={() => inputRef.current?.click()} data-testid="button-upload-image">
+          {uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><Upload className="w-4 h-4 mr-2" />Choose Image</>}
+        </Button>
+        {currentUrl && (
+          <span className="flex items-center gap-1 text-sm text-accent">
+            <CheckCircle2 className="w-4 h-4" />{currentUrl.split("/").pop()}
+          </span>
+        )}
+      </div>
+      {currentUrl && (
+        <div className="mt-2 rounded-md overflow-hidden w-40 h-24 bg-muted">
+          <img src={currentUrl} alt="Preview" className="w-full h-full object-cover" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+const emptyForm = {
+  title: "",
+  slug: "",
+  summary: "",
+  content: "",
+  featuredImage: "",
+  category: "",
+  tags: "",
+  published: false,
+  seoTitle: "",
+  seoDescription: "",
+  authorName: "",
+};
+
+type FormState = typeof emptyForm;
+
+function PostForm({
+  initial,
+  onSubmit,
+  isSubmitting,
+  onClose,
+}: {
+  initial: FormState;
+  onSubmit: (data: FormState) => void;
+  isSubmitting: boolean;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState<FormState>(initial);
+  const [autoSlug, setAutoSlug] = useState(!initial.slug);
+  const [showSeo, setShowSeo] = useState(false);
+
+  const set = (field: keyof FormState, value: string | boolean) =>
+    setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleTitleChange = (v: string) => {
+    set("title", v);
+    if (autoSlug) set("slug", slugify(v));
+  };
+
+  const handleSlugChange = (v: string) => {
+    setAutoSlug(false);
+    set("slug", slugify(v));
+  };
+
+  return (
+    <div className="space-y-5 py-1">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="title">Title *</Label>
+          <Input id="title" value={form.title} onChange={e => handleTitleChange(e.target.value)} placeholder="Your blog post title" data-testid="input-title" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="slug">URL Slug *</Label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">/blog/</span>
+            <Input id="slug" value={form.slug} onChange={e => handleSlugChange(e.target.value)} placeholder="my-post-slug" data-testid="input-slug" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="category">Category</Label>
+          <select
+            id="category"
+            value={form.category}
+            onChange={e => set("category", e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            data-testid="select-category"
+          >
+            <option value="">No category</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="authorName">Author</Label>
+          <Input id="authorName" value={form.authorName} onChange={e => set("authorName", e.target.value)} placeholder="e.g. MTVC Team" data-testid="input-author" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="summary">Summary * <span className="text-muted-foreground font-normal">(shown on listing cards)</span></Label>
+          <Textarea id="summary" value={form.summary} onChange={e => set("summary", e.target.value)} rows={2} placeholder="A short teaser for the post..." data-testid="input-summary" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="content">Content * <span className="text-muted-foreground font-normal">(HTML supported)</span></Label>
+          <Textarea id="content" value={form.content} onChange={e => set("content", e.target.value)} rows={12} placeholder="Write your post here. You can use HTML tags like <h2>, <p>, <strong>, <ul>, <li>, <a href='...'>, etc." className="font-mono text-sm" data-testid="input-content" />
+        </div>
+        <div className="sm:col-span-2">
+          <ImageUpload currentUrl={form.featuredImage} onUploaded={url => set("featuredImage", url)} />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="tags">Tags <span className="text-muted-foreground font-normal">(comma separated)</span></Label>
+          <Input id="tags" value={form.tags} onChange={e => set("tags", e.target.value)} placeholder="mobile tyres, van conversion, business tips" data-testid="input-tags" />
+        </div>
+        <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+          <Switch id="published" checked={form.published} onCheckedChange={v => set("published", v)} data-testid="switch-published" />
+          <Label htmlFor="published" className="cursor-pointer">
+            {form.published ? <span className="flex items-center gap-1 text-accent"><Globe className="w-3.5 h-3.5" />Published (live on site)</span> : <span className="text-muted-foreground">Draft (not visible to public)</span>}
+          </Label>
+        </div>
+      </div>
+
+      {/* SEO accordion */}
+      <div className="border border-border rounded-md">
+        <button
+          type="button"
+          onClick={() => setShowSeo(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-left"
+          data-testid="button-toggle-seo"
+        >
+          <span className="flex items-center gap-2"><FileText className="w-4 h-4" />SEO Settings (optional)</span>
+          <span className="text-muted-foreground text-xs">{showSeo ? "Hide" : "Show"}</span>
+        </button>
+        {showSeo && (
+          <div className="px-4 pb-4 space-y-3 border-t border-border">
+            <div className="space-y-1.5">
+              <Label htmlFor="seoTitle">SEO Title</Label>
+              <Input id="seoTitle" value={form.seoTitle} onChange={e => set("seoTitle", e.target.value)} placeholder={form.title || "Custom page title for search engines"} data-testid="input-seo-title" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="seoDescription">SEO Description</Label>
+              <Textarea id="seoDescription" value={form.seoDescription} onChange={e => set("seoDescription", e.target.value)} rows={2} placeholder={form.summary || "Custom meta description for search engines"} data-testid="input-seo-description" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose} data-testid="button-cancel">Cancel</Button>
+        <Button type="button" disabled={isSubmitting || !form.title || !form.slug || !form.summary || !form.content} onClick={() => onSubmit(form)} data-testid="button-save">
+          {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : "Save Post"}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+function formToPayload(form: FormState) {
+  return {
+    title: form.title,
+    slug: form.slug,
+    summary: form.summary,
+    content: form.content,
+    featuredImage: form.featuredImage || null,
+    category: form.category || null,
+    tags: form.tags ? form.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
+    published: form.published,
+    seoTitle: form.seoTitle || null,
+    seoDescription: form.seoDescription || null,
+    authorName: form.authorName || null,
+  };
+}
+
+function postToForm(post: BlogPost): FormState {
+  return {
+    title: post.title,
+    slug: post.slug,
+    summary: post.summary,
+    content: post.content,
+    featuredImage: post.featuredImage || "",
+    category: post.category || "",
+    tags: (post.tags || []).join(", "),
+    published: post.published,
+    seoTitle: post.seoTitle || "",
+    seoDescription: post.seoDescription || "",
+    authorName: post.authorName || "",
+  };
+}
+
+export default function AdminBlog() {
+  const { toast } = useToast();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editPost, setEditPost] = useState<BlogPost | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { data: posts = [], isLoading } = useQuery<BlogPost[]>({
+    queryKey: ["/api/admin/blog-posts"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: ReturnType<typeof formToPayload>) =>
+      apiRequest("POST", "/api/admin/blog-posts", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog-posts"] });
+      setIsCreateOpen(false);
+      toast({ title: "Post created" });
+    },
+    onError: (err: any) => toast({ title: "Error", description: String(err.message), variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ReturnType<typeof formToPayload> }) =>
+      apiRequest("PUT", `/api/admin/blog-posts/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog-posts"] });
+      setEditPost(null);
+      toast({ title: "Post updated" });
+    },
+    onError: (err: any) => toast({ title: "Error", description: String(err.message), variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/blog-posts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog-posts"] });
+      setDeleteId(null);
+      toast({ title: "Post deleted" });
+    },
+    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
+  });
+
+  const togglePublish = (post: BlogPost) => {
+    updateMutation.mutate({ id: post.id, data: formToPayload({ ...postToForm(post), published: !post.published }) });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <AdminBackButton />
+
+        <Card className="mb-6">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
+            <div>
+              <CardTitle>Blog Posts</CardTitle>
+              <CardDescription>Create and manage articles for the public blog</CardDescription>
+            </div>
+            <Button onClick={() => setIsCreateOpen(true)} data-testid="button-new-post">
+              <Plus className="w-4 h-4 mr-2" />New Post
+            </Button>
+          </CardHeader>
+        </Card>
+
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-md" data-testid="text-no-posts">
+            No posts yet. Click "New Post" to get started.
+          </div>
+        ) : (
+          <div className="border border-border rounded-md overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {posts.map(post => {
+                  const dateStr = post.publishedAt
+                    ? new Date(post.publishedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                    : new Date(post.createdAt!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                  return (
+                    <TableRow key={post.id} data-testid={`row-post-${post.id}`}>
+                      <TableCell className="font-medium max-w-xs">
+                        <div className="truncate">{post.title}</div>
+                        <div className="text-xs text-muted-foreground">/blog/{post.slug}</div>
+                      </TableCell>
+                      <TableCell>
+                        {post.category ? <Badge variant="secondary">{post.category}</Badge> : <span className="text-muted-foreground text-sm">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={post.published ? "default" : "outline"} className={post.published ? "bg-accent/20 text-accent border-accent/30" : ""}>
+                          {post.published ? "Published" : "Draft"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{dateStr}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => togglePublish(post)}
+                            title={post.published ? "Unpublish" : "Publish"}
+                            data-testid={`button-toggle-${post.id}`}
+                          >
+                            {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setEditPost(post)}
+                            data-testid={`button-edit-${post.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setDeleteId(post.id)}
+                            data-testid={`button-delete-${post.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Create dialog */}
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>New Blog Post</DialogTitle>
+            </DialogHeader>
+            <PostForm
+              initial={emptyForm}
+              onSubmit={form => createMutation.mutate(formToPayload(form))}
+              isSubmitting={createMutation.isPending}
+              onClose={() => setIsCreateOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit dialog */}
+        <Dialog open={!!editPost} onOpenChange={open => !open && setEditPost(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Blog Post</DialogTitle>
+            </DialogHeader>
+            {editPost && (
+              <PostForm
+                initial={postToForm(editPost)}
+                onSubmit={form => updateMutation.mutate({ id: editPost.id, data: formToPayload(form) })}
+                isSubmitting={updateMutation.isPending}
+                onClose={() => setEditPost(null)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete confirmation */}
+        <Dialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Post</DialogTitle>
+            </DialogHeader>
+            <p className="text-muted-foreground">Are you sure you want to permanently delete this post? This cannot be undone.</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteId(null)} data-testid="button-cancel-delete">Cancel</Button>
+              <Button variant="destructive" disabled={deleteMutation.isPending} onClick={() => deleteId && deleteMutation.mutate(deleteId)} data-testid="button-confirm-delete">
+                {deleteMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}

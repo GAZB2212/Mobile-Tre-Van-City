@@ -8,6 +8,7 @@ import {
   type FinancePlan, type InsertFinancePlan,
   type TrainingOption, type InsertTrainingOption,
   type GalleryItem, type InsertGalleryItem,
+  type BlogPost, type InsertBlogPost,
   type SiteSetting
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -82,6 +83,15 @@ export interface IStorage {
   createGalleryItem(item: InsertGalleryItem): Promise<GalleryItem>;
   updateGalleryItem(id: string, item: Partial<InsertGalleryItem>): Promise<GalleryItem | undefined>;
   deleteGalleryItem(id: string): Promise<boolean>;
+
+  // Blog Posts
+  getBlogPosts(): Promise<BlogPost[]>;
+  getBlogPostsAdmin(): Promise<BlogPost[]>;
+  getBlogPost(id: string): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: string): Promise<boolean>;
 
   // Site Settings
   getSiteSettings(): Promise<Record<string, string>>;
@@ -1683,6 +1693,14 @@ export class MemStorage implements IStorage {
 
   async setSiteSetting(key: string, value: string): Promise<void> {
   }
+
+  async getBlogPosts(): Promise<BlogPost[]> { return []; }
+  async getBlogPostsAdmin(): Promise<BlogPost[]> { return []; }
+  async getBlogPost(_id: string): Promise<BlogPost | undefined> { return undefined; }
+  async getBlogPostBySlug(_slug: string): Promise<BlogPost | undefined> { return undefined; }
+  async createBlogPost(post: InsertBlogPost): Promise<BlogPost> { return { ...post, id: randomUUID(), createdAt: new Date(), updatedAt: new Date(), featuredImage: null, category: null, publishedAt: null, seoTitle: null, seoDescription: null, authorName: null } as BlogPost; }
+  async updateBlogPost(_id: string, _post: Partial<InsertBlogPost>): Promise<BlogPost | undefined> { return undefined; }
+  async deleteBlogPost(_id: string): Promise<boolean> { return false; }
 }
 
 // Database Storage Implementation
@@ -1999,6 +2017,45 @@ export class DbStorage implements IStorage {
     await db.insert(schema.siteSettings)
       .values({ key, value })
       .onConflictDoUpdate({ target: schema.siteSettings.key, set: { value, updatedAt: new Date() } });
+  }
+
+  // Blog Posts
+  async getBlogPosts(): Promise<BlogPost[]> {
+    return db.select().from(schema.blogPosts)
+      .where(eq(schema.blogPosts.published, true))
+      .orderBy(schema.blogPosts.publishedAt);
+  }
+
+  async getBlogPostsAdmin(): Promise<BlogPost[]> {
+    return db.select().from(schema.blogPosts).orderBy(schema.blogPosts.createdAt);
+  }
+
+  async getBlogPost(id: string): Promise<BlogPost | undefined> {
+    const results = await db.select().from(schema.blogPosts).where(eq(schema.blogPosts.id, id));
+    return results[0];
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const results = await db.select().from(schema.blogPosts).where(eq(schema.blogPosts.slug, slug));
+    return results[0];
+  }
+
+  async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
+    const results = await db.insert(schema.blogPosts).values(post).returning();
+    return results[0];
+  }
+
+  async updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined> {
+    const results = await db.update(schema.blogPosts)
+      .set({ ...post, updatedAt: new Date() })
+      .where(eq(schema.blogPosts.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteBlogPost(id: string): Promise<boolean> {
+    const result = await db.delete(schema.blogPosts).where(eq(schema.blogPosts.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

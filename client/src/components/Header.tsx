@@ -21,6 +21,7 @@ export default function Header() {
     { name: "Finance", href: "/finance" },
     { name: "Gallery", href: "/gallery" },
     { name: "Opportunity", href: "/business-opportunity" },
+    { name: "Blog", href: "/blog" },
     { name: "Training", href: "/training" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },

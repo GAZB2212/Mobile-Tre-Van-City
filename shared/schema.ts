@@ -372,6 +372,34 @@ export const insertGalleryItemSchema = createInsertSchema(galleryItems).omit({
   updatedAt: true,
 });
 
+// Blog posts table
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull(),
+  content: text("content").notNull(),
+  featuredImage: text("featured_image"),
+  category: text("category"),
+  tags: json("tags").$type<string[]>().notNull().default([]),
+  published: boolean("published").notNull().default(false),
+  publishedAt: timestamp("published_at"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  authorName: text("author_name"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+
 // Types
 export type AdminRole = typeof adminRoles[number];
 export type InsertUser = z.infer<typeof insertUserSchema>;

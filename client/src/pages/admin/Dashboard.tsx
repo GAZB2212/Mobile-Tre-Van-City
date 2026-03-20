@@ -160,6 +160,14 @@ export default function AdminDashboard() {
       requiredRole: "full" as const
     },
     {
+      title: "Manage Blog",
+      description: "Write and publish blog posts and articles",
+      icon: Globe,
+      href: "/admin/blog",
+      badge: "Blog",
+      requiredRole: "full" as const
+    },
+    {
       title: "Manage Site Videos",
       description: "Upload hero video and 360° render videos — changes go live instantly",
       icon: Video,

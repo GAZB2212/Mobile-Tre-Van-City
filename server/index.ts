@@ -157,6 +157,28 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ Spec approval columns ready"))
         .catch((err: Error) => console.error("Spec approval migration:", err.message));
+      // Create blog_posts table if not present
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS blog_posts (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          slug TEXT NOT NULL UNIQUE,
+          title TEXT NOT NULL,
+          summary TEXT NOT NULL,
+          content TEXT NOT NULL,
+          featured_image TEXT,
+          category TEXT,
+          tags JSON NOT NULL DEFAULT '[]',
+          published BOOLEAN NOT NULL DEFAULT FALSE,
+          published_at TIMESTAMP,
+          seo_title TEXT,
+          seo_description TEXT,
+          author_name TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+      `)
+        .then(() => log("✅ Blog posts table ready"))
+        .catch((err: Error) => console.error("Blog migration:", err.message));
     });
   });
 })();

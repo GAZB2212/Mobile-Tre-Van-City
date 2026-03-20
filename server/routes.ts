@@ -1521,6 +1521,75 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ─── Blog Posts (public) ──────────────────────────────────────────────────
+  app.get("/api/blog-posts", async (_req, res) => {
+    try {
+      const posts = await storage.getBlogPosts();
+      res.json(posts);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.get("/api/blog-posts/:slug", async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post || !post.published) return res.status(404).json({ error: "Post not found" });
+      res.json(post);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch blog post" });
+    }
+  });
+
+  // ─── Blog Posts (admin) ───────────────────────────────────────────────────
+  app.get("/api/admin/blog-posts", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const posts = await storage.getBlogPostsAdmin();
+      res.json(posts);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.post("/api/admin/blog-posts", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { insertBlogPostSchema } = await import("@shared/schema");
+      const data = insertBlogPostSchema.parse(req.body);
+      if (data.published && !data.publishedAt) {
+        (data as any).publishedAt = new Date();
+      }
+      const post = await storage.createBlogPost(data);
+      res.status(201).json(post);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || "Failed to create blog post" });
+    }
+  });
+
+  app.put("/api/admin/blog-posts/:id", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const existing = await storage.getBlogPost(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Post not found" });
+      const updates = req.body;
+      if (updates.published && !existing.publishedAt && !updates.publishedAt) {
+        updates.publishedAt = new Date();
+      }
+      const post = await storage.updateBlogPost(req.params.id, updates);
+      res.json(post);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message || "Failed to update blog post" });
+    }
+  });
+
+  app.delete("/api/admin/blog-posts/:id", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const ok = await storage.deleteBlogPost(req.params.id);
+      if (!ok) return res.status(404).json({ error: "Post not found" });
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ error: "Failed to delete blog post" });
+    }
+  });
+
   // Customer portal endpoints
   app.get("/api/portal/quotes", isAuthenticated, async (req, res) => {
     try {
@@ -3938,6 +4007,7 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
         { url: '/training', changefreq: 'monthly', priority: '0.8' },
         { url: '/business-opportunity', changefreq: 'monthly', priority: '0.8' },
         { url: '/gallery', changefreq: 'weekly', priority: '0.7' },
+        { url: '/blog', changefreq: 'weekly', priority: '0.7' },
         { url: '/about', changefreq: 'monthly', priority: '0.7' },
         { url: '/contact', changefreq: 'monthly', priority: '0.6' },
         { url: '/how-it-works', changefreq: 'monthly', priority: '0.6' },
@@ -3945,6 +4015,11 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
 
       const vans = await storage.getVans();
       const publishedVans = vans.filter(v => v.published && v.slug);
+
+      let publishedBlogPosts: Array<{ slug: string; updatedAt: Date | null }> = [];
+      try {
+        publishedBlogPosts = await storage.getBlogPosts();
+      } catch { /* table may not exist yet */ }
 
       const staticEntries = staticPages.map(page => `
   <url>
@@ -3978,11 +4053,25 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
   </url>`;
       }).join('');
 
+      const blogEntries = publishedBlogPosts.map(post => {
+        const lastmod = post.updatedAt
+          ? new Date(post.updatedAt).toISOString().split('T')[0]
+          : BUILD_DATE;
+        return `
+  <url>
+    <loc>${SITE_URL}/blog/${post.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+      }).join('');
+
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${staticEntries}
 ${vanEntries}
+${blogEntries}
 </urlset>`;
 
       res.setHeader('Content-Type', 'application/xml');

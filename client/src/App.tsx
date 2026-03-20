@@ -46,6 +46,9 @@ import AdminVideos from "@/pages/admin/Videos";
 import BuildSheet from "@/pages/admin/BuildSheet";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
 import SpecApproval from "@/pages/SpecApproval";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
+import AdminBlog from "@/pages/admin/Blog";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsConditions from "@/pages/TermsConditions";
 import CookiePolicy from "@/pages/CookiePolicy";
@@ -87,6 +90,9 @@ function Router() {
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
       {/* Spec approval (public) */}
       <Route path="/spec-approval/:token" component={SpecApproval} />
+      {/* Blog */}
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       {/* Legal pages */}
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsConditions} />
@@ -109,6 +115,7 @@ function Router() {
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
       <Route path="/admin/leads" component={AdminLeads} />
       <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/blog" component={AdminBlog} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
