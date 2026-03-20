@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import logoPath from "@assets/Untitled design-51_1759240381746.png";
 
-const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
-
 export default function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -20,53 +18,20 @@ export default function LoadingScreen() {
   ];
 
   useEffect(() => {
-    // Fetch site settings immediately and inject a preload link for the hero video
-    // so the browser starts buffering it during the splash screen
-    fetch("/api/site-settings")
-      .then((r) => r.json())
-      .then((settings: Record<string, string>) => {
-        const videoUrl = settings?.hero_video_url ?? DEFAULT_HERO_VIDEO;
-        const existing = document.querySelector(`link[data-hero-preload]`);
-        if (!existing) {
-          const link = document.createElement("link");
-          link.rel = "preload";
-          link.as = "video";
-          link.href = videoUrl;
-          link.setAttribute("data-hero-preload", "true");
-          document.head.appendChild(link);
-        }
-      })
-      .catch(() => {
-        // Preload default as fallback
-        const existing = document.querySelector(`link[data-hero-preload]`);
-        if (!existing) {
-          const link = document.createElement("link");
-          link.rel = "preload";
-          link.as = "video";
-          link.href = DEFAULT_HERO_VIDEO;
-          link.setAttribute("data-hero-preload", "true");
-          document.head.appendChild(link);
-        }
-      });
-  }, []);
-
-  useEffect(() => {
     if (!isVisible) return;
 
     sessionStorage.setItem('hasLoadedBefore', 'true');
 
-    const stepTimers = steps.map((_, index) => {
-      return setTimeout(() => {
-        setActiveStep(index + 1);
-      }, (index + 1) * 500);
-    });
+    // Steps appear every 300ms — all 4 visible by 1.2s
+    const stepTimers = steps.map((_, index) =>
+      setTimeout(() => setActiveStep(index + 1), (index + 1) * 300)
+    );
 
-    const hideTimer = setTimeout(() => {
-      setIsVisible(false);
-    }, 3200);
+    // Hide after 1.8s instead of 3.2s
+    const hideTimer = setTimeout(() => setIsVisible(false), 1800);
 
     return () => {
-      stepTimers.forEach(timer => clearTimeout(timer));
+      stepTimers.forEach(clearTimeout);
       clearTimeout(hideTimer);
     };
   }, [isVisible]);
@@ -74,26 +39,24 @@ export default function LoadingScreen() {
   if (!isVisible) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background transition-opacity duration-700"
       style={{ opacity: isVisible ? 1 : 0 }}
       data-testid="loading-screen"
     >
-      <img 
-        src={logoPath} 
-        alt="Tyre Van City" 
+      <img
+        src={logoPath}
+        alt="Tyre Van City"
         className="w-48 h-48 md:w-64 md:h-64 mb-16 object-contain"
         data-testid="img-loading-logo"
       />
-      
+
       <div className="flex flex-col items-center gap-4">
         {steps.map((step, index) => (
           <div
             key={step}
-            className="text-xl md:text-2xl font-semibold text-foreground transition-opacity duration-1000"
-            style={{
-              opacity: activeStep > index ? 1 : 0
-            }}
+            className="text-xl md:text-2xl font-semibold text-foreground transition-opacity duration-500"
+            style={{ opacity: activeStep > index ? 1 : 0 }}
             data-testid={`text-loading-step-${index}`}
           >
             {step}

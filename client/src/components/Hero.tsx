@@ -1,20 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import heroImagePath from "@assets/IMG_5586_2_1774013208123.JPG";
 
 export default function Hero() {
-  const { data: settings } = useQuery<Record<string, string>>({
-    queryKey: ["/api/site-settings"],
-  });
-
   return (
     <section className="relative bg-[#1a1a1a] min-h-[40vh] sm:min-h-[80vh] py-14 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
       {/* Hero Image Background */}
       <img
-        src={heroImagePath}
+        src="/hero-van-interior.jpg"
         alt="Mobile tyre van interior"
         className="absolute inset-0 w-full h-full object-cover object-center"
+        loading="eager"
+        decoding="async"
       />
 
       {/* Dark overlay for text readability */}
