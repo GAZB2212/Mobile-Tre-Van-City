@@ -9,52 +9,53 @@ import LoadingScreen from "@/components/LoadingScreen";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
-import Home from "@/pages/Home";
-import Stock from "@/pages/Stock";
-import VanDetails from "@/pages/VanDetails";
-import Finance from "@/pages/Finance";
-import Gallery from "@/pages/Gallery";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-import HowItWorks from "@/pages/HowItWorks";
-import Training from "@/pages/Training";
-import BusinessOpportunity from "@/pages/BusinessOpportunity";
-import SelectVan from "@/pages/configurator/SelectVan";
-import SelectServiceType from "@/pages/configurator/SelectServiceType";
-import SelectKit from "@/pages/configurator/SelectKit";
-import SelectUpgrades from "@/pages/configurator/SelectUpgrades";
-import SelectTraining from "@/pages/configurator/SelectTraining";
-import SelectFinance from "@/pages/configurator/SelectFinance";
-import RequestQuote from "@/pages/configurator/RequestQuote";
-import Login from "@/pages/Login";
-import AdminDashboard from "@/pages/admin/Dashboard";
-import AdminConfigurator from "@/pages/admin/AdminConfigurator";
-import AdminVans from "@/pages/admin/Vans";
-import AdminKits from "@/pages/admin/Kits";
-import AdminUpgrades from "@/pages/admin/Upgrades";
-import AdminQuotes from "@/pages/admin/Quotes";
-import AdminQuoteDetail from "@/pages/admin/QuoteDetail";
-import AdminLeads from "@/pages/admin/Leads";
-import AdminUsers from "@/pages/admin/Users";
-import AdminFinancePlans from "@/pages/admin/FinancePlans";
-import AdminTrainingOptions from "@/pages/admin/TrainingOptions";
-import AdminGalleryItems from "@/pages/admin/GalleryItems";
-import AdminAnalytics from "@/pages/admin/Analytics";
-import AdminVideos from "@/pages/admin/Videos";
-import BuildSheet from "@/pages/admin/BuildSheet";
-import QuoteConfirmation from "@/pages/QuoteConfirmation";
-import SpecApproval from "@/pages/SpecApproval";
-import Blog from "@/pages/Blog";
-import BlogPost from "@/pages/BlogPost";
-import AdminBlog from "@/pages/admin/Blog";
-import PrivacyPolicy from "@/pages/PrivacyPolicy";
-import TermsConditions from "@/pages/TermsConditions";
-import CookiePolicy from "@/pages/CookiePolicy";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import NotFound from "@/pages/not-found";
+
+const Home = lazy(() => import("@/pages/Home"));
+const Stock = lazy(() => import("@/pages/Stock"));
+const VanDetails = lazy(() => import("@/pages/VanDetails"));
+const Finance = lazy(() => import("@/pages/Finance"));
+const Gallery = lazy(() => import("@/pages/Gallery"));
+const About = lazy(() => import("@/pages/About"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const HowItWorks = lazy(() => import("@/pages/HowItWorks"));
+const Training = lazy(() => import("@/pages/Training"));
+const BusinessOpportunity = lazy(() => import("@/pages/BusinessOpportunity"));
+const SelectVan = lazy(() => import("@/pages/configurator/SelectVan"));
+const SelectServiceType = lazy(() => import("@/pages/configurator/SelectServiceType"));
+const SelectKit = lazy(() => import("@/pages/configurator/SelectKit"));
+const SelectUpgrades = lazy(() => import("@/pages/configurator/SelectUpgrades"));
+const SelectTraining = lazy(() => import("@/pages/configurator/SelectTraining"));
+const SelectFinance = lazy(() => import("@/pages/configurator/SelectFinance"));
+const RequestQuote = lazy(() => import("@/pages/configurator/RequestQuote"));
+const Login = lazy(() => import("@/pages/Login"));
+const AdminDashboard = lazy(() => import("@/pages/admin/Dashboard"));
+const AdminConfigurator = lazy(() => import("@/pages/admin/AdminConfigurator"));
+const AdminVans = lazy(() => import("@/pages/admin/Vans"));
+const AdminKits = lazy(() => import("@/pages/admin/Kits"));
+const AdminUpgrades = lazy(() => import("@/pages/admin/Upgrades"));
+const AdminQuotes = lazy(() => import("@/pages/admin/Quotes"));
+const AdminQuoteDetail = lazy(() => import("@/pages/admin/QuoteDetail"));
+const AdminLeads = lazy(() => import("@/pages/admin/Leads"));
+const AdminUsers = lazy(() => import("@/pages/admin/Users"));
+const AdminFinancePlans = lazy(() => import("@/pages/admin/FinancePlans"));
+const AdminTrainingOptions = lazy(() => import("@/pages/admin/TrainingOptions"));
+const AdminGalleryItems = lazy(() => import("@/pages/admin/GalleryItems"));
+const AdminAnalytics = lazy(() => import("@/pages/admin/Analytics"));
+const AdminVideos = lazy(() => import("@/pages/admin/Videos"));
+const BuildSheet = lazy(() => import("@/pages/admin/BuildSheet"));
+const QuoteConfirmation = lazy(() => import("@/pages/QuoteConfirmation"));
+const SpecApproval = lazy(() => import("@/pages/SpecApproval"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const BlogPost = lazy(() => import("@/pages/BlogPost"));
+const AdminBlog = lazy(() => import("@/pages/admin/Blog"));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
+const TermsConditions = lazy(() => import("@/pages/TermsConditions"));
+const CookiePolicy = lazy(() => import("@/pages/CookiePolicy"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 function Router() {
   return (
@@ -166,7 +167,9 @@ function App() {
           <ScrollRestoration />
           <Toaster />
           <AnalyticsProvider>
-            <Router />
+            <Suspense fallback={null}>
+              <Router />
+            </Suspense>
           </AnalyticsProvider>
           <PublicChatBubble />
           {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
