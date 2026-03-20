@@ -11,6 +11,7 @@ import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Stock = lazy(() => import("@/pages/Stock"));
@@ -160,22 +161,24 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConfiguratorProvider>
-        <TooltipProvider>
-          <ConditionalLoadingScreen />
-          <ScrollRestoration />
-          <Toaster />
-          <AnalyticsProvider>
-            <Suspense fallback={null}>
-              <Router />
-            </Suspense>
-          </AnalyticsProvider>
-          <PublicChatBubble />
-          {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
-        </TooltipProvider>
-      </ConfiguratorProvider>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ConfiguratorProvider>
+          <TooltipProvider>
+            <ConditionalLoadingScreen />
+            <ScrollRestoration />
+            <Toaster />
+            <AnalyticsProvider>
+              <Suspense fallback={<div className="min-h-screen bg-[#191919]" />}>
+                <Router />
+              </Suspense>
+            </AnalyticsProvider>
+            <PublicChatBubble />
+            {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
+          </TooltipProvider>
+        </ConfiguratorProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
 
