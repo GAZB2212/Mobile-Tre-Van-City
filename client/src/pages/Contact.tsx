@@ -299,6 +299,34 @@ export default function Contact() {
         </div>
       </section>
 
+      {/* Google Maps Embed */}
+      <section className="py-0 border-t">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-2 mb-6">
+              <MapPin className="w-5 h-5 text-accent" />
+              <h2 className="text-xl font-semibold">Find Us</h2>
+            </div>
+            <p className="text-muted-foreground mb-4 text-sm">
+              5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL
+            </p>
+            <div className="rounded-md overflow-hidden border" style={{ height: 400 }}>
+              <iframe
+                title="Mobile Tyre Van City — Location"
+                src="https://maps.google.com/maps?q=5-7+Bassendale+Road,+Bromborough,+Wirral,+CH62+3QL,+UK&output=embed&hl=en&z=15"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                data-testid="embed-google-maps"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
