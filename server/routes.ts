@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin } from "./auth";
 import { buildVanMeta } from "./seo";
+import { generateAiBlogPost } from "./blogGenerator";
 import { 
   insertVanSchema, 
   insertKitSchema, 
@@ -1587,6 +1588,18 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       res.json({ success: true });
     } catch {
       res.status(500).json({ error: "Failed to delete blog post" });
+    }
+  });
+
+  // ─── Blog: AI Auto-Generation ─────────────────────────────────────────────
+  app.post("/api/admin/blog-posts/generate", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { keyword } = req.body || {};
+      const post = await generateAiBlogPost(keyword || null);
+      res.status(201).json(post);
+    } catch (err: any) {
+      console.error("[Blog AI] Generation failed:", err.message);
+      res.status(500).json({ error: err.message || "AI generation failed" });
     }
   });
 

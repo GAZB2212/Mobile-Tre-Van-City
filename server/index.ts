@@ -1,10 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
+import cron from "node-cron";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { createUser, getSession } from "./auth";
 import { pool } from "./db";
+import { generateAiBlogPost } from "./blogGenerator";
 
 const app = express();
 
@@ -141,6 +143,17 @@ app.use((req, res, next) => {
     
     // Bootstrap admin user and run DB migrations AFTER server is listening
     // This prevents blocking deployment initialization
+    // Schedule automatic AI blog post generation every Monday at 8am London time
+    cron.schedule("0 8 * * 1", async () => {
+      log("[Blog AI] Scheduled run — generating post...");
+      try {
+        const post = await generateAiBlogPost(null, true);
+        log(`[Blog AI] Scheduled post saved as draft: "${post.title}"`);
+      } catch (err: any) {
+        console.error("[Blog AI] Scheduled generation failed:", err.message);
+      }
+    }, { timezone: "Europe/London" });
+
     setImmediate(() => {
       bootstrapAdmin().catch(err => {
         console.error("Failed to bootstrap admin:", err);

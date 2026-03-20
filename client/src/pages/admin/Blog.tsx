@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AdminBackButton } from "@/components/AdminBackButton";
-import { Plus, Pencil, Trash2, Eye, EyeOff, Upload, CheckCircle2, Loader2, Globe, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Upload, CheckCircle2, Loader2, Globe, FileText, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getImageUrl } from "@/lib/utils";
@@ -268,6 +268,8 @@ export default function AdminBlog() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editPost, setEditPost] = useState<BlogPost | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [generateKeyword, setGenerateKeyword] = useState("");
 
   const { data: posts = [], isLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/admin/blog-posts"],
@@ -308,6 +310,20 @@ export default function AdminBlog() {
     onError: () => toast({ title: "Delete failed", variant: "destructive" }),
   });
 
+  const generateMutation = useMutation({
+    mutationFn: (keyword: string) =>
+      apiRequest("POST", "/api/admin/blog-posts/generate", keyword ? { keyword } : {}),
+    onSuccess: (post: BlogPost) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog-posts"] });
+      setIsGenerateOpen(false);
+      setGenerateKeyword("");
+      setEditPost(post);
+      toast({ title: "Post generated", description: "Saved as draft — review and publish when ready." });
+    },
+    onError: (err: any) => toast({ title: "Generation failed", description: String(err.message), variant: "destructive" }),
+  });
+
   const togglePublish = (post: BlogPost) => {
     updateMutation.mutate({ id: post.id, data: formToPayload({ ...postToForm(post), published: !post.published }) });
   };
@@ -323,9 +339,14 @@ export default function AdminBlog() {
               <CardTitle>Blog Posts</CardTitle>
               <CardDescription>Create and manage articles for the public blog</CardDescription>
             </div>
-            <Button onClick={() => setIsCreateOpen(true)} data-testid="button-new-post">
-              <Plus className="w-4 h-4 mr-2" />New Post
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => setIsGenerateOpen(true)} data-testid="button-generate-post">
+                <Sparkles className="w-4 h-4 mr-2" />Generate with AI
+              </Button>
+              <Button onClick={() => setIsCreateOpen(true)} data-testid="button-new-post">
+                <Plus className="w-4 h-4 mr-2" />New Post
+              </Button>
+            </div>
           </CardHeader>
         </Card>
 
@@ -433,6 +454,45 @@ export default function AdminBlog() {
                 onClose={() => setEditPost(null)}
               />
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* AI Generate dialog */}
+        <Dialog open={isGenerateOpen} onOpenChange={open => { setIsGenerateOpen(open); if (!open) setGenerateKeyword(""); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#8bc440]" />Generate Blog Post with AI
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                AI will write a complete SEO blog post targeting the keyword below. It will be saved as a <strong>draft</strong> so you can review and edit before publishing. Takes around 15–30 seconds.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="gen-keyword">Target Keyword <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  id="gen-keyword"
+                  value={generateKeyword}
+                  onChange={e => setGenerateKeyword(e.target.value)}
+                  placeholder="e.g. how to start a mobile tyre business UK"
+                  data-testid="input-generate-keyword"
+                />
+                <p className="text-xs text-muted-foreground">Leave blank to auto-select the next keyword from the rotation list.</p>
+              </div>
+              {generateMutation.isPending && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating your post — this usually takes 15–30 seconds...
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsGenerateOpen(false)} disabled={generateMutation.isPending} data-testid="button-cancel-generate">Cancel</Button>
+              <Button disabled={generateMutation.isPending} onClick={() => generateMutation.mutate(generateKeyword)} data-testid="button-confirm-generate">
+                {generateMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</> : <><Sparkles className="w-4 h-4 mr-2" />Generate Post</>}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
