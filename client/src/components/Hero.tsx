@@ -1,18 +1,36 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
 const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
+const CACHE_KEY = "heroVideoUrl";
+
+function getCachedVideoUrl(): string {
+  try {
+    return sessionStorage.getItem(CACHE_KEY) ?? DEFAULT_HERO_VIDEO;
+  } catch {
+    return DEFAULT_HERO_VIDEO;
+  }
+}
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Use cached URL immediately — video starts before the query resolves
+  const [videoSrc, setVideoSrc] = useState<string>(getCachedVideoUrl);
 
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/site-settings"],
   });
 
-  const videoSrc = settings?.hero_video_url ?? DEFAULT_HERO_VIDEO;
+  // Update video src when query resolves (and cache it for next load)
+  useEffect(() => {
+    const url = settings?.hero_video_url;
+    if (!url) return;
+    try { sessionStorage.setItem(CACHE_KEY, url); } catch {}
+    setVideoSrc(url);
+  }, [settings?.hero_video_url]);
 
   useEffect(() => {
     const video = videoRef.current;

@@ -2,6 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import logoPath from "@assets/Untitled design-51_1759240381746.png";
 
 const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
+const CACHE_KEY = "heroVideoUrl";
+
+function getCachedVideoUrl(): string {
+  try {
+    return sessionStorage.getItem(CACHE_KEY) ?? DEFAULT_HERO_VIDEO;
+  } catch {
+    return DEFAULT_HERO_VIDEO;
+  }
+}
+
+function setCachedVideoUrl(url: string) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, url);
+  } catch {}
+}
 
 export default function LoadingScreen() {
   const [isVisible, setIsVisible] = useState(() => {
@@ -11,7 +26,8 @@ export default function LoadingScreen() {
     return true;
   });
   const [activeStep, setActiveStep] = useState(0);
-  const [heroVideoUrl, setHeroVideoUrl] = useState(DEFAULT_HERO_VIDEO);
+  // Use cached URL immediately — no waiting for fetch
+  const [heroVideoUrl] = useState<string>(getCachedVideoUrl);
   const preloadVideoRef = useRef<HTMLVideoElement>(null);
 
   const steps = [
@@ -21,21 +37,28 @@ export default function LoadingScreen() {
     "Choose your finance"
   ];
 
-  // Fetch the real hero video URL from settings as early as possible
+  // Fetch real URL in background and cache it for NEXT load
   useEffect(() => {
     fetch("/api/site-settings")
       .then(r => r.json())
       .then((s: Record<string, string>) => {
         const url = s?.hero_video_url ?? DEFAULT_HERO_VIDEO;
-        setHeroVideoUrl(url);
+        setCachedVideoUrl(url);
+        // If cached URL was different, also start loading the correct one now
+        const video = preloadVideoRef.current;
+        if (video && url !== heroVideoUrl) {
+          video.src = url;
+          video.load();
+          video.play().catch(() => {});
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [heroVideoUrl]);
 
-  // Once we have the URL, imperatively start buffering it
+  // Start buffering immediately using cached URL
   useEffect(() => {
     const video = preloadVideoRef.current;
-    if (!video || !heroVideoUrl) return;
+    if (!video) return;
     video.muted = true;
     video.src = heroVideoUrl;
     video.load();
@@ -67,7 +90,7 @@ export default function LoadingScreen() {
       style={{ opacity: isVisible ? 1 : 0 }}
       data-testid="loading-screen"
     >
-      {/* Hidden video that buffers the hero video while splash is showing */}
+      {/* Hidden video buffering hero content during splash */}
       <video
         ref={preloadVideoRef}
         muted

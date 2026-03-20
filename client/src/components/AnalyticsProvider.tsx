@@ -11,14 +11,10 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const init = async () => {
-      await initSession();
-      initialized.current = true;
-    };
-    init();
+    // Fire-and-forget — don't block rendering waiting for analytics
+    initSession().then(() => { initialized.current = true; }).catch(() => {});
   }, []);
 
-  // When an admin is detected, mark their analytics session so it gets filtered out
   useEffect(() => {
     if (isAuthenticated && !adminMarked.current) {
       adminMarked.current = true;
@@ -30,16 +26,12 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     if (location === lastLocation.current) return;
     lastLocation.current = location;
 
-    const firePageview = async () => {
-      if (!initialized.current) {
-        await initSession();
-        initialized.current = true;
-      }
+    const firePageview = () => {
       const fullUrl = location + window.location.search;
-      await trackPageview(fullUrl, document.title);
+      // Fire-and-forget — don't await analytics writes
+      trackPageview(fullUrl, document.title).catch(() => {});
     };
 
-    // Small delay so document.title has time to update via SEO component
     const t = setTimeout(firePageview, 300);
     return () => clearTimeout(t);
   }, [location]);
