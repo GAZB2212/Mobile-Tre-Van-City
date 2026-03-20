@@ -74,6 +74,21 @@ const qualityPoints = [
   }
 ];
 
+const howToStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "How to Get Your Mobile Tyre Van Conversion",
+  "description": "Build your custom mobile tyre van in 4 simple steps with Mobile Tyre Van City. Choose your van, select your kit, add upgrades, and arrange finance.",
+  "totalTime": "PT30D",
+  "step": steps.map((step, i) => ({
+    "@type": "HowToStep",
+    "position": i + 1,
+    "name": step.title,
+    "text": step.description,
+    "url": `https://www.mobiletyrevancity.co.uk/how-it-works#step-${step.number}`,
+  }))
+};
+
 export default function HowItWorks() {
   return (
     <div className="min-h-screen bg-background">
@@ -83,6 +98,7 @@ export default function HowItWorks() {
         canonical="/how-it-works"
         keywords="how mobile tyre van works, tyre van build process, custom van conversion steps, mobile tyre van build UK"
         structuredData={[
+          howToStructuredData,
           createServiceStructuredData({
             name: "Mobile Tyre Van Build Process",
             description: "Our 4-step mobile tyre van build process: choose your van, select your equipment kit, add custom upgrades, and arrange finance. UK-built by our in-house team with nationwide delivery.",

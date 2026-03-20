@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
@@ -10,6 +11,28 @@ const app = express();
 // Session must be first middleware to ensure cookies work properly
 app.set("trust proxy", true);
 app.use(getSession());
+
+// Gzip compression for all responses
+app.use(compression());
+
+// Redirect non-www to www
+app.use((req, res, next) => {
+  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
+  if (host && !host.startsWith('www.') && host.includes('mobiletyrevancity.co.uk')) {
+    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
+    return res.redirect(301, `${proto}://www.${host}${req.originalUrl}`);
+  }
+  next();
+});
+
+// HTTP security headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -105,10 +105,11 @@ export default function Training() {
     <div className="min-h-screen">
       <Header />
       <SEO 
-        title="Mobile Tyre Fitting Training | Coming Soon | Mobile Tyre Van City"
+        title="Mobile Tyre Fitting Training | Coming Soon"
         description="Professional REACT motorway certification and tyre fitting training is coming soon. Register your interest today. Based in Wirral, serving customers UK-wide."
         canonical="/training"
         keywords="mobile tyre fitting training, REACT motorway certification, tyre fitting course UK, mobile tyre technician training, tyre fitting qualification"
+        noindex={true}
       />
 
       {/* Coming Soon Hero */}
