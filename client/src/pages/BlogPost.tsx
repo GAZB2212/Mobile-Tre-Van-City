@@ -9,6 +9,20 @@ import Footer from "@/components/Footer";
 import SEO, { createBreadcrumbStructuredData } from "@/components/SEO";
 import type { BlogPost } from "@shared/schema";
 
+function formatContent(raw: string): string {
+  const trimmed = raw.trim();
+  const hasHtml = /<([a-z][a-z0-9]*)\b[^>]*>/i.test(trimmed);
+  if (hasHtml) return trimmed;
+
+  return trimmed
+    .split(/\n{2,}/)
+    .map(para => {
+      const lines = para.trim().replace(/\n/g, "<br />");
+      return `<p>${lines}</p>`;
+    })
+    .join("\n");
+}
+
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
 
@@ -127,7 +141,7 @@ export default function BlogPostPage() {
                   prose-a:text-accent prose-a:no-underline hover:prose-a:underline
                   prose-strong:text-foreground prose-li:text-muted-foreground
                   prose-h2:text-xl prose-h3:text-lg"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
                 data-testid="div-post-content"
               />
 
