@@ -233,6 +233,9 @@ export const quotes = pgTable("quotes", {
   } | null>(),
   chosenOption: text("chosen_option"), // null | 'A' | 'B'
 
+  // Stock management integration — ID returned by autotradeportal.com when build is dispatched
+  stockBuildId: text("stock_build_id"),
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),

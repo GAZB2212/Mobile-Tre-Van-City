@@ -7,8 +7,9 @@ import { ArrowLeft, Printer } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import QRCode from "qrcode";
 
 function PrintCheckbox({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
@@ -75,6 +76,10 @@ export default function BuildSheet() {
 
   const isChecked = (key: string) => !!checkedItems[key];
 
+  // QR code for the stock management scan page
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const qrGenerated = useRef(false);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -124,6 +129,18 @@ export default function BuildSheet() {
 
   const quote = quotes.find((q) => q.id === quoteId);
   const van = quote?.vanId ? vans.find((v) => v.id === quote.vanId) : undefined;
+
+  // Generate QR code whenever stockBuildId becomes available
+  useEffect(() => {
+    const stockBuildId = (quote as any)?.stockBuildId;
+    if (!stockBuildId || qrGenerated.current) return;
+    qrGenerated.current = true;
+    const qrUrl = `https://autotradeportal.com/van-build-scan/${stockBuildId}`;
+    QRCode.toDataURL(qrUrl, { width: 160, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [(quote as any)?.stockBuildId]);
+
   const kit = kits.find((k) => k.id === quote?.kitId);
   const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds.includes(u.id));
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
@@ -276,15 +293,32 @@ export default function BuildSheet() {
       <div className="container mx-auto px-4 py-8 max-w-4xl print:max-w-full print:px-0 print:py-4">
 
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-1" data-testid="text-page-title">Van Build Sheet</h1>
-          <p className="text-xl font-semibold mb-2 print:text-black" data-testid="text-build-sheet-company">
-            {quote.company || quote.userName}
-          </p>
-          <p className="text-muted-foreground print:text-black">
-            Quote Reference: <strong>{quote.id.substring(0, 8).toUpperCase()}</strong>
-          </p>
-          <p className="text-sm text-muted-foreground print:text-black">Date: {formatDate(quote.createdAt)}</p>
+        <div className="mb-8 flex items-start justify-between gap-6">
+          <div className="flex-1 text-center">
+            <h1 className="text-3xl font-bold mb-1" data-testid="text-page-title">Van Build Sheet</h1>
+            <p className="text-xl font-semibold mb-2 print:text-black" data-testid="text-build-sheet-company">
+              {quote.company || quote.userName}
+            </p>
+            <p className="text-muted-foreground print:text-black">
+              Quote Reference: <strong>{quote.id.substring(0, 8).toUpperCase()}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground print:text-black">Date: {formatDate(quote.createdAt)}</p>
+          </div>
+
+          {/* Stock management QR code — shown only when build has been dispatched */}
+          {qrDataUrl && (
+            <div className="flex-shrink-0 flex flex-col items-center gap-1 print:border print:border-black print:p-2 print:rounded">
+              <img
+                src={qrDataUrl}
+                alt="Warehouse scan QR code"
+                className="w-28 h-28"
+                data-testid="img-qr-code"
+              />
+              <p className="text-xs text-muted-foreground print:text-black text-center leading-tight">
+                Scan to<br />pick stock
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">

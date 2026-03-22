@@ -1997,8 +1997,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
               notes: (updated as any).adminNotes || undefined,
             };
 
-            const port = process.env.PORT || 5000;
-            const response = await fetch(`http://localhost:${port}/api/external/van-build-request`, {
+            const STOCK_SITE = 'https://autotradeportal.com';
+            const response = await fetch(`${STOCK_SITE}/api/external/van-build-request`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -2008,7 +2008,12 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
             });
 
             if (response.status === 201) {
-              console.log(`[van-build] Auto-dispatched build request for quote ${updated.id}`);
+              const responseData = await response.json() as { id?: string };
+              console.log(`[van-build] Auto-dispatched build request for quote ${updated.id}${responseData.id ? `, stock build ID: ${responseData.id}` : ''}`);
+              // Store the stock build ID on the quote so the build sheet can generate the QR code
+              if (responseData.id) {
+                await storage.updateQuote(req.params.id, { stockBuildId: responseData.id } as any);
+              }
             } else {
               const text = await response.text();
               console.warn(`[van-build] Unexpected response ${response.status} for quote ${updated.id}: ${text}`);
