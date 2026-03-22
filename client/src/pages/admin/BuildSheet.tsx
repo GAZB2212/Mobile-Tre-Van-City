@@ -7,9 +7,9 @@ import { ArrowLeft, Printer } from "lucide-react";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import QRCode from "qrcode";
+import { QRCodeCanvas } from "qrcode.react";
 
 function PrintCheckbox({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
@@ -76,10 +76,6 @@ export default function BuildSheet() {
 
   const isChecked = (key: string) => !!checkedItems[key];
 
-  // QR code for the stock management scan page
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const qrGenerated = useRef(false);
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -130,16 +126,8 @@ export default function BuildSheet() {
   const quote = quotes.find((q) => q.id === quoteId);
   const van = quote?.vanId ? vans.find((v) => v.id === quote.vanId) : undefined;
 
-  // Generate QR code whenever stockBuildId becomes available
-  useEffect(() => {
-    const stockBuildId = (quote as any)?.stockBuildId;
-    if (!stockBuildId || qrGenerated.current) return;
-    qrGenerated.current = true;
-    const qrUrl = `https://autotradeportal.com/van-build-scan/${stockBuildId}`;
-    QRCode.toDataURL(qrUrl, { width: 160, margin: 1, color: { dark: "#000000", light: "#ffffff" } })
-      .then(setQrDataUrl)
-      .catch(() => {});
-  }, [(quote as any)?.stockBuildId]);
+  const stockBuildId = (quote as any)?.stockBuildId as string | undefined;
+  const qrUrl = stockBuildId ? `https://autotradeportal.com/van-build-scan/${stockBuildId}` : undefined;
 
   const kit = kits.find((k) => k.id === quote?.kitId);
   const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds.includes(u.id));
@@ -306,12 +294,12 @@ export default function BuildSheet() {
           </div>
 
           {/* Stock management QR code — shown only when build has been dispatched */}
-          {qrDataUrl && (
-            <div className="flex-shrink-0 flex flex-col items-center gap-1 print:border print:border-black print:p-2 print:rounded">
-              <img
-                src={qrDataUrl}
-                alt="Warehouse scan QR code"
-                className="w-28 h-28"
+          {qrUrl && (
+            <div className="flex-shrink-0 flex flex-col items-center gap-1 print:border print:border-black print:p-2 print:rounded" data-testid="div-qr-code">
+              <QRCodeCanvas
+                value={qrUrl}
+                size={112}
+                marginSize={1}
                 data-testid="img-qr-code"
               />
               <p className="text-xs text-muted-foreground print:text-black text-center leading-tight">

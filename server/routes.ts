@@ -2009,17 +2009,25 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
             if (response.status === 201) {
               const responseData = await response.json() as { id?: string };
-              console.log(`[van-build] Auto-dispatched build request for quote ${updated.id}${responseData.id ? `, stock build ID: ${responseData.id}` : ''}`);
-              // Store the stock build ID on the quote so the build sheet can generate the QR code
-              if (responseData.id) {
-                await storage.updateQuote(req.params.id, { stockBuildId: responseData.id } as any);
-              }
+              const stockBuildId = responseData.id || `local-${crypto.randomUUID()}`;
+              console.log(`[van-build] Auto-dispatched build request for quote ${updated.id}, stock build ID: ${stockBuildId}`);
+              await storage.updateQuote(req.params.id, { stockBuildId } as any);
             } else {
               const text = await response.text();
               console.warn(`[van-build] Unexpected response ${response.status} for quote ${updated.id}: ${text}`);
+              // Still assign a local ID so the build sheet always gets a QR code
+              const stockBuildId = `local-${crypto.randomUUID()}`;
+              console.log(`[van-build] Assigning local stock build ID: ${stockBuildId}`);
+              await storage.updateQuote(req.params.id, { stockBuildId } as any);
             }
           } catch (err) {
             console.error('[van-build] Auto-dispatch failed:', err);
+            // Assign a local ID so the build sheet still gets a QR code even if the network call fails
+            try {
+              const stockBuildId = `local-${crypto.randomUUID()}`;
+              await storage.updateQuote(req.params.id, { stockBuildId } as any);
+              console.log(`[van-build] Network error fallback — assigned local stock build ID: ${stockBuildId}`);
+            } catch (_) {}
           }
         })();
       }
