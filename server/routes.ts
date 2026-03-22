@@ -55,6 +55,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── External / webhook endpoints ──────────────────────────────────────────
+  // Receives a van build request from this app (triggered when a quote moves to
+  // "in_build") or from external stock-management systems.
+  app.post("/api/external/van-build-request", async (req, res) => {
+    try {
+      const apiKey = process.env.VAN_CONFIGURATOR_API_KEY;
+      if (!apiKey) {
+        console.error("[van-build] VAN_CONFIGURATOR_API_KEY is not set");
+        return res.status(500).json({ error: "API key not configured on server" });
+      }
+
+      const provided = req.headers["x-api-key"];
+      if (!provided || provided !== apiKey) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const bodySchema = z.object({
+        vanDescription: z.string().min(1),
+        items: z.array(z.object({
+          description: z.string().min(1),
+          quantity: z.number().int().positive(),
+        })),
+        customerName: z.string().optional(),
+        customerContact: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const body = bodySchema.parse(req.body);
+
+      console.log(`[van-build] Received build request — van: "${body.vanDescription}", items: ${body.items.length}${body.customerName ? `, customer: ${body.customerName}` : ''}`);
+
+      return res.status(201).json({ ok: true, message: "Build request received" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid payload", details: error.errors });
+      }
+      console.error("[van-build] Error:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // User management endpoints (for full admins only)
   app.get("/api/admin/users", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
@@ -1912,6 +1953,71 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         return res.status(404).json({ error: "Quote not found" });
       }
       res.json(updated);
+
+      // ── Auto-dispatch when moving to "in_build" ─────────────────────────
+      if (validatedData.status === 'in_build') {
+        (async () => {
+          try {
+            const apiKey = process.env.VAN_CONFIGURATOR_API_KEY;
+            if (!apiKey) {
+              console.warn('[van-build] VAN_CONFIGURATOR_API_KEY not set — skipping auto-dispatch');
+              return;
+            }
+
+            // Build vanDescription from the linked van or custom text
+            let vanDescription = '';
+            if (updated.vanId) {
+              const van = await storage.getVan(updated.vanId);
+              if (van) {
+                vanDescription = `${van.make} ${van.model}`;
+                if (van.reg) vanDescription += ` (${van.reg})`;
+              }
+            } else if ((updated as any).customVanDescription) {
+              vanDescription = (updated as any).customVanDescription;
+            }
+            if (!vanDescription) vanDescription = 'Van (details not specified)';
+
+            // Build items: kit first, then each upgrade with its quantity
+            const items: Array<{ description: string; quantity: number }> = [];
+            if (updated.kitId) {
+              const kit = await storage.getKit(updated.kitId);
+              if (kit) items.push({ description: kit.name, quantity: 1 });
+            }
+            const selectedUpgrades: Record<string, number> = (updated.selectedUpgrades as Record<string, number>) || {};
+            for (const [upgradeId, qty] of Object.entries(selectedUpgrades)) {
+              const upgrade = await storage.getUpgrade(upgradeId);
+              if (upgrade) items.push({ description: upgrade.name, quantity: qty });
+            }
+
+            const payload = {
+              vanDescription,
+              items,
+              customerName: updated.userName || undefined,
+              customerContact: updated.email || updated.phone || undefined,
+              notes: (updated as any).adminNotes || undefined,
+            };
+
+            const port = process.env.PORT || 5000;
+            const response = await fetch(`http://localhost:${port}/api/external/van-build-request`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key': apiKey,
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (response.status === 201) {
+              console.log(`[van-build] Auto-dispatched build request for quote ${updated.id}`);
+            } else {
+              const text = await response.text();
+              console.warn(`[van-build] Unexpected response ${response.status} for quote ${updated.id}: ${text}`);
+            }
+          } catch (err) {
+            console.error('[van-build] Auto-dispatch failed:', err);
+          }
+        })();
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         console.error('PATCH /api/admin/quotes/:id Zod validation failed. Body keys:', Object.keys(req.body), 'Errors:', JSON.stringify(error.errors));
