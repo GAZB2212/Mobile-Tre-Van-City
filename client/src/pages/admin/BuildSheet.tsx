@@ -414,7 +414,6 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
-                    <p className="text-sm text-muted-foreground print:text-black mt-0.5" data-testid="text-kit-description">{kit.description}</p>
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -444,23 +443,26 @@ export default function BuildSheet() {
                                 </span>
                                 {/* Show variant/option label when available */}
                                 {(() => {
+                                  const parentName = (entry.upgrade as any)._displayName ?? entry.upgrade.name;
                                   const variantLabel = (entry.upgrade as any).variantName ||
                                     ((entry.upgrade as any)._displayName && (entry.upgrade as any)._displayName !== entry.upgrade.name ? entry.upgrade.name : null);
+                                  const is48v = /48v/i.test(parentName);
                                   return variantLabel ? (
-                                    <span className="text-xs font-medium text-muted-foreground print:text-black">
-                                      — {variantLabel}
-                                    </span>
+                                    is48v ? (
+                                      <span className="text-sm font-bold text-foreground print:text-black">
+                                        {variantLabel}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs font-medium text-muted-foreground print:text-black">
+                                        — {variantLabel}
+                                      </span>
+                                    )
                                   ) : null;
                                 })()}
                                 <span className="text-xs font-bold uppercase tracking-wide text-accent print:text-black">
                                   (Upgraded)
                                 </span>
                               </div>
-                              {entry.upgrade.description && (
-                                <p className="text-xs text-muted-foreground print:text-black mt-0.5">
-                                  {entry.upgrade.description}
-                                </p>
-                              )}
                             </div>
                           ) : (
                             <span
@@ -512,6 +514,7 @@ export default function BuildSheet() {
                             {(upgrade as any).parentId ? (() => {
                               const parent = allUpgrades.find(p => p.id === (upgrade as any).parentId);
                               const variantLabel = (upgrade as any).variantName || upgrade.name;
+                              const is48v = /48v/i.test(parent?.name ?? "");
                               return (
                                 <>
                                   {parent && (
@@ -519,9 +522,15 @@ export default function BuildSheet() {
                                       {parent.name}
                                     </span>
                                   )}
-                                  <span className={`text-sm font-medium text-muted-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`}>
-                                    — {variantLabel}
-                                  </span>
+                                  {is48v ? (
+                                    <span className={`text-sm font-bold text-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`}>
+                                      {variantLabel}
+                                    </span>
+                                  ) : (
+                                    <span className={`text-sm font-medium text-muted-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`}>
+                                      — {variantLabel}
+                                    </span>
+                                  )}
                                 </>
                               );
                             })() : (
@@ -533,9 +542,6 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground print:text-black mt-0.5" data-testid={`text-upgrade-description-${upgrade.id}`}>
-                            {upgrade.description}
-                          </p>
                         </div>
                       </div>
                     );
