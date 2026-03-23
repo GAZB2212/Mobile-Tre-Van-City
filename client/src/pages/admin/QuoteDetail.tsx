@@ -1413,11 +1413,18 @@ export default function AdminQuoteDetail() {
                     </div>
 
                     {/* Option B */}
-                    <div className={`rounded-md border p-4 space-y-2 ${quote.chosenOption === 'B' ? 'border-accent bg-accent/5' : ''}`} data-testid="card-option-b">
+                    <div className={`relative rounded-md border p-4 space-y-2 transition-opacity ${quote.chosenOption === 'B' ? 'border-accent bg-accent/5' : quote.chosenOption === 'A' ? 'opacity-40' : ''}`} data-testid="card-option-b">
+                      {quote.chosenOption === 'A' && (
+                        <div className="absolute inset-0 rounded-md flex items-center justify-center bg-background/10 z-10">
+                          <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded">Not chosen</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-sm">Option B (Alternative)</p>
                         {quote.chosenOption === 'B' && (
-                          <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">Chosen</Badge>
+                          <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />Chosen
+                          </Badge>
                         )}
                       </div>
                       <div className="text-sm space-y-1 text-muted-foreground">
@@ -2167,6 +2174,37 @@ export default function AdminQuoteDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
+                  {/* Comparison mode gate */}
+                  {isComparison && !quote.chosenOption && (
+                    <div className="flex items-start gap-3 p-3 rounded-md border border-amber-500/40 bg-amber-500/5" data-testid="banner-awaiting-choice">
+                      <XCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Awaiting customer choice</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          The customer has not yet selected Option A or Option B. Wait for them to choose via the email link, or manually lock in their choice on the Configuration tab before sending to finance.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {isComparison && quote.chosenOption && (() => {
+                    const chosenVan = quote.chosenOption === 'B'
+                      ? vans.find(v => v.id === quote.comparisonConfig?.slotB?.vanId)
+                      : vans.find(v => v.id === quote.comparisonConfig?.slotA?.vanId);
+                    const chosenVanLabel = chosenVan
+                      ? `${chosenVan.year} ${chosenVan.make} ${chosenVan.model}`
+                      : quote.chosenOption === 'B'
+                        ? (quote.comparisonConfig?.slotB?.vanRegistration ?? 'own van')
+                        : (quote.comparisonConfig?.slotA?.vanRegistration ?? 'own van');
+                    return (
+                      <div className="flex items-start gap-3 p-3 rounded-md border border-accent/40 bg-accent/5" data-testid="banner-chosen-option">
+                        <CheckCircle2 className="w-4 h-4 text-accent mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Sending spec for Option {quote.chosenOption}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Van: {chosenVanLabel} — this is the customer's confirmed choice.</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {/* Step 1 */}
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 1 — Customer confirmation</Label>
@@ -2206,9 +2244,18 @@ export default function AdminQuoteDetail() {
                   {/* Step 4 */}
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wide">Step 4 — Send application</Label>
-                    <Button className="w-full bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => sendFinanceMutation.mutate()} disabled={!customerConfirmed || sendFinanceMutation.isPending} data-testid="button-send-finance">
+                    <Button
+                      className="w-full bg-[#8bc440e6] text-[#191919] border-green-600"
+                      onClick={() => sendFinanceMutation.mutate()}
+                      disabled={!customerConfirmed || sendFinanceMutation.isPending || (isComparison && !quote.chosenOption)}
+                      data-testid="button-send-finance"
+                    >
                       <Send className="w-4 h-4 mr-2" />
-                      {sendFinanceMutation.isPending ? "Sending..." : "Send to Finance Company"}
+                      {sendFinanceMutation.isPending
+                        ? "Sending..."
+                        : isComparison && quote.chosenOption
+                          ? `Send Option ${quote.chosenOption} to Finance`
+                          : "Send to Finance Company"}
                     </Button>
                     <div className="space-y-1">
                       <Input
@@ -2219,12 +2266,20 @@ export default function AdminQuoteDetail() {
                         className="text-xs"
                         data-testid="input-preview-email"
                       />
-                      <Button size="sm" variant="outline" className="w-full" onClick={() => sendFinancePreviewMutation.mutate()} disabled={sendFinancePreviewMutation.isPending || !previewEmail.trim()} data-testid="button-send-finance-preview">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => sendFinancePreviewMutation.mutate()}
+                        disabled={sendFinancePreviewMutation.isPending || !previewEmail.trim() || (isComparison && !quote.chosenOption)}
+                        data-testid="button-send-finance-preview"
+                      >
                         <Send className="w-3 h-3 mr-2" />
                         {sendFinancePreviewMutation.isPending ? "Sending..." : "Send preview to me"}
                       </Button>
                     </div>
                     {!customerConfirmed && <p className="text-xs text-muted-foreground text-center">Tick "Customer confirms the configurator" to enable</p>}
+                    {isComparison && !quote.chosenOption && <p className="text-xs text-muted-foreground text-center">Customer must choose an option before sending to finance</p>}
                     {quote.financeSentAt && (
                       <p className="text-xs text-muted-foreground text-center">
                         Last sent: {new Date(quote.financeSentAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
