@@ -110,6 +110,16 @@ function fmtDec(pence: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 }).format(pence / 100);
 }
 
+function calcFinance(totalGbp: number, depositGbp: number, years: number) {
+  if (totalGbp <= 0 || depositGbp >= totalGbp) return null;
+  const principal = totalGbp - depositGbp;
+  const r = FINANCE_APR / 12;
+  const n = years * 12;
+  const monthly = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  const weekly = (monthly * 12) / 52;
+  return { principal, monthly, weekly, totalRepayable: monthly * n, totalInterest: monthly * n - principal, deposit: depositGbp, total: totalGbp };
+}
+
 function groupUpgrades(upgrades: Upgrade[]) {
   const parentIds = new Set(upgrades.filter(u => u.parentId).map(u => u.parentId!));
   const parentMap = new Map<string, { parent: Upgrade; variants: Upgrade[] }>();
@@ -366,6 +376,24 @@ export default function AdminConfigurator() {
     return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
   }, [allVans, slotA, configData, allUpgradesList, upgradeQuantities]);
 
+  // ── SlotB pricing — in compare mode, slot B uses a different van but shares kit/upgrades from slotA.
+  const slotBPricing = useMemo(() => {
+    if (!compareMode) return null;
+    const slotBVan = allVans.find(v => v.id === slotB.vanId);
+    const vanPrice = slotBVan?.price ?? slotB.customVanValue ?? 0;
+    if (vanPrice === 0 && !slotB.vanId && !slotB.customVanValue) return null;
+    const kit = configData?.kits.find((k: any) => k.id === slotA.kitId);
+    const kitPrice = kit?.price ?? 0;
+    const upgradesTotal = slotA.upgradeIds.reduce((sum, id) => {
+      const u = allUpgradesList.find(x => x.id === id);
+      const qty = upgradeQuantities[id] ?? 1;
+      return sum + (u?.price ?? 0) * qty;
+    }, 0);
+    const subtotalPence = vanPrice + kitPrice + upgradesTotal;
+    const vatPence = Math.round(subtotalPence * 0.2);
+    return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
+  }, [compareMode, allVans, slotA, slotB, configData, allUpgradesList, upgradeQuantities]);
+
   // ── Discount preview (for the Save dialog UI only — server recalculates definitively via PATCH)
   const discountedPricing = useMemo(() => {
     const totalWithVat = slotAPricing.totalPence;
@@ -384,17 +412,20 @@ export default function AdminConfigurator() {
     ? (discountedPricing.finalTotal / 1.2) / 100
     : discountedPricing.finalTotal / 100;
 
+  const financeBaseB = slotBPricing
+    ? (deferVat ? (slotBPricing.totalPence / 1.2) / 100 : slotBPricing.totalPence / 100)
+    : null;
+
   const financeCalc = useMemo(() => {
     const deposit = parseFloat(depositAmount) || 0;
-    const total = financeBase;
-    if (total <= 0 || deposit >= total) return null;
-    const principal = total - deposit;
-    const r = FINANCE_APR / 12;
-    const n = termYears * 12;
-    const monthly = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-    const weekly = (monthly * 12) / 52;
-    return { principal, monthly, weekly, totalRepayable: monthly * n, totalInterest: monthly * n - principal, deposit, total };
+    return calcFinance(financeBase, deposit, termYears);
   }, [financeBase, depositAmount, termYears]);
+
+  const financeCalcB = useMemo(() => {
+    if (!financeBaseB) return null;
+    const deposit = parseFloat(depositAmount) || 0;
+    return calcFinance(financeBaseB, deposit, termYears);
+  }, [financeBaseB, depositAmount, termYears]);
 
   // ── Save as quote
   const saveMutation = useMutation({
@@ -1072,18 +1103,37 @@ export default function AdminConfigurator() {
                   <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {deferVat ? "Finance Amount (ex-VAT)" : "Total (inc. VAT)"}
                   </Label>
-                  <div className="relative">
-                    <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
-                    <Input
-                      type="text"
-                      value={fmt(deferVat
-                        ? Math.round(discountedPricing.finalTotal / 1.2)
-                        : discountedPricing.finalTotal
-                      ).replace("£", "")}
-                      disabled
-                      className="pl-9 bg-muted/50 font-bold text-base text-foreground"
-                    />
-                  </div>
+                  {compareMode && slotBPricing ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Option A</p>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground" />
+                          <Input type="text" value={fmt(deferVat ? Math.round(discountedPricing.finalTotal / 1.2) : discountedPricing.finalTotal).replace("£", "")} disabled className="pl-7 bg-muted/50 font-bold text-sm text-foreground" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Option B</p>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-foreground" />
+                          <Input type="text" value={fmt(deferVat ? Math.round(slotBPricing.totalPence / 1.2) : slotBPricing.totalPence).replace("£", "")} disabled className="pl-7 bg-muted/50 font-bold text-sm text-foreground" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
+                      <Input
+                        type="text"
+                        value={fmt(deferVat
+                          ? Math.round(discountedPricing.finalTotal / 1.2)
+                          : discountedPricing.finalTotal
+                        ).replace("£", "")}
+                        disabled
+                        className="pl-9 bg-muted/50 font-bold text-base text-foreground"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Deposit */}
@@ -1111,32 +1161,74 @@ export default function AdminConfigurator() {
                 </div>
 
                 {/* Results */}
-                {financeCalc ? (
+                {(financeCalc || (compareMode && financeCalcB)) ? (
                   <div className="pt-4 border-t space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-accent/5 border border-accent/20 rounded-md p-3 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Monthly</p>
-                        <p className="text-lg font-bold text-accent" data-testid="text-monthly-payment">
-                          {fmtDec(financeCalc.monthly * 100)}
+                    {compareMode && slotBPricing ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Option A */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-center text-muted-foreground">Option A</p>
+                            <div className="bg-accent/5 border border-accent/20 rounded-md p-2 text-center">
+                              <p className="text-xs text-muted-foreground mb-0.5">Monthly</p>
+                              <p className="text-base font-bold text-accent" data-testid="text-monthly-payment">
+                                {financeCalc ? fmtDec(financeCalc.monthly * 100) : "—"}
+                              </p>
+                            </div>
+                            <div className="bg-accent/5 border border-accent/20 rounded-md p-2 text-center">
+                              <p className="text-xs text-muted-foreground mb-0.5">Weekly</p>
+                              <p className="text-base font-bold text-accent" data-testid="text-weekly-payment">
+                                {financeCalc ? fmtDec(financeCalc.weekly * 100) : "—"}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Option B */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-center text-muted-foreground">Option B</p>
+                            <div className="bg-accent/5 border border-accent/20 rounded-md p-2 text-center">
+                              <p className="text-xs text-muted-foreground mb-0.5">Monthly</p>
+                              <p className="text-base font-bold text-accent" data-testid="text-monthly-payment-b">
+                                {financeCalcB ? fmtDec(financeCalcB.monthly * 100) : "—"}
+                              </p>
+                            </div>
+                            <div className="bg-accent/5 border border-accent/20 rounded-md p-2 text-center">
+                              <p className="text-xs text-muted-foreground mb-0.5">Weekly</p>
+                              <p className="text-base font-bold text-accent" data-testid="text-weekly-payment-b">
+                                {financeCalcB ? fmtDec(financeCalcB.weekly * 100) : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center">{termYears * 12} months • 10.9% APR</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-accent/5 border border-accent/20 rounded-md p-3 text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Monthly</p>
+                            <p className="text-lg font-bold text-accent" data-testid="text-monthly-payment">
+                              {fmtDec(financeCalc!.monthly * 100)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{termYears * 12} months</p>
+                          </div>
+                          <div className="bg-accent/5 border border-accent/20 rounded-md p-3 text-center">
+                            <p className="text-xs text-muted-foreground mb-1">Weekly</p>
+                            <p className="text-lg font-bold text-accent" data-testid="text-weekly-payment">
+                              {fmtDec(financeCalc!.weekly * 100)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">approx.</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div><p className="text-muted-foreground">Financed</p><p className="font-semibold">{fmt(financeCalc!.principal * 100)}</p></div>
+                          <div><p className="text-muted-foreground">Interest</p><p className="font-semibold">{fmt(financeCalc!.totalInterest * 100)}</p></div>
+                          <div><p className="text-muted-foreground">Repayable</p><p className="font-semibold">{fmt(financeCalc!.totalRepayable * 100)}</p></div>
+                        </div>
+                        <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 leading-relaxed">
+                          <strong>Rep. example:</strong> {fmt(financeCalc!.total * 100)} cash, {fmt(financeCalc!.deposit * 100)} deposit, {termYears * 12} × {fmtDec(financeCalc!.monthly * 100)}, total {fmt((financeCalc!.totalRepayable + financeCalc!.deposit) * 100)}, 10.9% APR.
                         </p>
-                        <p className="text-xs text-muted-foreground">{termYears * 12} months</p>
-                      </div>
-                      <div className="bg-accent/5 border border-accent/20 rounded-md p-3 text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Weekly</p>
-                        <p className="text-lg font-bold text-accent" data-testid="text-weekly-payment">
-                          {fmtDec(financeCalc.weekly * 100)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">approx.</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div><p className="text-muted-foreground">Financed</p><p className="font-semibold">{fmt(financeCalc.principal * 100)}</p></div>
-                      <div><p className="text-muted-foreground">Interest</p><p className="font-semibold">{fmt(financeCalc.totalInterest * 100)}</p></div>
-                      <div><p className="text-muted-foreground">Repayable</p><p className="font-semibold">{fmt(financeCalc.totalRepayable * 100)}</p></div>
-                    </div>
-                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 leading-relaxed">
-                      <strong>Rep. example:</strong> {fmt(financeCalc.total * 100)} cash, {fmt(financeCalc.deposit * 100)} deposit, {termYears * 12} × {fmtDec(financeCalc.monthly * 100)}, total {fmt((financeCalc.totalRepayable + financeCalc.deposit) * 100)}, 10.9% APR.
-                    </p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground text-center py-2">Enter a deposit to calculate payments</p>
