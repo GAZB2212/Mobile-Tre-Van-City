@@ -574,6 +574,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
 
+        // Compute finance figures for both options if financeInputs were provided
+        type FinanceInfo = { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number };
+        function calcFinanceForEmail(totalPence: number, fi: { deposit?: number; term?: number } | null | undefined): FinanceInfo | null {
+          if (!fi || !fi.term || fi.term <= 0 || totalPence <= 0) return null;
+          const depositPence = fi.deposit ?? 0;
+          const principal = (totalPence - depositPence) / 100;
+          if (principal <= 0) return null;
+          const r = 0.109 / 12;
+          const n = fi.term;
+          const monthly = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          return {
+            depositAmount: depositPence,
+            termMonths: n,
+            monthlyPayment: Math.round(monthly * 100),
+            weeklyPayment: Math.round((monthly * 12 / 52) * 100),
+          };
+        }
+        const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
+        const financeInfoA = comparisonSlotBEmail ? calcFinanceForEmail(quote.estTotal, fi) : null;
+        const financeInfoB = (comparisonSlotBEmail && comparisonSlotBEmail.estTotal != null)
+          ? calcFinanceForEmail(comparisonSlotBEmail.estTotal, fi)
+          : null;
+
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         await sendQuoteReceivedEmails({
           quote,
@@ -581,6 +604,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           kitName: kit?.name ?? null,
           upgradeNames: upgrades.filter(Boolean).map((u: any) => u.name),
           comparisonSlotB: comparisonSlotBEmail,
+          financeInfoA: financeInfoA ?? undefined,
+          financeInfoB: financeInfoB ?? undefined,
           // chosenOption is null at submission time (admin chooses later), but wired here
           // so resend/re-trigger email paths can pass the current chosen state
           chosenOption: null,

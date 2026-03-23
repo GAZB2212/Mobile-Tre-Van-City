@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,11 +18,24 @@ import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
 export default function SelectFinance() {
   const [, setLocation] = useLocation();
-  const { state, slotA, slotB, compareMode } = useConfigurator();
-  const [termYears, setTermYears] = useState<number>(3);
-  const [depositAmount, setDepositAmount] = useState<string>("");
+  const { state, slotA, slotB, compareMode, setFinanceInputs } = useConfigurator();
+  const [termYears, setTermYears] = useState<number>(
+    state.financeInputs?.term ? Math.round(state.financeInputs.term / 12) : 3
+  );
+  const [depositAmount, setDepositAmount] = useState<string>(
+    state.financeInputs?.deposit ? String((state.financeInputs.deposit / 100).toFixed(0)) : ""
+  );
   const [vatRegistered, setVatRegistered] = useState<boolean>(false);
   const [deferVat, setDeferVat] = useState<boolean>(false);
+
+  // Persist deposit/term to context so they carry through to the quote submission
+  useEffect(() => {
+    const deposit = parseFloat(depositAmount) || 0;
+    setFinanceInputs({
+      deposit: Math.round(deposit * 100), // stored in pence
+      term: termYears * 12,               // stored in months
+    });
+  }, [depositAmount, termYears]);
 
   // Fetch selected items to get their prices (slot A / active slot)
   const { data: van } = useQuery<Van>({

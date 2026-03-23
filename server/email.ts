@@ -458,6 +458,8 @@ export async function sendQuoteReceivedEmails({
   kitName,
   upgradeNames,
   comparisonSlotB,
+  financeInfoA,
+  financeInfoB,
   chosenOption,
   baseUrl,
 }: {
@@ -483,6 +485,20 @@ export async function sendQuoteReceivedEmails({
     estVAT?: number;
     estTotal?: number;
   } | null;
+  /** Finance illustration for Option A (only shown in compare mode) */
+  financeInfoA?: {
+    depositAmount: number;
+    termMonths: number;
+    monthlyPayment: number;
+    weeklyPayment: number;
+  };
+  /** Finance illustration for Option B (only shown in compare mode) */
+  financeInfoB?: {
+    depositAmount: number;
+    termMonths: number;
+    monthlyPayment: number;
+    weeklyPayment: number;
+  };
   /** When set, highlights the chosen option in the comparison sections */
   chosenOption?: 'A' | 'B' | null;
   /** Base URL for the choose-option links in comparison emails (e.g. https://mobiletyrevancity.co.uk) */
@@ -555,6 +571,13 @@ export async function sendQuoteReceivedEmails({
         ${originalTotal ? `<tr><td style="color:#6b7280;">Before discount</td><td style="color:#6b7280;text-decoration:line-through;">${originalTotal}</td></tr>` : ''}
         ${discountFmt ? `<tr><td style="color:#166534;font-weight:bold;">Discount</td><td style="color:#166534;font-weight:bold;">-${discountFmt}</td></tr>` : ''}
         <tr class="total-row"><td>Total${discountAmountPence > 0 ? ' (after discount)' : ''}</td><td>${total}</td></tr>
+        ${financeInfoA ? `
+        <tr><td colspan="2" style="padding-top:12px;padding-bottom:4px;font-weight:bold;font-size:13px;color:#191919;border-top:2px solid #e5e7eb;">Finance Illustration (HP — 10.9% APR)</td></tr>
+        <tr><td style="color:#6b7280;">Deposit</td><td>£${(financeInfoA.depositAmount / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td style="color:#6b7280;">Term</td><td>${financeInfoA.termMonths} months${financeInfoA.termMonths % 12 === 0 ? ` (${financeInfoA.termMonths / 12} yr${financeInfoA.termMonths / 12 !== 1 ? 's' : ''})` : ''}</td></tr>
+        <tr><td style="color:#6b7280;">Est. Monthly</td><td style="font-weight:bold;color:#8bc440;">£${(financeInfoA.monthlyPayment / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}/month</td></tr>
+        <tr><td style="color:#6b7280;">Est. Weekly</td><td>£${(financeInfoA.weeklyPayment / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}/week (approx.)</td></tr>
+        ` : ''}
       </table>
       ${comparisonSlotB && !chosenOption && baseUrl ? `
       <div style="text-align:center;margin:12px 0 24px;">
@@ -569,6 +592,13 @@ export async function sendQuoteReceivedEmails({
         ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal</td><td>£${(comparisonSlotB.estSubtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estTotal != null ? `<tr class="total-row"><td>Total</td><td>£${(comparisonSlotB.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
+        ${financeInfoB ? `
+        <tr><td colspan="2" style="padding-top:12px;padding-bottom:4px;font-weight:bold;font-size:13px;color:#191919;border-top:2px solid #e5e7eb;">Finance Illustration (HP — 10.9% APR)</td></tr>
+        <tr><td style="color:#6b7280;">Deposit</td><td>£${(financeInfoB.depositAmount / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td style="color:#6b7280;">Term</td><td>${financeInfoB.termMonths} months${financeInfoB.termMonths % 12 === 0 ? ` (${financeInfoB.termMonths / 12} yr${financeInfoB.termMonths / 12 !== 1 ? 's' : ''})` : ''}</td></tr>
+        <tr><td style="color:#6b7280;">Est. Monthly</td><td style="font-weight:bold;color:#8bc440;">£${(financeInfoB.monthlyPayment / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}/month</td></tr>
+        <tr><td style="color:#6b7280;">Est. Weekly</td><td>£${(financeInfoB.weeklyPayment / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}/week (approx.)</td></tr>
+        ` : ''}
       </table>
       ${!chosenOption && baseUrl ? `
       <div style="text-align:center;margin:12px 0 24px;">
@@ -584,7 +614,7 @@ export async function sendQuoteReceivedEmails({
   </div>
 </body>
 </html>`,
-    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${comparisonSlotB ? `\nOPTION A\n` : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n${financeInfoA ? `Finance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)\n` : ''}${comparisonSlotB ? `\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}\n` : ''}${financeInfoB ? `Finance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)\n` : ''}` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 
   // 2. Admin notification

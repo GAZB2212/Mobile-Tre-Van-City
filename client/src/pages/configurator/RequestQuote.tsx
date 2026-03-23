@@ -31,7 +31,7 @@ type QuoteFormData = z.infer<typeof quoteFormSchema>;
 
 export default function RequestQuote() {
   const [, setLocation] = useLocation();
-  const { state, clearAll } = useConfigurator();
+  const { state, slotA, slotB, compareMode, clearAll } = useConfigurator();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
@@ -40,6 +40,12 @@ export default function RequestQuote() {
   const { data: van, isLoading: isLoadingVan } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
     enabled: !!state.vanId,
+  });
+
+  // In compare mode, also fetch Option B's van for pricing
+  const { data: vanB } = useQuery<Van>({
+    queryKey: ['/api/vans', slotB.vanId],
+    enabled: compareMode && !!slotB.vanId,
   });
 
   const { data: kit, isLoading: isLoadingKit } = useQuery<Kit>({
@@ -83,7 +89,8 @@ export default function RequestQuote() {
       state.upgradeIds.forEach(id => {
         selectedUpgrades[id] = 1;
       });
-      
+
+      // Option A pricing
       let subtotal = 0;
       if (van) subtotal += van.price;
       else subtotal += ownVanPricePence;
@@ -94,11 +101,25 @@ export default function RequestQuote() {
       trainingOptions.forEach(option => {
         subtotal += option.price;
       });
-      
       const vat = Math.round(subtotal * 0.2);
       const total = subtotal + vat;
 
-      const quoteData = {
+      // Option B pricing (compare mode — only van differs)
+      let subtotalB = 0;
+      if (compareMode) {
+        const vanBPrice = vanB?.price ?? slotB.customVanValue ?? 0;
+        subtotalB = vanBPrice;
+        if (kit) subtotalB += kit.price;
+        upgrades.forEach(upgrade => { subtotalB += upgrade.price; });
+        trainingOptions.forEach(option => { subtotalB += option.price; });
+      }
+      const vatB = Math.round(subtotalB * 0.2);
+      const totalB = subtotalB + vatB;
+
+      const sharedFinanceInputs = state.financeInputs ?? undefined;
+      const slotBHasData = compareMode && !!(slotB.vanId || slotB.vanReg || slotB.customVanValue);
+
+      const quoteData: Record<string, unknown> = {
         ...formData,
         serviceType: state.serviceType ?? undefined,
         vanId: state.vanId,
@@ -109,10 +130,42 @@ export default function RequestQuote() {
         selectedUpgrades: selectedUpgrades,
         trainingOptionIds: state.trainingOptionIds,
         financePlanId: state.financePlanId,
-        financeInputs: state.financeInputs,
+        financeInputs: sharedFinanceInputs,
         estSubtotal: subtotal,
         estVAT: vat,
         estTotal: total,
+        ...(slotBHasData ? {
+          comparisonConfig: {
+            slotA: {
+              vanId: slotA.vanId,
+              customVanValue: slotA.customVanValue ?? undefined,
+              vanRegistration: slotA.vanReg ?? undefined,
+              serviceType: slotA.serviceType,
+              kitId: slotA.kitId,
+              upgradeIds: slotA.upgradeIds,
+              trainingOptionIds: slotA.trainingOptionIds,
+              financePlanId: slotA.financePlanId,
+              financeInputs: sharedFinanceInputs,
+              estSubtotal: subtotal,
+              estVAT: vat,
+              estTotal: total,
+            },
+            slotB: {
+              vanId: slotB.vanId,
+              customVanValue: slotB.customVanValue ?? undefined,
+              vanRegistration: slotB.vanReg ?? undefined,
+              serviceType: slotA.serviceType,
+              kitId: slotA.kitId,
+              upgradeIds: slotA.upgradeIds,
+              trainingOptionIds: slotA.trainingOptionIds,
+              financePlanId: slotA.financePlanId,
+              financeInputs: sharedFinanceInputs,
+              estSubtotal: subtotalB,
+              estVAT: vatB,
+              estTotal: totalB,
+            },
+          },
+        } : {}),
       };
 
       return apiRequest('POST', '/api/quotes', quoteData);
