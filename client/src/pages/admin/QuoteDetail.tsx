@@ -1350,11 +1350,18 @@ export default function AdminQuoteDetail() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Option A */}
-                    <div className={`rounded-md border p-4 space-y-2 ${quote.chosenOption === 'A' ? 'border-accent bg-accent/5' : ''}`} data-testid="card-option-a">
+                    <div className={`relative rounded-md border p-4 space-y-2 transition-opacity ${quote.chosenOption === 'A' ? 'border-accent bg-accent/5' : quote.chosenOption === 'B' ? 'opacity-40' : ''}`} data-testid="card-option-a">
+                      {quote.chosenOption === 'B' && (
+                        <div className="absolute inset-0 rounded-md flex items-center justify-center bg-background/10 z-10">
+                          <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded">Not chosen</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-sm">Option A (Primary)</p>
                         {quote.chosenOption === 'A' && (
-                          <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">Chosen</Badge>
+                          <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />Chosen
+                          </Badge>
                         )}
                       </div>
                       <div className="text-sm space-y-1 text-muted-foreground">
