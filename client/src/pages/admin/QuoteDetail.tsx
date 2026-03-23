@@ -181,6 +181,8 @@ export default function AdminQuoteDetail() {
 
   // Active detail tab
   const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build" | "notes">("overview");
+  // Compare mode: which option is the admin currently viewing
+  const [viewingSlot, setViewingSlot] = useState<'A' | 'B'>('A');
 
   // Unsaved-changes guard (all tabs + back navigation)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -271,6 +273,10 @@ export default function AdminQuoteDetail() {
       setEditorDepositAmount(depositPence !== undefined && depositPence !== null ? String(depositPence / 100) : "");
       const termMonths = quote.financeInputs?.term;
       setEditorTermYears(termMonths ? Math.round(termMonths / 12) : 3);
+
+      // Auto-sync viewing slot to chosen option when the quote loads
+      if (quote.chosenOption === 'B') setViewingSlot('B');
+      else setViewingSlot('A');
     }
   }, [quote]);
 
@@ -819,12 +825,25 @@ export default function AdminQuoteDetail() {
   // Fixed APR for finance calculations
   const FINANCE_APR = 0.109; // 10.9%
 
+  // Pricing for the currently viewed slot (A = live edited, B = server-stored from comparisonConfig)
+  const isComparison = !!(quote?.comparisonConfig?.slotA && quote?.comparisonConfig?.slotB);
+  const slotBStored = quote?.comparisonConfig?.slotB;
+  const viewingPricing = (viewingSlot === 'B' && isComparison && slotBStored?.estTotal != null)
+    ? {
+        subtotal: slotBStored.estSubtotal ?? Math.round((slotBStored.estTotal) / 1.2),
+        discount: 0,
+        subtotalAfterDiscount: slotBStored.estSubtotal ?? Math.round((slotBStored.estTotal) / 1.2),
+        vat: slotBStored.estVAT ?? Math.round(slotBStored.estTotal - (slotBStored.estTotal / 1.2)),
+        total: slotBStored.estTotal,
+      }
+    : pricing;
+
   // Calculate saved finance info from quote.financeInputs (deposit in pence, term in months)
-  const calculateSavedFinance = () => {
+  const calculateSavedFinance = (totalPence: number) => {
     if (quote?.financeInputs?.deposit === undefined || quote?.financeInputs?.deposit === null || !quote?.financeInputs?.term) return null;
     const depositAmount = quote.financeInputs.deposit; // pence
     const termMonths = quote.financeInputs.term;
-    const principal = pricing.total - depositAmount;
+    const principal = totalPence - depositAmount;
     if (principal <= 0 || termMonths <= 0) return null;
     const monthlyRate = FINANCE_APR / 12;
     const pv = Math.pow(1 + monthlyRate, termMonths);
@@ -833,12 +852,12 @@ export default function AdminQuoteDetail() {
     return { depositAmount, termMonths, monthlyPayment, weeklyPayment, principal };
   };
 
-  const financeInfo = calculateSavedFinance();
+  const financeInfo = calculateSavedFinance(viewingPricing.total);
 
   // Live calculation for the editor
   const editorDepositPence = editorDepositAmount !== "" ? Math.round(parseFloat(editorDepositAmount) * 100) : 0;
   const editorTermMonths = editorTermYears * 12;
-  const editorPrincipal = pricing.total - editorDepositPence;
+  const editorPrincipal = viewingPricing.total - editorDepositPence;
   const editorFinanceInfo = (() => {
     if (editorPrincipal <= 0) return null;
     const monthlyRate = FINANCE_APR / 12;
@@ -962,6 +981,39 @@ export default function AdminQuoteDetail() {
             <TabsTrigger value="build" data-testid="tab-build">Build Progress</TabsTrigger>
             <TabsTrigger value="notes" data-testid="tab-notes">Internal Notes</TabsTrigger>
           </TabsList>
+
+          {/* Comparison slot toggle — visible on all tabs when this is a comparison quote */}
+          {isComparison && (
+            <div className="flex items-center gap-3 mb-4 p-3 rounded-md border bg-muted/30" data-testid="compare-slot-toggle">
+              <GitCompare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm text-muted-foreground flex-shrink-0">Viewing:</span>
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  variant={viewingSlot === 'A' ? 'default' : 'outline'}
+                  className={viewingSlot === 'A' ? 'bg-accent text-accent-foreground' : ''}
+                  onClick={() => setViewingSlot('A')}
+                  data-testid="button-view-slot-a"
+                >
+                  Option A {quote.chosenOption === 'A' && <CheckCircle2 className="w-3 h-3 ml-1.5" />}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewingSlot === 'B' ? 'default' : 'outline'}
+                  className={viewingSlot === 'B' ? 'bg-accent text-accent-foreground' : ''}
+                  onClick={() => setViewingSlot('B')}
+                  data-testid="button-view-slot-b"
+                >
+                  Option B {quote.chosenOption === 'B' && <CheckCircle2 className="w-3 h-3 ml-1.5" />}
+                </Button>
+              </div>
+              {quote.chosenOption ? (
+                <span className="text-xs text-muted-foreground">Option {quote.chosenOption} has been chosen — toggle to compare pricing.</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Toggle to view pricing, finance, and configuration for each van option.</span>
+              )}
+            </div>
+          )}
 
           <div className={`grid gap-6 ${activeTab === "finance" || activeTab === "overview" ? "lg:grid-cols-3" : ""}`}>
           {/* Left Column / Main content */}
@@ -1471,9 +1523,17 @@ export default function AdminQuoteDetail() {
                       <CardTitle className="flex items-center gap-2">
                         <Settings className="w-5 h-5" />
                         Edit Configuration
+                        {isComparison && (
+                          <Badge variant="outline" className="text-xs ml-1 no-default-active-elevate">
+                            Option {viewingSlot}
+                          </Badge>
+                        )}
                       </CardTitle>
                       <CardDescription>
-                        Modify the van, kit, and equipment selections
+                        {isComparison && viewingSlot === 'B'
+                          ? 'Viewing Option B pricing — kit, upgrades and edit controls apply to Option A (primary).'
+                          : 'Modify the van, kit, and equipment selections'
+                        }
                       </CardDescription>
                     </div>
                     <CollapsibleTrigger asChild>
@@ -1482,6 +1542,22 @@ export default function AdminQuoteDetail() {
                       </Button>
                     </CollapsibleTrigger>
                   </div>
+                  {/* Option B van info banner */}
+                  {isComparison && viewingSlot === 'B' && (() => {
+                    const bVan = vans.find(v => v.id === quote.comparisonConfig?.slotB?.vanId);
+                    const bVanLabel = bVan
+                      ? `${bVan.year} ${bVan.make} ${bVan.model} — £${(bVan.price / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
+                      : quote.comparisonConfig?.slotB?.vanRegistration
+                        ? `Own van (${quote.comparisonConfig.slotB.vanRegistration})`
+                        : null;
+                    return bVanLabel ? (
+                      <div className="mt-3 flex items-center gap-2 p-2.5 rounded-md bg-muted/50 border text-sm">
+                        <Truck className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground">Option B van:</span>
+                        <span className="font-medium">{bVanLabel}</span>
+                      </div>
+                    ) : null;
+                  })()}
                 </CardHeader>
                 <CollapsibleContent>
                   <CardContent className="space-y-6">
@@ -1795,12 +1871,22 @@ export default function AdminQuoteDetail() {
 
                 {/* Pricing Preview */}
                 <div className="pt-4 border-t">
-                  <div className="text-sm font-medium mb-2">Updated Pricing:</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium">
+                      {isComparison ? `Option ${viewingSlot} Pricing:` : 'Updated Pricing:'}
+                    </div>
+                    {isComparison && viewingSlot === 'B' && (
+                      <span className="text-xs text-muted-foreground">Van: {(() => {
+                        const bVan = vans.find(v => v.id === quote.comparisonConfig?.slotB?.vanId);
+                        return bVan ? `${bVan.year} ${bVan.make} ${bVan.model}` : (quote.comparisonConfig?.slotB?.vanRegistration ?? 'own van');
+                      })()}</span>
+                    )}
+                  </div>
                   {(() => {
-                    const subtotal = recalculatePricing();
-                    const vat = Math.round(subtotal * 0.2);
-                    const preTotalPence = subtotal + vat;
-                    const adj = calculateAdjustedPrice();
+                    const adj = viewingPricing;
+                    const subtotal = adj.subtotal;
+                    const vat = adj.vat;
+                    const preTotalPence = adj.total + adj.discount;
                     const hasDiscount = adj.discount > 0;
                     return (
                       <div className="space-y-1 text-sm">
@@ -2351,44 +2437,51 @@ export default function AdminQuoteDetail() {
             {/* Price Summary — visible in both overview and finance tabs */}
             <Card>
               <CardHeader>
-                <CardTitle>Price Summary</CardTitle>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardTitle>Price Summary</CardTitle>
+                  {isComparison && (
+                    <Badge variant="outline" className="text-xs no-default-active-elevate">
+                      Option {viewingSlot}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {pricing.discount > 0 && (
+                {viewingPricing.discount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Original Price (inc. VAT)</span>
                     <span className="font-medium">
-                      £{((pricing.total + pricing.discount) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                      £{((viewingPricing.total + viewingPricing.discount) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 )}
-                {pricing.discount > 0 && (
+                {viewingPricing.discount > 0 && (
                   <div className="flex justify-between text-sm text-accent">
                     <span className="font-medium">
                       Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
                     </span>
                     <span className="font-medium">
-                      -£{(pricing.discount / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                      -£{(viewingPricing.discount / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal (ex. VAT)</span>
                   <span className="font-medium">
-                    £{(pricing.subtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    £{(viewingPricing.subtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">VAT (20%)</span>
                   <span className="font-medium">
-                    £{(pricing.vat / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    £{(viewingPricing.vat / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Total (inc. VAT)</span>
                   <span className="text-2xl font-bold text-accent">
-                    £{(pricing.total / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    £{(viewingPricing.total / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 
