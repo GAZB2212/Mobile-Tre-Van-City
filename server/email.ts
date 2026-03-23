@@ -94,10 +94,16 @@ export async function sendQuoteConfirmationEmail({
     .header h1 { color: #8bc440; margin: 0; }
     .content { background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
     .price-box { background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; }
-    .button { display: inline-block; background-color: #8bc440; color: #191919; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
+    .button { display: block; max-width: 280px; margin: 20px auto; background-color: #8bc440; color: #191919; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; box-sizing: border-box; }
     .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
     .savings { background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin: 15px 0; font-weight: bold; }
     .notes { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header { padding: 24px 16px !important; }
+      .content { padding: 20px 16px !important; }
+      .button { max-width: 100% !important; }
+    }
   </style>
 </head>
 <body>
@@ -211,22 +217,14 @@ export async function sendQuoteSpecSummaryEmail({
     <div style="margin: 28px 0; padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center;">
       <p style="font-size: 15px; font-weight: bold; margin: 0 0 6px;">Does this look correct?</p>
       <p style="font-size: 13px; color: #6b7280; margin: 0 0 20px;">Please let us know whether the spec above is right, or if anything needs changing.</p>
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-        <tr>
-          <td style="padding-right: 12px;">
-            <a href="${siteBase}/spec-approval/${approvalToken}?status=approved"
-               style="display:inline-block; background:${brandGreen}; color:${brandDark}; font-weight:bold; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:4px;">
-              This looks correct
-            </a>
-          </td>
-          <td>
-            <a href="${siteBase}/spec-approval/${approvalToken}?status=rejected"
-               style="display:inline-block; background:#fff; color:#374151; font-weight:bold; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:4px; border:1px solid #d1d5db;">
-              Something needs changing
-            </a>
-          </td>
-        </tr>
-      </table>
+      <a href="${siteBase}/spec-approval/${approvalToken}?status=approved"
+         style="display:block; max-width:280px; margin:0 auto 12px; background:${brandGreen}; color:${brandDark}; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; text-align:center; box-sizing:border-box;">
+        This looks correct
+      </a>
+      <a href="${siteBase}/spec-approval/${approvalToken}?status=rejected"
+         style="display:block; max-width:280px; margin:0 auto; background:#fff; color:#374151; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; border:1px solid #d1d5db; text-align:center; box-sizing:border-box;">
+        Something needs changing
+      </a>
     </div>
   ` : '';
 
@@ -241,19 +239,26 @@ export async function sendQuoteSpecSummaryEmail({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; }
+    .container { max-width: 600px; margin: 0 auto; width: 100%; }
     .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
     .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
     .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
     .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
     .ref-box { background: #f3f4f6; border-left: 4px solid ${brandGreen}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
     table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
     td:first-child { color: #6b7280; width: 40%; }
     .total-row td { font-weight: bold; font-size: 18px; border-top: 2px solid ${brandGreen}; border-bottom: none; color: ${brandDark}; }
     .total-row td:last-child { color: ${brandGreen}; }
     .note-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
     .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header { padding: 24px 16px !important; }
+      .content { padding: 20px 16px !important; }
+      td { padding: 8px 6px !important; }
+      td:first-child { width: 45% !important; }
+    }
   </style>
 </head>
 <body>
@@ -358,21 +363,29 @@ export async function sendFinanceSubmissionEmail({
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-    .container { max-width: 650px; margin: 0 auto; }
+    .container { max-width: 650px; margin: 0 auto; width: 100%; }
     .header { background-color: ${brandDark}; padding: 28px 30px; }
     .header h1 { color: ${brandGreen}; margin: 0; font-size: 24px; }
     .header p { color: #ccc; margin: 4px 0 0; font-size: 13px; }
     .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
     .section-title { font-size: 14px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid ${brandGreen}; padding-bottom: 6px; margin: 24px 0 12px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
     td:first-child { color: #6b7280; width: 40%; font-weight: 500; }
     .total-row td { font-weight: bold; font-size: 17px; border-top: 2px solid ${brandGreen}; border-bottom: none; }
     .total-row td:last-child { color: ${brandGreen}; }
     .footer { text-align: center; padding: 18px; color: #9ca3af; font-size: 12px; }
     .ref-pill { display: inline-block; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 4px 12px; font-family: monospace; font-size: 14px; font-weight: bold; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header { padding: 20px 16px !important; }
+      .content { padding: 20px 16px !important; }
+      td { padding: 8px 6px !important; }
+      td:first-child { width: 45% !important; }
+    }
   </style>
 </head>
 <body>
@@ -530,7 +543,7 @@ export async function sendQuoteReceivedEmails({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; }
+    .container { max-width: 600px; margin: 0 auto; width: 100%; }
     .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
     .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
     .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
@@ -538,10 +551,17 @@ export async function sendQuoteReceivedEmails({
     .ref-box { background: #f3f4f6; border-left: 4px solid ${brandGreen}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
     .ref-box p { margin: 0; }
     .summary { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .summary td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    .summary td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
     .summary td:first-child { color: #6b7280; width: 40%; }
     .total-row td { font-weight: bold; font-size: 16px; border-top: 2px solid ${brandGreen}; border-bottom: none; }
     .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header { padding: 24px 16px !important; }
+      .content { padding: 20px 16px !important; }
+      .summary td { padding: 8px 6px !important; }
+      .summary td:first-child { width: 42% !important; }
+    }
   </style>
 </head>
 <body>
@@ -581,7 +601,7 @@ export async function sendQuoteReceivedEmails({
       </table>
       ${comparisonSlotB && !chosenOption && baseUrl ? `
       <div style="text-align:center;margin:12px 0 24px;">
-        <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=A" style="display:inline-block;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:12px 32px;border-radius:4px;text-decoration:none;">I choose Option A</a>
+        <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=A" style="display:block;max-width:260px;margin:0 auto;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:14px 28px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">I choose Option A</a>
       </div>` : ''}
       ${comparisonSlotB ? `
       <p style="font-weight:bold;font-size:14px;margin-top:20px;margin-bottom:4px;color:#191919;">Option B${chosenOption === 'B' ? ' <span style="background:#8bc440;color:#191919;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>' : ''}</p>
@@ -602,7 +622,7 @@ export async function sendQuoteReceivedEmails({
       </table>
       ${!chosenOption && baseUrl ? `
       <div style="text-align:center;margin:12px 0 24px;">
-        <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=B" style="display:inline-block;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:12px 32px;border-radius:4px;text-decoration:none;">I choose Option B</a>
+        <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=B" style="display:block;max-width:260px;margin:0 auto;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:14px 28px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">I choose Option B</a>
       </div>` : ''}
       ` : ''}
       <p>If you have any questions in the meantime, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
@@ -626,14 +646,20 @@ export async function sendQuoteReceivedEmails({
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; }
     h2 { color: ${brandDark}; border-bottom: 3px solid ${brandGreen}; padding-bottom: 8px; }
     table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
     td:first-child { font-weight: bold; color: #6b7280; width: 35%; }
     .total td { font-weight: bold; font-size: 16px; border-top: 2px solid ${brandGreen}; }
+    @media screen and (max-width: 600px) {
+      .container { padding: 14px !important; }
+      td { padding: 8px 6px !important; }
+      td:first-child { width: 40% !important; }
+    }
   </style>
 </head>
 <body>
@@ -894,8 +920,14 @@ export async function sendNewUserWelcomeEmail({
     .credentials-box td { padding: 6px 0; font-size: 15px; }
     .credentials-box td:first-child { color: #6b7280; width: 38%; font-weight: 500; }
     .credentials-box td:last-child { font-weight: bold; font-family: monospace; font-size: 15px; }
-    .cta-btn { display: inline-block; background-color: ${brandGreen}; color: #191919; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-weight: bold; font-size: 15px; margin: 16px 0; }
+    .cta-btn { display: block; max-width: 240px; margin: 16px auto; background-color: ${brandGreen}; color: #191919; text-decoration: none; padding: 13px 28px; border-radius: 4px; font-weight: bold; font-size: 15px; text-align: center; box-sizing: border-box; }
     .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header { padding: 24px 16px !important; }
+      .content { padding: 20px 16px !important; }
+      .cta-btn { max-width: 100% !important; }
+    }
   </style>
 </head>
 <body>
@@ -913,9 +945,7 @@ export async function sendNewUserWelcomeEmail({
           <tr><td>Password</td><td>${password}</td></tr>
         </table>
       </div>
-      <p style="text-align:center;">
-        <a href="${loginUrl}" class="cta-btn">Sign In Now</a>
-      </p>
+      <a href="${loginUrl}" class="cta-btn">Sign In Now</a>
       <p style="color:#6b7280; font-size:13px;">For your security, we recommend changing your password after your first login. If you have any trouble accessing your account, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
       <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
     </div>
