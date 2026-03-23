@@ -483,102 +483,170 @@ export default function RequestQuote() {
             </div>
 
             <div className="lg:col-span-1">
-              <Card className="sticky top-4">
+              <Card className="sticky top-4" data-testid="card-config-summary">
                 <CardHeader>
                   <CardTitle>Configuration Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {van && (
-                    <div className="flex items-start gap-3">
-                      <Truck className="w-5 h-5 text-accent mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">Van</p>
-                        <p className="text-sm text-muted-foreground" data-testid="text-summary-van">
-                          {van.make} {van.model} ({van.year})
-                        </p>
-                        <p className="text-sm font-medium" data-testid="text-summary-van-price">
-                          {formatPrice(van.price)}
-                        </p>
+                  {compareMode && (slotB.vanId || slotB.customVanValue) ? (
+                    /* ── Compare mode: show Option A + Option B side by side ── */
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Option A */}
+                        <div className="rounded-md border border-accent/30 bg-accent/5 p-3 space-y-1.5" data-testid="compare-summary-option-a">
+                          <p className="text-xs font-bold uppercase tracking-wide text-accent">Option A</p>
+                          {van ? (
+                            <div>
+                              <p className="text-xs font-medium">{van.make} {van.model}</p>
+                              <p className="text-xs text-muted-foreground">{van.year} · {formatPrice(van.price)}</p>
+                            </div>
+                          ) : ownVanPricePence > 0 ? (
+                            <div>
+                              <p className="text-xs font-medium">Own van</p>
+                              <p className="text-xs text-muted-foreground">{formatPrice(ownVanPricePence)}{state.vanReg ? ` · ${state.vanReg}` : ''}</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">No van selected</p>
+                          )}
+                          {kit && <p className="text-xs text-muted-foreground">{kit.name}</p>}
+                          {upgrades.length > 0 && <p className="text-xs text-muted-foreground">{upgrades.length} upgrade{upgrades.length !== 1 ? 's' : ''}</p>}
+                          <p className="text-sm font-bold text-accent border-t pt-1.5" data-testid="text-summary-total-a">{formatPrice(pricing.total)}</p>
+                        </div>
+                        {/* Option B */}
+                        <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1.5" data-testid="compare-summary-option-b">
+                          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Option B</p>
+                          {vanB ? (
+                            <div>
+                              <p className="text-xs font-medium">{vanB.make} {vanB.model}</p>
+                              <p className="text-xs text-muted-foreground">{vanB.year} · {formatPrice(vanB.price)}</p>
+                            </div>
+                          ) : slotB.customVanValue ? (
+                            <div>
+                              <p className="text-xs font-medium">Own van</p>
+                              <p className="text-xs text-muted-foreground">{formatPrice(slotB.customVanValue)}{slotB.vanReg ? ` · ${slotB.vanReg}` : ''}</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">No van selected</p>
+                          )}
+                          {kit && <p className="text-xs text-muted-foreground">{kit.name}</p>}
+                          {upgrades.length > 0 && <p className="text-xs text-muted-foreground">{upgrades.length} upgrade{upgrades.length !== 1 ? 's' : ''}</p>}
+                          {(() => {
+                            const vanBPrice = vanB?.price ?? slotB.customVanValue ?? 0;
+                            const kitPrice = kit?.price ?? 0;
+                            const upgsTotal = upgrades.reduce((s, u) => s + u.price, 0);
+                            const trainTotal = trainingOptions.reduce((s, t) => s + t.price, 0);
+                            const subB = vanBPrice + kitPrice + upgsTotal + trainTotal;
+                            const totalB = subB + Math.round(subB * 0.2);
+                            return <p className="text-sm font-bold text-foreground border-t pt-1.5" data-testid="text-summary-total-b">{formatPrice(totalB)}</p>;
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                      {/* Shared kit / upgrades */}
+                      {(kit || upgrades.length > 0 || trainingOptions.length > 0) && (
+                        <div className="text-xs text-muted-foreground bg-muted/30 rounded-md px-3 py-2 space-y-0.5">
+                          <p className="font-medium text-foreground mb-1">Shared configuration (both options)</p>
+                          {kit && <p>Pack: {kit.name} · {formatPrice(kit.price)}</p>}
+                          {upgrades.map(u => <p key={u.id}>{u.name} · {formatPrice(u.price)}</p>)}
+                          {trainingOptions.map(t => <p key={t.id}>{t.name} · {formatPrice(t.price)}</p>)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* ── Single option summary ── */
+                    <>
+                      {van && (
+                        <div className="flex items-start gap-3">
+                          <Truck className="w-5 h-5 text-accent mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Van</p>
+                            <p className="text-sm text-muted-foreground" data-testid="text-summary-van">
+                              {van.make} {van.model} ({van.year})
+                            </p>
+                            <p className="text-sm font-medium" data-testid="text-summary-van-price">
+                              {formatPrice(van.price)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                  {!van && ownVanPricePence > 0 && (
-                    <div className="flex items-start gap-3">
-                      <Truck className="w-5 h-5 text-accent mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">Own van</p>
-                        <p className="text-sm text-muted-foreground" data-testid="text-summary-own-van">
-                          {formatPrice(ownVanPricePence)}
-                          {state.vanReg && <span className="ml-2 font-medium">{state.vanReg}</span>}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                      {!van && ownVanPricePence > 0 && (
+                        <div className="flex items-start gap-3">
+                          <Truck className="w-5 h-5 text-accent mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Own van</p>
+                            <p className="text-sm text-muted-foreground" data-testid="text-summary-own-van">
+                              {formatPrice(ownVanPricePence)}
+                              {state.vanReg && <span className="ml-2 font-medium">{state.vanReg}</span>}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                  {kit && (
-                    <div className="flex items-start gap-3">
-                      <Package className="w-5 h-5 text-accent mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">Equipment Kit</p>
-                        <p className="text-sm text-muted-foreground" data-testid="text-summary-kit">
-                          {kit.name}
-                        </p>
-                        <p className="text-sm font-medium" data-testid="text-summary-kit-price">
-                          {formatPrice(kit.price)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                      {kit && (
+                        <div className="flex items-start gap-3">
+                          <Package className="w-5 h-5 text-accent mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Equipment Kit</p>
+                            <p className="text-sm text-muted-foreground" data-testid="text-summary-kit">
+                              {kit.name}
+                            </p>
+                            <p className="text-sm font-medium" data-testid="text-summary-kit-price">
+                              {formatPrice(kit.price)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                  {upgrades.length > 0 && (
-                    <div className="border-t pt-3 space-y-2">
-                      <p className="font-medium text-sm mb-2">Selected Upgrades</p>
-                      {upgrades.map((upgrade) => (
-                        <div key={upgrade.id} className="flex justify-between text-sm pl-8">
-                          <span className="text-muted-foreground" data-testid={`text-summary-upgrade-${upgrade.id}`}>
-                            {upgrade.name}
-                          </span>
-                          <span className="font-medium" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
-                            {formatPrice(upgrade.price)}
+                      {upgrades.length > 0 && (
+                        <div className="border-t pt-3 space-y-2">
+                          <p className="font-medium text-sm mb-2">Selected Upgrades</p>
+                          {upgrades.map((upgrade) => (
+                            <div key={upgrade.id} className="flex justify-between text-sm pl-8">
+                              <span className="text-muted-foreground" data-testid={`text-summary-upgrade-${upgrade.id}`}>
+                                {upgrade.name}
+                              </span>
+                              <span className="font-medium" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
+                                {formatPrice(upgrade.price)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {financePlan && (
+                        <div className="flex items-start gap-3">
+                          <CreditCard className="w-5 h-5 text-accent mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Finance</p>
+                            <p className="text-sm text-muted-foreground" data-testid="text-summary-finance">
+                              {financePlan.name}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="border-t pt-4 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Subtotal</span>
+                          <span className="font-medium" data-testid="text-summary-subtotal">
+                            {formatPrice(pricing.subtotal)}
                           </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {financePlan && (
-                    <div className="flex items-start gap-3">
-                      <CreditCard className="w-5 h-5 text-accent mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">Finance</p>
-                        <p className="text-sm text-muted-foreground" data-testid="text-summary-finance">
-                          {financePlan.name}
-                        </p>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">VAT (20%)</span>
+                          <span className="font-medium" data-testid="text-summary-vat">
+                            {formatPrice(pricing.vat)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-lg font-bold border-t pt-2">
+                          <span>Total</span>
+                          <span className="text-accent" data-testid="text-summary-total">
+                            {formatPrice(pricing.total)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
-
-                  <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="font-medium" data-testid="text-summary-subtotal">
-                        {formatPrice(pricing.subtotal)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">VAT (20%)</span>
-                      <span className="font-medium" data-testid="text-summary-vat">
-                        {formatPrice(pricing.vat)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2">
-                      <span>Total</span>
-                      <span className="text-accent" data-testid="text-summary-total">
-                        {formatPrice(pricing.total)}
-                      </span>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>

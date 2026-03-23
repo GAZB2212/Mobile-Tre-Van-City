@@ -647,7 +647,7 @@ export async function sendQuoteReceivedEmails({
       ${quote.company ? `<tr><td>Company</td><td>${quote.company}</td></tr>` : ''}
       <tr><td>Reference</td><td>#${ref}</td></tr>
     </table>
-    <h3>Configuration</h3>
+    <h3>${comparisonSlotB ? 'Option A — ' : ''}Configuration</h3>
     <table>
       ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
       ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
@@ -655,11 +655,23 @@ export async function sendQuoteReceivedEmails({
       <tr><td>Subtotal</td><td>${subtotal}</td></tr>
       <tr><td>VAT (20%)</td><td>${vat}</td></tr>
       <tr class="total"><td>Total</td><td>${total}</td></tr>
+      ${financeInfoA ? `<tr><td>Monthly (10.9% APR)</td><td style="color:#8bc440;font-weight:bold;">£${(financeInfoA.monthlyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/month</td></tr><tr><td>Weekly</td><td>£${(financeInfoA.weeklyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/week approx.</td></tr>` : ''}
     </table>
+    ${comparisonSlotB ? `
+    <h3>Option B — Configuration</h3>
+    <table>
+      ${comparisonSlotB.vanTitle ? `<tr><td>Van</td><td>${comparisonSlotB.vanTitle}</td></tr>` : ''}
+      ${comparisonSlotB.kitName ? `<tr><td>Pack</td><td>${comparisonSlotB.kitName}</td></tr>` : ''}
+      ${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${comparisonSlotB.upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+      ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal</td><td>£${(comparisonSlotB.estSubtotal/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
+      ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
+      ${comparisonSlotB.estTotal != null ? `<tr class="total"><td>Total</td><td>£${(comparisonSlotB.estTotal/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
+      ${financeInfoB ? `<tr><td>Monthly (10.9% APR)</td><td style="color:#8bc440;font-weight:bold;">£${(financeInfoB.monthlyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/month</td></tr><tr><td>Weekly</td><td>£${(financeInfoB.weeklyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/week approx.</td></tr>` : ''}
+    </table>` : ''}
   </div>
 </body>
 </html>`,
-    text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}`,
+    text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${comparisonSlotB ? '\nOPTION A\n' : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\nTotal: ${total}${financeInfoA ? `\nMonthly (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week` : ''}${comparisonSlotB ? `\n\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}\n` : ''}${financeInfoB ? `Monthly (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week` : ''}` : ''}`,
   });
 }
 

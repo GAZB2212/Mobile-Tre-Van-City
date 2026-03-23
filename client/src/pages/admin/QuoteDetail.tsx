@@ -1330,6 +1330,26 @@ export default function AdminQuoteDetail() {
                             Est. Total: £{((quote.comparisonConfig.slotA.estTotal!) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                           </p>
                         )}
+                        {/* Finance illustration for Option A */}
+                        {(() => {
+                          const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
+                          const slotTotal = quote.comparisonConfig!.slotA?.estTotal;
+                          if (!fi?.term || !slotTotal || slotTotal <= 0) return null;
+                          const depositPence = fi.deposit ?? 0;
+                          const principal = (slotTotal - depositPence) / 100;
+                          if (principal <= 0) return null;
+                          const r = 0.109 / 12;
+                          const n = fi.term;
+                          const monthly = Math.round(principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) * 100);
+                          const weekly = Math.round(monthly * 12 / 52);
+                          return (
+                            <div className="border-t pt-1.5 mt-1.5 space-y-0.5">
+                              <p className="text-accent font-semibold">£{(monthly/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/month</p>
+                              <p className="text-xs">£{(weekly/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/week approx.</p>
+                              <p className="text-xs opacity-70">{fi.term} months · 10.9% APR · £{(depositPence/100).toLocaleString('en-GB',{minimumFractionDigits:2})} dep.</p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -1366,6 +1386,26 @@ export default function AdminQuoteDetail() {
                             Est. Total: £{((quote.comparisonConfig.slotB.estTotal!) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                           </p>
                         )}
+                        {/* Finance illustration for Option B */}
+                        {(() => {
+                          const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
+                          const slotTotal = quote.comparisonConfig!.slotB?.estTotal;
+                          if (!fi?.term || !slotTotal || slotTotal <= 0) return null;
+                          const depositPence = fi.deposit ?? 0;
+                          const principal = (slotTotal - depositPence) / 100;
+                          if (principal <= 0) return null;
+                          const r = 0.109 / 12;
+                          const n = fi.term;
+                          const monthly = Math.round(principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) * 100);
+                          const weekly = Math.round(monthly * 12 / 52);
+                          return (
+                            <div className="border-t pt-1.5 mt-1.5 space-y-0.5">
+                              <p className="text-accent font-semibold">£{(monthly/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/month</p>
+                              <p className="text-xs">£{(weekly/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/week approx.</p>
+                              <p className="text-xs opacity-70">{fi.term} months · 10.9% APR · £{(depositPence/100).toLocaleString('en-GB',{minimumFractionDigits:2})} dep.</p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
