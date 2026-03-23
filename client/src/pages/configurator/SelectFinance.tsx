@@ -18,13 +18,13 @@ import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
 export default function SelectFinance() {
   const [, setLocation] = useLocation();
-  const { state } = useConfigurator();
+  const { state, slotA, slotB, compareMode } = useConfigurator();
   const [termYears, setTermYears] = useState<number>(3);
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [vatRegistered, setVatRegistered] = useState<boolean>(false);
   const [deferVat, setDeferVat] = useState<boolean>(false);
 
-  // Fetch selected items to get their prices
+  // Fetch selected items to get their prices (slot A / active slot)
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
     enabled: !!state.vanId,
@@ -45,6 +45,12 @@ export default function SelectFinance() {
     queryKey: ['/api/training-options'],
     select: (data) => data.filter(t => state.trainingOptionIds.includes(t.id)),
     enabled: state.trainingOptionIds.length > 0,
+  });
+
+  // In compare mode, also fetch Option B's van (kit/upgrades/training are shared from slot A)
+  const { data: vanB } = useQuery<Van>({
+    queryKey: ['/api/vans', slotB.vanId],
+    enabled: compareMode && !!slotB.vanId,
   });
 
   const handleContinue = () => {
@@ -84,44 +90,50 @@ export default function SelectFinance() {
     };
   }, [van, kit, upgrades, trainingOptions]);
 
+  // Option B pricing (compare mode only): shares kit/upgrades/training from slot A, only van differs
+  const pricingB = useMemo(() => {
+    if (!compareMode) return null;
+    const vanPrice = vanB?.price ?? slotB.customVanValue ?? 0;
+    const kitPrice = kit?.price || 0;
+    const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
+    const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
+    const subtotalPence = vanPrice + kitPrice + upgradesTotal + trainingTotal;
+    const vatPence = Math.round(subtotalPence * 0.2);
+    return {
+      subtotal: subtotalPence / 100,
+      vat: vatPence / 100,
+      total: (subtotalPence + vatPence) / 100,
+    };
+  }, [compareMode, vanB, slotB.customVanValue, kit, upgrades, trainingOptions]);
+
   // The amount used for finance depends on whether the customer is deferring VAT
   const financeBaseTotal = deferVat ? pricing.subtotal : pricing.total;
+  const financeBaseTotalB = pricingB ? (deferVat ? pricingB.subtotal : pricingB.total) : null;
+
+  function calcFinance(total: number, deposit: number, term: number) {
+    if (total <= 0 || deposit >= total) return null;
+    const principal = total - deposit;
+    const annualRate = 0.109;
+    const monthlyRate = annualRate / 12;
+    const n = term * 12;
+    const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+    const weeklyPayment = (monthlyPayment * 12) / 52;
+    const totalRepayable = monthlyPayment * n;
+    const totalInterest = totalRepayable - principal;
+    return { principal, monthlyPayment, weeklyPayment, totalRepayable, totalInterest, deposit, total };
+  }
 
   // Calculate finance figures
   const financeCalculation = useMemo(() => {
     const deposit = parseFloat(depositAmount) || 0;
-    const total = financeBaseTotal || 0;
-    
-    if (total <= 0 || deposit >= total) {
-      return null;
-    }
-    
-    const principal = total - deposit;
-    const annualRate = 0.109; // 10.9% APR
-    const monthlyRate = annualRate / 12;
-    const numberOfPayments = termYears * 12;
-    
-    // Monthly payment formula: M = P * [r(1 + r)^n] / [(1 + r)^n - 1]
-    const monthlyPayment = principal * 
-      (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
-      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-    
-    // Weekly payment: (monthly × 12) ÷ 52
-    const weeklyPayment = (monthlyPayment * 12) / 52;
-    
-    const totalRepayable = monthlyPayment * numberOfPayments;
-    const totalInterest = totalRepayable - principal;
-    
-    return {
-      principal,
-      monthlyPayment,
-      weeklyPayment,
-      totalRepayable,
-      totalInterest,
-      deposit,
-      total,
-    };
+    return calcFinance(financeBaseTotal || 0, deposit, termYears);
   }, [financeBaseTotal, depositAmount, termYears]);
+
+  const financeCalculationB = useMemo(() => {
+    if (financeBaseTotalB == null) return null;
+    const deposit = parseFloat(depositAmount) || 0;
+    return calcFinance(financeBaseTotalB, deposit, termYears);
+  }, [financeBaseTotalB, depositAmount, termYears]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -210,28 +222,47 @@ export default function SelectFinance() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    {/* Total from Configurator */}
-                    <div className="space-y-2">
-                      <Label htmlFor="total" className="text-sm font-medium">
-                        {deferVat ? "Finance Amount (ex-VAT)" : "Total Amount (inc-VAT)"}
-                      </Label>
-                      <div className="relative">
-                        <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
-                        <Input
-                          id="total"
-                          type="text"
-                          value={formatPrice(financeBaseTotal)}
-                          disabled
-                          className="pl-9 bg-muted/50 font-bold text-lg text-foreground"
-                          data-testid="input-total"
-                        />
+                    {/* Total from Configurator — in compare mode show both totals */}
+                    {compareMode ? (
+                      <div className="md:col-span-2 grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold uppercase tracking-wide text-accent">Option A Total</Label>
+                          <div className="relative">
+                            <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
+                            <Input type="text" value={formatPrice(financeBaseTotal)} disabled className="pl-9 bg-muted/50 font-bold text-foreground" data-testid="input-total-a" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Option B Total</Label>
+                          <div className="relative">
+                            <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
+                            <Input type="text" value={financeBaseTotalB != null ? formatPrice(financeBaseTotalB) : "—"} disabled className="pl-9 bg-muted/50 font-bold text-foreground" data-testid="input-total-b" />
+                          </div>
+                        </div>
                       </div>
-                      {deferVat && (
-                        <p className="text-xs text-muted-foreground">
-                          VAT ({formatPrice(pricing.vat)}) deferred — payable after 3 months
-                        </p>
-                      )}
-                    </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="total" className="text-sm font-medium">
+                          {deferVat ? "Finance Amount (ex-VAT)" : "Total Amount (inc-VAT)"}
+                        </Label>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground" />
+                          <Input
+                            id="total"
+                            type="text"
+                            value={formatPrice(financeBaseTotal)}
+                            disabled
+                            className="pl-9 bg-muted/50 font-bold text-lg text-foreground"
+                            data-testid="input-total"
+                          />
+                        </div>
+                        {deferVat && (
+                          <p className="text-xs text-muted-foreground">
+                            VAT ({formatPrice(pricing.vat)}) deferred — payable after 3 months
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* Deposit Input */}
                     <div className="space-y-2">
@@ -258,7 +289,7 @@ export default function SelectFinance() {
                     </div>
 
                     {/* Term Length Selector */}
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <Label htmlFor="term" className="text-sm font-medium">
                         Finance Term
                       </Label>
@@ -281,61 +312,107 @@ export default function SelectFinance() {
                   </div>
 
                   {/* Results */}
-                  {financeCalculation ? (
+                  {(financeCalculation || financeCalculationB) ? (
                     <div className="mt-6 pt-6 border-t space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Monthly Payment */}
-                        <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
-                          <p className="text-sm text-muted-foreground mb-1">Monthly Payment</p>
-                          <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-monthly-payment">
-                            {formatPriceDecimal(financeCalculation.monthlyPayment)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            for {termYears * 12} months
-                          </p>
-                        </div>
+                      {compareMode ? (
+                        /* Compare mode: Option A and B side by side */
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Option A */}
+                          <div className="space-y-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-accent">Option A</p>
+                            {financeCalculation ? (
+                              <>
+                                <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                                  <p className="text-xs text-muted-foreground mb-1">Monthly</p>
+                                  <p className="text-xl font-bold text-accent" data-testid="text-monthly-payment-a">{formatPriceDecimal(financeCalculation.monthlyPayment)}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{termYears * 12} months</p>
+                                </div>
+                                <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                                  <p className="text-xs text-muted-foreground mb-1">Weekly</p>
+                                  <p className="text-xl font-bold text-accent" data-testid="text-weekly-payment-a">{formatPriceDecimal(financeCalculation.weeklyPayment)}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">approx.</p>
+                                </div>
+                                <div className="text-xs space-y-1 text-muted-foreground">
+                                  <div className="flex justify-between"><span>Financed</span><span className="font-medium text-foreground">{formatPrice(financeCalculation.principal)}</span></div>
+                                  <div className="flex justify-between"><span>Interest</span><span className="font-medium text-foreground">{formatPrice(financeCalculation.totalInterest)}</span></div>
+                                  <div className="flex justify-between"><span>Repayable</span><span className="font-medium text-foreground">{formatPrice(financeCalculation.totalRepayable)}</span></div>
+                                </div>
+                              </>
+                            ) : <p className="text-sm text-muted-foreground">Enter a deposit to calculate</p>}
+                          </div>
 
-                        {/* Weekly Payment */}
-                        <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
-                          <p className="text-sm text-muted-foreground mb-1">Weekly Payment</p>
-                          <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-weekly-payment">
-                            {formatPriceDecimal(financeCalculation.weeklyPayment)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            approximate weekly cost
-                          </p>
+                          {/* Option B */}
+                          <div className="space-y-3">
+                            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Option B</p>
+                            {financeCalculationB ? (
+                              <>
+                                <div className="bg-muted/40 border border-border rounded-lg p-4">
+                                  <p className="text-xs text-muted-foreground mb-1">Monthly</p>
+                                  <p className="text-xl font-bold" data-testid="text-monthly-payment-b">{formatPriceDecimal(financeCalculationB.monthlyPayment)}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">{termYears * 12} months</p>
+                                </div>
+                                <div className="bg-muted/40 border border-border rounded-lg p-4">
+                                  <p className="text-xs text-muted-foreground mb-1">Weekly</p>
+                                  <p className="text-xl font-bold" data-testid="text-weekly-payment-b">{formatPriceDecimal(financeCalculationB.weeklyPayment)}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">approx.</p>
+                                </div>
+                                <div className="text-xs space-y-1 text-muted-foreground">
+                                  <div className="flex justify-between"><span>Financed</span><span className="font-medium text-foreground">{formatPrice(financeCalculationB.principal)}</span></div>
+                                  <div className="flex justify-between"><span>Interest</span><span className="font-medium text-foreground">{formatPrice(financeCalculationB.totalInterest)}</span></div>
+                                  <div className="flex justify-between"><span>Repayable</span><span className="font-medium text-foreground">{formatPrice(financeCalculationB.totalRepayable)}</span></div>
+                                </div>
+                              </>
+                            ) : pricingB == null || pricingB.total === 0 ? (
+                              <p className="text-sm text-muted-foreground">Option B not configured</p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">Enter a deposit to calculate</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Additional Details */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Amount Financed</p>
-                          <p className="font-semibold" data-testid="text-amount-financed">
-                            {formatPrice(financeCalculation.principal)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Interest</p>
-                          <p className="font-semibold" data-testid="text-total-interest">
-                            {formatPrice(financeCalculation.totalInterest)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Total Repayable</p>
-                          <p className="font-semibold" data-testid="text-total-repayable">
-                            {formatPrice(financeCalculation.totalRepayable)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="bg-muted/50 rounded-lg p-3 mt-4">
-                        <p className="text-xs text-muted-foreground">
-                          <strong>Representative Example:</strong> {formatPrice(financeCalculation.total)} cash price, {formatPrice(financeCalculation.deposit)} deposit, 
-                          amount of credit {formatPrice(financeCalculation.principal)}, {termYears * 12} monthly payments of {formatPriceDecimal(financeCalculation.monthlyPayment)}, 
-                          total amount payable {formatPrice(financeCalculation.totalRepayable + financeCalculation.deposit)}, 10.9% APR representative.
-                        </p>
-                      </div>
+                      ) : (
+                        /* Standard single-option results */
+                        financeCalculation && (
+                          <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                                <p className="text-sm text-muted-foreground mb-1">Monthly Payment</p>
+                                <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-monthly-payment">
+                                  {formatPriceDecimal(financeCalculation.monthlyPayment)}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">for {termYears * 12} months</p>
+                              </div>
+                              <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                                <p className="text-sm text-muted-foreground mb-1">Weekly Payment</p>
+                                <p className="text-2xl sm:text-3xl font-bold text-accent" data-testid="text-weekly-payment">
+                                  {formatPriceDecimal(financeCalculation.weeklyPayment)}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">approximate weekly cost</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Amount Financed</p>
+                                <p className="font-semibold" data-testid="text-amount-financed">{formatPrice(financeCalculation.principal)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Total Interest</p>
+                                <p className="font-semibold" data-testid="text-total-interest">{formatPrice(financeCalculation.totalInterest)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Total Repayable</p>
+                                <p className="font-semibold" data-testid="text-total-repayable">{formatPrice(financeCalculation.totalRepayable)}</p>
+                              </div>
+                            </div>
+                            <div className="bg-muted/50 rounded-lg p-3 mt-4">
+                              <p className="text-xs text-muted-foreground">
+                                <strong>Representative Example:</strong> {formatPrice(financeCalculation.total)} cash price, {formatPrice(financeCalculation.deposit)} deposit,
+                                amount of credit {formatPrice(financeCalculation.principal)}, {termYears * 12} monthly payments of {formatPriceDecimal(financeCalculation.monthlyPayment)},
+                                total amount payable {formatPrice(financeCalculation.totalRepayable + financeCalculation.deposit)}, 10.9% APR representative.
+                              </p>
+                            </div>
+                          </>
+                        )
+                      )}
                     </div>
                   ) : (
                     <div className="mt-6 pt-6 border-t text-center">
