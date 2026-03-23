@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import type { ConfiguratorSlotState } from "@/lib/ConfiguratorContext";
@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calculator } from "lucide-react";
 import { Car, Package, Wrench, GraduationCap, ChevronRight } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 
@@ -253,6 +257,170 @@ function SlotSummary({
   );
 }
 
+const FINANCE_APR = 0.109;
+
+function calcMonthly(totalPence: number, depositGbp: number, termYears: number, deferVat: boolean): number | null {
+  const totalGbp = (deferVat ? Math.round(totalPence / 1.2) : totalPence) / 100;
+  const principal = totalGbp - depositGbp;
+  if (principal <= 0 || totalGbp <= 0) return null;
+  const r = FINANCE_APR / 12;
+  const n = termYears * 12;
+  return principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+}
+
+function CompareFinanceCalc({
+  totalA,
+  totalB,
+}: {
+  totalA: number;
+  totalB: number;
+}) {
+  const [depositStr, setDepositStr] = useState("");
+  const [termYears, setTermYears] = useState(3);
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [deferVat, setDeferVat] = useState(false);
+
+  const deposit = parseFloat(depositStr) || 0;
+
+  const fmt = (pence: number) =>
+    new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0 }).format(pence / 100);
+
+  const fmtDec = (n: number) =>
+    new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+  const monthlyA = useMemo(() => calcMonthly(totalA, deposit, termYears, deferVat), [totalA, deposit, termYears, deferVat]);
+  const monthlyB = useMemo(() => calcMonthly(totalB, deposit, termYears, deferVat), [totalB, deposit, termYears, deferVat]);
+
+  const weeklyA = monthlyA != null ? (monthlyA * 12) / 52 : null;
+  const weeklyB = monthlyB != null ? (monthlyB * 12) / 52 : null;
+
+  const hasResults = monthlyA != null || monthlyB != null;
+
+  return (
+    <div className="space-y-4 pt-1" data-testid="compare-finance-calc">
+      <div className="flex items-center gap-2">
+        <Calculator className="w-4 h-4 text-accent" />
+        <p className="text-sm font-semibold">Finance Calculator</p>
+        <span className="text-xs text-muted-foreground">10.9% APR</span>
+      </div>
+
+      {/* VAT */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="cfc-vat"
+            checked={vatRegistered}
+            onCheckedChange={(v) => { setVatRegistered(!!v); if (!v) setDeferVat(false); }}
+            data-testid="checkbox-cfc-vat-registered"
+          />
+          <Label htmlFor="cfc-vat" className="text-xs cursor-pointer">VAT registered?</Label>
+        </div>
+        {vatRegistered && (
+          <div className="ml-6 flex items-center gap-2">
+            <Checkbox
+              id="cfc-defer"
+              checked={deferVat}
+              onCheckedChange={(v) => setDeferVat(!!v)}
+              data-testid="checkbox-cfc-defer-vat"
+            />
+            <Label htmlFor="cfc-defer" className="text-xs cursor-pointer">Defer VAT (3 months)?</Label>
+          </div>
+        )}
+      </div>
+
+      {/* Deposit + term */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Deposit (£)</Label>
+          <Input
+            type="number"
+            placeholder="0"
+            value={depositStr}
+            onChange={(e) => setDepositStr(e.target.value)}
+            className="text-sm"
+            min="0"
+            data-testid="input-cfc-deposit"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Term</Label>
+          <Select value={termYears.toString()} onValueChange={(v) => setTermYears(parseInt(v))}>
+            <SelectTrigger className="text-sm" data-testid="select-cfc-term">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 yr</SelectItem>
+              <SelectItem value="2">2 yrs</SelectItem>
+              <SelectItem value="3">3 yrs</SelectItem>
+              <SelectItem value="4">4 yrs</SelectItem>
+              <SelectItem value="5">5 yrs</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Results side by side */}
+      {hasResults && (
+        <div className="grid grid-cols-2 gap-2">
+          {/* Option A */}
+          <div className="rounded-md border border-accent/20 bg-accent/5 p-3 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-accent">Option A</p>
+            {monthlyA != null ? (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground">Monthly</p>
+                  <p className="text-base font-bold text-accent" data-testid="text-cfc-monthly-a">{fmtDec(monthlyA)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Weekly</p>
+                  <p className="text-sm font-semibold" data-testid="text-cfc-weekly-a">{fmtDec(weeklyA!)}</p>
+                </div>
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  {fmt(totalA)} total &bull; {fmt(deposit * 100)} deposit
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Enter deposit to calculate</p>
+            )}
+          </div>
+
+          {/* Option B */}
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Option B</p>
+            {totalB > 0 && monthlyB != null ? (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground">Monthly</p>
+                  <p className="text-base font-bold" data-testid="text-cfc-monthly-b">{fmtDec(monthlyB)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Weekly</p>
+                  <p className="text-sm font-semibold" data-testid="text-cfc-weekly-b">{fmtDec(weeklyB!)}</p>
+                </div>
+                <p className="text-xs text-muted-foreground border-t pt-2">
+                  {fmt(totalB)} total &bull; {fmt(deposit * 100)} deposit
+                </p>
+              </>
+            ) : totalB === 0 ? (
+              <p className="text-xs text-muted-foreground">Option B not configured</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Enter deposit to calculate</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!hasResults && (
+        <p className="text-xs text-muted-foreground text-center py-1">Enter a deposit amount to see payments</p>
+      )}
+
+      <p className="text-xs text-muted-foreground leading-tight">
+        Representative 10.9% APR. For illustration purposes only.
+      </p>
+    </div>
+  );
+}
+
 // Compare summary: shows both slots with totals and difference
 function CompareSummary({
   discountType,
@@ -354,6 +522,13 @@ function CompareSummary({
             <span>Option B is <strong className="text-foreground">{formatPrice(Math.abs(diff))}</strong> less than Option A</span>
           )}
         </div>
+      )}
+
+      {(discA.finalTotal > 0 || discB.finalTotal > 0) && (
+        <>
+          <Separator />
+          <CompareFinanceCalc totalA={discA.finalTotal} totalB={discB.finalTotal} />
+        </>
       )}
     </div>
   );
