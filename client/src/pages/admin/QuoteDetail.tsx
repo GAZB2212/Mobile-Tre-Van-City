@@ -680,7 +680,19 @@ export default function AdminQuoteDetail() {
       stages.push({ id: "kit", label: `Install ${selectedKit.name}` });
     }
     const selectedUpgradesList = upgrades.filter(u => selectedUpgradeIds.includes(u.id));
-    for (const u of selectedUpgradesList) {
+    // Separate wrap/graphics upgrades from others so design stages can be inserted at the right point
+    const wrapGraphicsPattern = /wrap|graphics|livery/i;
+    const nonWrapUpgrades = selectedUpgradesList.filter(u => !wrapGraphicsPattern.test(u.name) && !wrapGraphicsPattern.test(u.category));
+    const wrapUpgrades = selectedUpgradesList.filter(u => wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category));
+    for (const u of nonWrapUpgrades) {
+      stages.push({ id: `upg_${u.id}`, label: u.name });
+    }
+    // If any wrap or graphics upgrades are selected, insert the design approval stages before the physical wrap steps
+    if (wrapUpgrades.length > 0) {
+      stages.push({ id: "van_design_approved", label: "Van Design Approved" });
+      stages.push({ id: "van_wrap_printed", label: "Van Wrap Printed" });
+    }
+    for (const u of wrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     stages.push({ id: "final_checks", label: "Final Checks" });

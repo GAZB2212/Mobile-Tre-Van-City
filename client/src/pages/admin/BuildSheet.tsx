@@ -206,6 +206,34 @@ export default function BuildSheet() {
     return stage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  // Mirror the auto-generation logic from QuoteDetail — produces the ordered build stage checklist
+  const autoGenerateStages = (): Array<{id: string; label: string}> => {
+    const stages: Array<{id: string; label: string}> = [];
+    stages.push({ id: "prep", label: "Van Preparation" });
+    if (kit) {
+      stages.push({ id: "kit", label: `Install ${kit.name}` });
+    }
+    const wrapGraphicsPattern = /wrap|graphics|livery/i;
+    const nonWrapUpgrades = upgrades.filter(u => !wrapGraphicsPattern.test(u.name) && !wrapGraphicsPattern.test(u.category));
+    const wrapUpgrades = upgrades.filter(u => wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category));
+    for (const u of nonWrapUpgrades) {
+      stages.push({ id: `upg_${u.id}`, label: u.name });
+    }
+    if (wrapUpgrades.length > 0) {
+      stages.push({ id: "van_design_approved", label: "Van Design Approved" });
+      stages.push({ id: "van_wrap_printed", label: "Van Wrap Printed" });
+    }
+    for (const u of wrapUpgrades) {
+      stages.push({ id: `upg_${u.id}`, label: u.name });
+    }
+    stages.push({ id: "final_checks", label: "Final Checks" });
+    stages.push({ id: "valet", label: "Valet & Handover" });
+    return stages;
+  };
+
+  const buildStageList: Array<{id: string; label: string}> = (quote as any).customBuildStages ?? autoGenerateStages();
+  const systemCompletedStages: string[] = (quote as any).completedBuildStages ?? [];
+
   const handlePrint = () => { window.print(); };
 
   if (isLoading || isLoadingQuotes) {
@@ -543,6 +571,49 @@ export default function BuildSheet() {
                             )}
                           </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Build Stages Checklist */}
+          {buildStageList.length > 0 && (
+            <Card data-testid="card-build-stages">
+              <CardHeader>
+                <CardTitle>Build Stages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  {buildStageList.map((stage) => {
+                    const systemDone = systemCompletedStages.includes(stage.id);
+                    const itemKey = `build-stage-${stage.id}`;
+                    const localChecked = isChecked(itemKey);
+                    const effectiveDone = systemDone || localChecked;
+                    return (
+                      <div
+                        key={stage.id}
+                        className="flex items-center gap-1 py-2 border-b last:border-0"
+                        data-testid={`row-stage-${stage.id}`}
+                      >
+                        <PrintCheckbox
+                          id={`checkbox-stage-${stage.id}`}
+                          checked={effectiveDone}
+                          onChange={v => {
+                            if (!systemDone) setChecked(itemKey, v);
+                          }}
+                        />
+                        <span
+                          className={`flex-1 text-sm font-medium ${effectiveDone ? "line-through text-muted-foreground print:no-underline print:text-black" : ""}`}
+                          data-testid={`text-stage-label-${stage.id}`}
+                        >
+                          {stage.label}
+                        </span>
+                        {systemDone && (
+                          <span className="text-xs font-semibold text-accent print:text-black ml-2" data-testid={`badge-stage-done-${stage.id}`}>Done</span>
+                        )}
                       </div>
                     );
                   })}
