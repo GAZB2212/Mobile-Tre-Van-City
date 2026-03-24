@@ -2367,6 +2367,59 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Reset/undo a chosen comparison option (sets chosenOption back to null)
+  app.delete("/api/admin/quotes/:id/choose-option", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      if (!quote.comparisonConfig?.slotA || !quote.comparisonConfig?.slotB) {
+        return res.status(400).json({ error: "Quote does not have a comparison configuration" });
+      }
+
+      if (quote.chosenOption == null) {
+        return res.status(400).json({ error: "No option is currently chosen" });
+      }
+
+      // Guard: cannot undo choice once build has started
+      if (quote.buildStage != null) {
+        return res.status(409).json({ error: "Cannot undo chosen option after build has started" });
+      }
+
+      const sessionUser = req.session?.user;
+      let actorName = sessionUser?.username ?? 'Admin';
+      if (sessionUser?.id) {
+        const adminUserRecord = await storage.getUser(sessionUser.id);
+        if (adminUserRecord?.firstName) {
+          actorName = adminUserRecord.firstName + (adminUserRecord.lastName ? ' ' + adminUserRecord.lastName : '');
+        }
+      }
+
+      const adminNotesHistory = Array.isArray(quote.adminNotesHistory) ? [...quote.adminNotesHistory] : [];
+      adminNotesHistory.push({
+        text: `Option choice (Option ${quote.chosenOption}) was reset by ${actorName} — quote returned to pending decision.`,
+        timestamp: new Date().toISOString(),
+        author: actorName,
+      });
+
+      const updated = await storage.updateQuote(req.params.id, {
+        chosenOption: null,
+        adminNotesHistory,
+      });
+
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to reset option choice" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error resetting option choice:', error);
+      res.status(500).json({ error: "Failed to reset option choice" });
+    }
+  });
+
   // Delete a specific note from the history
   app.delete("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
     try {

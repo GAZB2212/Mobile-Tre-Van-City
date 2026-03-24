@@ -184,6 +184,9 @@ export default function AdminQuoteDetail() {
   // Compare mode: which option is the admin currently viewing
   const [viewingSlot, setViewingSlot] = useState<'A' | 'B'>('A');
 
+  // Undo choice confirmation dialog
+  const [showUndoChoiceDialog, setShowUndoChoiceDialog] = useState(false);
+
   // Unsaved-changes guard (all tabs + back navigation)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const pendingTabRef = useRef<string | null>(null);
@@ -509,6 +512,27 @@ export default function AdminQuoteDetail() {
         variant: "destructive",
         title: "Error",
         description: "Failed to save option choice",
+      });
+    },
+  });
+
+  const undoChoiceMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/admin/quotes/${id}/choose-option`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/quotes'] });
+      toast({
+        title: "Choice undone",
+        description: "The option selection has been cleared. The quote is back to a pending decision.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to undo option choice",
       });
     },
   });
@@ -926,6 +950,30 @@ export default function AdminQuoteDetail() {
             </Button>
           </div>
         </div>
+
+        {/* Undo option choice confirmation dialog */}
+        <AlertDialog open={showUndoChoiceDialog} onOpenChange={setShowUndoChoiceDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Undo option choice?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear the current selection and return the quote to a pending decision state. Both options will be shown again with no choice highlighted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-testid="button-undo-choice-cancel">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowUndoChoiceDialog(false);
+                  undoChoiceMutation.mutate();
+                }}
+                data-testid="button-undo-choice-confirm"
+              >
+                Undo choice
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Unsaved changes dialog — fires for any tab switch or navigation when dirty */}
         <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
@@ -1530,18 +1578,30 @@ export default function AdminQuoteDetail() {
                       <p className="text-sm text-muted-foreground">
                         Option {quote.chosenOption} has been locked in as the customer's final choice.
                       </p>
-                      {/* Only allow changing choice before build starts */}
+                      {/* Only allow changing/undoing choice before build starts */}
                       {!quote.buildStage ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => chooseOptionMutation.mutate(quote.chosenOption === 'A' ? 'B' : 'A')}
-                          disabled={chooseOptionMutation.isPending}
-                          className="ml-auto text-xs"
-                          data-testid="button-change-choice"
-                        >
-                          Change to Option {quote.chosenOption === 'A' ? 'B' : 'A'}
-                        </Button>
+                        <div className="ml-auto flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => chooseOptionMutation.mutate(quote.chosenOption === 'A' ? 'B' : 'A')}
+                            disabled={chooseOptionMutation.isPending || undoChoiceMutation.isPending}
+                            className="text-xs"
+                            data-testid="button-change-choice"
+                          >
+                            Change to Option {quote.chosenOption === 'A' ? 'B' : 'A'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowUndoChoiceDialog(true)}
+                            disabled={chooseOptionMutation.isPending || undoChoiceMutation.isPending}
+                            className="text-xs text-muted-foreground"
+                            data-testid="button-undo-choice"
+                          >
+                            Undo choice
+                          </Button>
+                        </div>
                       ) : (
                         <p className="ml-auto text-xs text-muted-foreground italic" data-testid="text-choice-locked">
                           Cannot change — build in progress
