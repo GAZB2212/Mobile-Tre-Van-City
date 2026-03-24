@@ -672,27 +672,38 @@ export default function AdminQuoteDetail() {
   };
 
   // Auto-generate bespoke build stages from the quote's configuration
-  const autoGenerateStages = (): Array<{id: string; label: string}> => {
-    const stages: Array<{id: string; label: string}> = [];
+  const autoGenerateStages = (): Array<{id: string; label: string; section?: string}> => {
+    const stages: Array<{id: string; label: string; section?: string}> = [];
     stages.push({ id: "prep", label: "Van Preparation" });
     const selectedKit = kits.find(k => k.id === selectedKitId);
     if (selectedKit) {
       stages.push({ id: "kit", label: `Install ${selectedKit.name}` });
     }
     const selectedUpgradesList = upgrades.filter(u => selectedUpgradeIds.includes(u.id));
-    // Separate wrap/graphics upgrades from others so design stages can be inserted at the right point
     const wrapGraphicsPattern = /wrap|graphics|livery/i;
-    const nonWrapUpgrades = selectedUpgradesList.filter(u => !wrapGraphicsPattern.test(u.name) && !wrapGraphicsPattern.test(u.category));
-    const wrapUpgrades = selectedUpgradesList.filter(u => wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category));
+    const brandedInteriorWallPattern = /branded/i;
+    const interiorWallPattern = /interior.wall/i;
+    const isBrandedInteriorWall = (u: Upgrade) =>
+      brandedInteriorWallPattern.test(u.name) && (interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category));
+    const isWrapGraphics = (u: Upgrade) => wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
+    const nonWrapUpgrades = selectedUpgradesList.filter(u => !isWrapGraphics(u) && !isBrandedInteriorWall(u));
+    const wrapUpgrades = selectedUpgradesList.filter(u => isWrapGraphics(u) && !isBrandedInteriorWall(u));
+    const brandedInteriorWallUpgrades = selectedUpgradesList.filter(u => isBrandedInteriorWall(u) && !isWrapGraphics(u));
     for (const u of nonWrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
-    // If any wrap or graphics upgrades are selected, insert the design approval stages before the physical wrap steps
     if (wrapUpgrades.length > 0) {
-      stages.push({ id: "van_design_approved", label: "Van Design Approved" });
-      stages.push({ id: "van_wrap_printed", label: "Van Wrap Printed" });
+      stages.push({ id: "van_design_approved", label: "Van Design Approved", section: "Design Work" });
+      stages.push({ id: "van_wrap_printed", label: "Van Wrap Printed", section: "Design Work" });
     }
     for (const u of wrapUpgrades) {
+      stages.push({ id: `upg_${u.id}`, label: u.name });
+    }
+    if (brandedInteriorWallUpgrades.length > 0) {
+      stages.push({ id: "interior_wall_artwork_passed", label: "Interior wall artwork passed", section: "Design Work" });
+      stages.push({ id: "interior_walls_ordered", label: "Interior walls ordered", section: "Design Work" });
+    }
+    for (const u of brandedInteriorWallUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     stages.push({ id: "final_checks", label: "Final Checks" });
@@ -1990,9 +2001,16 @@ export default function AdminQuoteDetail() {
                       <div className="space-y-1">
                         {activeStages.map((stage, idx) => {
                           const isComplete = completedBuildStages.includes(stage.id);
+                          const prevSection = idx > 0 ? activeStages[idx - 1].section : undefined;
+                          const showSectionHeader = stage.section && stage.section !== prevSection;
                           return (
+                            <div key={stage.id}>
+                            {showSectionHeader && (
+                              <div className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" data-testid={`section-header-${stage.section!.toLowerCase().replace(/\s+/g, "-")}`}>
+                                {stage.section}
+                              </div>
+                            )}
                             <div
-                              key={stage.id}
                               className={cn(
                                 "flex items-center gap-2 py-2 px-3 rounded-md",
                                 isComplete ? "bg-accent/10" : "bg-muted/30"
@@ -2061,6 +2079,7 @@ export default function AdminQuoteDetail() {
                                   </Button>
                                 </div>
                               )}
+                            </div>
                             </div>
                           );
                         })}
