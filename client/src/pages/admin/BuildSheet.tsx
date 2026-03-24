@@ -226,15 +226,17 @@ export default function BuildSheet() {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     if (wrapUpgrades.length > 0) {
-      stages.push({ id: "van_design_approved", label: "Van Design Approved", section: "Design Work" });
-      stages.push({ id: "van_wrap_printed", label: "Van Wrap Printed", section: "Design Work" });
+      stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
+      stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
+      stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
     }
     for (const u of wrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     if (brandedInteriorWallUpgrades.length > 0) {
-      stages.push({ id: "interior_wall_artwork_passed", label: "Interior wall artwork passed", section: "Design Work" });
-      stages.push({ id: "interior_walls_ordered", label: "Interior walls ordered", section: "Design Work" });
+      stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
+      stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
+      stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
     for (const u of brandedInteriorWallUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
@@ -477,6 +479,79 @@ export default function BuildSheet() {
             </Card>
           ) : null}
 
+          {/* Artwork & Design — shown only when wrap/graphic pack or interior walls upgrades are selected */}
+          {(() => {
+            const wrapGraphicsPattern = /wrap|graphics|livery/i;
+            const interiorWallPattern = /interior.wall/i;
+            const brandedInteriorWallPattern = /branded/i;
+            const hasWrap = upgrades.some(u =>
+              (wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category)) &&
+              !(brandedInteriorWallPattern.test(u.name) && (interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category)))
+            );
+            const hasInteriorWalls = upgrades.some(u =>
+              brandedInteriorWallPattern.test(u.name) &&
+              (interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category))
+            );
+            if (!hasWrap && !hasInteriorWalls) return null;
+            return (
+              <Card data-testid="card-artwork-design">
+                <CardHeader>
+                  <CardTitle>Artwork &amp; Design</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {hasWrap && (
+                      <>
+                        {[
+                          { key: "artwork_sent", label: "Artwork Sent" },
+                          { key: "artwork_approved", label: "Artwork Approved" },
+                          { key: "wrap_printed", label: "Wrap Printed" },
+                        ].map(item => (
+                          <div key={item.key} className="flex items-center gap-1 py-2 border-b last:border-0" data-testid={`row-artwork-${item.key}`}>
+                            <PrintCheckbox
+                              id={`checkbox-artwork-${item.key}`}
+                              checked={isChecked(`artwork-${item.key}`)}
+                              onChange={v => setChecked(`artwork-${item.key}`, v)}
+                            />
+                            <span
+                              className={`flex-1 text-sm font-medium ${isChecked(`artwork-${item.key}`) ? "line-through text-muted-foreground print:no-underline print:text-black" : ""}`}
+                              data-testid={`text-artwork-label-${item.key}`}
+                            >
+                              {item.label}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {hasInteriorWalls && (
+                      <>
+                        {[
+                          { key: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" },
+                          { key: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved" },
+                          { key: "interior_walls_ordered", label: "Interior Walls Ordered" },
+                        ].map(item => (
+                          <div key={item.key} className="flex items-center gap-1 py-2 border-b last:border-0" data-testid={`row-artwork-${item.key}`}>
+                            <PrintCheckbox
+                              id={`checkbox-artwork-${item.key}`}
+                              checked={isChecked(`artwork-${item.key}`)}
+                              onChange={v => setChecked(`artwork-${item.key}`, v)}
+                            />
+                            <span
+                              className={`flex-1 text-sm font-medium ${isChecked(`artwork-${item.key}`) ? "line-through text-muted-foreground print:no-underline print:text-black" : ""}`}
+                              data-testid={`text-artwork-label-${item.key}`}
+                            >
+                              {item.label}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Kit Items — with checkboxes */}
           {kit && (
             <Card>
@@ -615,57 +690,6 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Build Stages Checklist */}
-          {buildStageList.length > 0 && (
-            <Card data-testid="card-build-stages">
-              <CardHeader>
-                <CardTitle>Build Stages</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  {buildStageList.map((stage, idx) => {
-                    const systemDone = systemCompletedStages.includes(stage.id);
-                    const itemKey = `build-stage-${stage.id}`;
-                    const localChecked = isChecked(itemKey);
-                    const effectiveDone = systemDone || localChecked;
-                    const prevSection = idx > 0 ? buildStageList[idx - 1].section : undefined;
-                    const showSectionHeader = stage.section && stage.section !== prevSection;
-                    return (
-                      <div key={stage.id}>
-                        {showSectionHeader && (
-                          <div className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground" data-testid={`section-header-${stage.section!.toLowerCase().replace(/\s+/g, "-")}`}>
-                            {stage.section}
-                          </div>
-                        )}
-                        <div
-                          className="flex items-center gap-1 py-2 border-b last:border-0"
-                          data-testid={`row-stage-${stage.id}`}
-                        >
-                          <PrintCheckbox
-                            id={`checkbox-stage-${stage.id}`}
-                            checked={effectiveDone}
-                            onChange={v => {
-                              if (!systemDone) setChecked(itemKey, v);
-                            }}
-                          />
-                          <span
-                            className={`flex-1 text-sm font-medium ${effectiveDone ? "line-through text-muted-foreground print:no-underline print:text-black" : ""}`}
-                            data-testid={`text-stage-label-${stage.id}`}
-                          >
-                            {stage.label}
-                          </span>
-                          {systemDone && (
-                            <span className="text-xs font-semibold text-accent print:text-black ml-2" data-testid={`badge-stage-done-${stage.id}`}>Done</span>
-                          )}
                         </div>
                       </div>
                     );

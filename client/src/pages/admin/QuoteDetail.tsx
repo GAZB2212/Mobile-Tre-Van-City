@@ -693,15 +693,17 @@ export default function AdminQuoteDetail() {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     if (wrapUpgrades.length > 0) {
-      stages.push({ id: "van_design_approved", label: "Van Design Approved", section: "Design Work" });
-      stages.push({ id: "van_wrap_printed", label: "Van Wrap Printed", section: "Design Work" });
+      stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
+      stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
+      stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
     }
     for (const u of wrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     if (brandedInteriorWallUpgrades.length > 0) {
-      stages.push({ id: "interior_wall_artwork_passed", label: "Interior wall artwork passed", section: "Design Work" });
-      stages.push({ id: "interior_walls_ordered", label: "Interior walls ordered", section: "Design Work" });
+      stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
+      stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
+      stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
     for (const u of brandedInteriorWallUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
