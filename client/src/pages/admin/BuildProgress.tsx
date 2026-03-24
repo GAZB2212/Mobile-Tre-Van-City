@@ -14,6 +14,8 @@ type CompletedStage = { id: string; initials: string };
 interface BuildProgressData {
   id: string;
   userName: string;
+  company: string | null;
+  vanRegistration: string | null;
   status: string;
   customBuildStages: Array<{ id: string; label: string; section?: string }> | null;
   completedBuildStages: Array<string | { id: string; initials: string }>;
@@ -202,8 +204,14 @@ export default function BuildProgress() {
       <div className="border-b border-border/40 px-4 py-4 flex items-center gap-3">
         <Wrench className="w-5 h-5 text-[#8bc440] shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{data.userName}</p>
-          <p className="text-xs text-muted-foreground">Build Stage Progress</p>
+          <p className="text-sm font-semibold truncate">
+            {data.userName}{data.company ? ` — ${data.company}` : ""}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {data.vanRegistration
+              ? <span className="font-mono uppercase tracking-widest">{data.vanRegistration}</span>
+              : "Build Stage Progress"}
+          </p>
         </div>
         <Badge variant="secondary" className="shrink-0 text-xs" data-testid="badge-progress-pct">
           {progressPct}%

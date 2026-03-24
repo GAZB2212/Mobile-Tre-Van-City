@@ -388,6 +388,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         id: quote.id,
         userName: quote.userName,
+        company: quote.company ?? null,
+        vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
         status: quote.status,
         customBuildStages: (quote as any).customBuildStages ?? null,
         completedBuildStages: (quote as any).completedBuildStages ?? [],
