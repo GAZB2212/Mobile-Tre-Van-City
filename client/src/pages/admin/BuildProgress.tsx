@@ -15,7 +15,7 @@ interface BuildProgressData {
   customBuildStages: Array<{ id: string; label: string; section?: string }> | null;
   completedBuildStages: string[];
   kit: { id: string; name: string } | null;
-  upgrades: Array<{ id: string; name: string; category: string }>;
+  upgrades: Array<{ id: string; name: string; category: string; variantName: string | null }>;
 }
 
 export default function BuildProgress() {
@@ -45,6 +45,8 @@ export default function BuildProgress() {
     kit: BuildProgressData["kit"],
     upgrades: BuildProgressData["upgrades"]
   ): Array<{ id: string; label: string; section?: string }> => {
+    const upgradeLabel = (u: BuildProgressData["upgrades"][0]) =>
+      u.variantName ? `${u.name} — ${u.variantName}` : u.name;
     const stages: Array<{ id: string; label: string; section?: string }> = [];
     stages.push({ id: "prep", label: "Van Preparation" });
     if (kit) {
@@ -59,19 +61,19 @@ export default function BuildProgress() {
     const nonWrap = upgrades.filter((u) => !isWrapGraphics(u) && !isInteriorWall(u));
     const wrap = upgrades.filter((u) => isWrapGraphics(u) && !isInteriorWall(u));
     const wallUpgrades = upgrades.filter((u) => isInteriorWall(u) && !isWrapGraphics(u));
-    for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+    for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
     if (wrap.length > 0) {
       stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
       stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
       stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
     }
-    for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+    for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
     if (wallUpgrades.length > 0) {
       stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
       stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
       stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
-    for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: u.name });
+    for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
     stages.push({ id: "final_checks", label: "Final Checks" });
     stages.push({ id: "valet", label: "Valet & Handover" });
     return stages;
