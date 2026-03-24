@@ -46,6 +46,7 @@ const AdminGalleryItems = lazy(() => import("@/pages/admin/GalleryItems"));
 const AdminAnalytics = lazy(() => import("@/pages/admin/Analytics"));
 const AdminVideos = lazy(() => import("@/pages/admin/Videos"));
 const BuildSheet = lazy(() => import("@/pages/admin/BuildSheet"));
+const BuildProgress = lazy(() => import("@/pages/admin/BuildProgress"));
 const QuoteConfirmation = lazy(() => import("@/pages/QuoteConfirmation"));
 const SpecApproval = lazy(() => import("@/pages/SpecApproval"));
 const Blog = lazy(() => import("@/pages/Blog"));
@@ -115,6 +116,7 @@ function Router() {
       <Route path="/admin/quotes" component={AdminQuotes} />
       <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
       <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
+      <Route path="/admin/quotes/:id/build-progress" component={BuildProgress} />
       <Route path="/admin/leads" component={AdminLeads} />
       <Route path="/admin/users" component={AdminUsers} />
       <Route path="/admin/blog" component={AdminBlog} />
@@ -134,7 +136,7 @@ function ConditionalLoadingScreen() {
   const [location] = useLocation();
   // Skip splash screen for pages that customers land on directly from email links.
   // Also mark the session as loaded so navigating away doesn't trigger the splash.
-  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/")) {
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.includes("/build-progress")) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("hasLoadedBefore", "true");
     }
