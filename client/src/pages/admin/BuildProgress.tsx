@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,10 +34,11 @@ export default function BuildProgress() {
       if (!res.ok) throw new Error("Not found");
       return res.json();
     },
+    refetchInterval: 15000, // auto-refresh every 15s so all devices see live updates
   });
 
   const [completedStages, setCompletedStages] = useState<CompletedStage[]>([]);
-  const [initialized, setInitialized] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   // Initials — stored in localStorage so persists between sessions on same device
@@ -51,12 +53,12 @@ export default function BuildProgress() {
       typeof s === "string" ? { id: s, initials: "" } : s
     );
 
+  // Sync from server on every poll, but skip while a save is in-flight to avoid race conditions
   useEffect(() => {
-    if (data && !initialized) {
+    if (data && !isSaving) {
       setCompletedStages(normalizeStages(data.completedBuildStages));
-      setInitialized(true);
     }
-  }, [data, initialized]);
+  }, [data]);
 
   const autoGenerateStages = (
     kit: BuildProgressData["kit"],
@@ -114,17 +116,34 @@ export default function BuildProgress() {
       if (!res.ok) throw new Error("Save failed");
       return res.json();
     },
+    onSuccess: () => {
+      // Force a fresh fetch so the next poll reflects the save immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/build-progress", quoteId] });
+    },
     onError: () => {
       toast({ title: "Save failed", description: "Could not save. Please try again.", variant: "destructive" });
+    },
+    onSettled: () => {
+      setIsSaving(false);
     },
   });
 
   const handleStagePress = (stageId: string) => {
     if (isStageComplete(stageId)) {
-      // Uncheck immediately — no confirmation needed
+      const who = getStageInitials(stageId);
+      // Only allow undoing a stage if it was done by the same person (or has no initials = admin)
+      if (who && who !== initials) {
+        toast({
+          title: `Completed by ${who}`,
+          description: "Only the person who completed this stage can undo it.",
+          variant: "destructive",
+        });
+        return;
+      }
       const updated = completedStages.filter((s) => s.id !== stageId);
       setCompletedStages(updated);
       setPendingId(null);
+      setIsSaving(true);
       saveMutation.mutate(updated);
       return;
     }
@@ -137,8 +156,9 @@ export default function BuildProgress() {
     const updated = [...completedStages, entry];
     setCompletedStages(updated);
     setPendingId(null);
-    saveMutation.mutate(updated);
+    setIsSaving(true);
     const label = activeStages.find((s) => s.id === pendingId)?.label;
+    saveMutation.mutate(updated);
     toast({ title: "Stage marked complete", description: label });
   };
 
@@ -190,7 +210,7 @@ export default function BuildProgress() {
       </div>
 
       {/* Initials bar */}
-      <div className="border-b border-border/20 px-4 py-2 bg-muted/10 flex items-center gap-2">
+      <div className="border-b border-border/20 px-4 py-2 bg-muted/10 flex items-center gap-2 flex-wrap">
         {editingInitials ? (
           <>
             <Input
@@ -229,7 +249,7 @@ export default function BuildProgress() {
               <Pencil className="w-3 h-3" />
             </button>
             {!initials && (
-              <span className="text-xs text-muted-foreground ml-2">— set these so your work is tracked</span>
+              <span className="text-xs text-muted-foreground">— set these so your work is tracked</span>
             )}
           </>
         )}
@@ -257,8 +277,10 @@ export default function BuildProgress() {
         ) : (
           activeStages.map((stage, idx) => {
             const isComplete = isStageComplete(stage.id);
-            const stageInitials = getStageInitials(stage.id);
+            const stageInit = getStageInitials(stage.id);
             const isPending = pendingId === stage.id;
+            // A stage is locked if it was done by a different person
+            const isLocked = isComplete && !!stageInit && stageInit !== initials;
             const prevSection = idx > 0 ? activeStages[idx - 1].section : undefined;
             const showSectionHeader = stage.section && stage.section !== prevSection;
             return (
@@ -282,7 +304,6 @@ export default function BuildProgress() {
                   onClick={() => handleStagePress(stage.id)}
                   data-testid={`toggle-stage-${stage.id}`}
                 >
-                  {/* Status indicator */}
                   <span className="shrink-0">
                     {isComplete ? (
                       <CheckCircle2 className="w-5 h-5 text-[#8bc440]" />
@@ -303,17 +324,17 @@ export default function BuildProgress() {
                       <span className="ml-2 text-xs text-amber-400 font-normal">— tap Save to confirm</span>
                     )}
                   </span>
-                  {/* Initials badge for completed stages */}
-                  {isComplete && stageInitials && (
+                  {/* Initials badge — shows who completed it */}
+                  {isComplete && stageInit && (
                     <Badge
                       variant="secondary"
-                      className="text-xs font-mono shrink-0"
+                      className={cn("text-xs font-mono shrink-0", isLocked && "opacity-60")}
                       data-testid={`badge-initials-${stage.id}`}
                     >
-                      {stageInitials}
+                      {stageInit}
                     </Badge>
                   )}
-                  {isComplete && !stageInitials && (
+                  {isComplete && !stageInit && (
                     <span className="w-2 h-2 rounded-full bg-[#8bc440] shrink-0" />
                   )}
                 </button>
@@ -359,7 +380,7 @@ export default function BuildProgress() {
       {/* Footer */}
       {!allDone && !pendingId && (
         <div className="border-t border-border/40 px-4 py-3 text-center text-xs text-muted-foreground">
-          {doneCount} of {totalCount} stages complete
+          {doneCount} of {totalCount} stages complete · updates every 15s
         </div>
       )}
     </div>

@@ -192,6 +192,7 @@ export default function AdminQuoteDetail() {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const pendingTabRef = useRef<string | null>(null);
   const pendingNavRef = useRef<string | null>(null);
+  const hasLoadedRef = useRef(false); // prevents poll re-runs from overwriting admin edits
 
   // Finance editor state (deposit in £ pounds, term in years 1-5)
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
@@ -231,7 +232,7 @@ export default function AdminQuoteDetail() {
   // Initialize form fields when quote loads
   useEffect(() => {
     if (quote) {
-      setStatus(quote.status || "new");
+      // Always sync workshop-managed build progress (updated by lads via QR page)
       {
         const rawStages = Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages as Array<string | { id: string; initials: string }> : [];
         const stageIds = rawStages.map((s) => (typeof s === "string" ? s : s.id));
@@ -240,6 +241,10 @@ export default function AdminQuoteDetail() {
         setCompletedBuildStages(stageIds);
         setStageInitials(initialsMap);
       }
+      // Only initialize admin-editable fields on first load — polls must not overwrite in-progress edits
+      if (hasLoadedRef.current) return;
+      hasLoadedRef.current = true;
+      setStatus(quote.status || "new");
       setCustomBuildStages(Array.isArray(quote.customBuildStages) ? quote.customBuildStages : null);
       setCustomerConfirmed(quote.customerConfirmed ?? false);
       setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
@@ -563,7 +568,8 @@ export default function AdminQuoteDetail() {
     if (vanRegistration !== (quote.vanRegistration ?? "")) return true;
     if (vanMileage !== (quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "")) return true;
     if (customerConfirmed !== (quote.customerConfirmed ?? false)) return true;
-    if (JSON.stringify([...completedBuildStages].sort()) !== JSON.stringify([...(quote.completedBuildStages || [])].sort())) return true;
+    const serverStageIds = (quote.completedBuildStages || []).map((s: any) => typeof s === "string" ? s : s.id).sort();
+    if (JSON.stringify([...completedBuildStages].sort()) !== JSON.stringify(serverStageIds)) return true;
     if (newAdminNote.trim() !== "") return true;
     return false;
   })() : false;
@@ -1020,7 +1026,13 @@ export default function AdminQuoteDetail() {
                     setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
                     setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
                     setCustomerConfirmed(quote.customerConfirmed ?? false);
-                    setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
+                    {
+                      const rawD = Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages as Array<string | { id: string; initials: string }> : [];
+                      setCompletedBuildStages(rawD.map(s => typeof s === "string" ? s : s.id));
+                      const iMap: Record<string, string> = {};
+                      rawD.forEach(s => { if (typeof s !== "string" && s.initials) iMap[s.id] = s.initials; });
+                      setStageInitials(iMap);
+                    }
                     setNewAdminNote("");
                     setServiceType((quote.serviceType as any) ?? null);
                     setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
