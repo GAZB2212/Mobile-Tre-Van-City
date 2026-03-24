@@ -34,7 +34,8 @@ export default function BuildProgress() {
       if (!res.ok) throw new Error("Not found");
       return res.json();
     },
-    refetchInterval: 15000, // auto-refresh every 15s so all devices see live updates
+    refetchInterval: 30000,            // poll every 30s — small payload, ~2KB per request
+    refetchIntervalInBackground: false, // pause when browser tab is not visible
   });
 
   const [completedStages, setCompletedStages] = useState<CompletedStage[]>([]);
@@ -380,7 +381,7 @@ export default function BuildProgress() {
       {/* Footer */}
       {!allDone && !pendingId && (
         <div className="border-t border-border/40 px-4 py-3 text-center text-xs text-muted-foreground">
-          {doneCount} of {totalCount} stages complete · updates every 15s
+          {doneCount} of {totalCount} stages complete · updates every 30s
         </div>
       )}
     </div>
