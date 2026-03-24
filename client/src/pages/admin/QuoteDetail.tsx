@@ -705,14 +705,13 @@ export default function AdminQuoteDetail() {
     }
     const selectedUpgradesList = upgrades.filter(u => selectedUpgradeIds.includes(u.id));
     const wrapGraphicsPattern = /wrap|graphics|livery/i;
-    const brandedInteriorWallPattern = /branded/i;
     const interiorWallPattern = /interior.wall/i;
-    const isBrandedInteriorWall = (u: Upgrade) =>
-      brandedInteriorWallPattern.test(u.name) && (interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category));
+    const isInteriorWall = (u: Upgrade) =>
+      interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
     const isWrapGraphics = (u: Upgrade) => wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
-    const nonWrapUpgrades = selectedUpgradesList.filter(u => !isWrapGraphics(u) && !isBrandedInteriorWall(u));
-    const wrapUpgrades = selectedUpgradesList.filter(u => isWrapGraphics(u) && !isBrandedInteriorWall(u));
-    const brandedInteriorWallUpgrades = selectedUpgradesList.filter(u => isBrandedInteriorWall(u) && !isWrapGraphics(u));
+    const nonWrapUpgrades = selectedUpgradesList.filter(u => !isWrapGraphics(u) && !isInteriorWall(u));
+    const wrapUpgrades = selectedUpgradesList.filter(u => isWrapGraphics(u) && !isInteriorWall(u));
+    const interiorWallUpgrades = selectedUpgradesList.filter(u => isInteriorWall(u) && !isWrapGraphics(u));
     for (const u of nonWrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
@@ -724,12 +723,12 @@ export default function AdminQuoteDetail() {
     for (const u of wrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
-    if (brandedInteriorWallUpgrades.length > 0) {
+    if (interiorWallUpgrades.length > 0) {
       stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
       stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
       stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
-    for (const u of brandedInteriorWallUpgrades) {
+    for (const u of interiorWallUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     stages.push({ id: "final_checks", label: "Final Checks" });
