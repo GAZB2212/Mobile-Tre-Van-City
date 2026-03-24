@@ -387,7 +387,7 @@ export default function BuildSheet() {
           </Card>
 
           {/* Van Spec */}
-          {van && (
+          {van ? (
             <Card>
               <CardHeader>
                 <CardTitle>Base Vehicle Specification</CardTitle>
@@ -398,6 +398,15 @@ export default function BuildSheet() {
                     {van.make} {van.model} ({van.year})
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    {/* Registration — shown first and prominently */}
+                    {((quote as any).vanRegistration || van.reg) && (
+                      <div className="col-span-2 md:col-span-3">
+                        <p className="text-muted-foreground print:text-black">Registration</p>
+                        <p className="font-bold text-base uppercase tracking-widest" data-testid="text-van-reg">
+                          {(quote as any).vanRegistration || van.reg}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-muted-foreground print:text-black">Mileage</p>
                       <p className="font-medium" data-testid="text-van-mileage">{van.mileage.toLocaleString()} miles</p>
@@ -430,7 +439,30 @@ export default function BuildSheet() {
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : (quote as any).vanRegistration ? (
+            /* No stock van linked, but a registration was recorded — show a minimal van details card */
+            <Card>
+              <CardHeader>
+                <CardTitle>Van Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1 text-sm">
+                  {quote.customVanDescription && (
+                    <div>
+                      <p className="text-muted-foreground print:text-black">Vehicle</p>
+                      <p className="font-medium" data-testid="text-custom-van-desc">{quote.customVanDescription}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-muted-foreground print:text-black">Registration</p>
+                    <p className="font-bold text-base uppercase tracking-widest" data-testid="text-van-reg">
+                      {(quote as any).vanRegistration}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* Kit Items — with checkboxes */}
           {kit && (
