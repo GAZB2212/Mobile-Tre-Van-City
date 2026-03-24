@@ -556,7 +556,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let comparisonSlotBEmail: { vanTitle?: string | null; kitName?: string | null; upgradeNames?: string[]; estSubtotal?: number; estVAT?: number; estTotal?: number } | null = null;
         const emailSlotB = enrichedComparisonConfig?.slotB;
         if (emailSlotB) {
-          const emailSlotBUpgradeIds: string[] = emailSlotB.upgradeIds || [];
+          // In compare mode, kit/upgrades are always shared from Option A — use the primary selectedUpgradeIds
+          // so Option B always shows the same equipment as Option A regardless of what was stored in slotB.upgradeIds
+          const emailSlotBUpgradeIds: string[] = (quoteData.selectedUpgradeIds as string[]) || emailSlotB.upgradeIds || [];
           const [slotBVan, slotBKit, slotBUpgrades] = await Promise.all([
             emailSlotB.vanId ? storage.getVan(emailSlotB.vanId) : Promise.resolve(null),
             emailSlotB.kitId ? storage.getKit(emailSlotB.kitId) : Promise.resolve(null),
@@ -2469,7 +2471,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       } | null = null;
 
       if (slotBConfig) {
-        const slotBUpgradeIds: string[] = slotBConfig.upgradeIds || [];
+        // In compare mode, kit/upgrades are always shared from Option A — always use the primary
+        // quote.selectedUpgradeIds so Option B shows the same equipment as Option A.
+        // This prevents stale slotB.upgradeIds (e.g. from edits or old submissions) causing divergence.
+        const slotBUpgradeIds: string[] = (quote.selectedUpgradeIds as string[]) || slotBConfig.upgradeIds || [];
         const [slotBVan, slotBKit, slotBUpgrades] = await Promise.all([
           slotBConfig.vanId ? storage.getVan(slotBConfig.vanId) : Promise.resolve(null),
           slotBConfig.kitId ? storage.getKit(slotBConfig.kitId) : Promise.resolve(null),
