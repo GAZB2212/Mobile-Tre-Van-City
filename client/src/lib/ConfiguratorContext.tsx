@@ -256,75 +256,133 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     updateActiveSlot(prev => ({ ...prev, vanReg: reg }));
   };
 
-  const setServiceType = (serviceType: KitServiceType | null) => {
-    updateActiveSlot(prev => ({
+  // In compare mode, slot B shares the kit/upgrades/training from slot A — only the van differs.
+  // These helpers return early when slot B is active so nothing can accidentally diverge.
+  const isLockedSlotB = () =>
+    fullState.compareMode && fullState.activeSlot === 'B';
+
+  // Syncs slot B config fields from slot A when in compare mode.
+  // Called after any slot A change that slot B must mirror.
+  const syncSlotBFromA = (prev: typeof fullState): typeof fullState => {
+    if (!prev.compareMode) return prev;
+    return {
       ...prev,
-      serviceType,
-      kitId: null,
-      upgradeIds: [],
-      trainingOptionIds: [],
-      financePlanId: null,
-      financeInputs: null,
-      pricingSnapshot: null,
-    }));
+      slotB: {
+        ...prev.slotB,
+        serviceType: prev.slotA.serviceType,
+        kitId: prev.slotA.kitId,
+        upgradeIds: [...prev.slotA.upgradeIds],
+        trainingOptionIds: [...prev.slotA.trainingOptionIds],
+      },
+    };
+  };
+
+  const setServiceType = (serviceType: KitServiceType | null) => {
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          serviceType,
+          kitId: null,
+          upgradeIds: [],
+          trainingOptionIds: [],
+          financePlanId: null,
+          financeInputs: null,
+          pricingSnapshot: null,
+        },
+      };
+      return syncSlotBFromA(updated);
+    });
   };
 
   const setKit = (kitId: string | null) => {
-    updateActiveSlot(prev => ({
-      ...prev,
-      kitId,
-      upgradeIds: [],
-      trainingOptionIds: [],
-      financePlanId: null,
-      financeInputs: null,
-      pricingSnapshot: null,
-    }));
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          kitId,
+          upgradeIds: [],
+          trainingOptionIds: [],
+          financePlanId: null,
+          financeInputs: null,
+          pricingSnapshot: null,
+        },
+      };
+      return syncSlotBFromA(updated);
+    });
   };
 
   const setUpgrades = (upgradeIds: string[]) => {
-    updateActiveSlot(prev => ({ ...prev, upgradeIds }));
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds } };
+      return syncSlotBFromA(updated);
+    });
   };
 
   const addUpgrade = (upgradeId: string) => {
-    updateActiveSlot(prev => {
-      if (prev.upgradeIds.includes(upgradeId)) return prev;
-      return { ...prev, upgradeIds: [...prev.upgradeIds, upgradeId] };
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      if (prev[slot].upgradeIds.includes(upgradeId)) return prev;
+      const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: [...prev[slot].upgradeIds, upgradeId] } };
+      return syncSlotBFromA(updated);
     });
   };
 
   const removeUpgrade = (upgradeId: string) => {
-    updateActiveSlot(prev => ({
-      ...prev,
-      upgradeIds: prev.upgradeIds.filter(id => id !== upgradeId),
-    }));
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: prev[slot].upgradeIds.filter(id => id !== upgradeId) } };
+      return syncSlotBFromA(updated);
+    });
   };
 
   const replaceUpgrades = (toRemove: string[], toAdd: string) => {
-    updateActiveSlot(prev => {
-      let newUpgradeIds = prev.upgradeIds.filter(id => !toRemove.includes(id));
-      if (!newUpgradeIds.includes(toAdd)) {
-        newUpgradeIds = [...newUpgradeIds, toAdd];
-      }
-      return { ...prev, upgradeIds: newUpgradeIds };
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      let newUpgradeIds = prev[slot].upgradeIds.filter(id => !toRemove.includes(id));
+      if (!newUpgradeIds.includes(toAdd)) newUpgradeIds = [...newUpgradeIds, toAdd];
+      const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: newUpgradeIds } };
+      return syncSlotBFromA(updated);
     });
   };
 
   const setTrainingOptions = (trainingOptionIds: string[]) => {
-    updateActiveSlot(prev => ({ ...prev, trainingOptionIds }));
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = { ...prev, [slot]: { ...prev[slot], trainingOptionIds } };
+      return syncSlotBFromA(updated);
+    });
   };
 
   const addTrainingOption = (trainingOptionId: string) => {
-    updateActiveSlot(prev => {
-      if (prev.trainingOptionIds.includes(trainingOptionId)) return prev;
-      return { ...prev, trainingOptionIds: [...prev.trainingOptionIds, trainingOptionId] };
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      if (prev[slot].trainingOptionIds.includes(trainingOptionId)) return prev;
+      const updated = { ...prev, [slot]: { ...prev[slot], trainingOptionIds: [...prev[slot].trainingOptionIds, trainingOptionId] } };
+      return syncSlotBFromA(updated);
     });
   };
 
   const removeTrainingOption = (trainingOptionId: string) => {
-    updateActiveSlot(prev => ({
-      ...prev,
-      trainingOptionIds: prev.trainingOptionIds.filter(id => id !== trainingOptionId),
-    }));
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = { ...prev, [slot]: { ...prev[slot], trainingOptionIds: prev[slot].trainingOptionIds.filter(id => id !== trainingOptionId) } };
+      return syncSlotBFromA(updated);
+    });
   };
 
   const setFinancePlan = (financePlanId: string | null) => {
@@ -354,6 +412,17 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromVan = () => {
+    if (isLockedSlotB()) {
+      // In compare mode, slot B only has a van — reset just the van fields, leave kit/upgrades intact
+      updateActiveSlot(prev => ({
+        ...prev,
+        vanId: null,
+        customVanDescription: null,
+        customVanValue: null,
+        vanReg: null,
+      }));
+      return;
+    }
     updateActiveSlot(prev => ({
       ...prev,
       customVanDescription: null,
@@ -370,6 +439,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromServiceType = () => {
+    if (isLockedSlotB()) return;
     updateActiveSlot(prev => ({
       ...prev,
       kitId: null,
@@ -382,6 +452,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromKit = () => {
+    if (isLockedSlotB()) return;
     updateActiveSlot(prev => ({
       ...prev,
       upgradeIds: [],
@@ -393,6 +464,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const resetFromUpgrades = () => {
+    if (isLockedSlotB()) return;
     updateActiveSlot(prev => ({
       ...prev,
       trainingOptionIds: [],
