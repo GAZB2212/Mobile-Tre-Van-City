@@ -128,6 +128,7 @@ export default function BuildSheet() {
 
   const stockBuildId = (quote as any)?.stockBuildId as string | undefined;
   const qrUrl = stockBuildId ? `https://autotradeportal.com/van-build-scan/${stockBuildId}` : undefined;
+  const progressUrl = `${window.location.origin}/admin/quotes/${quoteId}`;
 
   const kit = kits.find((k) => k.id === quote?.kitId);
   const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds.includes(u.id));
@@ -335,20 +336,20 @@ export default function BuildSheet() {
             <p className="text-sm text-muted-foreground print:text-black">Date: {formatDate(quote.createdAt)}</p>
           </div>
 
-          {/* Stock management QR code — shown only when build has been dispatched */}
-          {qrUrl && (
-            <div className="flex-shrink-0 flex flex-col items-center gap-1 print:border print:border-black print:p-2 print:rounded" data-testid="div-qr-code">
+          {/* QR codes — build progress (stock pick QR hidden until stock system is ready) */}
+          <div className="flex-shrink-0 flex flex-row items-start gap-4">
+            <div className="flex flex-col items-center gap-1 print:border print:border-black print:p-2 print:rounded" data-testid="div-progress-qr-code">
               <QRCodeCanvas
-                value={qrUrl}
+                value={progressUrl}
                 size={112}
                 marginSize={1}
-                data-testid="img-qr-code"
+                data-testid="img-progress-qr-code"
               />
               <p className="text-xs text-muted-foreground print:text-black text-center leading-tight">
-                Scan to<br />pick stock
+                Scan to update<br />build progress
               </p>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="space-y-6">
