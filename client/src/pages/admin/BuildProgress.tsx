@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Wrench } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Wrench, CircleDot, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,6 +33,7 @@ export default function BuildProgress() {
 
   const [completedStages, setCompletedStages] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (data && !initialized) {
@@ -47,17 +48,17 @@ export default function BuildProgress() {
   ): Array<{ id: string; label: string; section?: string }> => {
     const upgradeLabel = (u: BuildProgressData["upgrades"][0]) =>
       u.variantName ? `${u.name} — ${u.variantName}` : u.name;
+    const interiorWallPattern = /interior.wall/i;
+    const wrapGraphicsPattern = /wrap|graphic/i;
+    const isInteriorWall = (u: { name: string; category: string }) =>
+      interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
+    const isWrapGraphics = (u: { name: string; category: string }) =>
+      wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
     const stages: Array<{ id: string; label: string; section?: string }> = [];
     stages.push({ id: "prep", label: "Van Preparation" });
     if (kit) {
       stages.push({ id: "kit", label: `Install ${kit.name}` });
     }
-    const wrapGraphicsPattern = /wrap|graphics|livery/i;
-    const interiorWallPattern = /interior.wall/i;
-    const isInteriorWall = (u: { name: string; category: string }) =>
-      interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
-    const isWrapGraphics = (u: { name: string; category: string }) =>
-      wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
     const nonWrap = upgrades.filter((u) => !isWrapGraphics(u) && !isInteriorWall(u));
     const wrap = upgrades.filter((u) => isWrapGraphics(u) && !isInteriorWall(u));
     const wallUpgrades = upgrades.filter((u) => isInteriorWall(u) && !isWrapGraphics(u));
@@ -79,11 +80,12 @@ export default function BuildProgress() {
     return stages;
   };
 
-  const activeStages: Array<{ id: string; label: string; section?: string }> = data
-    ? (Array.isArray(data.customBuildStages) && data.customBuildStages.length > 0
+  const activeStages =
+    data
+      ? (data.customBuildStages && data.customBuildStages.length > 0
         ? data.customBuildStages
         : autoGenerateStages(data.kit, data.upgrades))
-    : [];
+      : [];
 
   const saveMutation = useMutation({
     mutationFn: async (updated: string[]) => {
@@ -96,16 +98,33 @@ export default function BuildProgress() {
       return res.json();
     },
     onError: () => {
-      toast({ title: "Save failed", description: "Could not save the update. Please try again.", variant: "destructive" });
+      toast({ title: "Save failed", description: "Could not save. Please try again.", variant: "destructive" });
     },
   });
 
-  const handleToggle = (stageId: string, checked: boolean) => {
-    const updated = checked
-      ? [...completedStages, stageId]
-      : completedStages.filter((s) => s !== stageId);
+  const handleStagePress = (stageId: string) => {
+    const isComplete = completedStages.includes(stageId);
+
+    if (isComplete) {
+      // Uncheck immediately — no confirmation needed
+      const updated = completedStages.filter((s) => s !== stageId);
+      setCompletedStages(updated);
+      setPendingId(null);
+      saveMutation.mutate(updated);
+      return;
+    }
+
+    // Toggle the pending selection
+    setPendingId((prev) => (prev === stageId ? null : stageId));
+  };
+
+  const handleConfirmSave = () => {
+    if (!pendingId) return;
+    const updated = [...completedStages, pendingId];
     setCompletedStages(updated);
+    setPendingId(null);
     saveMutation.mutate(updated);
+    toast({ title: "Stage marked complete", description: activeStages.find((s) => s.id === pendingId)?.label });
   };
 
   const doneCount = completedStages.filter((id) => activeStages.some((s) => s.id === id)).length;
@@ -134,7 +153,7 @@ export default function BuildProgress() {
 
   return (
     <div className="min-h-screen bg-[#191919] flex flex-col">
-      {/* Locked header — no navigation */}
+      {/* Header */}
       <div className="border-b border-border/40 px-4 py-4 flex items-center gap-3">
         <Wrench className="w-5 h-5 text-[#8bc440] shrink-0" />
         <div className="flex-1 min-w-0">
@@ -156,7 +175,7 @@ export default function BuildProgress() {
       </div>
 
       {/* Stage list */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 max-w-lg mx-auto w-full">
+      <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-2 max-w-lg mx-auto w-full", pendingId && "pb-28")}>
         {allDone ? (
           <div className="flex flex-col items-center gap-3 py-16" data-testid="all-done-banner">
             <CheckCircle2 className="w-14 h-14 text-[#8bc440]" />
@@ -168,6 +187,7 @@ export default function BuildProgress() {
         ) : (
           activeStages.map((stage, idx) => {
             const isComplete = completedStages.includes(stage.id);
+            const isPending = pendingId === stage.id;
             const prevSection = idx > 0 ? activeStages[idx - 1].section : undefined;
             const showSectionHeader = stage.section && stage.section !== prevSection;
             return (
@@ -183,28 +203,37 @@ export default function BuildProgress() {
                 <button
                   type="button"
                   className={cn(
-                    "w-full flex items-center gap-3 py-3 px-4 rounded-md text-left transition-colors",
-                    isComplete ? "bg-[#8bc440]/10" : "bg-muted/20"
+                    "w-full flex items-center gap-3 py-4 px-4 rounded-md text-left transition-all duration-150 active:scale-[0.99]",
+                    isComplete && "bg-[#8bc440]/10",
+                    isPending && "bg-amber-500/15 ring-2 ring-amber-400/60",
+                    !isComplete && !isPending && "bg-muted/20"
                   )}
-                  onClick={() => handleToggle(stage.id, !isComplete)}
+                  onClick={() => handleStagePress(stage.id)}
                   data-testid={`toggle-stage-${stage.id}`}
                 >
-                  <Checkbox
-                    checked={isComplete}
-                    onCheckedChange={(checked) => handleToggle(stage.id, !!checked)}
-                    className="pointer-events-none shrink-0"
-                    data-testid={`checkbox-stage-${stage.id}`}
-                  />
+                  {/* Status indicator */}
+                  <span className="shrink-0">
+                    {isComplete ? (
+                      <CheckCircle2 className="w-5 h-5 text-[#8bc440]" />
+                    ) : isPending ? (
+                      <CircleDot className="w-5 h-5 text-amber-400" />
+                    ) : (
+                      <span className="w-5 h-5 rounded-full border-2 border-muted-foreground/40 block" />
+                    )}
+                  </span>
                   <span
                     className={cn(
-                      "flex-1 text-sm font-medium",
+                      "flex-1 text-sm font-medium leading-snug",
                       isComplete ? "line-through text-muted-foreground" : "text-foreground"
                     )}
                   >
                     {stage.label}
+                    {isPending && (
+                      <span className="ml-2 text-xs text-amber-400 font-normal">— tap Save to confirm</span>
+                    )}
                   </span>
                   {isComplete && (
-                    <Badge variant="secondary" className="text-xs shrink-0">Done</Badge>
+                    <Check className="w-4 h-4 text-[#8bc440] shrink-0" />
                   )}
                 </button>
               </div>
@@ -213,10 +242,37 @@ export default function BuildProgress() {
         )}
       </div>
 
+      {/* Sticky Save confirmation */}
+      {pendingId && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#191919] border-t border-amber-400/30 px-4 py-4 flex flex-col gap-2 max-w-lg mx-auto" data-testid="save-confirm-bar">
+          <p className="text-xs text-amber-400 text-center font-medium truncate">
+            {activeStages.find((s) => s.id === pendingId)?.label}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setPendingId(null)}
+              data-testid="button-cancel-confirm"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-2 bg-[#8bc440] text-[#191919] font-bold"
+              onClick={handleConfirmSave}
+              disabled={saveMutation.isPending}
+              data-testid="button-save-confirm"
+            >
+              {saveMutation.isPending ? "Saving..." : "Save — Mark Complete"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
-      {!allDone && (
+      {!allDone && !pendingId && (
         <div className="border-t border-border/40 px-4 py-3 text-center text-xs text-muted-foreground">
-          {doneCount} of {totalCount} stages complete — saves automatically
+          {doneCount} of {totalCount} stages complete
         </div>
       )}
     </div>
