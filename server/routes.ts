@@ -2438,21 +2438,55 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       // Pre-discount total (for email display: template subtracts discount from this)
       const totalWithVat = totalAfterDiscount + discount;
 
-      // Calculate finance info if financeInputs are set on the quote
-      let specFinanceInfo: { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number } | null = null;
-      const fi = quote.financeInputs;
-      if (fi && fi.deposit !== undefined && fi.deposit !== null && fi.term) {
-        const depositAmount: number = fi.deposit;
+      // Helper: compute finance monthly/weekly from a total (in pence) and financeInputs
+      const calcSpecFinance = (totalPence: number, fi: { deposit?: number; term?: number } | null | undefined) => {
+        if (!fi || !fi.term || fi.term <= 0 || totalPence <= 0) return null;
+        const depositAmount: number = fi.deposit ?? 0;
         const termMonths: number = fi.term;
-        const principal = totalAfterDiscount - depositAmount;
-        if (principal > 0 && termMonths > 0) {
-          const FINANCE_APR = 0.109;
-          const monthlyRate = FINANCE_APR / 12;
-          const pv = Math.pow(1 + monthlyRate, termMonths);
-          const monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
-          const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
-          specFinanceInfo = { depositAmount, termMonths, monthlyPayment, weeklyPayment };
-        }
+        const principal = totalPence - depositAmount;
+        if (principal <= 0) return null;
+        const FINANCE_APR = 0.109;
+        const monthlyRate = FINANCE_APR / 12;
+        const pv = Math.pow(1 + monthlyRate, termMonths);
+        const monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+        const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+        return { depositAmount, termMonths, monthlyPayment, weeklyPayment };
+      };
+
+      const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
+      const specFinanceInfo = calcSpecFinance(totalAfterDiscount, fi);
+
+      // If comparison quote — fetch slot B details for the email
+      const slotBConfig = (quote as any).comparisonConfig?.slotB;
+      let comparisonSlotBEmail: {
+        vanTitle?: string | null;
+        kitName?: string | null;
+        upgradeNames?: string[];
+        estSubtotal?: number;
+        estVAT?: number;
+        estTotal?: number;
+        financeInfo?: { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number } | null;
+      } | null = null;
+
+      if (slotBConfig) {
+        const slotBUpgradeIds: string[] = slotBConfig.upgradeIds || [];
+        const [slotBVan, slotBKit, slotBUpgrades] = await Promise.all([
+          slotBConfig.vanId ? storage.getVan(slotBConfig.vanId) : Promise.resolve(null),
+          slotBConfig.kitId ? storage.getKit(slotBConfig.kitId) : Promise.resolve(null),
+          slotBUpgradeIds.length > 0
+            ? Promise.all(slotBUpgradeIds.map((uid: string) => storage.getUpgrade(uid)))
+            : Promise.resolve([]),
+        ]);
+        const slotBTotal = slotBConfig.estTotal ?? 0;
+        comparisonSlotBEmail = {
+          vanTitle: (slotBVan as any)?.title ?? (slotBConfig.vanRegistration ? `Own van (${slotBConfig.vanRegistration})` : null),
+          kitName: (slotBKit as any)?.name ?? null,
+          upgradeNames: slotBUpgrades.filter(Boolean).map((u: any) => u.name),
+          estSubtotal: slotBConfig.estSubtotal,
+          estVAT: slotBConfig.estVAT,
+          estTotal: slotBTotal,
+          financeInfo: calcSpecFinance(slotBTotal, fi),
+        };
       }
 
       // Get latest customer-facing note
@@ -2482,9 +2516,12 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         total: totalWithVat,
         discount: discount > 0 ? discount : undefined,
         customerNote: latestCustomerNote,
-        approvalToken,
+        // Only pass approval token for single-van quotes — comparison uses choose-option buttons instead
+        approvalToken: comparisonSlotBEmail ? undefined : approvalToken,
         siteBaseUrl,
         financeInfo: specFinanceInfo,
+        comparisonSlotB: comparisonSlotBEmail,
+        chosenOption: ((quote as any).chosenOption as 'A' | 'B' | null) ?? null,
       });
 
       // Record specSentAt, store approval token (resets prior approval), add auto-audit note

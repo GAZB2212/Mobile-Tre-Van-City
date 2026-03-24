@@ -162,6 +162,8 @@ export async function sendQuoteSpecSummaryEmail({
   approvalToken,
   siteBaseUrl,
   financeInfo,
+  comparisonSlotB,
+  chosenOption,
 }: {
   to: string;
   customerName: string;
@@ -182,11 +184,27 @@ export async function sendQuoteSpecSummaryEmail({
     monthlyPayment: number;
     weeklyPayment: number;
   } | null;
+  comparisonSlotB?: {
+    vanTitle?: string | null;
+    kitName?: string | null;
+    upgradeNames?: string[];
+    estSubtotal?: number;
+    estVAT?: number;
+    estTotal?: number;
+    financeInfo?: {
+      depositAmount: number;
+      termMonths: number;
+      monthlyPayment: number;
+      weeklyPayment: number;
+    } | null;
+  } | null;
+  chosenOption?: 'A' | 'B' | null;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
   const brandGreen = '#8bc440';
   const brandDark = '#191919';
+  const isComparison = !!comparisonSlotB;
 
   const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
   const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
@@ -197,8 +215,137 @@ export async function sendQuoteSpecSummaryEmail({
     ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>`
     : '';
 
-  // Build finance section if financeInfo is provided
-  const financeBlock = financeInfo ? `
+  const siteBase = siteBaseUrl || process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
+
+  // Build a finance table block
+  const financeBlock = (fi: typeof financeInfo) => fi ? `
+    <h4 style="margin:12px 0 6px; color:#374151; font-size:13px;">Finance Option (HP — 10.9% APR)</h4>
+    <table>
+      <tr><td>Deposit</td><td>${fmt(fi.depositAmount)}</td></tr>
+      <tr><td>Finance Term</td><td>${fi.termMonths} months${fi.termMonths % 12 === 0 ? ` (${fi.termMonths / 12} year${fi.termMonths / 12 !== 1 ? 's' : ''})` : ''}</td></tr>
+      <tr><td>Monthly Payment (est.)</td><td style="font-weight:bold; color:${brandGreen};">${fmt(fi.monthlyPayment)}/month</td></tr>
+      <tr><td>Weekly Payment (est.)</td><td>${fmt(fi.weeklyPayment)}/week</td></tr>
+    </table>
+    <p style="font-size:11px; color:#6b7280; margin-top:-8px;">Estimates based on Hire Purchase at 10.9% APR. Subject to status and final agreement.</p>
+  ` : '';
+
+  // ── COMPARISON MODE ────────────────────────────────────────────────────────
+  if (isComparison && comparisonSlotB) {
+    const slotB = comparisonSlotB;
+    const chosenBadge = (opt: 'A' | 'B') =>
+      chosenOption === opt
+        ? ` <span style="background:${brandGreen};color:${brandDark};font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>`
+        : '';
+
+    const optionBlock = (opt: 'A' | 'B', oVanTitle: string | null | undefined, oKitName: string | null | undefined, oUpgradeNames: string[] | undefined, oSubtotal: number, oVAT: number, oTotal: number, oFinance: typeof financeInfo) => {
+      const isChosen = chosenOption === opt;
+      const borderStyle = isChosen ? `border:2px solid ${brandGreen};` : 'border:1px solid #e5e7eb;';
+      const chooseBtn = !chosenOption
+        ? `<div style="text-align:center; margin-top:16px;">
+            <a href="${siteBase}/api/quotes/${quoteId}/choose-option?option=${opt}"
+               style="display:block;max-width:240px;margin:0 auto;background:${brandGreen};color:${brandDark};font-weight:bold;font-size:15px;padding:13px 24px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">
+              I choose Option ${opt}
+            </a>
+          </div>`
+        : '';
+      return `
+        <div style="${borderStyle} border-radius:6px; padding:20px; margin-bottom:20px; background:#fff;">
+          <p style="font-weight:bold; font-size:15px; margin:0 0 12px; color:${brandDark};">
+            Option ${opt}${chosenBadge(opt)}
+          </p>
+          <table>
+            ${oVanTitle ? `<tr><td>Van</td><td>${oVanTitle}</td></tr>` : ''}
+            ${oKitName ? `<tr><td>Pack</td><td>${oKitName}</td></tr>` : ''}
+            ${oUpgradeNames && oUpgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${oUpgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+            <tr><td>Subtotal (ex. VAT)</td><td>${fmt(oSubtotal)}</td></tr>
+            <tr><td>VAT (20%)</td><td>${fmt(oVAT)}</td></tr>
+            <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(oTotal)}</td></tr>
+          </table>
+          ${financeBlock(oFinance)}
+          ${chooseBtn}
+        </div>`;
+    };
+
+    const introText = chosenOption
+      ? `You have selected <strong>Option ${chosenOption}</strong> as your final choice. Our team will be in touch shortly to confirm next steps.`
+      : `We've prepared two options for you to compare. Please review both below and click the button under the one you'd like to go ahead with — we'll be notified straight away.`;
+
+    const chosenConfirmBlock = chosenOption ? `
+      <div style="margin:24px 0; padding:20px; background:#f0fdf4; border:2px solid ${brandGreen}; border-radius:6px; text-align:center;">
+        <p style="font-size:16px; font-weight:bold; color:#166534; margin:0 0 6px;">Option ${chosenOption} selected</p>
+        <p style="font-size:13px; color:#166534; margin:0;">Our team will be in touch to confirm your order. Call us on <strong>0151 203 8500</strong> if you have any questions.</p>
+      </div>` : '';
+
+    const htmlBody = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; width: 100%; }
+    .header { background-color: ${brandDark}; padding: 30px; text-align: center; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 26px; }
+    .header p { color: #ccc; margin: 6px 0 0; font-size: 14px; }
+    .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; }
+    .ref-box { background: #f3f4f6; border-left: 4px solid ${brandGreen}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; font-size: 13px; word-break: break-word; }
+    td:first-child { color: #6b7280; width: 42%; }
+    .total-row td { font-weight: bold; font-size: 15px; border-top: 2px solid ${brandGreen}; border-bottom: none; color: ${brandDark}; }
+    .total-row td:last-child { color: ${brandGreen}; }
+    .note-box { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header { padding: 24px 16px !important; }
+      .content { padding: 20px 16px !important; }
+      td { padding: 7px 5px !important; }
+      td:first-child { width: 44% !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>www.mobiletyrevancity.co.uk</p>
+    </div>
+    <div class="content">
+      <p>Hi ${customerName},</p>
+      <p>${introText}</p>
+      <div class="ref-box">
+        <p><strong>Reference:</strong> #${ref}</p>
+        <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
+      </div>
+      ${chosenConfirmBlock}
+      ${optionBlock('A', vanTitle, kitName, upgradeNames, subtotal, vat, totalAfterDiscount, financeInfo ?? null)}
+      ${optionBlock('B', slotB.vanTitle, slotB.kitName, slotB.upgradeNames, slotB.estSubtotal ?? 0, slotB.estVAT ?? 0, slotB.estTotal ?? 0, slotB.financeInfo ?? null)}
+      ${customerNote ? `<div class="note-box"><strong>Note from our team:</strong><br>${customerNote}</div>` : ''}
+      <p>If you have any questions, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
+      <p>Best regards,<br><strong>Mobile Tyre Van City</strong><br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+    </div>
+    <div class="footer">
+      <p>If you did not request this summary, please disregard this email.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const textBody = `Hi ${customerName},\n\n${chosenOption ? `You have selected Option ${chosenOption}.` : 'We have prepared two options for you to compare. Please choose the one you prefer using the links below.'}\n\nReference: #${ref}\n\nOPTION A\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${fmt(subtotal)}\nVAT: ${fmt(vat)}\nTotal: ${fmt(totalAfterDiscount)}\n${!chosenOption ? `\nChoose Option A: ${siteBase}/api/quotes/${quoteId}/choose-option?option=A\n` : ''}\nOPTION B\n${slotB.vanTitle ? `Van: ${slotB.vanTitle}\n` : ''}${slotB.kitName ? `Pack: ${slotB.kitName}\n` : ''}${slotB.upgradeNames && slotB.upgradeNames.length > 0 ? `Upgrades:\n${slotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${slotB.estSubtotal != null ? `Subtotal: ${fmt(slotB.estSubtotal)}\n` : ''}${slotB.estVAT != null ? `VAT: ${fmt(slotB.estVAT)}\n` : ''}${slotB.estTotal != null ? `Total: ${fmt(slotB.estTotal)}\n` : ''}${!chosenOption ? `\nChoose Option B: ${siteBase}/api/quotes/${quoteId}/choose-option?option=B\n` : ''}\n${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+
+    await client.emails.send({
+      to,
+      from: fromEmail,
+      subject: `Your Van Conversion Options – Ref #${ref} – Mobile Tyre Van City`,
+      html: htmlBody,
+      text: textBody,
+    });
+    return;
+  }
+
+  // ── SINGLE-VAN MODE ────────────────────────────────────────────────────────
+  const financeBlockSingle = financeInfo ? `
     <h3 style="margin-bottom:8px; margin-top:24px;">Finance Option (HP — 10.9% APR)</h3>
     <table>
       <tr><td>Deposit</td><td>${fmt(financeInfo.depositAmount)}</td></tr>
@@ -211,8 +358,6 @@ export async function sendQuoteSpecSummaryEmail({
 
   const financeText = financeInfo ? `\nFinance Option (HP — 10.9% APR)\nDeposit: ${fmt(financeInfo.depositAmount)}\nTerm: ${financeInfo.termMonths} months\nMonthly payment: ${fmt(financeInfo.monthlyPayment)}\nWeekly payment (approx.): ${fmt(financeInfo.weeklyPayment)}\n` : '';
 
-  // Build approval button block if a token is provided
-  const siteBase = siteBaseUrl || process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
   const approvalBlock = approvalToken ? `
     <div style="margin: 28px 0; padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center;">
       <p style="font-size: 15px; font-weight: bold; margin: 0 0 6px;">Does this look correct?</p>
@@ -288,7 +433,7 @@ export async function sendQuoteSpecSummaryEmail({
         <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
         <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
       </table>
-      ${financeBlock}
+      ${financeBlockSingle}
       ${customerNote ? `<div class="note-box"><strong>Note from our team:</strong><br>${customerNote}</div>` : ''}
       ${approvalBlock}
       <p>If you have any questions or would like to make changes, please call us on <strong>0151 203 8500</strong> or reply to this email.</p>
