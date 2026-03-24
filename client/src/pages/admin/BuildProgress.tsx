@@ -1,22 +1,26 @@
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Wrench, CircleDot, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, Wrench, CircleDot, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+type CompletedStage = { id: string; initials: string };
 
 interface BuildProgressData {
   id: string;
   userName: string;
   status: string;
   customBuildStages: Array<{ id: string; label: string; section?: string }> | null;
-  completedBuildStages: string[];
+  completedBuildStages: Array<string | { id: string; initials: string }>;
   kit: { id: string; name: string } | null;
   upgrades: Array<{ id: string; name: string; category: string; variantName: string | null }>;
 }
+
+const INITIALS_KEY = "build_progress_initials";
 
 export default function BuildProgress() {
   const { id: quoteId } = useParams<{ id: string }>();
@@ -31,13 +35,25 @@ export default function BuildProgress() {
     },
   });
 
-  const [completedStages, setCompletedStages] = useState<string[]>([]);
+  const [completedStages, setCompletedStages] = useState<CompletedStage[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
+  // Initials — stored in localStorage so persists between sessions on same device
+  const [initials, setInitials] = useState<string>(() =>
+    (localStorage.getItem(INITIALS_KEY) || "").toUpperCase()
+  );
+  const [editingInitials, setEditingInitials] = useState(false);
+  const [initialsInput, setInitialsInput] = useState("");
+
+  const normalizeStages = (raw: BuildProgressData["completedBuildStages"]): CompletedStage[] =>
+    (raw ?? []).map((s) =>
+      typeof s === "string" ? { id: s, initials: "" } : s
+    );
+
   useEffect(() => {
     if (data && !initialized) {
-      setCompletedStages(data.completedBuildStages ?? []);
+      setCompletedStages(normalizeStages(data.completedBuildStages));
       setInitialized(true);
     }
   }, [data, initialized]);
@@ -56,9 +72,7 @@ export default function BuildProgress() {
       wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
     const stages: Array<{ id: string; label: string; section?: string }> = [];
     stages.push({ id: "prep", label: "Van Preparation" });
-    if (kit) {
-      stages.push({ id: "kit", label: `Install ${kit.name}` });
-    }
+    if (kit) stages.push({ id: "kit", label: `Install ${kit.name}` });
     const nonWrap = upgrades.filter((u) => !isWrapGraphics(u) && !isInteriorWall(u));
     const wrap = upgrades.filter((u) => isWrapGraphics(u) && !isInteriorWall(u));
     const wallUpgrades = upgrades.filter((u) => isInteriorWall(u) && !isWrapGraphics(u));
@@ -82,13 +96,16 @@ export default function BuildProgress() {
 
   const activeStages =
     data
-      ? (data.customBuildStages && data.customBuildStages.length > 0
+      ? data.customBuildStages && data.customBuildStages.length > 0
         ? data.customBuildStages
-        : autoGenerateStages(data.kit, data.upgrades))
+        : autoGenerateStages(data.kit, data.upgrades)
       : [];
 
+  const isStageComplete = (stageId: string) => completedStages.some((s) => s.id === stageId);
+  const getStageInitials = (stageId: string) => completedStages.find((s) => s.id === stageId)?.initials ?? "";
+
   const saveMutation = useMutation({
-    mutationFn: async (updated: string[]) => {
+    mutationFn: async (updated: CompletedStage[]) => {
       const res = await fetch(`/api/build-progress/${quoteId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -103,31 +120,38 @@ export default function BuildProgress() {
   });
 
   const handleStagePress = (stageId: string) => {
-    const isComplete = completedStages.includes(stageId);
-
-    if (isComplete) {
+    if (isStageComplete(stageId)) {
       // Uncheck immediately — no confirmation needed
-      const updated = completedStages.filter((s) => s !== stageId);
+      const updated = completedStages.filter((s) => s.id !== stageId);
       setCompletedStages(updated);
       setPendingId(null);
       saveMutation.mutate(updated);
       return;
     }
-
-    // Toggle the pending selection
     setPendingId((prev) => (prev === stageId ? null : stageId));
   };
 
   const handleConfirmSave = () => {
     if (!pendingId) return;
-    const updated = [...completedStages, pendingId];
+    const entry: CompletedStage = { id: pendingId, initials: initials.toUpperCase().slice(0, 3) };
+    const updated = [...completedStages, entry];
     setCompletedStages(updated);
     setPendingId(null);
     saveMutation.mutate(updated);
-    toast({ title: "Stage marked complete", description: activeStages.find((s) => s.id === pendingId)?.label });
+    const label = activeStages.find((s) => s.id === pendingId)?.label;
+    toast({ title: "Stage marked complete", description: label });
   };
 
-  const doneCount = completedStages.filter((id) => activeStages.some((s) => s.id === id)).length;
+  const handleSaveInitials = () => {
+    const trimmed = initialsInput.toUpperCase().slice(0, 3).trim();
+    if (trimmed) {
+      setInitials(trimmed);
+      localStorage.setItem(INITIALS_KEY, trimmed);
+    }
+    setEditingInitials(false);
+  };
+
+  const doneCount = completedStages.filter((s) => activeStages.some((a) => a.id === s.id)).length;
   const totalCount = activeStages.length;
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
   const allDone = totalCount > 0 && doneCount === totalCount;
@@ -165,6 +189,52 @@ export default function BuildProgress() {
         </Badge>
       </div>
 
+      {/* Initials bar */}
+      <div className="border-b border-border/20 px-4 py-2 bg-muted/10 flex items-center gap-2">
+        {editingInitials ? (
+          <>
+            <Input
+              className="h-7 w-20 text-xs font-mono uppercase"
+              placeholder="e.g. JD"
+              maxLength={3}
+              value={initialsInput}
+              onChange={(e) => setInitialsInput(e.target.value.toUpperCase().slice(0, 3))}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveInitials()}
+              autoFocus
+              data-testid="input-initials"
+            />
+            <Button size="sm" className="h-7 text-xs bg-[#8bc440] text-[#191919]" onClick={handleSaveInitials} data-testid="button-save-initials">
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingInitials(false)}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <span className="text-xs text-muted-foreground">Your initials:</span>
+            {initials ? (
+              <Badge variant="secondary" className="text-xs font-mono tracking-wide" data-testid="badge-current-initials">
+                {initials}
+              </Badge>
+            ) : (
+              <span className="text-xs text-amber-400 font-medium">Not set</span>
+            )}
+            <button
+              type="button"
+              className="ml-1 text-muted-foreground hover-elevate rounded p-0.5"
+              onClick={() => { setInitialsInput(initials); setEditingInitials(true); }}
+              data-testid="button-edit-initials"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+            {!initials && (
+              <span className="text-xs text-muted-foreground ml-2">— set these so your work is tracked</span>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Progress bar */}
       <div className="h-1.5 bg-muted/40 w-full">
         <div
@@ -186,7 +256,8 @@ export default function BuildProgress() {
           </div>
         ) : (
           activeStages.map((stage, idx) => {
-            const isComplete = completedStages.includes(stage.id);
+            const isComplete = isStageComplete(stage.id);
+            const stageInitials = getStageInitials(stage.id);
             const isPending = pendingId === stage.id;
             const prevSection = idx > 0 ? activeStages[idx - 1].section : undefined;
             const showSectionHeader = stage.section && stage.section !== prevSection;
@@ -232,8 +303,18 @@ export default function BuildProgress() {
                       <span className="ml-2 text-xs text-amber-400 font-normal">— tap Save to confirm</span>
                     )}
                   </span>
-                  {isComplete && (
-                    <Check className="w-4 h-4 text-[#8bc440] shrink-0" />
+                  {/* Initials badge for completed stages */}
+                  {isComplete && stageInitials && (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs font-mono shrink-0"
+                      data-testid={`badge-initials-${stage.id}`}
+                    >
+                      {stageInitials}
+                    </Badge>
+                  )}
+                  {isComplete && !stageInitials && (
+                    <span className="w-2 h-2 rounded-full bg-[#8bc440] shrink-0" />
                   )}
                 </button>
               </div>
@@ -244,10 +325,16 @@ export default function BuildProgress() {
 
       {/* Sticky Save confirmation */}
       {pendingId && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#191919] border-t border-amber-400/30 px-4 py-4 flex flex-col gap-2 max-w-lg mx-auto" data-testid="save-confirm-bar">
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 bg-[#191919] border-t border-amber-400/30 px-4 py-4 flex flex-col gap-2 max-w-lg mx-auto"
+          data-testid="save-confirm-bar"
+        >
           <p className="text-xs text-amber-400 text-center font-medium truncate">
             {activeStages.find((s) => s.id === pendingId)?.label}
           </p>
+          {!initials && (
+            <p className="text-xs text-muted-foreground text-center">Set your initials above before saving</p>
+          )}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -258,12 +345,12 @@ export default function BuildProgress() {
               Cancel
             </Button>
             <Button
-              className="flex-2 bg-[#8bc440] text-[#191919] font-bold"
+              className="flex-[2] bg-[#8bc440] text-[#191919] font-bold"
               onClick={handleConfirmSave}
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || !initials}
               data-testid="button-save-confirm"
             >
-              {saveMutation.isPending ? "Saving..." : "Save — Mark Complete"}
+              {saveMutation.isPending ? "Saving..." : `Save as ${initials || "??"}`}
             </Button>
           </div>
         </div>

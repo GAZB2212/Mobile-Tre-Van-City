@@ -142,6 +142,7 @@ export default function AdminQuoteDetail() {
   
   const [status, setStatus] = useState("");
   const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);
+  const [stageInitials, setStageInitials] = useState<Record<string, string>>({});
   const [customBuildStages, setCustomBuildStages] = useState<Array<{id: string; label: string}> | null>(null);
   const [newStageName, setNewStageName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
@@ -231,7 +232,14 @@ export default function AdminQuoteDetail() {
   useEffect(() => {
     if (quote) {
       setStatus(quote.status || "new");
-      setCompletedBuildStages(Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages : []);
+      {
+        const rawStages = Array.isArray(quote.completedBuildStages) ? quote.completedBuildStages as Array<string | { id: string; initials: string }> : [];
+        const stageIds = rawStages.map((s) => (typeof s === "string" ? s : s.id));
+        const initialsMap: Record<string, string> = {};
+        rawStages.forEach((s) => { if (typeof s !== "string" && s.initials) initialsMap[s.id] = s.initials; });
+        setCompletedBuildStages(stageIds);
+        setStageInitials(initialsMap);
+      }
       setCustomBuildStages(Array.isArray(quote.customBuildStages) ? quote.customBuildStages : null);
       setCustomerConfirmed(quote.customerConfirmed ?? false);
       setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
@@ -794,7 +802,9 @@ export default function AdminQuoteDetail() {
     const updates: any = {
       status: (quoteStatuses as readonly string[]).includes(status) ? status : "new",
       serviceType: (serviceType === 'car' || serviceType === 'commercial' || serviceType === 'hybrid') ? serviceType : null,
-      completedBuildStages,
+      completedBuildStages: completedBuildStages.map((id) =>
+        stageInitials[id] ? { id, initials: stageInitials[id] } : id
+      ),
       customBuildStages: customBuildStages,
       discountType: (discountType === 'percentage' || discountType === 'fixed') ? discountType : null,
       discountValue: discountValueInPence,
@@ -2097,7 +2107,13 @@ export default function AdminQuoteDetail() {
                                 {stage.label}
                               </span>
                               {isComplete && (
-                                <Badge variant="secondary" className="text-xs">Done</Badge>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs font-mono shrink-0"
+                                  data-testid={`badge-stage-done-${stage.id}`}
+                                >
+                                  {stageInitials[stage.id] ? stageInitials[stage.id] : "Done"}
+                                </Badge>
                               )}
                               {canEdit && (
                                 <div className="flex items-center gap-0.5 ml-1">

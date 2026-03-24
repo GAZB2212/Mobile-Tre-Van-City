@@ -403,8 +403,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) return res.status(404).json({ error: "Not found" });
+      const stageEntry = z.union([z.string(), z.object({ id: z.string(), initials: z.string() })]);
       const body = z.object({
-        completedBuildStages: z.array(z.string()),
+        completedBuildStages: z.array(stageEntry),
       }).parse(req.body);
       await storage.updateQuote(req.params.id, { completedBuildStages: body.completedBuildStages } as any);
       res.json({ ok: true });
@@ -1815,7 +1816,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         status: z.enum(quoteStatuses).optional(),
         financeStatus: z.enum(financeStatuses).optional(),
         buildStage: z.enum(buildStages).nullable().optional(),
-        completedBuildStages: z.array(z.string()).optional(),
+        completedBuildStages: z.array(z.union([z.string(), z.object({ id: z.string(), initials: z.string() })])).optional(),
         customBuildStages: z.array(z.object({ id: z.string(), label: z.string() })).nullable().optional(),
         featuredInPortfolio: z.boolean().optional(),
         graphicsArtworkUrl: z.string().url().or(z.literal('')).nullable().optional(),

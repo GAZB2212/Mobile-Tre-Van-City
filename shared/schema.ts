@@ -190,7 +190,7 @@ export const quotes = pgTable("quotes", {
   featuredInPortfolio: boolean("featured_in_portfolio").notNull().default(false),
   status: text("status").notNull().default("pending"),
   buildStage: text("build_stage"),
-  completedBuildStages: json("completed_build_stages").$type<string[]>().notNull().default([]),
+  completedBuildStages: json("completed_build_stages").$type<Array<string | { id: string; initials: string }>>().notNull().default([]),
   customBuildStages: json("custom_build_stages").$type<Array<{id: string; label: string}>>(), // null = auto-generate from config
   financeStatus: text("finance_status").notNull().default("pending"),
   graphicsArtworkUrl: text("graphics_artwork_url"),
