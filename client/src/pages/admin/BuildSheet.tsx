@@ -131,7 +131,7 @@ export default function BuildSheet() {
   const progressUrl = `${window.location.origin}/admin/quotes/${quoteId}`;
 
   const kit = kits.find((k) => k.id === quote?.kitId);
-  const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds.includes(u.id));
+  const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds?.includes(u.id));
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
 
   // ── Build-sheet supersession logic ──────────────────────────────────────────
@@ -246,8 +246,8 @@ export default function BuildSheet() {
     return stages;
   };
 
-  const buildStageList: Array<{id: string; label: string; section?: string}> = (quote as any).customBuildStages ?? autoGenerateStages();
-  const systemCompletedStages: string[] = (quote as any).completedBuildStages ?? [];
+  const buildStageList: Array<{id: string; label: string; section?: string}> = (quote as any)?.customBuildStages ?? autoGenerateStages();
+  const systemCompletedStages: string[] = (quote as any)?.completedBuildStages ?? [];
 
   const handlePrint = () => { window.print(); };
 
