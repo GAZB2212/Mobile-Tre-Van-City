@@ -375,6 +375,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public build-progress endpoints — secured by unguessable quote UUID
+  app.get("/api/build-progress/:id", async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) return res.status(404).json({ error: "Not found" });
+      const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
+      const upgrades = await storage.getAllUpgradesAdmin();
+      const selectedUpgrades = upgrades.filter(u =>
+        Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id)
+      );
+      res.json({
+        id: quote.id,
+        userName: quote.userName,
+        status: quote.status,
+        customBuildStages: (quote as any).customBuildStages ?? null,
+        completedBuildStages: (quote as any).completedBuildStages ?? [],
+        kit: kit ? { id: kit.id, name: kit.name } : null,
+        upgrades: selectedUpgrades.map(u => ({ id: u.id, name: u.name, category: u.category })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch build progress" });
+    }
+  });
+
+  app.patch("/api/build-progress/:id", async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) return res.status(404).json({ error: "Not found" });
+      const body = z.object({
+        completedBuildStages: z.array(z.string()),
+      }).parse(req.body);
+      await storage.updateQuote(req.params.id, { completedBuildStages: body.completedBuildStages } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(500).json({ error: "Failed to update build progress" });
+    }
+  });
+
   // Admin only - list all quotes (basic admins can view)
   app.get("/api/quotes", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

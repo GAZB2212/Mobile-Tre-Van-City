@@ -1,50 +1,50 @@
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import type { Quote, Kit, Upgrade } from "@shared/schema";
+
+interface BuildProgressData {
+  id: string;
+  userName: string;
+  status: string;
+  customBuildStages: Array<{ id: string; label: string; section?: string }> | null;
+  completedBuildStages: string[];
+  kit: { id: string; name: string } | null;
+  upgrades: Array<{ id: string; name: string; category: string }>;
+}
 
 export default function BuildProgress() {
   const { id: quoteId } = useParams<{ id: string }>();
-  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  const { data: quotes = [], isLoading: isLoadingQuotes } = useQuery<Quote[]>({
-    queryKey: ["/api/admin/quotes"],
-    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  const { data, isLoading, isError } = useQuery<BuildProgressData>({
+    queryKey: ["/api/build-progress", quoteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/build-progress/${quoteId}`);
+      if (!res.ok) throw new Error("Not found");
+      return res.json();
+    },
   });
-
-  const { data: kits = [] } = useQuery<Kit[]>({
-    queryKey: ["/api/admin/kits"],
-    enabled: !!(user?.adminRole && user.adminRole !== "none"),
-  });
-
-  const { data: allUpgrades = [] } = useQuery<Upgrade[]>({
-    queryKey: ["/api/admin/upgrades"],
-    enabled: !!(user?.adminRole && user.adminRole !== "none"),
-  });
-
-  const quote = quotes.find((q) => q.id === quoteId);
-  const kit = kits.find((k) => k.id === quote?.kitId);
-  const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds?.includes(u.id));
 
   const [completedStages, setCompletedStages] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (quote && !initialized) {
-      setCompletedStages(Array.isArray((quote as any).completedBuildStages) ? (quote as any).completedBuildStages : []);
+    if (data && !initialized) {
+      setCompletedStages(data.completedBuildStages ?? []);
       setInitialized(true);
     }
-  }, [quote, initialized]);
+  }, [data, initialized]);
 
-  const autoGenerateStages = (): Array<{ id: string; label: string; section?: string }> => {
+  const autoGenerateStages = (
+    kit: BuildProgressData["kit"],
+    upgrades: BuildProgressData["upgrades"]
+  ): Array<{ id: string; label: string; section?: string }> => {
     const stages: Array<{ id: string; label: string; section?: string }> = [];
     stages.push({ id: "prep", label: "Van Preparation" });
     if (kit) {
@@ -52,53 +52,49 @@ export default function BuildProgress() {
     }
     const wrapGraphicsPattern = /wrap|graphics|livery/i;
     const interiorWallPattern = /interior.wall/i;
-    const isInteriorWall = (u: Upgrade) =>
+    const isInteriorWall = (u: { name: string; category: string }) =>
       interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
-    const isWrapGraphics = (u: Upgrade) =>
+    const isWrapGraphics = (u: { name: string; category: string }) =>
       wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
-    const nonWrapUpgrades = upgrades.filter((u) => !isWrapGraphics(u) && !isInteriorWall(u));
-    const wrapUpgrades = upgrades.filter((u) => isWrapGraphics(u) && !isInteriorWall(u));
-    const interiorWallUpgrades = upgrades.filter((u) => isInteriorWall(u) && !isWrapGraphics(u));
-    for (const u of nonWrapUpgrades) {
-      stages.push({ id: `upg_${u.id}`, label: u.name });
-    }
-    if (wrapUpgrades.length > 0) {
+    const nonWrap = upgrades.filter((u) => !isWrapGraphics(u) && !isInteriorWall(u));
+    const wrap = upgrades.filter((u) => isWrapGraphics(u) && !isInteriorWall(u));
+    const wallUpgrades = upgrades.filter((u) => isInteriorWall(u) && !isWrapGraphics(u));
+    for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+    if (wrap.length > 0) {
       stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
       stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
       stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
     }
-    for (const u of wrapUpgrades) {
-      stages.push({ id: `upg_${u.id}`, label: u.name });
-    }
-    if (interiorWallUpgrades.length > 0) {
+    for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+    if (wallUpgrades.length > 0) {
       stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
       stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
       stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
-    for (const u of interiorWallUpgrades) {
-      stages.push({ id: `upg_${u.id}`, label: u.name });
-    }
+    for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: u.name });
     stages.push({ id: "final_checks", label: "Final Checks" });
     stages.push({ id: "valet", label: "Valet & Handover" });
     return stages;
   };
 
-  const activeStages: Array<{ id: string; label: string; section?: string }> =
-    Array.isArray((quote as any)?.customBuildStages) && (quote as any).customBuildStages.length > 0
-      ? (quote as any).customBuildStages
-      : autoGenerateStages();
+  const activeStages: Array<{ id: string; label: string; section?: string }> = data
+    ? (Array.isArray(data.customBuildStages) && data.customBuildStages.length > 0
+        ? data.customBuildStages
+        : autoGenerateStages(data.kit, data.upgrades))
+    : [];
 
   const saveMutation = useMutation({
     mutationFn: async (updated: string[]) => {
-      return apiRequest("PATCH", `/api/admin/quotes/${quoteId}`, {
-        completedBuildStages: updated,
+      const res = await fetch(`/api/build-progress/${quoteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completedBuildStages: updated }),
       });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      if (!res.ok) throw new Error("Save failed");
+      return res.json();
     },
     onError: () => {
-      toast({ title: "Failed to save", description: "Could not save stage update.", variant: "destructive" });
+      toast({ title: "Save failed", description: "Could not save the update. Please try again.", variant: "destructive" });
     },
   });
 
@@ -115,7 +111,7 @@ export default function BuildProgress() {
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
   const allDone = totalCount > 0 && doneCount === totalCount;
 
-  if (isLoadingQuotes) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#191919] flex items-center justify-center">
         <div className="text-center">
@@ -126,36 +122,24 @@ export default function BuildProgress() {
     );
   }
 
-  if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") {
+  if (isError || !data) {
     return (
       <div className="min-h-screen bg-[#191919] flex items-center justify-center">
-        <p className="text-muted-foreground">You must be logged in as an admin to view this page.</p>
-      </div>
-    );
-  }
-
-  if (!quote) {
-    return (
-      <div className="min-h-screen bg-[#191919] flex items-center justify-center">
-        <p className="text-muted-foreground">Quote not found.</p>
+        <p className="text-muted-foreground text-sm">Build not found. Check the QR code and try again.</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#191919] flex flex-col">
-      {/* Locked header — no navigation links */}
+      {/* Locked header — no navigation */}
       <div className="border-b border-border/40 px-4 py-4 flex items-center gap-3">
-        <Wrench className="w-5 h-5 text-[#8bc440]" />
+        <Wrench className="w-5 h-5 text-[#8bc440] shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{quote.userName}</p>
+          <p className="text-sm font-semibold truncate">{data.userName}</p>
           <p className="text-xs text-muted-foreground">Build Stage Progress</p>
         </div>
-        <Badge
-          variant="secondary"
-          className="shrink-0 text-xs"
-          data-testid="badge-progress-pct"
-        >
+        <Badge variant="secondary" className="shrink-0 text-xs" data-testid="badge-progress-pct">
           {progressPct}%
         </Badge>
       </div>
@@ -227,10 +211,10 @@ export default function BuildProgress() {
         )}
       </div>
 
-      {/* Footer counter */}
+      {/* Footer */}
       {!allDone && (
         <div className="border-t border-border/40 px-4 py-3 text-center text-xs text-muted-foreground">
-          {doneCount} of {totalCount} stages complete — changes save automatically
+          {doneCount} of {totalCount} stages complete — saves automatically
         </div>
       )}
     </div>
