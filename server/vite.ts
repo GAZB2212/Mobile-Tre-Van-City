@@ -82,6 +82,14 @@ export async function setupVite(app: Express, server: Server) {
         return;
       }
 
+      // Skip SSR in development — hydration mismatches from SSR-incompatible
+      // components (useLayoutEffect, sessionStorage, etc.) break the dev preview.
+      // SSR is only used in production for search-engine crawlability.
+      if (process.env.NODE_ENV !== "production") {
+        res.status(200).set({ "Content-Type": "text/html" }).end(page);
+        return;
+      }
+
       // Perform SSR for all other routes
       try {
         const { render } = await vite.ssrLoadModule("/src/entry-server.tsx");
