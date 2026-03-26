@@ -320,18 +320,17 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const setUpgrades = (upgradeIds: string[]) => {
-    if (isLockedSlotB()) return;
     setFullState(prev => {
-      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
       const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds } };
       return syncSlotBFromA(updated);
     });
   };
 
   const addUpgrade = (upgradeId: string) => {
-    if (isLockedSlotB()) return;
     setFullState(prev => {
-      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      // Upgrades are always shared from slotA in compare mode
+      const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
       if (prev[slot].upgradeIds.includes(upgradeId)) return prev;
       const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: [...prev[slot].upgradeIds, upgradeId] } };
       return syncSlotBFromA(updated);
@@ -339,18 +338,18 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   };
 
   const removeUpgrade = (upgradeId: string) => {
-    if (isLockedSlotB()) return;
     setFullState(prev => {
-      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      // Upgrades are always shared from slotA in compare mode
+      const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
       const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: prev[slot].upgradeIds.filter(id => id !== upgradeId) } };
       return syncSlotBFromA(updated);
     });
   };
 
   const replaceUpgrades = (toRemove: string[], toAdd: string) => {
-    if (isLockedSlotB()) return;
     setFullState(prev => {
-      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      // Upgrades are always shared from slotA in compare mode
+      const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
       let newUpgradeIds = prev[slot].upgradeIds.filter(id => !toRemove.includes(id));
       if (!newUpgradeIds.includes(toAdd)) newUpgradeIds = [...newUpgradeIds, toAdd];
       const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: newUpgradeIds } };
