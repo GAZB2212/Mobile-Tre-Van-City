@@ -896,17 +896,53 @@ export default function AdminQuoteDetail() {
   // Fixed APR for finance calculations
   const FINANCE_APR = 0.109; // 10.9%
 
-  // Pricing for the currently viewed slot (A = live edited, B = server-stored from comparisonConfig)
+  // Pricing for the currently viewed slot (A = live edited, B = live recalculated with slotB's van)
   const isComparison = !!(quote?.comparisonConfig?.slotA && quote?.comparisonConfig?.slotB);
   const slotBStored = quote?.comparisonConfig?.slotB;
-  const viewingPricing = (viewingSlot === 'B' && isComparison && slotBStored?.estTotal != null)
-    ? {
-        subtotal: slotBStored.estSubtotal ?? Math.round((slotBStored.estTotal) / 1.2),
-        discount: 0,
-        subtotalAfterDiscount: slotBStored.estSubtotal ?? Math.round((slotBStored.estTotal) / 1.2),
-        vat: slotBStored.estVAT ?? Math.round(slotBStored.estTotal - (slotBStored.estTotal / 1.2)),
-        total: slotBStored.estTotal,
+
+  // Live recalculation for Option B — uses slot B's van but the same kit/upgrades as Option A
+  const recalculatePricingForSlotB = () => {
+    if (!slotBStored) return null;
+    let subtotal = 0;
+    // Van price: use slot B's stored van
+    const slotBVan = slotBStored.vanId ? vans.find(v => v.id === slotBStored.vanId) : null;
+    if (slotBVan) {
+      subtotal += slotBVan.price;
+    } else if (slotBStored.customVanValue) {
+      subtotal += slotBStored.customVanValue;
+    }
+    // Kit price: shared from slot A (use the currently selected kit)
+    const selectedKit = kits.find(k => k.id === selectedKitId);
+    if (selectedKit) subtotal += selectedKit.price;
+    // Upgrades: shared from slot A (use current selectedUpgradeIds)
+    selectedUpgradeIds.forEach(upgradeId => {
+      const upgrade = upgrades.find(u => u.id === upgradeId);
+      if (upgrade) {
+        const quantity = selectedUpgrades[upgradeId] || 1;
+        subtotal += upgrade.price * quantity;
       }
+    });
+    const vat = Math.round(subtotal * 0.2);
+    const totalWithVat = subtotal + vat;
+    // Apply same discount as Option A
+    let discountAmount = 0;
+    if (discountType && discountValue) {
+      if (discountType === "percentage") {
+        discountAmount = Math.round((totalWithVat * parseInt(discountValue)) / 100);
+      } else if (discountType === "fixed") {
+        discountAmount = Math.round(parseFloat(discountValue) * 100);
+      }
+    }
+    discountAmount = Math.min(discountAmount, totalWithVat);
+    const totalAfterDiscount = totalWithVat - discountAmount;
+    const finalVat = Math.round(totalAfterDiscount / 6);
+    const finalSubtotal = totalAfterDiscount - finalVat;
+    return { subtotal: finalSubtotal, discount: discountAmount, subtotalAfterDiscount: finalSubtotal, vat: finalVat, total: totalAfterDiscount };
+  };
+
+  const slotBLivePricing = recalculatePricingForSlotB();
+  const viewingPricing = (viewingSlot === 'B' && isComparison && slotBLivePricing)
+    ? slotBLivePricing
     : pricing;
 
   // Calculate saved finance info from quote.financeInputs (deposit in pence, term in months)
@@ -1482,18 +1518,18 @@ export default function AdminQuoteDetail() {
                             <p><span className="text-foreground font-medium">Pack:</span> {slotAKit.name}</p>
                           ) : null;
                         })()}
-                        {(quote.comparisonConfig.slotA?.upgradeIds?.length ?? 0) > 0 && (
-                          <p><span className="text-foreground font-medium">Upgrades:</span> {quote.comparisonConfig.slotA!.upgradeIds!.length} selected</p>
+                        {selectedUpgradeIds.length > 0 && (
+                          <p><span className="text-foreground font-medium">Upgrades:</span> {selectedUpgradeIds.length} selected</p>
                         )}
-                        {quote.comparisonConfig.slotA?.estTotal != null && (
+                        {pricing.total > 0 && (
                           <p className="font-medium text-foreground">
-                            Est. Total: £{((quote.comparisonConfig.slotA.estTotal!) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                            Est. Total: £{(pricing.total / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                           </p>
                         )}
                         {/* Finance illustration for Option A */}
                         {(() => {
                           const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
-                          const slotTotal = quote.comparisonConfig!.slotA?.estTotal;
+                          const slotTotal = pricing.total;
                           if (!fi?.term || !slotTotal || slotTotal <= 0) return null;
                           const depositPence = fi.deposit ?? 0;
                           const principal = (slotTotal - depositPence) / 100;
@@ -1545,18 +1581,18 @@ export default function AdminQuoteDetail() {
                             <p><span className="text-foreground font-medium">Pack:</span> {slotBKit.name}</p>
                           ) : null;
                         })()}
-                        {(quote.comparisonConfig.slotB?.upgradeIds?.length ?? 0) > 0 && (
-                          <p><span className="text-foreground font-medium">Upgrades:</span> {quote.comparisonConfig.slotB!.upgradeIds!.length} selected</p>
+                        {selectedUpgradeIds.length > 0 && (
+                          <p><span className="text-foreground font-medium">Upgrades:</span> {selectedUpgradeIds.length} selected</p>
                         )}
-                        {quote.comparisonConfig.slotB?.estTotal != null && (
+                        {slotBLivePricing && slotBLivePricing.total > 0 && (
                           <p className="font-medium text-foreground">
-                            Est. Total: £{((quote.comparisonConfig.slotB.estTotal!) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                            Est. Total: £{(slotBLivePricing.total / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                           </p>
                         )}
                         {/* Finance illustration for Option B */}
                         {(() => {
                           const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
-                          const slotTotal = quote.comparisonConfig!.slotB?.estTotal;
+                          const slotTotal = slotBLivePricing?.total ?? quote.comparisonConfig!.slotB?.estTotal;
                           if (!fi?.term || !slotTotal || slotTotal <= 0) return null;
                           const depositPence = fi.deposit ?? 0;
                           const principal = (slotTotal - depositPence) / 100;
