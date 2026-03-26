@@ -76,7 +76,15 @@ Preferred communication style: Simple, everyday language.
 ### Business Features
 - **Finance Integration**: Placeholder for FCA-compliant finance options.
 - **Email System**: SendGrid for automated, dynamic HTML quote confirmation emails with secure, one-time confirmation links.
-- **SEO Optimization**: Server-side meta tag pre-rendering (SSR-lite via Express route-aware HTML injection in `server/seo.ts` + `server/vite.ts`) for both static and dynamic routes (e.g. `/stock/:slug`), dynamic meta tags, Open Graph, JSON-LD structured data (Organization, FAQ, Service, Vehicle, Breadcrumb schemas), canonical URLs, hreflang en-gb, sitemap.xml with image entries, robots.txt. Internal cross-linking between key pages.
+- **SEO Optimization**: Full Server-Side Rendering (SSR) with TanStack Query data prefetching. Architecture:
+    - `client/src/entry-server.tsx`: SSR entry point using `renderToString`, wraps app in `QueryClientProvider` + `HydrationBoundary` with prefetched data.
+    - `client/src/AppServer.tsx`: Static-import version of App (no React.lazy) for synchronous SSR rendering.
+    - `server/ssr-prefetch.ts`: Route-to-query mapping — prefetches `/api/vans`, `/api/vans/slug/:slug`, `/api/finance-plans`, `/api/gallery-items`, `/api/blog-posts` server-side before rendering. Dehydrates QueryClient state.
+    - `server/vite.ts`: In dev mode uses `vite.ssrLoadModule()`; in production uses esbuild to compile SSR bundle. Both paths inject `window.__TANSTACK_QUERY_STATE__` script into HTML alongside SSR-rendered content.
+    - `client/src/main.tsx`: Client hydration uses `hydrateRoot` wrapped in `HydrationBoundary` reading `window.__TANSTACK_QUERY_STATE__` so TanStack Query skips re-fetching data already loaded by SSR.
+    - Admin routes (`/admin/*`) bypass SSR entirely and serve the plain SPA shell.
+    - Result: Crawlers see fully rendered van listings, prices, descriptions, and all page content without executing JavaScript.
+    - Also includes dynamic meta tags, Open Graph, JSON-LD structured data (Organization, FAQ, Service, Vehicle, Breadcrumb schemas), canonical URLs, hreflang en-gb, sitemap.xml with image entries, robots.txt, and internal cross-linking between key pages.
 - **Training Programme**: Information on REACT (motorway operations) and Tyre Fitting certifications included with van purchases.
 
 ### Vehicle Data Integration

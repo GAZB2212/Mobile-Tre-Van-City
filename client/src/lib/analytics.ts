@@ -5,6 +5,7 @@ function generateSessionId(): string {
 }
 
 function getSessionId(): string {
+  if (typeof sessionStorage === 'undefined') return generateSessionId();
   let sid = sessionStorage.getItem(SESSION_KEY);
   if (!sid) {
     sid = generateSessionId();

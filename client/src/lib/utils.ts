@@ -59,6 +59,7 @@ const COOKIE_CONSENT_VERSION = 1;
 
 export function getCookieConsent(): CookieConsent | null {
   try {
+    if (typeof localStorage === 'undefined') return null;
     const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
     if (!stored) return null;
     
@@ -76,6 +77,7 @@ export function getCookieConsent(): CookieConsent | null {
 }
 
 export function setCookieConsent(analytics: boolean, marketing: boolean): void {
+  if (typeof localStorage === 'undefined') return;
   const consent: CookieConsent = {
     version: COOKIE_CONSENT_VERSION,
     essential: true, // Always true

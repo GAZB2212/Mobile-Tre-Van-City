@@ -94,6 +94,7 @@ const ConfiguratorContext = createContext<ConfiguratorContextValue | undefined>(
 
 export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   const [fullState, setFullState] = useState<FullState>(() => {
+    if (typeof window === 'undefined') return defaultFullState;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {

@@ -7,9 +7,8 @@ import LoadingScreen from "@/components/LoadingScreen";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
-import AppErrorBoundary from "@/components/AppErrorBoundary";
 import Home from "@/pages/Home";
 import Stock from "@/pages/Stock";
 import VanDetails from "@/pages/VanDetails";
@@ -38,25 +37,6 @@ import CookiePolicy from "@/pages/CookiePolicy";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
-
-// Admin pages are SSR-bypassed, so lazy-load them to keep the public bundle small
-const AdminDashboard = lazy(() => import("@/pages/admin/Dashboard"));
-const AdminConfigurator = lazy(() => import("@/pages/admin/AdminConfigurator"));
-const AdminVans = lazy(() => import("@/pages/admin/Vans"));
-const AdminKits = lazy(() => import("@/pages/admin/Kits"));
-const AdminUpgrades = lazy(() => import("@/pages/admin/Upgrades"));
-const AdminQuotes = lazy(() => import("@/pages/admin/Quotes"));
-const AdminQuoteDetail = lazy(() => import("@/pages/admin/QuoteDetail"));
-const AdminLeads = lazy(() => import("@/pages/admin/Leads"));
-const AdminUsers = lazy(() => import("@/pages/admin/Users"));
-const AdminFinancePlans = lazy(() => import("@/pages/admin/FinancePlans"));
-const AdminTrainingOptions = lazy(() => import("@/pages/admin/TrainingOptions"));
-const AdminGalleryItems = lazy(() => import("@/pages/admin/GalleryItems"));
-const AdminAnalytics = lazy(() => import("@/pages/admin/Analytics"));
-const AdminVideos = lazy(() => import("@/pages/admin/Videos"));
-const BuildSheet = lazy(() => import("@/pages/admin/BuildSheet"));
-const BuildProgress = lazy(() => import("@/pages/admin/BuildProgress"));
-const AdminBlog = lazy(() => import("@/pages/admin/Blog"));
 
 function Router() {
   return (
@@ -91,24 +71,6 @@ function Router() {
       <Route path="/cookie-policy" component={CookiePolicy} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password/:token" component={ResetPassword} />
-      {/* Admin routes — bypassed by SSR, loaded lazily */}
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/configurator" component={AdminConfigurator} />
-      <Route path="/admin/analytics" component={AdminAnalytics} />
-      <Route path="/admin/vans" component={AdminVans} />
-      <Route path="/admin/kits" component={AdminKits} />
-      <Route path="/admin/upgrades" component={AdminUpgrades} />
-      <Route path="/admin/finance-plans" component={AdminFinancePlans} />
-      <Route path="/admin/training-options" component={AdminTrainingOptions} />
-      <Route path="/admin/gallery-items" component={AdminGalleryItems} />
-      <Route path="/admin/videos" component={AdminVideos} />
-      <Route path="/admin/quotes" component={AdminQuotes} />
-      <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
-      <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
-      <Route path="/admin/quotes/:id/build-progress" component={BuildProgress} />
-      <Route path="/admin/leads" component={AdminLeads} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/blog" component={AdminBlog} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -122,7 +84,7 @@ function PublicChatBubble() {
 
 function ConditionalLoadingScreen() {
   const [location] = useLocation();
-  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.includes("/build-progress")) {
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/")) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("hasLoadedBefore", "true");
     }
@@ -131,7 +93,7 @@ function ConditionalLoadingScreen() {
   return <LoadingScreen />;
 }
 
-function App() {
+function AppServer() {
   const [showCookieBanner, setShowCookieBanner] = useState(false);
 
   useEffect(() => {
@@ -147,23 +109,21 @@ function App() {
   };
 
   return (
-    <AppErrorBoundary>
-      <ConfiguratorProvider>
-        <TooltipProvider>
-          <ConditionalLoadingScreen />
-          <ScrollRestoration />
-          <Toaster />
-          <AnalyticsProvider>
-            <Suspense fallback={null}>
-              <Router />
-            </Suspense>
-          </AnalyticsProvider>
-          <PublicChatBubble />
-          {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
-        </TooltipProvider>
-      </ConfiguratorProvider>
-    </AppErrorBoundary>
+    <ConfiguratorProvider>
+      <TooltipProvider>
+        <ConditionalLoadingScreen />
+        <ScrollRestoration />
+        <Toaster />
+        <AnalyticsProvider>
+          <Suspense fallback={null}>
+            <Router />
+          </Suspense>
+        </AnalyticsProvider>
+        <PublicChatBubble />
+        {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
+      </TooltipProvider>
+    </ConfiguratorProvider>
   );
 }
 
-export default App;
+export default AppServer;
