@@ -357,8 +357,8 @@ export default function AdminBlog() {
             No posts yet. Click "New Post" to get started.
           </div>
         ) : (
-          <div className="border border-border rounded-md overflow-hidden">
-            <Table>
+          <div className="border border-border rounded-md overflow-hidden overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>

@@ -288,8 +288,9 @@ export default function AdminGalleryItems() {
             </CardHeader>
           </Card>
         ) : (
+          <div className="overflow-x-auto rounded-lg">
           <Card>
-            <Table>
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Preview</TableHead>
@@ -370,6 +371,7 @@ export default function AdminGalleryItems() {
               </TableBody>
             </Table>
           </Card>
+          </div>
         )}
 
         <Dialog
@@ -467,7 +469,7 @@ export default function AdminGalleryItems() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sortOrder">Sort Order</Label>
                   <Input

@@ -422,7 +422,7 @@ export default function AdminKits() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="powerKw"
@@ -465,7 +465,7 @@ export default function AdminKits() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Service Type</FormLabel>
-                      <div className="grid grid-cols-3 gap-3 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         {([
                           { value: "car", label: "Car & Van" },
                           { value: "commercial", label: "Commercial" },
@@ -745,7 +745,7 @@ export default function AdminKits() {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="powerKw"
@@ -788,7 +788,7 @@ export default function AdminKits() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Service Type</FormLabel>
-                    <div className="grid grid-cols-3 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                       {([
                         { value: "car", label: "Car & Van" },
                         { value: "commercial", label: "Commercial" },
@@ -944,9 +944,9 @@ export default function AdminKits() {
               </div>
             </div>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-start justify-between gap-2">
                 <CardTitle className="text-lg">{kit.name}</CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {!kit.published && (
                     <Badge variant="outline">Unpublished</Badge>
                   )}
@@ -960,7 +960,7 @@ export default function AdminKits() {
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {kit.description}
               </p>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-bold text-lg">{formatPrice(kit.price)}</div>
                 <div className="text-sm font-medium">{kit.powerKw}kW</div>
               </div>

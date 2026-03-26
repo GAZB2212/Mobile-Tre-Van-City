@@ -219,7 +219,7 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
             </div>
           )}
           
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
             {hasVariants ? (
               <span className="text-sm text-muted-foreground italic">
                 See variants above
@@ -949,7 +949,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Input
                           placeholder="Variant name (e.g., LWB)"
                           value={variant.name}

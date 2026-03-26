@@ -236,7 +236,7 @@ export default function AdminDashboard() {
                 Welcome back, {user?.firstName || user?.email}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
               <Link href="/admin">
                 <Badge variant={user?.adminRole === "full" ? "default" : "secondary"} className="cursor-pointer">
                   {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {syncConfirm ? (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <p className="text-sm text-muted-foreground">This will replace all catalog data. Are you sure?</p>
                   <Button variant="destructive" size="sm" onClick={handleCatalogSync} disabled={syncing} data-testid="button-sync-confirm">
                     {syncing ? "Syncing..." : "Yes, Sync Now"}

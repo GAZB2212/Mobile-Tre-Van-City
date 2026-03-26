@@ -330,7 +330,7 @@ export default function AdminVans() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button 
                 variant="outline"
                 onClick={() => fixAclsMutation.mutate()}
@@ -378,7 +378,7 @@ export default function AdminVans() {
             {vans.map((van) => (
               <Card key={van.id} className="hover-elevate">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <CardTitle className="text-lg">{van.title}</CardTitle>
                     <Badge variant={van.published ? "default" : "secondary"}>
                       {van.published ? "Published" : "Draft"}

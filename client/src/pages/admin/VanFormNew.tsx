@@ -252,7 +252,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="mileage">Mileage</Label>
             <Input
@@ -280,7 +280,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="transmission">Transmission</Label>
             <Select name="transmission" value={transmission} onValueChange={setTransmission}>
@@ -322,7 +322,7 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="euroStatus">Euro Emissions Standard</Label>
             <Select name="euroStatus" value={euroStatus} onValueChange={setEuroStatus}>

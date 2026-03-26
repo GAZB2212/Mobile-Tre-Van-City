@@ -358,7 +358,7 @@ export default function AdminQuotes() {
                 </span>
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
               <Button 
                 variant="outline" 
                 onClick={handleExportQuotes}
@@ -387,21 +387,20 @@ export default function AdminQuotes() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name, email, company or quote number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-search-quotes"
-                  />
-                </div>
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, company or quote number..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-quotes"
+                />
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[200px]" data-testid="select-status-filter">
+                <SelectTrigger className="w-full" data-testid="select-status-filter">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -418,7 +417,7 @@ export default function AdminQuotes() {
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full md:w-[160px]" data-testid="select-date-filter">
+                <SelectTrigger className="w-full" data-testid="select-date-filter">
                   <SelectValue placeholder="Filter by date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -429,7 +428,7 @@ export default function AdminQuotes() {
                 </SelectContent>
               </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-sort-quotes">
+                <SelectTrigger className="w-full" data-testid="select-sort-quotes">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -439,12 +438,13 @@ export default function AdminQuotes() {
                   <SelectItem value="lowest">Lowest value</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
@@ -529,7 +529,7 @@ export default function AdminQuotes() {
 
         {/* Quotes List */}
         {/* View toggle */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <p className="text-sm text-muted-foreground">
             {quotesLoading ? "Loading..." : `${filteredQuotes.length} configurator${filteredQuotes.length !== 1 ? "s" : ""}`}
           </p>
@@ -591,7 +591,7 @@ export default function AdminQuotes() {
               { key: "cancelled", label: "Cancelled" },
             ];
             return (
-              <div className="overflow-x-auto pb-4">
+              <div className="overflow-x-auto pb-4 -mx-1 px-1">
                 <div className="flex gap-3 min-w-max">
                   {kanbanColumns.map(col => {
                     const colQuotes = filteredQuotes.filter(q => q.status === col.key);

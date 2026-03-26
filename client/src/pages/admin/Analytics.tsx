@@ -145,7 +145,7 @@ export default function AdminAnalytics() {
       <div className="border-b sticky top-0 bg-background z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <Button variant="ghost" size="sm" asChild data-testid="button-back-dashboard">
                 <Link href="/admin">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -157,7 +157,7 @@ export default function AdminAnalytics() {
                 <p className="text-muted-foreground text-sm">Visitor behaviour, traffic sources & business metrics</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">
                 <Activity className="w-3 h-3 mr-1" />
                 Live Data
@@ -166,7 +166,7 @@ export default function AdminAnalytics() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-1 mt-4">
+          <div className="flex flex-wrap gap-1 mt-4">
             <Button
               variant={activeTab === "web" ? "default" : "ghost"}
               size="sm"
@@ -230,7 +230,7 @@ export default function AdminAnalytics() {
             ) : (
               <>
                 {/* Overview KPIs */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <Card data-testid="card-sessions">
                     <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                       <CardTitle className="text-xs font-medium text-muted-foreground">Sessions</CardTitle>

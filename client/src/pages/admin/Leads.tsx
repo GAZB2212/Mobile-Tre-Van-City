@@ -238,7 +238,7 @@ export default function AdminLeads() {
                 </span>
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" onClick={handleExportLeads} data-testid="button-export-leads">
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
@@ -255,13 +255,13 @@ export default function AdminLeads() {
         <AdminBackButton />
 
         {/* Filters */}
-        <Card>
+        <Card data-testid="card-leads-filter">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Filter Leads</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
+            <div className="space-y-3">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, email, or message..."
@@ -271,8 +271,9 @@ export default function AdminLeads() {
                   data-testid="input-search-leads"
                 />
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-source-filter">
+                <SelectTrigger className="w-full" data-testid="select-source-filter">
                   <SelectValue placeholder="All sources" />
                 </SelectTrigger>
                 <SelectContent>
@@ -285,7 +286,7 @@ export default function AdminLeads() {
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-date-filter">
+                <SelectTrigger className="w-full" data-testid="select-date-filter">
                   <SelectValue placeholder="All time" />
                 </SelectTrigger>
                 <SelectContent>
@@ -296,7 +297,7 @@ export default function AdminLeads() {
                 </SelectContent>
               </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-[180px]" data-testid="select-sort-leads">
+                <SelectTrigger className="w-full" data-testid="select-sort-leads">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -305,12 +306,13 @@ export default function AdminLeads() {
                   <SelectItem value="name">Name A–Z</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <Users className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -536,12 +538,12 @@ export default function AdminLeads() {
                         )}
 
                         {/* Add note */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2">
                           <Textarea
                             placeholder="Add a note about this lead…"
                             value={noteInputs[lead.id] || ""}
                             onChange={(e) => setNoteInputs((prev) => ({ ...prev, [lead.id]: e.target.value }))}
-                            className="resize-none text-sm min-h-[60px]"
+                            className="resize-none text-sm min-h-[60px] w-full"
                             rows={2}
                             onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => {
@@ -549,17 +551,18 @@ export default function AdminLeads() {
                             }}
                             data-testid={`input-lead-note-${lead.id}`}
                           />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => { e.stopPropagation(); handleAddNote(lead); }}
-                            disabled={!noteInputs[lead.id]?.trim() || updateLeadMutation.isPending}
-                            className="self-end"
-                            data-testid={`button-add-note-${lead.id}`}
-                          >
-                            <Plus className="w-3.5 h-3.5 mr-1" />
-                            Add
-                          </Button>
+                          <div className="flex justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleAddNote(lead); }}
+                              disabled={!noteInputs[lead.id]?.trim() || updateLeadMutation.isPending}
+                              data-testid={`button-add-note-${lead.id}`}
+                            >
+                              <Plus className="w-3.5 h-3.5 mr-1" />
+                              Add Note
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">Tip: Ctrl+Enter to save quickly</p>
                       </div>

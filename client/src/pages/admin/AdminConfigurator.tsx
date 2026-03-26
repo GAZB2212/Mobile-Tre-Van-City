@@ -602,7 +602,7 @@ export default function AdminConfigurator() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
                           { label: "Make", value: filterMake, set: setFilterMake, options: filterOptions.makes },
                           { label: "Model", value: filterModel, set: setFilterModel, options: filterOptions.models },
@@ -1283,7 +1283,7 @@ export default function AdminConfigurator() {
                 )}
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Specifications</h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     {[
                       { Icon: Gauge, label: "Mileage", val: `${modalVan.mileage.toLocaleString()} miles` },
                       { Icon: Settings, label: "Transmission", val: modalVan.specs.transmission },
@@ -1430,7 +1430,7 @@ export default function AdminConfigurator() {
         <DialogContent className="sm:max-w-md flex flex-col max-h-[90vh]">
           <DialogHeader className="shrink-0"><DialogTitle>Save as Quote</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2 overflow-y-auto flex-1 pr-1">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="sq-name" className="text-sm mb-1.5 block">Full name <span className="text-destructive">*</span></Label>
                 <Input id="sq-name" value={saveForm.userName} onChange={e => setSaveForm(f => ({ ...f, userName: e.target.value }))} placeholder="John Smith" data-testid="input-quote-name" />

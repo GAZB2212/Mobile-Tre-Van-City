@@ -954,17 +954,17 @@ export default function AdminQuoteDetail() {
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2" data-testid="text-quote-title">
+              <h1 className="text-2xl md:text-4xl font-bold mb-2 break-all" data-testid="text-quote-title">
                 Quote #{quote.id.slice(0, 8).toUpperCase()}
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-base md:text-lg text-muted-foreground">
                 Manage customer quote and build progress
               </p>
             </div>
             <Button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="bg-accent hover:bg-accent/90"
+              className="w-full md:w-auto bg-accent hover:bg-accent/90"
               data-testid="button-save"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -1075,17 +1075,19 @@ export default function AdminQuoteDetail() {
         </AlertDialog>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-            <TabsTrigger value="configuration" data-testid="tab-configuration">Configuration</TabsTrigger>
-            <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
-            <TabsTrigger value="build" data-testid="tab-build">Build Progress</TabsTrigger>
-            <TabsTrigger value="notes" data-testid="tab-notes">Internal Notes</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto mb-6">
+            <TabsList className="grid w-full grid-cols-5 min-w-[480px]">
+              <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+              <TabsTrigger value="configuration" data-testid="tab-configuration">Config</TabsTrigger>
+              <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
+              <TabsTrigger value="build" data-testid="tab-build">Build</TabsTrigger>
+              <TabsTrigger value="notes" data-testid="tab-notes">Notes</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Comparison slot toggle — visible on all tabs when this is a comparison quote */}
           {isComparison && (
-            <div className="flex items-center gap-3 mb-4 p-3 rounded-md border bg-muted/30" data-testid="compare-slot-toggle">
+            <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-md border bg-muted/30" data-testid="compare-slot-toggle">
               <GitCompare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <span className="text-sm text-muted-foreground flex-shrink-0">Viewing:</span>
               <div className="flex gap-1.5">
@@ -1108,11 +1110,9 @@ export default function AdminQuoteDetail() {
                   Option B {quote.chosenOption === 'B' && <CheckCircle2 className="w-3 h-3 ml-1.5" />}
                 </Button>
               </div>
-              {quote.chosenOption ? (
-                <span className="text-xs text-muted-foreground">Option {quote.chosenOption} has been chosen — toggle to compare pricing.</span>
-              ) : (
-                <span className="text-xs text-muted-foreground">Toggle to view pricing, finance, and configuration for each van option.</span>
-              )}
+              <span className="text-xs text-muted-foreground">
+                {quote.chosenOption ? `Option ${quote.chosenOption} has been chosen — toggle to compare pricing.` : 'Toggle to view pricing, finance, and configuration for each van option.'}
+              </span>
             </div>
           )}
 
@@ -1457,7 +1457,7 @@ export default function AdminQuoteDetail() {
                           <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded">Not chosen</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-semibold text-sm">Option A (Primary)</p>
                         {quote.chosenOption === 'A' && (
                           <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">
@@ -1520,7 +1520,7 @@ export default function AdminQuoteDetail() {
                           <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-1 rounded">Not chosen</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-semibold text-sm">Option B (Alternative)</p>
                         {quote.chosenOption === 'B' && (
                           <Badge variant="default" className="bg-accent text-accent-foreground text-xs no-default-active-elevate">
@@ -1601,14 +1601,14 @@ export default function AdminQuoteDetail() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 pt-2">
-                      <CheckCircle className="w-4 h-4 text-accent" />
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <CheckCircle className="w-4 h-4 text-accent flex-shrink-0" />
+                      <p className="text-sm text-muted-foreground flex-1 min-w-0">
                         Option {quote.chosenOption} has been locked in as the customer's final choice.
                       </p>
                       {/* Only allow changing/undoing choice before build starts */}
                       {!quote.buildStage ? (
-                        <div className="ml-auto flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1631,7 +1631,7 @@ export default function AdminQuoteDetail() {
                           </Button>
                         </div>
                       ) : (
-                        <p className="ml-auto text-xs text-muted-foreground italic" data-testid="text-choice-locked">
+                        <p className="text-xs text-muted-foreground italic" data-testid="text-choice-locked">
                           Cannot change — build in progress
                         </p>
                       )}
@@ -1645,9 +1645,9 @@ export default function AdminQuoteDetail() {
             {activeTab === "configuration" && <Card>
               <Collapsible open={isConfigEditorOpen} onOpenChange={setIsConfigEditorOpen}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="flex flex-wrap items-center gap-2">
                         <Settings className="w-5 h-5" />
                         Edit Configuration
                         {isComparison && (
@@ -1960,12 +1960,12 @@ export default function AdminQuoteDetail() {
                 {/* Discount */}
                 <div className="space-y-2">
                   <Label>Discount</Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Select
                       value={discountType || "none"}
                       onValueChange={(v: any) => setDiscountType(v === "none" ? "" : v)}
                     >
-                      <SelectTrigger className="w-44" data-testid="select-config-discount-type">
+                      <SelectTrigger className="w-full sm:w-44" data-testid="select-config-discount-type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1998,7 +1998,7 @@ export default function AdminQuoteDetail() {
 
                 {/* Pricing Preview */}
                 <div className="pt-4 border-t">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="text-sm font-medium">
                       {isComparison ? `Option ${viewingSlot} Pricing:` : 'Updated Pricing:'}
                     </div>
@@ -2230,7 +2230,7 @@ export default function AdminQuoteDetail() {
 
                       {/* Progress bar */}
                       <div className="pt-3 border-t">
-                        <div className="flex items-center justify-between text-sm mb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-1 text-sm mb-2">
                           <span className="text-muted-foreground">Overall Progress</span>
                           <span className="font-semibold">
                             {activeStages.length > 0
@@ -2265,7 +2265,7 @@ export default function AdminQuoteDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {quote.customerLogoUrls.map((logoPath, index) => (
                       <div 
                         key={index} 

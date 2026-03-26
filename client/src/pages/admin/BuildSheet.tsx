@@ -360,7 +360,7 @@ export default function BuildSheet() {
               <CardTitle>Customer Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground print:text-black">Name</p>
                   <p className="font-medium" data-testid="text-customer-name">{quote.userName}</p>
@@ -412,10 +412,10 @@ export default function BuildSheet() {
                   <h3 className="text-lg font-semibold" data-testid="text-van-title">
                     {van.make} {van.model} ({van.year})
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     {/* Registration — shown first and prominently */}
                     {((quote as any).vanRegistration || van.reg) && (
-                      <div className="col-span-2 md:col-span-3">
+                      <div className="sm:col-span-2 md:col-span-3">
                         <p className="text-muted-foreground print:text-black">Registration</p>
                         <p className="font-bold text-base uppercase tracking-widest" data-testid="text-van-reg">
                           {(quote as any).vanRegistration || van.reg}

@@ -272,7 +272,7 @@ export default function AdminUsers() {
                 />
                 <p className="text-xs text-muted-foreground">A set-password link will be emailed to this address.</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="firstName">First Name</Label>
                   <Input
@@ -336,17 +336,17 @@ export default function AdminUsers() {
           {users.map((u) => (
             <Card key={u.id} data-testid={`card-user-${u.id}`}>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
                       <UsersIcon className="w-5 h-5 text-accent" />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg" data-testid={`text-username-${u.id}`}>{u.username}</CardTitle>
-                      {u.email && <p className="text-sm text-muted-foreground">{u.email}</p>}
+                    <div className="min-w-0">
+                      <CardTitle className="text-lg truncate" data-testid={`text-username-${u.id}`}>{u.username}</CardTitle>
+                      {u.email && <p className="text-sm text-muted-foreground truncate">{u.email}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {getRoleBadge(u.adminRole)}
                     {u.id === user.id && (
                       <Badge variant="outline" className="text-xs">You</Badge>
@@ -355,15 +355,15 @@ export default function AdminUsers() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-0">
                     {u.firstName || u.lastName ? (
                       <p className="text-sm text-muted-foreground">
                         {[u.firstName, u.lastName].filter(Boolean).join(" ")}
                       </p>
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm text-muted-foreground">Role:</span>
                     <Select
                       value={u.adminRole}
@@ -371,7 +371,7 @@ export default function AdminUsers() {
                       disabled={u.id === user.id || updateRoleMutation.isPending}
                       data-testid={`select-role-${u.id}`}
                     >
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-[160px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

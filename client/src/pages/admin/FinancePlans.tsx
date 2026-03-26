@@ -203,7 +203,7 @@ export default function AdminFinancePlans() {
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="termMonths"
@@ -247,7 +247,7 @@ export default function AdminFinancePlans() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="depositPercent"
@@ -441,7 +441,7 @@ export default function AdminFinancePlans() {
                             )}
                           />
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="termMonths"
@@ -485,7 +485,7 @@ export default function AdminFinancePlans() {
                             />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="depositPercent"
@@ -610,7 +610,7 @@ export default function AdminFinancePlans() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Term</p>
                   <p className="text-base font-medium" data-testid={`text-term-${plan.id}`}>

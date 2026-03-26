@@ -228,7 +228,7 @@ export default function AdminTrainingOptions() {
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="type"
@@ -418,7 +418,7 @@ export default function AdminTrainingOptions() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Duration</p>
                       <p className="font-medium" data-testid={`text-duration-${option.id}`}>
