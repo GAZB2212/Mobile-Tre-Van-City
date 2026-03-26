@@ -123,17 +123,15 @@ function SlotSummary({
     enabled: !!slot.kitId,
   });
 
-  const { data: upgrades = [] } = useQuery<Upgrade[]>({
+  const { data: allUpgradesForSlot = [] } = useQuery<Upgrade[]>({
     queryKey: ['/api/upgrades'],
-    select: (data) => data.filter(u => slot.upgradeIds.includes(u.id)),
-    enabled: slot.upgradeIds.length > 0,
   });
+  const upgrades = allUpgradesForSlot.filter(u => slot.upgradeIds.includes(u.id));
 
-  const { data: trainingOptions = [] } = useQuery<TrainingOption[]>({
+  const { data: allTrainingForSlot = [] } = useQuery<TrainingOption[]>({
     queryKey: ['/api/training-options'],
-    select: (data) => data.filter(t => slot.trainingOptionIds.includes(t.id)),
-    enabled: slot.trainingOptionIds.length > 0,
   });
+  const trainingOptions = allTrainingForSlot.filter(t => slot.trainingOptionIds.includes(t.id));
 
   const isOwnVan = !slot.vanId;
   const vanPrice = van?.price || slot.customVanValue || 0;
@@ -287,16 +285,15 @@ function CompareSummary({
     queryKey: ['/api/kits', slotA.kitId],
     enabled: !!slotA.kitId,
   });
-  const { data: upgradesA = [] } = useQuery<Upgrade[]>({
+  const { data: allUpgrades = [] } = useQuery<Upgrade[]>({
     queryKey: ['/api/upgrades'],
-    select: (data) => data.filter(u => slotA.upgradeIds.includes(u.id)),
-    enabled: slotA.upgradeIds.length > 0,
   });
-  const { data: trainingA = [] } = useQuery<TrainingOption[]>({
+  const upgradesA = allUpgrades.filter(u => slotA.upgradeIds.includes(u.id));
+
+  const { data: allTraining = [] } = useQuery<TrainingOption[]>({
     queryKey: ['/api/training-options'],
-    select: (data) => data.filter(t => slotA.trainingOptionIds.includes(t.id)),
-    enabled: slotA.trainingOptionIds.length > 0,
   });
+  const trainingA = allTraining.filter(t => slotA.trainingOptionIds.includes(t.id));
 
   const { data: vanB } = useQuery<Van>({
     queryKey: ['/api/vans', slotB.vanId],
@@ -421,17 +418,15 @@ export function ConfiguratorSummary({
     enabled: !!state.kitId,
   });
 
-  const { data: upgrades = [] } = useQuery<Upgrade[]>({
+  const { data: allUpgradesMain = [] } = useQuery<Upgrade[]>({
     queryKey: ['/api/upgrades'],
-    select: (data) => data.filter(u => state.upgradeIds.includes(u.id)),
-    enabled: state.upgradeIds.length > 0,
   });
+  const upgrades = allUpgradesMain.filter(u => state.upgradeIds.includes(u.id));
 
-  const { data: trainingOptions = [] } = useQuery<TrainingOption[]>({
+  const { data: allTrainingMain = [] } = useQuery<TrainingOption[]>({
     queryKey: ['/api/training-options'],
-    select: (data) => data.filter(t => state.trainingOptionIds.includes(t.id)),
-    enabled: state.trainingOptionIds.length > 0,
   });
+  const trainingOptions = allTrainingMain.filter(t => state.trainingOptionIds.includes(t.id));
 
   const isOwnVan = !state.vanId;
   const ownVanPrice = (vanDetailsOpen && state.customVanValue) ? state.customVanValue : 0;
