@@ -105,6 +105,7 @@ function SlotSummary({
   onClick,
   discountedTotal,
   discountAmount,
+  externalTotal,
 }: {
   slot: ConfiguratorSlotState;
   label?: string;
@@ -112,6 +113,7 @@ function SlotSummary({
   onClick?: () => void;
   discountedTotal?: number;
   discountAmount?: number;
+  externalTotal?: number;
 }) {
   const { data: van } = useQuery<Van>({
     queryKey: ['/api/vans', slot.vanId],
@@ -233,7 +235,7 @@ function SlotSummary({
         <div className="space-y-0.5">
           <div className="flex justify-between items-center text-xs text-muted-foreground">
             <span>Before discount</span>
-            <span className="line-through">{formatPrice(total)}</span>
+            <span className="line-through">{formatPrice(externalTotal ?? total)}</span>
           </div>
           <div className="flex justify-between items-center text-xs text-destructive font-medium">
             <span>Discount</span>
@@ -241,13 +243,13 @@ function SlotSummary({
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs font-bold">Total</span>
-            <span className="text-sm font-bold text-accent">{formatPrice(discountedTotal ?? total)}</span>
+            <span className="text-sm font-bold text-accent">{formatPrice(discountedTotal ?? externalTotal ?? total)}</span>
           </div>
         </div>
       ) : (
         <div className="flex justify-between items-center">
           <span className="text-xs font-bold">Total</span>
-          <span className="text-sm font-bold text-accent">{formatPrice(total)}</span>
+          <span className="text-sm font-bold text-accent">{formatPrice(externalTotal ?? total)}</span>
         </div>
       )}
     </div>
@@ -332,6 +334,7 @@ function CompareSummary({
         label="Option A"
         isActive={activeSlot === 'A'}
         onClick={() => setActiveSlot('A')}
+        externalTotal={totalA}
         discountedTotal={discA.discountAmount > 0 ? discA.finalTotal : undefined}
         discountAmount={discA.discountAmount > 0 ? discA.discountAmount : undefined}
       />
@@ -340,6 +343,7 @@ function CompareSummary({
         label="Option B"
         isActive={activeSlot === 'B'}
         onClick={() => setActiveSlot('B')}
+        externalTotal={totalB}
         discountedTotal={discB.discountAmount > 0 ? discB.finalTotal : undefined}
         discountAmount={discB.discountAmount > 0 ? discB.discountAmount : undefined}
       />
