@@ -1,4 +1,4 @@
-import { hydrateRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import { Router } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { HydrationBoundary } from "@tanstack/react-query";
@@ -12,8 +12,9 @@ declare global {
   }
 }
 
-hydrateRoot(
-  document.getElementById("root")!,
+const rootEl = document.getElementById("root")!;
+
+const app = (
   <QueryClientProvider client={queryClient}>
     <HydrationBoundary state={window.__TANSTACK_QUERY_STATE__}>
       <Router>
@@ -22,3 +23,11 @@ hydrateRoot(
     </HydrationBoundary>
   </QueryClientProvider>
 );
+
+// Use hydrateRoot only when the server has pre-rendered content into #root.
+// Otherwise fall back to a normal createRoot render (dev mode, SSR disabled).
+if (window.__TANSTACK_QUERY_STATE__ && rootEl.children.length > 0) {
+  hydrateRoot(rootEl, app);
+} else {
+  createRoot(rootEl).render(app);
+}
