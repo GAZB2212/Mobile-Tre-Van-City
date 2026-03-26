@@ -1095,7 +1095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Registration number is required" });
       }
 
-      const apiKey = process.env.AUTOTRADER_API_KEY;
+      const apiKey = process.env.VAN_CONFIGURATOR_API_KEY;
 
       if (!apiKey) {
         return res.status(500).json({ error: "API key not configured in secrets" });
