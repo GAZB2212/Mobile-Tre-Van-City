@@ -3,9 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
-import vanImage1 from "@assets/IMG_8800_1759504961672.jpg";
-import vanImage2 from "@assets/IMG_1129_1759504961672.jpg";
-import vanImage3 from "@assets/IMG_7127_1759504961672.jpg";
+import vanImage1 from "@assets/IMG_8800_1759504961672.webp";
+import vanImage2 from "@assets/IMG_1129_1759504961672.webp";
+import vanImage3 from "@assets/IMG_7127_1759504961672.webp";
 
 const DESIGNS = [
   {

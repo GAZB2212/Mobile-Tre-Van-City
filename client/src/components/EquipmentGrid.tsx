@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Zap, Package } from "lucide-react";
-import equipmentImage from "@assets/generated_images/Tire_changing_equipment_kit_1bd060cf.png";
+import equipmentImage from "@assets/generated_images/Tire_changing_equipment_kit_1bd060cf.webp";
 
 interface EquipmentKit {
   id: string;

@@ -18,7 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "wouter";
-import heroImage from "@assets/Screenshot_2026-03-10_at_15.36.03_1773157556561.png";
+import heroImage from "@assets/Screenshot_2026-03-10_at_15.36.03_1773157556561.webp";
 
 const stats = [
   {

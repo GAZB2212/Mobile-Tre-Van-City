@@ -4,7 +4,7 @@ import StockCard from "./StockCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2 } from "lucide-react";
 import type { Van } from "@shared/schema";
-import stockImage from "@assets/generated_images/Mobile_tyre_van_conversion_372a2d42.png";
+import stockImage from "@assets/generated_images/Mobile_tyre_van_conversion_372a2d42.webp";
 
 export default function FeaturedStock() {
   const { data: allVans = [], isLoading } = useQuery<Van[]>({

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import logoImage from "@assets/Untitled design-51_1759240381746.png";
+import logoImage from "@assets/Untitled design-51_1759240381746.webp";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

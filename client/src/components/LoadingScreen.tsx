@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import logoPath from "@assets/Untitled design-51_1759240381746.png";
+import logoPath from "@assets/Untitled design-51_1759240381746.webp";
 
 const DEFAULT_HERO_VIDEO = "/media/website_hero_1772966773377.mp4";
 const CACHE_KEY = "heroVideoUrl";

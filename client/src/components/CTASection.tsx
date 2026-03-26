@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Phone } from "lucide-react";
-import vanImage from "@assets/IMG_1103_1759503549443.jpg";
+import vanImage from "@assets/IMG_1103_1759503549443.webp";
 
 export default function CTASection() {
   return (

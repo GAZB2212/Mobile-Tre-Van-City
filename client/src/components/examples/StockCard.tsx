@@ -1,5 +1,5 @@
 import StockCard from '../StockCard';
-import stockImage from "@assets/generated_images/Mobile_tyre_van_conversion_372a2d42.png";
+import stockImage from "@assets/generated_images/Mobile_tyre_van_conversion_372a2d42.webp";
 
 export default function StockCardExample() {
   // todo: remove mock functionality

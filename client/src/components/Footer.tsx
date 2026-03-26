@@ -1,8 +1,8 @@
 import { Link } from "wouter";
 import { Phone, Mail, MapPin, Shield } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiYoutube } from "react-icons/si";
-import logoImage from "@assets/Untitled design-51_1759240381746.png";
-import gajoLogo from "@assets/LOGO_1762356342150.png";
+import logoImage from "@assets/Untitled design-51_1759240381746.webp";
+import gajoLogo from "@assets/LOGO_1762356342150.webp";
 
 export default function Footer() {
   const quickLinks = [
