@@ -335,64 +335,52 @@ export default function AdminConfigurator() {
     }
   };
 
-  // ── Pricing (in pence)
+  // ── Pricing (in pence) — computed directly, no useMemo, always fresh
   const allUpgradesList = useMemo(() => Object.values(filteredUpgrades).flat(), [filteredUpgrades]);
 
-  const pricing = useMemo(() => {
-    const vanPrice = selectedVanData?.price ?? state.customVanValue ?? 0;
-    const kit = configData?.kits.find((k: any) => k.id === state.kitId);
-    const kitPrice = kit?.price ?? 0;
-    const upgradesTotal = state.upgradeIds.reduce((sum, id) => {
-      const u = allUpgradesList.find(x => x.id === id);
-      const qty = upgradeQuantities[id] ?? 1;
-      return sum + (u?.price ?? 0) * qty;
-    }, 0);
-    const subtotalPence = vanPrice + kitPrice + upgradesTotal;
-    const vatPence = Math.round(subtotalPence * 0.2);
-    return {
-      subtotal: subtotalPence / 100,
-      vat: vatPence / 100,
-      total: (subtotalPence + vatPence) / 100,
-      subtotalPence,
-      vatPence,
-      totalPence: subtotalPence + vatPence,
-    };
-  }, [selectedVanData, state.customVanValue, state.kitId, state.upgradeIds, configData, allUpgradesList, upgradeQuantities]);
+  // Current-slot pricing (follows activeSlot)
+  const _pricingVanPrice = selectedVanData?.price ?? state.customVanValue ?? 0;
+  const _pricingKit = configData?.kits.find((k: any) => k.id === state.kitId);
+  const _pricingUpgradesTotal = state.upgradeIds.reduce((sum, id) => {
+    const u = allUpgradesList.find(x => x.id === id);
+    return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
+  }, 0);
+  const _pricingSubtotal = _pricingVanPrice + (_pricingKit?.price ?? 0) + _pricingUpgradesTotal;
+  const _pricingVat = Math.round(_pricingSubtotal * 0.2);
+  const pricing = {
+    subtotal: _pricingSubtotal / 100,
+    vat: _pricingVat / 100,
+    total: (_pricingSubtotal + _pricingVat) / 100,
+    subtotalPence: _pricingSubtotal,
+    vatPence: _pricingVat,
+    totalPence: _pricingSubtotal + _pricingVat,
+  };
 
-  // ── SlotA pricing — always computed from slotA regardless of active slot.
-  // Used for quote submission so the server validation (which uses slotA fields) passes.
-  const slotAPricing = useMemo(() => {
-    const slotAVan = allVans.find(v => v.id === slotA.vanId);
-    const vanPrice = slotAVan?.price ?? slotA.customVanValue ?? 0;
-    const kit = configData?.kits.find((k: any) => k.id === slotA.kitId);
-    const kitPrice = kit?.price ?? 0;
+  // SlotA pricing — always slotA regardless of active slot
+  const _slotAVanPrice = (allVans.find(v => v.id === slotA.vanId)?.price) ?? slotA.customVanValue ?? 0;
+  const _slotAKit = configData?.kits.find((k: any) => k.id === slotA.kitId);
+  const _slotAUpgradesTotal = slotA.upgradeIds.reduce((sum, id) => {
+    const u = allUpgradesList.find(x => x.id === id);
+    return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
+  }, 0);
+  const _slotASubtotal = _slotAVanPrice + (_slotAKit?.price ?? 0) + _slotAUpgradesTotal;
+  const _slotAVat = Math.round(_slotASubtotal * 0.2);
+  const slotAPricing = { subtotalPence: _slotASubtotal, vatPence: _slotAVat, totalPence: _slotASubtotal + _slotAVat };
+
+  // SlotB pricing — always uses slotA's kit/upgrades, only slotB's van differs
+  const _slotBVan = allVans.find(v => v.id === slotB.vanId);
+  const _slotBVanPrice = _slotBVan?.price ?? slotB.customVanValue ?? 0;
+  const _slotBHasVan = !!slotB.vanId || !!slotB.customVanValue;
+  const slotBPricing = compareMode && (_slotBVanPrice > 0 || _slotBHasVan) ? (() => {
+    const kitPrice = _slotAKit?.price ?? 0;
     const upgradesTotal = slotA.upgradeIds.reduce((sum, id) => {
       const u = allUpgradesList.find(x => x.id === id);
-      const qty = upgradeQuantities[id] ?? 1;
-      return sum + (u?.price ?? 0) * qty;
+      return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
     }, 0);
-    const subtotalPence = vanPrice + kitPrice + upgradesTotal;
+    const subtotalPence = _slotBVanPrice + kitPrice + upgradesTotal;
     const vatPence = Math.round(subtotalPence * 0.2);
     return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
-  }, [allVans, slotA, configData, allUpgradesList, upgradeQuantities]);
-
-  // ── SlotB pricing — in compare mode, slot B uses a different van but shares kit/upgrades from slotA.
-  const slotBPricing = useMemo(() => {
-    if (!compareMode) return null;
-    const slotBVan = allVans.find(v => v.id === slotB.vanId);
-    const vanPrice = slotBVan?.price ?? slotB.customVanValue ?? 0;
-    if (vanPrice === 0 && !slotB.vanId && !slotB.customVanValue) return null;
-    const kit = configData?.kits.find((k: any) => k.id === slotA.kitId);
-    const kitPrice = kit?.price ?? 0;
-    const upgradesTotal = slotA.upgradeIds.reduce((sum, id) => {
-      const u = allUpgradesList.find(x => x.id === id);
-      const qty = upgradeQuantities[id] ?? 1;
-      return sum + (u?.price ?? 0) * qty;
-    }, 0);
-    const subtotalPence = vanPrice + kitPrice + upgradesTotal;
-    const vatPence = Math.round(subtotalPence * 0.2);
-    return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
-  }, [compareMode, allVans, slotA, slotB, configData, allUpgradesList, upgradeQuantities]);
+  })() : null;
 
   // ── Discount preview (for the Save dialog UI only — server recalculates definitively via PATCH)
   const discountedPricing = useMemo(() => {
