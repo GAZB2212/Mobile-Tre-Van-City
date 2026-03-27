@@ -164,6 +164,7 @@ export async function sendQuoteSpecSummaryEmail({
   financeInfo,
   comparisonSlotB,
   chosenOption,
+  customExtras = [],
 }: {
   to: string;
   customerName: string;
@@ -475,6 +476,7 @@ export async function sendFinanceSubmissionEmail({
   vat,
   total,
   discount,
+  customExtras = [],
   financeDetails,
 }: {
   financeCompanyEmail: string;
@@ -630,6 +632,7 @@ export async function sendQuoteReceivedEmails({
   vanTitle,
   kitName,
   upgradeNames,
+  customExtras = [],
   comparisonSlotB,
   financeInfoA,
   financeInfoB,
