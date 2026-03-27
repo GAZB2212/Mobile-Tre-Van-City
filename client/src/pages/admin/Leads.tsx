@@ -30,14 +30,15 @@ import {
   StickyNote,
 } from "lucide-react";
 
-type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "closed";
+type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "closed" | "dead";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; className: string }> = {
-  new:       { label: "New",       className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  contacted: { label: "Contacted", className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
-  qualified: { label: "Qualified", className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-  converted: { label: "Converted", className: "bg-green-500/20 text-green-400 border-green-500/30" },
-  closed:    { label: "Closed",    className: "bg-muted text-muted-foreground border-border" },
+  new:       { label: "New",        className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  contacted: { label: "Contacted",  className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
+  qualified: { label: "Qualified",  className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+  converted: { label: "Converted",  className: "bg-green-500/20 text-green-400 border-green-500/30" },
+  closed:    { label: "Closed",     className: "bg-muted text-muted-foreground border-border" },
+  dead:      { label: "Dead Lead",  className: "bg-red-500/15 text-red-400 border-red-500/30" },
 };
 
 function getSourceBadge(source: string) {
@@ -399,7 +400,7 @@ export default function AdminLeads() {
                 (lead as any).crmNotes || [];
 
               return (
-                <Card key={lead.id} data-testid={`card-lead-${lead.id}`}>
+                <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className={status === 'dead' ? 'opacity-60' : ''}>
                   {/* ── Main summary row ── */}
                   <div
                     className="px-5 py-4 cursor-pointer"
