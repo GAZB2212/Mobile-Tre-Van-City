@@ -30,6 +30,7 @@ import {
   ArrowLeft, ArrowRight, Car, Gauge, Settings, Info, SlidersHorizontal,
   X, Truck, Shuffle, Package, Zap, CheckCircle, AlertTriangle, AlertCircle,
   Star, Calculator, PoundSterling, CheckCircle2, Loader2, UserRound, RotateCcw, GitCompare,
+  Plus, Trash2,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -169,6 +170,11 @@ export default function AdminConfigurator() {
   // ── Upgrades section state
   const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
   const [modalUpgrade, setModalUpgrade] = useState<{ upgrade: Upgrade; variants: Upgrade[] } | null>(null);
+
+  // ── Custom extras state (bespoke items not in standard configurator)
+  const [customExtras, setCustomExtras] = useState<Array<{id: string; description: string; pricePence: number}>>([]);
+  const [newExtraDescription, setNewExtraDescription] = useState('');
+  const [newExtraPrice, setNewExtraPrice] = useState('');
 
   // ── Finance section state
   const [termYears, setTermYears] = useState(3);
@@ -345,7 +351,8 @@ export default function AdminConfigurator() {
     const u = allUpgradesList.find(x => x.id === id);
     return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
   }, 0);
-  const _pricingSubtotal = _pricingVanPrice + (_pricingKit?.price ?? 0) + _pricingUpgradesTotal;
+  const _customExtrasTotal = customExtras.reduce((sum, e) => sum + e.pricePence, 0);
+  const _pricingSubtotal = _pricingVanPrice + (_pricingKit?.price ?? 0) + _pricingUpgradesTotal + _customExtrasTotal;
   const _pricingVat = Math.round(_pricingSubtotal * 0.2);
   const pricing = {
     subtotal: _pricingSubtotal / 100,
@@ -363,7 +370,7 @@ export default function AdminConfigurator() {
     const u = allUpgradesList.find(x => x.id === id);
     return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
   }, 0);
-  const _slotASubtotal = _slotAVanPrice + (_slotAKit?.price ?? 0) + _slotAUpgradesTotal;
+  const _slotASubtotal = _slotAVanPrice + (_slotAKit?.price ?? 0) + _slotAUpgradesTotal + _customExtrasTotal;
   const _slotAVat = Math.round(_slotASubtotal * 0.2);
   const slotAPricing = { subtotalPence: _slotASubtotal, vatPence: _slotAVat, totalPence: _slotASubtotal + _slotAVat };
 
@@ -377,7 +384,7 @@ export default function AdminConfigurator() {
       const u = allUpgradesList.find(x => x.id === id);
       return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
     }, 0);
-    const subtotalPence = _slotBVanPrice + kitPrice + upgradesTotal;
+    const subtotalPence = _slotBVanPrice + kitPrice + upgradesTotal + _customExtrasTotal;
     const vatPence = Math.round(subtotalPence * 0.2);
     return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
   })() : null;
@@ -434,6 +441,7 @@ export default function AdminConfigurator() {
         selectedUpgradeIds: slotA.upgradeIds,
         selectedUpgrades: upgradesMap,
         trainingOptionIds: slotA.trainingOptionIds,
+        customExtras,
         financeInputs: depositAmount || termYears ? {
           deposit: Math.round((parseFloat(depositAmount) || 0) * 100),
           term: termYears * 12,
@@ -990,6 +998,85 @@ export default function AdminConfigurator() {
                 )}
               </section>
             )}
+
+            {/* ── Custom Extras ───────────────────────────────────────── */}
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Bespoke Extras</h3>
+                <span className="text-xs text-muted-foreground">(not in standard configurator)</span>
+              </div>
+              <Card>
+                <CardContent className="pt-4 space-y-3">
+                  {customExtras.length > 0 && (
+                    <div className="space-y-2">
+                      {customExtras.map((extra) => (
+                        <div key={extra.id} className="flex items-center gap-2 text-sm p-2 rounded bg-muted/40">
+                          <span className="flex-1 font-medium">{extra.description}</span>
+                          <span className="text-muted-foreground shrink-0">£{(extra.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</span>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => setCustomExtras(prev => prev.filter(e => e.id !== extra.id))}
+                            data-testid={`button-remove-extra-${extra.id}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="flex-1 min-w-[160px]">
+                      <Label className="text-xs text-muted-foreground mb-1 block">Description</Label>
+                      <Input
+                        value={newExtraDescription}
+                        onChange={e => setNewExtraDescription(e.target.value)}
+                        placeholder="e.g. Custom roof bar"
+                        className="text-sm"
+                        data-testid="input-extra-description"
+                      />
+                    </div>
+                    <div className="w-28">
+                      <Label className="text-xs text-muted-foreground mb-1 block">Price (£ ex. VAT)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newExtraPrice}
+                        onChange={e => setNewExtraPrice(e.target.value)}
+                        placeholder="0.00"
+                        className="text-sm"
+                        data-testid="input-extra-price"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const desc = newExtraDescription.trim();
+                        const price = parseFloat(newExtraPrice);
+                        if (!desc || isNaN(price) || price < 0) return;
+                        setCustomExtras(prev => [...prev, {
+                          id: crypto.randomUUID(),
+                          description: desc,
+                          pricePence: Math.round(price * 100),
+                        }]);
+                        setNewExtraDescription('');
+                        setNewExtraPrice('');
+                      }}
+                      disabled={!newExtraDescription.trim() || !newExtraPrice || parseFloat(newExtraPrice) < 0}
+                      data-testid="button-add-extra"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />Add
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
 
             </>)}
 

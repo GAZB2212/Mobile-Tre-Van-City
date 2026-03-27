@@ -164,6 +164,7 @@ export const quotes = pgTable("quotes", {
   estDiscount: integer("est_discount").notNull().default(0), // in pence (calculated discount amount)
   estVAT: integer("est_vat").notNull(), // in pence (calculated after discount)
   estTotal: integer("est_total").notNull(), // in pence (final price after discount)
+  customExtras: json("custom_extras").$type<Array<{id: string; description: string; pricePence: number}>>().default([]), // Bespoke items not in standard configurator
   
   // Admin adjustments
   discountType: text("discount_type"), // "percentage" or "fixed"

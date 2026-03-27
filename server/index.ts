@@ -170,6 +170,10 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ Spec approval columns ready"))
         .catch((err: Error) => console.error("Spec approval migration:", err.message));
+      // Add custom_extras column to quotes (bespoke line items not in standard configurator)
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS custom_extras JSONB DEFAULT '[]'`)
+        .then(() => log("✅ Custom extras column ready"))
+        .catch((err: Error) => console.error("Custom extras migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
         CREATE TABLE IF NOT EXISTS blog_posts (

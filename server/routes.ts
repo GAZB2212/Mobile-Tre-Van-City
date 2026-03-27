@@ -483,8 +483,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trainingTotal = trainingOptions.reduce((sum: number, trainingOption: any) => {
         return sum + (trainingOption?.price || 0);
       }, 0);
+      const submittedCustomExtras = (req.body.customExtras || []) as Array<{id: string; description: string; pricePence: number}>;
+      const customExtrasTotal = submittedCustomExtras.reduce((sum: number, e: any) => sum + (e.pricePence || 0), 0);
       
-      const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
+      const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal + customExtrasTotal;
       const vatRate = 0.20; // 20% VAT
       const vat = Math.round(subtotal * vatRate);
       const total = subtotal + vat;
@@ -1861,6 +1863,12 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         email: z.string().email().optional(),
         phone: z.string().optional(),
         company: z.string().nullable().optional(),
+        // Bespoke extras not in standard configurator
+        customExtras: z.array(z.object({
+          id: z.string(),
+          description: z.string(),
+          pricePence: z.number().int().min(0),
+        })).optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
@@ -1910,7 +1918,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const needsRecalculation = 'vanId' in validatedData || 'kitId' in validatedData || 
                                   'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData ||
                                   'discountType' in validatedData || 'discountValue' in validatedData ||
-                                  'customVanValue' in validatedData;
+                                  'customVanValue' in validatedData || 'customExtras' in validatedData;
       
       if (needsRecalculation) {
         const quote = await storage.getQuote(req.params.id);
@@ -1966,6 +1974,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
             baseSubtotal += training.price;
           }
         }
+
+        // Add custom extras (bespoke items not in standard configurator)
+        const updatedCustomExtras = 'customExtras' in validatedData ? (validatedData.customExtras || []) : ((quote as any).customExtras || []);
+        const customExtrasTotal = updatedCustomExtras.reduce((sum: number, e: any) => sum + (e.pricePence || 0), 0);
+        baseSubtotal += customExtrasTotal;
         
         // Calculate total with VAT first
         const baseVAT = Math.round(baseSubtotal * 0.2);

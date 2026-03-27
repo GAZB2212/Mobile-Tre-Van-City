@@ -691,6 +691,43 @@ export default function BuildSheet() {
             </Card>
           )}
 
+          {/* Bespoke Extras */}
+          {((quote as any).customExtras as Array<{id: string; description: string; pricePence: number}> | undefined)?.length ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bespoke Extras</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  {((quote as any).customExtras as Array<{id: string; description: string; pricePence: number}>).map((extra) => {
+                    const itemKey = `extra-${extra.id}`;
+                    return (
+                      <div
+                        key={extra.id}
+                        className="flex items-center gap-1 py-2 border-b last:border-0"
+                        data-testid={`row-extra-${extra.id}`}
+                      >
+                        <PrintCheckbox
+                          id={`checkbox-extra-${extra.id}`}
+                          checked={isChecked(itemKey)}
+                          onChange={v => setChecked(itemKey, v)}
+                        />
+                        <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-2">
+                          <p className={`font-semibold text-sm ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}>
+                            {extra.description}
+                          </p>
+                          <span className="text-xs text-muted-foreground print:text-black">
+                            £{(extra.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })} ex. VAT
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           {/* Build Status */}
           <Card>
             <CardHeader>

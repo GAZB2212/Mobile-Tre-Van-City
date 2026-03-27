@@ -208,6 +208,11 @@ export default function AdminQuoteDetail() {
   const [customVanDescription, setCustomVanDescription] = useState<string>("");
   const [customVanValue, setCustomVanValue] = useState<string>("");
 
+  // Custom extras — bespoke items not in standard configurator
+  const [customExtras, setCustomExtras] = useState<Array<{id: string; description: string; pricePence: number}>>([]);
+  const [newExtraDescription, setNewExtraDescription] = useState('');
+  const [newExtraPrice, setNewExtraPrice] = useState('');
+
   const { data: quote, isLoading } = useQuery<Quote>({
     queryKey: [`/api/admin/quotes/${id}`],
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
@@ -283,6 +288,7 @@ export default function AdminQuoteDetail() {
       setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
       setSelectedUpgrades(quote.selectedUpgrades || {});
       setOriginalUpgradeIds(quote.selectedUpgradeIds || []);
+      setCustomExtras((quote as any).customExtras || []);
       
       // Store original configuration for change detection
       // Mirror the "custom" sentinel used by selectedVanId so dirty-check works correctly for custom vans
@@ -683,6 +689,9 @@ export default function AdminQuoteDetail() {
         subtotal += upgrade.price * quantity;
       }
     });
+
+    // Add bespoke extras
+    customExtras.forEach(e => { subtotal += e.pricePence; });
     
     return subtotal;
   };
@@ -822,6 +831,7 @@ export default function AdminQuoteDetail() {
       discountValue: discountValueInPence,
       selectedUpgradeIds,
       selectedUpgrades,
+      customExtras,
       customerConfirmed,
       vanRegistration: vanRegistration.trim() || null,
       vanMileage: vanMileage.trim() ? parseInt(vanMileage.trim()) : null,
@@ -922,6 +932,8 @@ export default function AdminQuoteDetail() {
         subtotal += upgrade.price * quantity;
       }
     });
+    // Bespoke extras: shared from slot A
+    customExtras.forEach(e => { subtotal += e.pricePence; });
     const vat = Math.round(subtotal * 0.2);
     const totalWithVat = subtotal + vat;
     // Apply same discount as Option A
@@ -1991,6 +2003,78 @@ export default function AdminQuoteDetail() {
                   <p className="text-xs text-muted-foreground mt-2">
                     Selected: {selectedUpgradeIds.length} items
                   </p>
+                </div>
+
+                {/* Bespoke Extras */}
+                <div className="space-y-2">
+                  <Label>Bespoke Extras</Label>
+                  <p className="text-xs text-muted-foreground">Custom items not in the standard configurator</p>
+                  {customExtras.length > 0 && (
+                    <div className="space-y-1.5">
+                      {customExtras.map((extra) => (
+                        <div key={extra.id} className="flex items-center gap-2 text-sm p-2 rounded bg-muted/40">
+                          <span className="flex-1 font-medium">{extra.description}</span>
+                          <span className="text-muted-foreground shrink-0">£{(extra.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</span>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => setCustomExtras(prev => prev.filter(e => e.id !== extra.id))}
+                            data-testid={`button-remove-extra-${extra.id}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="flex-1 min-w-[150px]">
+                      <Label className="text-xs text-muted-foreground mb-1 block">Description</Label>
+                      <Input
+                        value={newExtraDescription}
+                        onChange={e => setNewExtraDescription(e.target.value)}
+                        placeholder="e.g. Custom roof bar"
+                        className="text-sm"
+                        data-testid="input-extra-description"
+                      />
+                    </div>
+                    <div className="w-28">
+                      <Label className="text-xs text-muted-foreground mb-1 block">Price (£ ex. VAT)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newExtraPrice}
+                        onChange={e => setNewExtraPrice(e.target.value)}
+                        placeholder="0.00"
+                        className="text-sm"
+                        data-testid="input-extra-price-qd"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const desc = newExtraDescription.trim();
+                        const price = parseFloat(newExtraPrice);
+                        if (!desc || isNaN(price) || price < 0) return;
+                        setCustomExtras(prev => [...prev, {
+                          id: crypto.randomUUID(),
+                          description: desc,
+                          pricePence: Math.round(price * 100),
+                        }]);
+                        setNewExtraDescription('');
+                        setNewExtraPrice('');
+                      }}
+                      disabled={!newExtraDescription.trim() || !newExtraPrice || parseFloat(newExtraPrice) < 0}
+                      data-testid="button-add-extra-qd"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />Add
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Discount */}
