@@ -199,12 +199,20 @@ export async function sendQuoteSpecSummaryEmail({
     } | null;
   } | null;
   chosenOption?: 'A' | 'B' | null;
+  customExtras?: Array<{ id: string; description: string; pricePence: number }>;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
   const brandGreen = '#8bc440';
   const brandDark = '#191919';
   const isComparison = !!comparisonSlotB;
+  const fmtPence = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const extrasHtmlRow = customExtras && customExtras.length > 0
+    ? `<tr><td>Bespoke Extras</td><td><ul style="margin:2px 0;padding-left:18px;">${customExtras.map(e => `<li style="margin-bottom:2px;">${e.description} — ${fmtPence(e.pricePence)}</li>`).join('')}</ul></td></tr>`
+    : '';
+  const extrasTextBlock = customExtras && customExtras.length > 0
+    ? `Bespoke Extras:\n${customExtras.map(e => `  - ${e.description} (${fmtPence(e.pricePence)})`).join('\n')}\n`
+    : '';
 
   const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
   const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
@@ -257,6 +265,7 @@ export async function sendQuoteSpecSummaryEmail({
             ${oVanTitle ? `<tr><td>Van</td><td>${oVanTitle}</td></tr>` : ''}
             ${oKitName ? `<tr><td>Pack</td><td>${oKitName}</td></tr>` : ''}
             ${oUpgradeNames && oUpgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${oUpgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+            ${extrasHtmlRow}
             <tr><td>Subtotal (ex. VAT)</td><td>${fmt(oSubtotal)}</td></tr>
             <tr><td>VAT (20%)</td><td>${fmt(oVAT)}</td></tr>
             <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(oTotal)}</td></tr>
@@ -332,7 +341,7 @@ export async function sendQuoteSpecSummaryEmail({
 </body>
 </html>`;
 
-    const textBody = `Hi ${customerName},\n\n${chosenOption ? `You have selected Option ${chosenOption}.` : 'We have prepared two options for you to compare. Please choose the one you prefer using the links below.'}\n\nReference: #${ref}\n\nOPTION A\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${fmt(subtotal)}\nVAT: ${fmt(vat)}\nTotal: ${fmt(totalAfterDiscount)}\n${!chosenOption ? `\nChoose Option A: ${siteBase}/api/quotes/${quoteId}/choose-option?option=A\n` : ''}\nOPTION B\n${slotB.vanTitle ? `Van: ${slotB.vanTitle}\n` : ''}${slotB.kitName ? `Pack: ${slotB.kitName}\n` : ''}${slotB.upgradeNames && slotB.upgradeNames.length > 0 ? `Upgrades:\n${slotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${slotB.estSubtotal != null ? `Subtotal: ${fmt(slotB.estSubtotal)}\n` : ''}${slotB.estVAT != null ? `VAT: ${fmt(slotB.estVAT)}\n` : ''}${slotB.estTotal != null ? `Total: ${fmt(slotB.estTotal)}\n` : ''}${!chosenOption ? `\nChoose Option B: ${siteBase}/api/quotes/${quoteId}/choose-option?option=B\n` : ''}\n${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+    const textBody = `Hi ${customerName},\n\n${chosenOption ? `You have selected Option ${chosenOption}.` : 'We have prepared two options for you to compare. Please choose the one you prefer using the links below.'}\n\nReference: #${ref}\n\nOPTION A\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}Subtotal: ${fmt(subtotal)}\nVAT: ${fmt(vat)}\nTotal: ${fmt(totalAfterDiscount)}\n${!chosenOption ? `\nChoose Option A: ${siteBase}/api/quotes/${quoteId}/choose-option?option=A\n` : ''}\nOPTION B\n${slotB.vanTitle ? `Van: ${slotB.vanTitle}\n` : ''}${slotB.kitName ? `Pack: ${slotB.kitName}\n` : ''}${slotB.upgradeNames && slotB.upgradeNames.length > 0 ? `Upgrades:\n${slotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}${slotB.estSubtotal != null ? `Subtotal: ${fmt(slotB.estSubtotal)}\n` : ''}${slotB.estVAT != null ? `VAT: ${fmt(slotB.estVAT)}\n` : ''}${slotB.estTotal != null ? `Total: ${fmt(slotB.estTotal)}\n` : ''}${!chosenOption ? `\nChoose Option B: ${siteBase}/api/quotes/${quoteId}/choose-option?option=B\n` : ''}\n${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
 
     await client.emails.send({
       to,
@@ -424,6 +433,7 @@ export async function sendQuoteSpecSummaryEmail({
         ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
         ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
         ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+        ${extrasHtmlRow}
       </table>
       <h3 style="margin-bottom:8px;">Pricing</h3>
       <table>
@@ -445,7 +455,7 @@ export async function sendQuoteSpecSummaryEmail({
   </div>
 </body>
 </html>`,
-    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us. Here is your van conversion summary.\n\nReference: #${ref}\n\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\n${customerNote ? `Note from our team: ${customerNote}\n\n` : ''}${approvalToken ? `Does this look correct? Visit: ${siteBase}/spec-approval/${approvalToken}\n\n` : ''}Call us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 }
 
@@ -481,6 +491,7 @@ export async function sendFinanceSubmissionEmail({
   vat: number;
   total: number;
   discount?: number;
+  customExtras?: Array<{ id: string; description: string; pricePence: number }>;
   financeDetails?: {
     planType: string;
     apr: number;
@@ -561,6 +572,7 @@ export async function sendFinanceSubmissionEmail({
       <table>
         ${kitName ? `<tr><td>Equipment Pack</td><td>${kitName}</td></tr>` : ''}
         ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+        ${customExtras && customExtras.length > 0 ? `<tr><td>Bespoke Extras</td><td><ul style="margin:2px 0;padding-left:18px;">${customExtras.map(e => `<li style="margin-bottom:2px;">${e.description} — £${(e.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</li>`).join('')}</ul></td></tr>` : ''}
       </table>
 
       <div class="section-title">Pricing</div>
@@ -595,7 +607,10 @@ ${financeDetails ? `
 
   const financeText = financeDetails ? `\nFinance Details:\nPlan Type: ${financeDetails.planType}\nAPR: ${financeDetails.apr.toFixed(2)}%\nDeposit: ${fmt(financeDetails.depositAmount)}\nTerm: ${financeDetails.termMonths} months\nMonthly Payment: ${fmt(financeDetails.monthlyPayment)}\nWeekly Payment: ${fmt(financeDetails.weeklyPayment)}\n` : '';
 
-  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+  const extrasFinanceText = customExtras && customExtras.length > 0
+    ? `Bespoke Extras:\n${customExtras.map(e => `  - ${e.description} (£${(e.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })})`).join('\n')}\n`
+    : '';
+  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasFinanceText}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
 
   await client.emails.send({
     to: financeCompanyEmail,
@@ -635,6 +650,7 @@ export async function sendQuoteReceivedEmails({
   vanTitle?: string | null;
   kitName?: string | null;
   upgradeNames?: string[];
+  customExtras?: Array<{ id: string; description: string; pricePence: number }>;
   comparisonSlotB?: {
     vanTitle?: string | null;
     kitName?: string | null;
@@ -675,6 +691,13 @@ export async function sendQuoteReceivedEmails({
 
   const brandGreen = '#8bc440';
   const brandDark = '#191919';
+
+  const qrExtrasHtmlRow = customExtras && customExtras.length > 0
+    ? `<tr><td>Bespoke Extras</td><td><ul style="margin:2px 0;padding-left:18px;">${customExtras.map(e => `<li style="margin-bottom:2px;">${e.description} — £${(e.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</li>`).join('')}</ul></td></tr>`
+    : '';
+  const qrExtrasTextBlock = customExtras && customExtras.length > 0
+    ? `Bespoke Extras:\n${customExtras.map(e => `  - ${e.description} (£${(e.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })})`).join('\n')}\n`
+    : '';
 
   // 1. Customer confirmation
   await client.emails.send({
@@ -731,6 +754,7 @@ export async function sendQuoteReceivedEmails({
         ${vanTitle ? `<tr><td>Van</td><td>${vanTitle}</td></tr>` : ''}
         ${kitName ? `<tr><td>Pack</td><td>${kitName}</td></tr>` : ''}
         ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+        ${qrExtrasHtmlRow}
         <tr><td>Subtotal</td><td>${subtotal}</td></tr>
         <tr><td>VAT (20%)</td><td>${vat}</td></tr>
         ${originalTotal ? `<tr><td style="color:#6b7280;">Before discount</td><td style="color:#6b7280;text-decoration:line-through;">${originalTotal}</td></tr>` : ''}
@@ -754,6 +778,7 @@ export async function sendQuoteReceivedEmails({
         ${comparisonSlotB.vanTitle ? `<tr><td>Van</td><td>${comparisonSlotB.vanTitle}</td></tr>` : ''}
         ${comparisonSlotB.kitName ? `<tr><td>Pack</td><td>${comparisonSlotB.kitName}</td></tr>` : ''}
         ${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${comparisonSlotB.upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
+        ${qrExtrasHtmlRow}
         ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal</td><td>£${(comparisonSlotB.estSubtotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
         ${comparisonSlotB.estTotal != null ? `<tr class="total-row"><td>Total</td><td>£${(comparisonSlotB.estTotal / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td></tr>` : ''}
@@ -779,7 +804,7 @@ export async function sendQuoteReceivedEmails({
   </div>
 </body>
 </html>`,
-    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${comparisonSlotB ? `\nOPTION A\n` : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n${financeInfoA ? `Finance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)\n` : ''}${comparisonSlotB ? `\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}\n` : ''}${financeInfoB ? `Finance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)\n` : ''}` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
+    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${comparisonSlotB ? `\nOPTION A\n` : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n${financeInfoA ? `Finance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)\n` : ''}${comparisonSlotB ? `\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${qrExtrasTextBlock}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}\n` : ''}${financeInfoB ? `Finance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)\n` : ''}` : ''}\nCall us: 0151 203 8500\n\nMobile Tyre Van City\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`,
   });
 
   // 2. Admin notification
