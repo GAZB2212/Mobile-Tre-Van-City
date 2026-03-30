@@ -63,6 +63,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  CheckCircle2,
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -378,6 +379,54 @@ export default function AdminQuotes() {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+        {/* Committed pipeline summary */}
+        {(() => {
+          const committedQuotes = quotes.filter(q => q.status === "deposit_taken" || q.status === "finance_approved");
+          const depositTakenQuotes = quotes.filter(q => q.status === "deposit_taken");
+          const financeApprovedQuotes = quotes.filter(q => q.status === "finance_approved");
+          const committedTotal = committedQuotes.reduce((sum, q) => sum + q.estTotal, 0);
+          return (
+            <Card className="mb-6 border-[#8bc440]/40 bg-[#8bc440]/5 dark:bg-[#8bc440]/10">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2 text-[#3a6a0a] dark:text-[#8bc440]">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <span className="font-semibold text-sm">Committed Pipeline</span>
+                  </div>
+                  <div className="flex flex-wrap gap-6 flex-1">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Finance Approved + Deposit Taken</p>
+                      <p className="text-2xl font-bold" data-testid="stat-committed-count">{committedQuotes.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Combined Value (inc. VAT)</p>
+                      <p className="text-2xl font-bold" data-testid="stat-committed-value">{formatPrice(committedTotal)}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 items-end pb-0.5">
+                      <button
+                        onClick={() => setStatusFilter("deposit_taken")}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover-elevate rounded-md px-2 py-1"
+                        data-testid="button-filter-deposit-taken"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-lime-500 inline-block"></span>
+                        {depositTakenQuotes.length} Deposit Taken
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter("finance_approved")}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover-elevate rounded-md px-2 py-1"
+                        data-testid="button-filter-finance-approved"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-lime-500 inline-block"></span>
+                        {financeApprovedQuotes.length} Finance Approved
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Filters */}
         <Card className="mb-6">
           <CardHeader>
