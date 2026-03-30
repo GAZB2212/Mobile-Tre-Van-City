@@ -1097,108 +1097,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Registration number is required" });
       }
 
-      const apiKey = process.env.VAN_CONFIGURATOR_API_KEY;
+      const dvlaApiKey = process.env.DVLA_API_KEY;
 
-      if (!apiKey) {
-        return res.status(500).json({ error: "API key not configured in secrets" });
+      if (!dvlaApiKey) {
+        return res.status(500).json({ error: "DVLA_API_KEY not configured — please add it in secrets" });
       }
 
       // Clean registration (remove spaces, uppercase)
       const cleanReg = registration.replace(/\s+/g, '').toUpperCase();
-      console.log('Looking up registration:', cleanReg);
+      console.log('[vehicle-lookup] Looking up registration:', cleanReg);
 
-      // Call 3 CheckCarDetails endpoints in parallel
-      const endpoints = [
+      // Call DVLA Vehicle Enquiry Service (VES) API
+      const dvlaResponse = await fetch(
+        'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles',
         {
-          name: 'vehicleregistration',
-          url: `https://api.checkcardetails.co.uk/vehicledata/vehicleregistration?apikey=${apiKey}&vrm=${cleanReg}`
-        },
-        {
-          name: 'vehiclespecs',
-          url: `https://api.checkcardetails.co.uk/vehicledata/vehiclespecs?apikey=${apiKey}&vrm=${cleanReg}`
-        },
-        {
-          name: 'mot',
-          url: `https://api.checkcardetails.co.uk/vehicledata/mot?apikey=${apiKey}&vrm=${cleanReg}`
+          method: 'POST',
+          headers: {
+            'x-api-key': dvlaApiKey,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ registrationNumber: cleanReg }),
         }
-      ];
-
-      const responses = await Promise.allSettled(
-        endpoints.map(async endpoint => {
-          const response = await fetch(endpoint.url, {
-            method: 'GET',
-            headers: {
-              'User-Agent': 'MTVC-API/1.0',
-              'Accept': 'application/json',
-            },
-          });
-          
-          const text = await response.text();
-          console.log(`[vehicle-lookup] ${endpoint.name} HTTP ${response.status}:`, text.slice(0, 500));
-
-          if (response.ok) {
-            try {
-              const data = JSON.parse(text);
-              return { endpoint: endpoint.name, data, status: response.status };
-            } catch {
-              throw new Error(`${endpoint.name} returned non-JSON: ${text.slice(0, 200)}`);
-            }
-          }
-          throw new Error(`${endpoint.name} failed ${response.status}: ${text.slice(0, 200)}`);
-        })
       );
 
-      // Extract successful responses
-      const regData = responses[0].status === 'fulfilled' ? responses[0].value?.data : null;
-      const specsData = responses[1].status === 'fulfilled' ? responses[1].value?.data : null;
-      const motData = responses[2].status === 'fulfilled' ? responses[2].value?.data : null;
+      const dvlaText = await dvlaResponse.text();
+      console.log(`[vehicle-lookup] DVLA VES HTTP ${dvlaResponse.status}:`, dvlaText.slice(0, 500));
 
-      // Log rejection reasons so we know exactly why the lookup failed
-      responses.forEach((r, i) => {
-        if (r.status === 'rejected') {
-          console.error(`[vehicle-lookup] ${endpoints[i].name} rejected:`, r.reason?.message || r.reason);
+      if (!dvlaResponse.ok) {
+        if (dvlaResponse.status === 404) {
+          return res.status(404).json({ error: "Vehicle not found. Please check the registration and try again." });
         }
-      });
-
-      if (!regData) {
-        // Try to surface a useful message from the API failure
-        const firstRejection = responses.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
-        const detail = firstRejection?.reason?.message || 'No data returned from vehicle data provider';
-        console.error('[vehicle-lookup] All registration lookups failed. Detail:', detail);
-        return res.status(404).json({ error: "Vehicle not found. The registration may not exist in the database, or the vehicle data service may be unavailable." });
+        if (dvlaResponse.status === 403 || dvlaResponse.status === 401) {
+          return res.status(500).json({ error: "DVLA API key is invalid or expired. Please check the DVLA_API_KEY secret." });
+        }
+        return res.status(404).json({ error: `Vehicle lookup failed (${dvlaResponse.status}). Please enter the details manually.` });
       }
 
-      // Determine van size from body type
-      const bodyType = specsData?.BodyDetails?.WheelBaseType || specsData?.BodyDetails?.BodyStyle || '';
-      let vanSize = 'MWB';
-      if (bodyType.toLowerCase().includes('short')) vanSize = 'SWB';
-      else if (bodyType.toLowerCase().includes('long')) vanSize = 'LWB';
-      else if (bodyType.toLowerCase().includes('medium')) vanSize = 'MWB';
+      let dvlaData: any;
+      try {
+        dvlaData = JSON.parse(dvlaText);
+      } catch {
+        return res.status(500).json({ error: "Unexpected response from DVLA. Please enter the details manually." });
+      }
 
-      // Extract Euro emissions standard
-      const euroStatus = specsData?.EmissionsAndFuelConsumption?.EuroEmissionsStandard || 
-                        regData?.euroEmissionsStandard || 
-                        null;
-      
-      // Transform API response to our van format
+      // DVLA returns make (uppercased), yearOfManufacture, fuelType, engineCapacity (cc), euroStatus, wheelplan, colour
+      const make = dvlaData.make
+        ? dvlaData.make.charAt(0).toUpperCase() + dvlaData.make.slice(1).toLowerCase()
+        : '';
+
+      const fuelRaw = (dvlaData.fuelType || '').toUpperCase();
+      const fuel = fuelRaw === 'DI' || fuelRaw === 'DIESEL' ? 'Diesel'
+        : fuelRaw === 'PE' || fuelRaw === 'PETROL' ? 'Petrol'
+        : fuelRaw === 'EL' || fuelRaw === 'ELECTRIC' ? 'Electric'
+        : fuelRaw === 'HY' ? 'Hybrid'
+        : 'Diesel';
+
+      const engineCC = dvlaData.engineCapacity || 0;
+      const engineStr = engineCC > 0 ? `${(engineCC / 1000).toFixed(1)}L` : '';
+
+      // Infer body size from wheelplan field if available
+      const wheelplan = (dvlaData.wheelplan || '').toLowerCase();
+      let vanSize = 'MWB';
+      if (wheelplan.includes('short')) vanSize = 'SWB';
+      else if (wheelplan.includes('long')) vanSize = 'LWB';
+
+      const euroStatus = dvlaData.euroStatus || null;
+      const year = dvlaData.yearOfManufacture || new Date().getFullYear();
+
       const vanData = {
         registration: cleanReg,
-        make: regData.make || '',
-        model: regData.model || '',
-        year: parseInt(regData.yearOfManufacture) || new Date().getFullYear(),
-        euroStatus: euroStatus,
+        make,
+        model: '', // DVLA VES does not return model — user fills this in
+        year,
+        euroStatus,
+        colour: dvlaData.colour
+          ? dvlaData.colour.charAt(0).toUpperCase() + dvlaData.colour.slice(1).toLowerCase()
+          : '',
         specs: {
-          transmission: specsData?.Transmission?.TransmissionType || 'Manual',
-          fuel: regData.fuelType || 'Diesel',
+          transmission: 'Manual', // DVLA VES does not return transmission
+          fuel,
           size: vanSize,
-          doors: specsData?.BodyDetails?.NumberOfDoors || specsData?.DvlaTechnicalDetails?.SeatCountIncludingDriver || undefined,
-          engine: regData.engineCapacity ? `${(regData.engineCapacity / 1000).toFixed(1)}L` : '',
+          engine: engineStr,
         },
-        // Suggest title
-        title: `${regData.yearOfManufacture} ${regData.make} ${regData.model}`,
+        title: `${year} ${make}`,
+        _dvlaNote: 'Model and transmission not available from DVLA — please fill in manually.',
       };
 
-      console.log('Vehicle lookup success - returning data:', JSON.stringify(vanData, null, 2));
+      console.log('[vehicle-lookup] DVLA lookup success:', JSON.stringify(vanData, null, 2));
       res.json(vanData);
     } catch (error) {
       console.error("Error looking up vehicle:", error);
