@@ -64,12 +64,15 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
       });
 
       setStep("confirm");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Lookup failed",
-        description: "Could not find vehicle with that registration",
+        description: "Registration not found or vehicle data service unavailable. You can continue and enter the van details manually.",
         variant: "destructive",
       });
+      // Pre-fill the registration so the user doesn't have to re-type it, then skip to manual entry
+      setVehicleData({ title: "", make: "", model: "", year: new Date().getFullYear(), fuel: "Diesel", body: "MWB", transmission: "Manual" });
+      setStep("confirm");
     } finally {
       setIsLookingUp(false);
     }
@@ -138,34 +141,48 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
 
   // Step 2: Confirm Vehicle Details
   if (step === "confirm" && vehicleData) {
+    const lookupSucceeded = !!vehicleData.title;
     return (
       <div className="space-y-4">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
-            <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${lookupSucceeded ? "bg-green-100 dark:bg-green-900/20" : "bg-yellow-100 dark:bg-yellow-900/20"}`}>
+            <Check className={`w-5 h-5 ${lookupSucceeded ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}`} />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-lg">{vehicleData.title}</h3>
-            <p className="text-sm text-muted-foreground">
-              Registration: {registration} - Is this the correct vehicle?
-            </p>
+            {lookupSucceeded ? (
+              <>
+                <h3 className="font-semibold text-lg">{vehicleData.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Registration: {registration} — is this the correct vehicle?
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="font-semibold text-lg">Enter details manually</h3>
+                <p className="text-sm text-muted-foreground">
+                  Registration <span className="font-mono">{registration}</span> could not be found automatically. You can fill in the details on the next screen.
+                </p>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 p-4 bg-accent/5 rounded-lg">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Year</p>
-            <p className="font-semibold">{vehicleData.year}</p>
+        {lookupSucceeded && (
+          <div className="grid grid-cols-3 gap-4 p-4 bg-accent/5 rounded-lg">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Year</p>
+              <p className="font-semibold">{vehicleData.year}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Fuel</p>
+              <p className="font-semibold">{vehicleData.fuel}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Body</p>
+              <p className="font-semibold">{vehicleData.body}</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Fuel</p>
-            <p className="font-semibold">{vehicleData.fuel}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Body</p>
-            <p className="font-semibold">{vehicleData.body}</p>
-          </div>
-        </div>
+        )}
 
         <div className="flex gap-3 pt-4">
           <Button
@@ -181,7 +198,7 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
             onClick={handleConfirm}
             className="flex-1"
           >
-            Add Vehicle
+            {lookupSucceeded ? "Confirm & Continue" : "Continue Manually"}
           </Button>
         </div>
       </div>

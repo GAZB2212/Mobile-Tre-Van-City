@@ -1128,17 +1128,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const response = await fetch(endpoint.url, {
             method: 'GET',
             headers: {
-              'Content-Type': 'application/json',
               'User-Agent': 'MTVC-API/1.0',
-              'Accept': '*/*'
+              'Accept': 'application/json',
             },
           });
           
+          const text = await response.text();
+          console.log(`[vehicle-lookup] ${endpoint.name} HTTP ${response.status}:`, text.slice(0, 500));
+
           if (response.ok) {
-            const data = await response.json();
-            return { endpoint: endpoint.name, data, status: response.status };
+            try {
+              const data = JSON.parse(text);
+              return { endpoint: endpoint.name, data, status: response.status };
+            } catch {
+              throw new Error(`${endpoint.name} returned non-JSON: ${text.slice(0, 200)}`);
+            }
           }
-          throw new Error(`${endpoint.name} failed: ${response.status}`);
+          throw new Error(`${endpoint.name} failed ${response.status}: ${text.slice(0, 200)}`);
         })
       );
 
@@ -1147,13 +1153,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const specsData = responses[1].status === 'fulfilled' ? responses[1].value?.data : null;
       const motData = responses[2].status === 'fulfilled' ? responses[2].value?.data : null;
 
-      console.log('Raw API responses:');
-      console.log('Registration data:', JSON.stringify(regData, null, 2));
-      console.log('Specs data:', JSON.stringify(specsData, null, 2));
-      console.log('MOT data:', JSON.stringify(motData, null, 2));
+      // Log rejection reasons so we know exactly why the lookup failed
+      responses.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`[vehicle-lookup] ${endpoints[i].name} rejected:`, r.reason?.message || r.reason);
+        }
+      });
 
       if (!regData) {
-        return res.status(404).json({ error: "Vehicle not found" });
+        // Try to surface a useful message from the API failure
+        const firstRejection = responses.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined;
+        const detail = firstRejection?.reason?.message || 'No data returned from vehicle data provider';
+        console.error('[vehicle-lookup] All registration lookups failed. Detail:', detail);
+        return res.status(404).json({ error: "Vehicle not found. The registration may not exist in the database, or the vehicle data service may be unavailable." });
       }
 
       // Determine van size from body type

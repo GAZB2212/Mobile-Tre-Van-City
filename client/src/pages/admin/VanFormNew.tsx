@@ -71,10 +71,13 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
         title: "Vehicle found",
         description: `Details loaded for ${data.make} ${data.model}${data.euroStatus ? ` (${data.euroStatus})` : ''}`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      const msg = error?.message || '';
       toast({
         title: "Lookup failed",
-        description: "Could not find vehicle with that registration",
+        description: msg.includes('404') || msg.includes('not found')
+          ? "Registration not found in the vehicle database. You can still fill in the details manually below."
+          : "Vehicle lookup service is currently unavailable. Please fill in the van details manually below.",
         variant: "destructive",
       });
     } finally {
