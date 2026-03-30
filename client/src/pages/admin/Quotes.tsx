@@ -385,11 +385,18 @@ export default function AdminQuotes() {
           const depositTakenQuotes = quotes.filter(q => q.status === "deposit_taken");
           const financeApprovedQuotes = quotes.filter(q => q.status === "finance_approved");
           const committedTotal = committedQuotes.reduce((sum, q) => sum + q.estTotal, 0);
+
+          // Conversion rate: enquiries that became actual business (deposit/finance/in-build/completed)
+          // excludes cancelled from the denominator so dead leads don't skew the rate
+          const nonCancelledTotal = quotes.filter(q => q.status !== "cancelled").length;
+          const convertedQuotes = quotes.filter(q => ["deposit_taken", "finance_approved", "in_build", "completed"].includes(q.status ?? ""));
+          const conversionPct = nonCancelledTotal > 0 ? Math.round((convertedQuotes.length / nonCancelledTotal) * 100) : 0;
+
           return (
             <Card className="mb-6 border-[#8bc440]/40 bg-[#8bc440]/5 dark:bg-[#8bc440]/10">
               <CardContent className="p-4">
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2 text-[#3a6a0a] dark:text-[#8bc440]">
+                  <div className="flex items-center gap-2 text-[#3a6a0a] dark:text-[#8bc440] shrink-0">
                     <CheckCircle2 className="w-5 h-5 shrink-0" />
                     <span className="font-semibold text-sm">Committed Pipeline</span>
                   </div>
@@ -401,6 +408,11 @@ export default function AdminQuotes() {
                     <div>
                       <p className="text-xs text-muted-foreground">Combined Value (inc. VAT)</p>
                       <p className="text-2xl font-bold" data-testid="stat-committed-value">{formatPrice(committedTotal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Conversion Rate</p>
+                      <p className="text-2xl font-bold" data-testid="stat-conversion-rate">{conversionPct}%</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{convertedQuotes.length} of {nonCancelledTotal} enquiries</p>
                     </div>
                     <div className="flex flex-wrap gap-3 items-end pb-0.5">
                       <button
