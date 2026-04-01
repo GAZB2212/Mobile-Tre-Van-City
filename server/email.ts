@@ -471,6 +471,8 @@ export async function sendFinanceSubmissionEmail({
   vanRegistration,
   vanMileage,
   kitName,
+  kitPrice,
+  upgrades,
   upgradeNames,
   subtotal,
   vat,
@@ -488,7 +490,9 @@ export async function sendFinanceSubmissionEmail({
   vanRegistration?: string | null;
   vanMileage?: number | null;
   kitName?: string | null;
-  upgradeNames?: string[];
+  kitPrice?: number | null;
+  upgrades?: Array<{ name: string; price: number }>;
+  upgradeNames?: string[]; // legacy fallback
   subtotal: number;
   vat: number;
   total: number;
@@ -570,11 +574,24 @@ export async function sendFinanceSubmissionEmail({
         ${vanMileage !== undefined && vanMileage !== null ? `<tr><td>Mileage</td><td>${vanMileage.toLocaleString('en-GB')} miles</td></tr>` : ''}
       </table>
 
-      <div class="section-title">Conversion Specification</div>
+      <div class="section-title">Conversion Specification (ex. VAT)</div>
       <table>
-        ${kitName ? `<tr><td>Equipment Pack</td><td>${kitName}</td></tr>` : ''}
-        ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
-        ${customExtras && customExtras.length > 0 ? `<tr><td>Bespoke Extras</td><td><ul style="margin:2px 0;padding-left:18px;">${customExtras.map(e => `<li style="margin-bottom:2px;">${e.description} — £${(e.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</li>`).join('')}</ul></td></tr>` : ''}
+        ${(() => {
+          const effectiveUpgrades = upgrades ?? (upgradeNames ? upgradeNames.map(n => ({ name: n, price: 0 })) : []);
+          const rows: string[] = [];
+          if (kitName) {
+            const kitPriceStr = kitPrice != null ? `<span style="float:right;font-weight:600;">${fmt(kitPrice)}</span>` : '';
+            rows.push(`<tr><td style="color:#111;font-weight:500;">Equipment Pack</td><td>${kitName}${kitPriceStr}</td></tr>`);
+          }
+          for (const u of effectiveUpgrades) {
+            const priceStr = u.price > 0 ? `<span style="float:right;font-weight:600;">${fmt(u.price)}</span>` : '';
+            rows.push(`<tr><td style="color:#111;font-weight:500;">Upgrade</td><td>${u.name}${priceStr}</td></tr>`);
+          }
+          for (const e of (customExtras || [])) {
+            rows.push(`<tr><td style="color:#111;font-weight:500;">Bespoke Extra</td><td>${e.description}<span style="float:right;font-weight:600;">${fmt(e.pricePence)}</span></td></tr>`);
+          }
+          return rows.join('');
+        })()}
       </table>
 
       <div class="section-title">Pricing</div>
@@ -609,10 +626,14 @@ ${financeDetails ? `
 
   const financeText = financeDetails ? `\nFinance Details:\nPlan Type: ${financeDetails.planType}\nAPR: ${financeDetails.apr.toFixed(2)}%\nDeposit: ${fmt(financeDetails.depositAmount)}\nTerm: ${financeDetails.termMonths} months\nMonthly Payment: ${fmt(financeDetails.monthlyPayment)}\nWeekly Payment: ${fmt(financeDetails.weeklyPayment)}\n` : '';
 
-  const extrasFinanceText = customExtras && customExtras.length > 0
-    ? `Bespoke Extras:\n${customExtras.map(e => `  - ${e.description} (£${(e.pricePence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })})`).join('\n')}\n`
-    : '';
-  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\nConversion Specification:\n${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasFinanceText}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+  const effectiveUpgradesText = upgrades ?? (upgradeNames ? upgradeNames.map(n => ({ name: n, price: 0 })) : []);
+  const specLines: string[] = [];
+  if (kitName) specLines.push(`  - Equipment Pack: ${kitName}${kitPrice != null ? ` (${fmt(kitPrice)} ex. VAT)` : ''}`);
+  for (const u of effectiveUpgradesText) specLines.push(`  - Upgrade: ${u.name}${u.price > 0 ? ` (${fmt(u.price)} ex. VAT)` : ''}`);
+  for (const e of (customExtras || [])) specLines.push(`  - Bespoke Extra: ${e.description} (${fmt(e.pricePence)} ex. VAT)`);
+  const specText = specLines.length > 0 ? `Conversion Specification (ex. VAT):\n${specLines.join('\n')}\n` : '';
+
+  const emailText = `Finance Application – Ref #${ref}\n\nCustomer Details:\nName: ${customerName}\nPhone: ${customerPhone}\nEmail: ${customerEmail}\n\nVehicle Details:\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${vanRegistration ? `Registration: ${vanRegistration.toUpperCase()}\n` : ''}${vanMileage !== undefined && vanMileage !== null ? `Mileage: ${vanMileage.toLocaleString('en-GB')} miles\n` : ''}\n${specText}\nPricing:\n${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}\nMobile Tyre Van City | 0151 203 8500\n5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
 
   await client.emails.send({
     to: financeCompanyEmail,
