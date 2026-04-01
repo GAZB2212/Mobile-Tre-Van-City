@@ -793,6 +793,15 @@ export default function AdminConfigurator() {
                               onClick={() => incompatible ? setWarnKit(kit) : setKit(kit.id)}
                               data-testid={`card-kit-${kit.id}`}
                             >
+                              {kit.images?.[0] && (
+                                <div className="w-full h-44 overflow-hidden rounded-t-md">
+                                  <img
+                                    src={kit.images[0]}
+                                    alt={kit.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
                               <CardHeader>
                                 <div className="flex items-start justify-between mb-2 gap-1 flex-wrap">
                                   <div className="flex items-center gap-2 flex-wrap">
@@ -893,6 +902,13 @@ export default function AdminConfigurator() {
                                             onCheckedChange={() => handleUpgradeToggle(upgrade.id)}
                                             data-testid={`checkbox-upgrade-${upgrade.id}`}
                                           />
+                                          {upgrade.images?.[0] && (
+                                            <img
+                                              src={upgrade.images[0]}
+                                              alt={upgrade.name}
+                                              className="w-14 h-14 object-cover rounded-md flex-shrink-0"
+                                            />
+                                          )}
                                           <div className="flex-1 min-w-0">
                                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
                                               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -947,6 +963,13 @@ export default function AdminConfigurator() {
                                             }}
                                             data-testid={`checkbox-variant-${parent.id}`}
                                           />
+                                          {(parent.images?.[0] || variants[0]?.images?.[0]) && (
+                                            <img
+                                              src={parent.images?.[0] || variants[0].images[0]}
+                                              alt={parent.name}
+                                              className="w-14 h-14 object-cover rounded-md flex-shrink-0"
+                                            />
+                                          )}
                                           <div className="flex-1 min-w-0">
                                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
                                               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
