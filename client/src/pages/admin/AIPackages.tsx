@@ -3,14 +3,15 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
-import { ArrowLeft, Pencil, Check, Package2, Layers } from "lucide-react";
+import { ArrowLeft, Pencil, Check, Package2, Layers, ChevronDown } from "lucide-react";
 import type { Upgrade } from "@shared/schema";
 
 interface AiPackage {
@@ -40,6 +41,54 @@ const TIER_COLORS: Record<string, { badge: string; border: string; heading: stri
     heading: "text-[#d4af37]",
   },
 };
+
+interface UpgradeGroup {
+  parent: Upgrade;
+  variants: Upgrade[];
+}
+
+interface CategorySection {
+  groups: UpgradeGroup[];
+  standalones: Upgrade[];
+}
+
+function buildGroups(upgrades: Upgrade[]): Record<string, CategorySection> {
+  const parentIdSet = new Set(upgrades.map(u => u.parentId).filter(Boolean) as string[]);
+  const variantMap = new Map<string, Upgrade[]>();
+
+  for (const u of upgrades) {
+    if (u.parentId) {
+      if (!variantMap.has(u.parentId)) variantMap.set(u.parentId, []);
+      variantMap.get(u.parentId)!.push(u);
+    }
+  }
+
+  const categoryMap: Record<string, CategorySection> = {};
+  const ensureCat = (cat: string) => {
+    if (!categoryMap[cat]) categoryMap[cat] = { groups: [], standalones: [] };
+  };
+
+  for (const u of upgrades) {
+    if (!u.parentId && parentIdSet.has(u.id)) {
+      const cat = u.category ?? "Other";
+      ensureCat(cat);
+      categoryMap[cat].groups.push({ parent: u, variants: variantMap.get(u.id) ?? [] });
+    } else if (!u.parentId && !parentIdSet.has(u.id)) {
+      const cat = u.category ?? "Other";
+      ensureCat(cat);
+      categoryMap[cat].standalones.push(u);
+    }
+  }
+
+  return categoryMap;
+}
+
+function getSelectedVariantForGroup(group: UpgradeGroup, selectedIds: string[]): string | null {
+  for (const v of group.variants) {
+    if (selectedIds.includes(v.id)) return v.id;
+  }
+  return null;
+}
 
 export default function AdminAIPackages() {
   const { toast } = useToast();
@@ -78,10 +127,19 @@ export default function AdminAIPackages() {
     setEditUpgradeIds([...pkg.upgrade_ids]);
   };
 
-  const toggleUpgrade = (id: string) => {
+  const toggleStandalone = (id: string) => {
     setEditUpgradeIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
+  };
+
+  const selectVariant = (group: UpgradeGroup, variantId: string) => {
+    const variantIds = group.variants.map(v => v.id);
+    if (variantId === "__none__") {
+      setEditUpgradeIds(prev => prev.filter(x => !variantIds.includes(x)));
+    } else {
+      setEditUpgradeIds(prev => [...prev.filter(x => !variantIds.includes(x)), variantId]);
+    }
   };
 
   const handleSave = () => {
@@ -96,12 +154,7 @@ export default function AdminAIPackages() {
     });
   };
 
-  const upgradesByCategory = upgrades?.reduce<Record<string, Upgrade[]>>((acc, u) => {
-    const cat = u.category ?? "Other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(u);
-    return acc;
-  }, {});
+  const categoryMap = upgrades ? buildGroups(upgrades) : {};
 
   const isLoading = packagesLoading || upgradesLoading;
 
@@ -250,35 +303,77 @@ export default function AdminAIPackages() {
               {upgradesLoading ? (
                 <p className="text-sm text-muted-foreground">Loading upgrades…</p>
               ) : (
-                <div className="space-y-4">
-                  {Object.entries(upgradesByCategory ?? {}).sort().map(([category, catUpgrades]) => (
-                    <div key={category}>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{category}</p>
-                      <div className="space-y-2 pl-1">
-                        {catUpgrades.map(u => (
-                          <div key={u.id} className="flex items-start gap-2" data-testid={`checkbox-upgrade-${u.id}`}>
-                            <Checkbox
-                              id={`pkg-upgrade-${u.id}`}
-                              checked={editUpgradeIds.includes(u.id)}
-                              onCheckedChange={() => toggleUpgrade(u.id)}
-                              className="mt-0.5"
-                            />
-                            <div>
-                              <label
-                                htmlFor={`pkg-upgrade-${u.id}`}
-                                className="text-sm leading-none cursor-pointer"
-                              >
-                                {u.name}
-                              </label>
-                              {u.popular && (
-                                <Badge variant="outline" className="ml-2 text-[10px] py-0">Popular</Badge>
-                              )}
+                <div className="space-y-5">
+                  {Object.entries(categoryMap).sort().map(([category, section]) => {
+                    const hasContent = section.groups.length > 0 || section.standalones.length > 0;
+                    if (!hasContent) return null;
+                    return (
+                      <div key={category}>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{category}</p>
+                        <div className="space-y-3 pl-1">
+
+                          {/* Variant groups — show as dropdown */}
+                          {section.groups.map(group => {
+                            const selectedVariantId = getSelectedVariantForGroup(group, editUpgradeIds);
+                            return (
+                              <div key={group.parent.id} className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">{group.parent.name}</span>
+                                  {group.parent.popular && (
+                                    <Badge variant="outline" className="text-[10px] py-0">Popular</Badge>
+                                  )}
+                                </div>
+                                <Select
+                                  value={selectedVariantId ?? "__none__"}
+                                  onValueChange={val => selectVariant(group, val)}
+                                >
+                                  <SelectTrigger
+                                    className="h-8 text-sm w-full"
+                                    data-testid={`select-variant-${group.parent.id}`}
+                                  >
+                                    <SelectValue placeholder="Not included" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">Not included</SelectItem>
+                                    {group.variants.map(v => (
+                                      <SelectItem key={v.id} value={v.id}>
+                                        {v.name}
+                                        {v.popular && " ★"}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            );
+                          })}
+
+                          {/* Standalone upgrades — show as checkboxes */}
+                          {section.standalones.map(u => (
+                            <div key={u.id} className="flex items-start gap-2" data-testid={`checkbox-upgrade-${u.id}`}>
+                              <Checkbox
+                                id={`pkg-upgrade-${u.id}`}
+                                checked={editUpgradeIds.includes(u.id)}
+                                onCheckedChange={() => toggleStandalone(u.id)}
+                                className="mt-0.5"
+                              />
+                              <div>
+                                <label
+                                  htmlFor={`pkg-upgrade-${u.id}`}
+                                  className="text-sm leading-none cursor-pointer"
+                                >
+                                  {u.name}
+                                </label>
+                                {u.popular && (
+                                  <Badge variant="outline" className="ml-2 text-[10px] py-0">Popular</Badge>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
