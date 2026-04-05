@@ -774,7 +774,7 @@ export const locations: Location[] = [
     ],
   },
   {
-    slug: "birmingham-dudley",
+    slug: "dudley",
     name: "Dudley",
     region: "West Midlands",
     regionSlug: "west-midlands",
@@ -1532,7 +1532,7 @@ export const locations: Location[] = [
     ],
   },
   {
-    slug: "bristol-gloucester",
+    slug: "gloucester",
     name: "Gloucester",
     region: "Southwest England",
     regionSlug: "southwest",
@@ -1951,7 +1951,7 @@ export const locations: Location[] = [
     ],
   },
   {
-    slug: "newport-wales",
+    slug: "newport",
     name: "Newport",
     region: "Wales",
     regionSlug: "wales",

@@ -4261,6 +4261,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     '/vanfinance': '/finance',
     '/info': '/configurator',
     '/all-projects': '/gallery',
+    // Normalised location slugs (old -> new)
+    '/mobile-tyre-vans/birmingham-dudley': '/mobile-tyre-vans/dudley',
+    '/mobile-tyre-vans/bristol-gloucester': '/mobile-tyre-vans/gloucester',
+    '/mobile-tyre-vans/newport-wales': '/mobile-tyre-vans/newport',
   };
 
   Object.entries(permanentRedirects).forEach(([from, to]) => {
@@ -4333,16 +4337,16 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
         'st-helens', 'lancaster', 'oldham', 'rochdale',
         'leeds', 'sheffield', 'bradford', 'hull', 'york', 'doncaster', 'huddersfield',
         'rotherham', 'halifax',
-        'birmingham', 'coventry', 'wolverhampton', 'birmingham-dudley', 'walsall',
+        'birmingham', 'coventry', 'wolverhampton', 'dudley', 'walsall',
         'stoke-on-trent', 'shrewsbury', 'telford',
         'nottingham', 'derby', 'leicester', 'northampton', 'peterborough',
         'norwich', 'ipswich', 'cambridge', 'luton', 'milton-keynes',
         'london', 'east-london', 'south-london', 'north-london', 'west-london',
         'reading', 'oxford', 'brighton', 'southampton', 'portsmouth', 'bournemouth',
-        'bristol', 'exeter', 'plymouth', 'taunton', 'bristol-gloucester', 'swindon',
+        'bristol', 'exeter', 'plymouth', 'taunton', 'gloucester', 'swindon',
         'newcastle', 'sunderland', 'middlesbrough', 'gateshead', 'durham',
         'glasgow', 'edinburgh', 'aberdeen', 'dundee', 'stirling', 'inverness',
-        'cardiff', 'swansea', 'newport-wales', 'wrexham',
+        'cardiff', 'swansea', 'newport', 'wrexham',
       ];
 
       const staticPages = [

@@ -38,6 +38,18 @@ export default function LocationPage() {
 
   if (!location) return <NotFound />;
 
+  const areaServedSchema = {
+    "@context": "https://schema.org",
+    "@type": "AreaServed",
+    "@id": `${SITE_URL}/mobile-tyre-vans/${location.slug}#area`,
+    name: location.name,
+    description: `Mobile tyre van deliveries and conversions served in ${location.name}, ${location.county}, United Kingdom.`,
+    containedInPlace: {
+      "@type": "Country",
+      name: "United Kingdom",
+    },
+  };
+
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -52,10 +64,7 @@ export default function LocationPage() {
       postalCode: "CH62 3QL",
       addressCountry: "GB",
     },
-    areaServed: {
-      "@type": "State",
-      name: location.name,
-    },
+    areaServed: { "@id": `${SITE_URL}/mobile-tyre-vans/${location.slug}#area` },
     description: `Mobile tyre van conversions delivered to ${location.name}. Professional L3H3 tyre van builds with UK-wide delivery from Wirral.`,
   };
 
@@ -75,6 +84,10 @@ export default function LocationPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(areaServedSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
