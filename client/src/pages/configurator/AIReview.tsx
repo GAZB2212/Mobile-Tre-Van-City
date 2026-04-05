@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
@@ -180,12 +180,81 @@ export default function AIReview() {
   // Build grouped upgrade structure
   const upgradesByCategory = buildUpgradeGroups(allUpgrades);
 
-  // Toggle a variant group on/off — selects first variant when enabling
+  // ── Exclusive group helpers (mirrors SelectUpgrades.tsx) ──────────────────
+  const getExclusiveGroup = (upgrade: Upgrade): string | null => {
+    if ((upgrade as any).exclusiveGroup) return (upgrade as any).exclusiveGroup;
+    if (upgrade.parentId) {
+      const parent = allUpgrades.find(u => u.id === upgrade.parentId);
+      if (parent && (parent as any).exclusiveGroup) return (parent as any).exclusiveGroup;
+    }
+    return null;
+  };
+
+  const enforceExclusiveGroup = (newUpgradeId: string) => {
+    const upgrade = allUpgrades.find(u => u.id === newUpgradeId);
+    if (!upgrade) return;
+    const group = getExclusiveGroup(upgrade);
+    if (!group) return;
+    // Remove any other upgrade in the same exclusive group
+    allUpgrades
+      .filter(u => getExclusiveGroup(u) === group && u.id !== newUpgradeId && state.upgradeIds.includes(u.id))
+      .forEach(u => removeUpgrade(u.id));
+  };
+
+  // ── Auto-enforce exclusive groups on every state change ───────────────────
+  useEffect(() => {
+    if (!allUpgrades.length) return;
+    const groupMap = new Map<string, string[]>();
+    state.upgradeIds.forEach(id => {
+      const u = allUpgrades.find(x => x.id === id);
+      if (!u) return;
+      const group = getExclusiveGroup(u);
+      if (group) {
+        if (!groupMap.has(group)) groupMap.set(group, []);
+        groupMap.get(group)!.push(id);
+      }
+    });
+    groupMap.forEach(ids => {
+      if (ids.length > 1) {
+        ids.slice(1).forEach(id => removeUpgrade(id));
+      }
+    });
+  }, [state.upgradeIds, allUpgrades]);
+
+  // ── Auto-select 48V upgrade when AI indicated customer wants it ───────────
+  const has48vAutoAdded = useRef(false);
+  useEffect(() => {
+    if (!aiConfig?.includes48v || !allUpgrades.length || has48vAutoAdded.current) return;
+    const is48v = (u: Upgrade) => /silent|48v/i.test(u.name) || /48v/i.test(u.description ?? "");
+    // Already have one selected?
+    const already = allUpgrades.filter(u => is48v(u) || (u.parentId && is48v(allUpgrades.find(p => p.id === u.parentId) ?? u)))
+      .some(u => state.upgradeIds.includes(u.id));
+    if (already) { has48vAutoAdded.current = true; return; }
+    // Find a parent with variants
+    const parent48v = allUpgrades.find(u => !u.parentId && is48v(u));
+    if (parent48v) {
+      const variants = allUpgrades.filter(u => u.parentId === parent48v.id);
+      if (variants.length > 0) {
+        addUpgrade(variants[0].id);
+      } else {
+        // Standalone (no variants yet)
+        addUpgrade(parent48v.id);
+      }
+    } else {
+      // No parent match — look for standalone
+      const standalone = allUpgrades.find(u => !u.parentId && is48v(u) && !allUpgrades.some(v => v.parentId === u.id));
+      if (standalone) addUpgrade(standalone.id);
+    }
+    has48vAutoAdded.current = true;
+  }, [allUpgrades.length, aiConfig?.includes48v]);
+
+  // Toggle a variant group on/off — selects first variant when enabling, enforces exclusive groups
   const handleToggleGroup = (parentId: string, variants: Upgrade[]) => {
     const selectedVariant = variants.find(v => state.upgradeIds.includes(v.id));
     if (selectedVariant) {
       removeUpgrade(selectedVariant.id);
     } else if (variants.length > 0) {
+      enforceExclusiveGroup(variants[0].id);
       addUpgrade(variants[0].id);
     }
   };
@@ -195,6 +264,7 @@ export default function AIReview() {
     const allVariantsForGroup = allUpgrades.filter(u => u.parentId === parentId);
     const currentlySelected = allVariantsForGroup.find(v => state.upgradeIds.includes(v.id));
     if (currentlySelected) removeUpgrade(currentlySelected.id);
+    enforceExclusiveGroup(newVariantId);
     addUpgrade(newVariantId);
   };
 
@@ -202,12 +272,6 @@ export default function AIReview() {
     bronze: "Bronze",
     silver: "Silver",
     gold: "Gold",
-  };
-
-  const financeLabel: Record<string, string> = {
-    outright: "Buy outright",
-    lease: "Business lease",
-    finance: "Spread the cost (finance)",
   };
 
   const vanLabel = aiConfig?.ownVan === false
@@ -220,6 +284,7 @@ export default function AIReview() {
     if (state.upgradeIds.includes(upgradeId)) {
       removeUpgrade(upgradeId);
     } else {
+      enforceExclusiveGroup(upgradeId);
       addUpgrade(upgradeId);
     }
   };
@@ -261,13 +326,8 @@ export default function AIReview() {
 
           {/* Van */}
           <Section title="Van" icon={<Car className="w-4 h-4" />}>
-            <div className="flex items-center justify-between py-1">
+            <div className="py-1">
               <span className="text-sm">{vanLabel}</span>
-              {aiConfig?.includes48v && (
-                <Badge variant="outline" className="text-xs text-[#8bc440] border-[#8bc440]/30 bg-[#8bc440]/10">
-                  <Zap className="w-3 h-3 mr-1" /> 48V system included
-                </Badge>
-              )}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               To change the van, use the full configurator from the beginning.
