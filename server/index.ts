@@ -226,6 +226,29 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ Blog posts table ready"))
         .catch((err: Error) => console.error("Blog migration:", err.message));
+      // Rename wrap/graphic variant upgrades to LWB/MWB so dropdowns show distinct labels
+      pool.query(`
+        UPDATE upgrades SET name = 'Full Wrap - MWB'
+          WHERE parent_id = 'full-revalco-wrap' AND name = 'Full Wrap'
+            AND price = (SELECT MIN(price) FROM upgrades WHERE parent_id = 'full-revalco-wrap');
+        UPDATE upgrades SET name = 'Full Wrap - LWB'
+          WHERE parent_id = 'full-revalco-wrap' AND name = 'Full Wrap'
+            AND price = (SELECT MAX(price) FROM upgrades WHERE parent_id = 'full-revalco-wrap');
+        UPDATE upgrades SET name = 'Half Wrap - MWB'
+          WHERE parent_id = 'half-wrap' AND name = 'Half Wrap'
+            AND price = (SELECT MIN(price) FROM upgrades WHERE parent_id = 'half-wrap');
+        UPDATE upgrades SET name = 'Half Wrap - LWB'
+          WHERE parent_id = 'half-wrap' AND name = 'Half Wrap'
+            AND price = (SELECT MAX(price) FROM upgrades WHERE parent_id = 'half-wrap');
+        UPDATE upgrades SET name = 'Graphic Pack - MWB'
+          WHERE parent_id = 'graphic-pack' AND name = 'Graphic Pack'
+            AND price = (SELECT MIN(price) FROM upgrades WHERE parent_id = 'graphic-pack');
+        UPDATE upgrades SET name = 'Graphic Pack - LWB'
+          WHERE parent_id = 'graphic-pack' AND name = 'Graphic Pack'
+            AND price = (SELECT MAX(price) FROM upgrades WHERE parent_id = 'graphic-pack');
+      `)
+        .then(() => log("✅ Wrap variant names updated (LWB/MWB)"))
+        .catch((err: Error) => console.error("Wrap variant rename migration:", err.message));
       // Create ai_packages table and seed Bronze/Silver/Gold defaults
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_packages (
