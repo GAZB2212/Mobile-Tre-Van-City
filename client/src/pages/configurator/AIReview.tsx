@@ -174,11 +174,36 @@ function Section({
   );
 }
 
+function calcMonthly(totalPence: number, plan: FinancePlan): {
+  deposit: number; loan: number; monthly: number; totalRepayable: number; balloon: number;
+} {
+  const deposit = Math.round(totalPence * (plan.depositPercent ?? 10) / 100);
+  const balloonAmt = plan.balloonPercent ? Math.round(totalPence * plan.balloonPercent / 100) : 0;
+  const loan = totalPence - deposit;
+  const annualRate = (plan.aprBps ?? 1090) / 10000;
+  const r = annualRate / 12;
+  const n = plan.termMonths;
+  // Reduce PV by balloon discounted back
+  const effectiveLoan = loan - balloonAmt / Math.pow(1 + r, n);
+  const monthly = r === 0
+    ? effectiveLoan / n
+    : effectiveLoan * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  const totalRepayable = deposit + Math.round(monthly) * n + balloonAmt;
+  return { deposit, loan, monthly: Math.round(monthly), totalRepayable, balloon: balloonAmt };
+}
+
 export default function AIReview() {
   const [, navigate] = useLocation();
   const { state, setKit, addUpgrade, removeUpgrade, setFinancePlan } = useConfigurator();
   const aiState = useAIChatState();
   const aiConfig = aiState?.config ?? null;
+  const [paymentMethod, setPaymentMethod] = useState<"outright" | "finance" | "lease">(
+    () => {
+      if (aiConfig?.financePreference === "lease") return "lease";
+      if (aiConfig?.financePreference === "finance") return "finance";
+      return "outright";
+    }
+  );
 
   const { data: kits = [] } = useQuery<Kit[]>({ queryKey: ["/api/kits"] });
   const { data: allUpgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
@@ -549,52 +574,143 @@ export default function AIReview() {
           </Section>
 
           {/* Finance */}
-          <Section title="Payment Method" icon={<CreditCard className="w-4 h-4" />}>
-            <div className="space-y-2">
-              {[
-                { value: "outright", label: "Buy outright", description: "Full payment upfront, no interest." },
-                { value: "lease", label: "Business lease", description: "Monthly payments, off the balance sheet." },
-                { value: "finance", label: "Spread the cost", description: "Finance over agreed term at competitive rates." },
-              ].map(option => {
-                const matchedPlan = financePlans.find(p => {
-                  if (option.value === "lease") return p.type === "lease";
-                  if (option.value === "finance") return p.type === "hire_purchase" || p.type === "finance";
-                  return false;
-                });
-                const isSelected =
-                  (option.value === "outright" && !state.financePlanId) ||
-                  (option.value !== "outright" && state.financePlanId === matchedPlan?.id) ||
-                  (option.value !== "outright" && aiConfig?.financePreference === option.value && !state.financePlanId);
+          {(() => {
+            const kitPrice = selectedKit?.price ?? 0;
+            const upgradesSubtotal = selectedUpgrades.reduce((sum, u) => sum + (u.price > 1 ? u.price : 0), 0);
+            const subtotal = kitPrice + upgradesSubtotal;
+            const totalIncVat = subtotal + Math.round(subtotal * 0.2);
 
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      if (option.value === "outright") {
-                        setFinancePlan(null);
-                      } else if (matchedPlan) {
-                        setFinancePlan(matchedPlan.id);
-                      }
-                    }}
-                    data-testid={`button-finance-${option.value}`}
-                    className={`w-full flex items-start gap-3 rounded-md border p-3 text-left transition-colors ${
-                      isSelected ? "border-[#8bc440] bg-[#8bc440]/10" : "border-border hover-elevate"
-                    }`}
-                  >
-                    <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      isSelected ? "border-[#8bc440]" : "border-muted-foreground/40"
-                    }`}>
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-[#8bc440]" />}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{option.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
+            const financeOptions = [
+              { value: "outright" as const, label: "Buy outright", description: "Full payment upfront, no interest." },
+              { value: "finance" as const, label: "Spread the cost", description: "Hire purchase over an agreed term." },
+              { value: "lease" as const, label: "Business lease", description: "Monthly payments, off the balance sheet." },
+            ];
+
+            const plansForMethod = financePlans.filter(p => {
+              const t = p.type?.toUpperCase();
+              if (paymentMethod === "finance") return t === "HP" || t === "HIRE_PURCHASE" || t === "FINANCE";
+              if (paymentMethod === "lease") return t === "LEASE";
+              return false;
+            });
+
+            const selectedPlan = financePlans.find(p => p.id === state.financePlanId);
+            const activePlan = selectedPlan ?? plansForMethod[0] ?? null;
+            const calc = activePlan && totalIncVat > 0 ? calcMonthly(totalIncVat, activePlan) : null;
+
+            return (
+              <Section title="Payment Method" icon={<CreditCard className="w-4 h-4" />}>
+                <div className="space-y-2">
+                  {financeOptions.map(option => {
+                    const isSelected = paymentMethod === option.value;
+                    return (
+                      <div key={option.value}>
+                        <button
+                          onClick={() => {
+                            setPaymentMethod(option.value);
+                            if (option.value === "outright") {
+                              setFinancePlan(null);
+                            } else {
+                              const plans = financePlans.filter(p => {
+                                const t = p.type?.toUpperCase();
+                                if (option.value === "finance") return t === "HP" || t === "HIRE_PURCHASE" || t === "FINANCE";
+                                if (option.value === "lease") return t === "LEASE";
+                                return false;
+                              });
+                              if (plans[0]) setFinancePlan(plans[0].id);
+                            }
+                          }}
+                          data-testid={`button-finance-${option.value}`}
+                          className={`w-full flex items-start gap-3 rounded-md border p-3 text-left transition-colors ${
+                            isSelected ? "border-[#8bc440] bg-[#8bc440]/10" : "border-border hover-elevate"
+                          }`}
+                        >
+                          <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            isSelected ? "border-[#8bc440]" : "border-muted-foreground/40"
+                          }`}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-[#8bc440]" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{option.label}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                          </div>
+                        </button>
+
+                        {/* Finance plan picker + calculator — shown inline below the selected option */}
+                        {isSelected && option.value !== "outright" && totalIncVat > 0 && (
+                          <div className="mt-2 ml-7 space-y-3">
+                            {plansForMethod.length > 1 && (
+                              <div className="space-y-1.5">
+                                {plansForMethod.map(plan => (
+                                  <button
+                                    key={plan.id}
+                                    onClick={() => setFinancePlan(plan.id)}
+                                    data-testid={`button-plan-${plan.id}`}
+                                    className={`w-full flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                                      (state.financePlanId === plan.id || (!state.financePlanId && plan === plansForMethod[0]))
+                                        ? "border-[#8bc440] bg-[#8bc440]/10 font-medium"
+                                        : "border-border hover-elevate"
+                                    }`}
+                                  >
+                                    <div className={`flex-shrink-0 w-3 h-3 rounded-full border-2 flex items-center justify-center ${
+                                      (state.financePlanId === plan.id || (!state.financePlanId && plan === plansForMethod[0]))
+                                        ? "border-[#8bc440]" : "border-muted-foreground/40"
+                                    }`}>
+                                      {(state.financePlanId === plan.id || (!state.financePlanId && plan === plansForMethod[0])) && (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#8bc440]" />
+                                      )}
+                                    </div>
+                                    {plan.name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {calc && activePlan && (
+                              <div className="rounded-md bg-muted/40 border border-border p-3 space-y-2 text-sm">
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-muted-foreground">Deposit ({activePlan.depositPercent ?? 10}%)</span>
+                                  <span className="font-medium">{formatPrice(calc.deposit)}</span>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-muted-foreground">Amount financed</span>
+                                  <span className="font-medium">{formatPrice(calc.loan)}</span>
+                                </div>
+                                {calc.balloon > 0 && (
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-muted-foreground">Balloon payment ({activePlan.balloonPercent}%)</span>
+                                    <span className="font-medium">{formatPrice(calc.balloon)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between gap-4 border-t pt-2 mt-1">
+                                  <span className="text-muted-foreground">Term</span>
+                                  <span className="font-medium">{activePlan.termMonths} months</span>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-muted-foreground">APR</span>
+                                  <span className="font-medium">{((activePlan.aprBps ?? 0) / 100).toFixed(2)}%</span>
+                                </div>
+                                <div className="flex justify-between gap-4 border-t pt-2 mt-1 font-bold text-base">
+                                  <span>Monthly payment</span>
+                                  <span className="text-[#8bc440]" data-testid="text-monthly-payment">{formatPrice(calc.monthly)}/mo</span>
+                                </div>
+                                <div className="flex justify-between gap-4 text-xs text-muted-foreground">
+                                  <span>Total repayable</span>
+                                  <span>{formatPrice(calc.totalRepayable)}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground pt-1">
+                                  Finance subject to status. Indicative figures only — confirmed on application.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+            );
+          })()}
 
           {/* Price Summary */}
           {(() => {
