@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, X, Send, RotateCcw, ArrowRight, Check, Plus, AlertCircle, Zap } from "lucide-react";
+import { X, Send, RotateCcw, ArrowRight, Check, Plus, AlertCircle, Zap } from "lucide-react";
+import maxAvatarSrc from "@assets/max-avatar.png";
 import { Button } from "@/components/ui/button";
 import {
   AI_CHAT_STORAGE_KEY,
@@ -390,7 +391,9 @@ export default function AIChatWidget() {
           data-testid="button-ai-chat-open"
           className="fixed bottom-24 right-5 z-[10000] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#8bc440] text-[#191919] font-semibold shadow-lg hover:bg-[#8bc440]/90 transition-colors text-sm"
         >
-          <Bot size={18} />
+          <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+            <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+          </div>
           Build your van with Max
           {hasResume && (
             <span className="w-2 h-2 rounded-full bg-[#191919]/40 ml-0.5" />
@@ -409,8 +412,8 @@ export default function AIChatWidget() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#8bc440]/20 flex items-center justify-center">
-                <Bot size={16} className="text-[#8bc440]" />
+              <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#8bc440]/40 shrink-0">
+                <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
               </div>
               <div>
                 <div className="text-white font-semibold text-sm leading-none">Max</div>

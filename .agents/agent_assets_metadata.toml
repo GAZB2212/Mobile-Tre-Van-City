@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "kraJz1atjotW1A-WGLDnA"
+uri = "file://client/src/assets/max-avatar.png"
+type = "image"
+title = "Max AI assistant avatar"
