@@ -389,15 +389,20 @@ export default function AIChatWidget() {
         <button
           onClick={handleOpen}
           data-testid="button-ai-chat-open"
-          className="fixed bottom-24 right-5 z-[10000] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#8bc440] text-[#191919] font-semibold shadow-lg hover:bg-[#8bc440]/90 transition-colors text-sm"
+          className="fixed bottom-24 right-5 z-[10000] flex items-center gap-3 pl-3 pr-4 py-2.5 rounded-xl bg-[#8bc440] text-[#191919] shadow-lg hover:bg-[#8bc440]/90 transition-colors"
         >
-          <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-[#191919]/15">
             <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
           </div>
-          Build your van with Max
-          {hasResume && (
-            <span className="w-2 h-2 rounded-full bg-[#191919]/40 ml-0.5" />
-          )}
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] font-medium opacity-60 leading-none mb-0.5">Not sure where to start?</span>
+            <span className="text-sm font-bold leading-none flex items-center gap-1.5">
+              Build your van with Max
+              {hasResume && (
+                <span className="w-2 h-2 rounded-full bg-[#191919]/40" />
+              )}
+            </span>
+          </div>
         </button>
       )}
 
