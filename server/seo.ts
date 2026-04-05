@@ -21,53 +21,53 @@ export interface PageMeta {
 
 export const staticRouteMeta: Record<string, PageMeta> = {
   "/": {
-    title: `Mobile Tyre Van Conversions UK | Custom-Built & Ready to Earn | ${SITE_NAME}`,
-    description: "UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped with professional tyre fitting equipment. Nationwide delivery. Finance available. Call 0151 203 8500.",
+    title: `Mobile Tyre Van Conversions UK | ${SITE_NAME}`,
+    description: "UK specialists in custom mobile tyre van conversions. Fully equipped builds, nationwide delivery, finance available. Based in Wirral. Call 0151 203 8500.",
     canonical: "/",
   },
   "/stock": {
-    title: `Mobile Tyre Vans For Sale | Buy Ready-to-Go Conversions UK | ${SITE_NAME}`,
-    description: "Browse our stock of mobile tyre vans for sale. Professionally converted, fully equipped, and available with nationwide UK delivery. View prices, specs, and finance options. Call 0151 203 8500.",
+    title: `Mobile Tyre Vans For Sale UK | ${SITE_NAME}`,
+    description: "Mobile tyre vans for sale — professionally converted, fully equipped. UK-wide delivery and finance options available. Call 0151 203 8500.",
     canonical: "/stock",
   },
   "/configurator": {
-    title: `Van Configurator | Build Your Mobile Tyre Van | ${SITE_NAME}`,
-    description: "Use our online configurator to design your perfect mobile tyre van. Choose your van, equipment kit, upgrades, and get an instant quote. UK-wide delivery.",
+    title: `Build Your Mobile Tyre Van | ${SITE_NAME}`,
+    description: "Build your mobile tyre van online. Choose your van, equipment kit and upgrades for an instant quote. UK-wide delivery. Call 0151 203 8500.",
     canonical: "/configurator",
   },
   "/finance": {
-    title: `Mobile Tyre Van Finance | Flexible Payment Plans UK | ${SITE_NAME}`,
-    description: "Finance your mobile tyre van with our flexible, competitive payment plans. Use our free finance calculator to see monthly payments. FCA authorised credit broker. Apply online or call 0151 203 8500.",
+    title: `Tyre Van Finance UK | ${SITE_NAME}`,
+    description: "Flexible finance for your mobile tyre van. Free calculator, competitive rates. FCA authorised credit broker. Monthly plans available. Call 0151 203 8500.",
     canonical: "/finance",
   },
   "/training": {
-    title: `Mobile Tyre Fitting Training | REACT & Tyre Certification UK | ${SITE_NAME}`,
-    description: "Get fully certified to operate your mobile tyre business. We offer professional tyre fitting courses and REACT motorway certification. Start legally and safely. Based in Wirral, training UK-wide.",
+    title: `Tyre Fitting Training UK | ${SITE_NAME}`,
+    description: "REACT motorway certification and tyre fitting courses. Start your mobile tyre business legally and safely. Wirral-based, UK-wide training. Call 0151 203 8500.",
     canonical: "/training",
   },
   "/gallery": {
-    title: `Gallery | Mobile Tyre Van Conversions | ${SITE_NAME}`,
-    description: "View our gallery of completed mobile tyre van conversions. See the quality of our work and get inspired for your own build.",
+    title: `Gallery | ${SITE_NAME}`,
+    description: "View our completed mobile tyre van conversions. See the quality of our in-house builds and get inspired for your own van.",
     canonical: "/gallery",
   },
   "/about": {
-    title: `About ${SITE_NAME} | UK Van Conversion Specialists | ${SITE_NAME}`,
-    description: "Meet the team behind Mobile Tyre Van City — the UK's leading specialists in mobile tyre van conversions. Based in Wirral, we build fully-equipped tyre vans with nationwide delivery.",
+    title: `About Us | ${SITE_NAME}`,
+    description: "Meet the team at Mobile Tyre Van City, UK specialists in mobile tyre van conversions. Based in Wirral, delivering nationwide. Call 0151 203 8500.",
     canonical: "/about",
   },
   "/contact": {
-    title: `Contact ${SITE_NAME} | 0151 203 8500 | Wirral, UK | ${SITE_NAME}`,
-    description: "Contact Mobile Tyre Van City for a quote on your mobile tyre van conversion. Call us on 0151 203 8500 or visit our workshop at 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL.",
+    title: `Contact Us | ${SITE_NAME}`,
+    description: "Call 0151 203 8500 or visit 5-7 Bassendale Road, Bromborough, Wirral CH62 3QL. Get a quote on your mobile tyre van conversion today.",
     canonical: "/contact",
   },
   "/how-it-works": {
-    title: `How It Works | Mobile Tyre Van Build Process Explained | ${SITE_NAME}`,
-    description: "See how we build your mobile tyre van in 4 simple steps: choose your van, select your equipment kit, add custom upgrades, arrange finance. UK-built, in-house team, nationwide delivery.",
+    title: `How It Works | ${SITE_NAME}`,
+    description: "How we build your mobile tyre van in 4 steps: choose van, pick kit, add upgrades, arrange finance. UK-built by our in-house team, nationwide delivery.",
     canonical: "/how-it-works",
   },
   "/business-opportunity": {
     title: `The Mobile Tyre Business Opportunity | ${SITE_NAME}`,
-    description: "Discover why the mobile tyre fitting sector is one of the UK's fastest growing small business opportunities. Clients earning up to £1,200 per day. Business in a box — van, tech, supplier and website included.",
+    description: "Why mobile tyre fitting is one of the UK's fastest-growing small businesses. Operators earning up to £1,200 per day. Van, training and ongoing support included.",
     canonical: "/business-opportunity",
   },
 };
@@ -86,8 +86,8 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
   // Van conversion hub page
   if (cleanPath === "/van-conversions") {
     return {
-      title: `Mobile Tyre Van Conversions | All Models & Specs | ${SITE_NAME}`,
-      description: "We convert all major L3H3 and L3H4 panel vans into professional mobile tyre fitting vehicles. Ford Transit, Mercedes Sprinter, VW Crafter, and more. UK-built, nationwide delivery. Call 0151 203 8500.",
+      title: `Tyre Van Conversions UK | ${SITE_NAME}`,
+      description: "All major L3H3 panel vans converted for mobile tyre fitting — Ford Transit, Sprinter, Crafter and more. UK delivery, finance available. Call 0151 203 8500.",
       canonical: "/van-conversions",
     };
   }
@@ -98,8 +98,8 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
     const van = vanModels.find((v) => v.slug === slug);
     if (van) {
       return {
-        title: `${van.displayName} Mobile Tyre Van Conversion | ${SITE_NAME}`,
-        description: `${van.displayName} converted into a professional mobile tyre fitting van. ${van.loadVolumeCubicM} m³ load space, ${van.payloadKg} kg payload, Euro 6 compliant. UK-wide delivery from Wirral. Call 0151 203 8500.`,
+        title: `${van.displayName} Tyre Van | ${SITE_NAME}`,
+        description: `${van.displayName} converted for mobile tyre fitting. ${van.loadVolumeCubicM} m³ load, ${van.payloadKg} kg payload. Euro 6, UK-wide delivery. Finance available. 0151 203 8500.`,
         canonical: `/van-conversions/${van.slug}`,
       };
     }
@@ -108,8 +108,8 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
   // Location hub page
   if (cleanPath === "/mobile-tyre-vans") {
     return {
-      title: `Mobile Tyre Vans for Sale — UK-Wide Delivery | ${SITE_NAME}`,
-      description: "Mobile tyre van conversions delivered across the UK — from Liverpool to London, Glasgow to Cardiff. Browse 76 covered areas or call 0151 203 8500 to discuss delivery to your location.",
+      title: `Mobile Tyre Van Delivery UK | ${SITE_NAME}`,
+      description: "Mobile tyre van conversions delivered UK-wide. 76 areas covered from Liverpool to London. Finance available. Call 0151 203 8500.",
       canonical: "/mobile-tyre-vans",
     };
   }
@@ -120,8 +120,8 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
     const location = locations.find((l) => l.slug === slug);
     if (location) {
       return {
-        title: `Mobile Tyre Van Conversions in ${location.name} | Delivery Available | ${SITE_NAME}`,
-        description: `Professional mobile tyre van conversions delivered to ${location.name}, ${location.county}. L3H3 builds fully equipped and ready to work. Finance available. Call 0151 203 8500.`,
+        title: `Tyre Vans in ${location.name} | ${SITE_NAME}`,
+        description: `Mobile tyre van delivered to ${location.name}, ${location.county}. Fully equipped L3H3 build, Euro 6. Finance available. Call 0151 203 8500.`,
         canonical: `/mobile-tyre-vans/${location.slug}`,
       };
     }
@@ -133,8 +133,8 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
 export function buildVanMeta(van: { year: number; make: string; model: string; mileage: number; slug: string; specs: { transmission?: string; fuel?: string } }): PageMeta {
   const vanTitle = `${van.year} ${van.make} ${van.model}`;
   return {
-    title: `${vanTitle} - Mobile Tyre Van | ${SITE_NAME}`,
-    description: `For sale: ${vanTitle}. A fully equipped mobile tyre van conversion${van.mileage ? ` with ${van.mileage.toLocaleString()} miles` : ''}. ${van.specs?.transmission || ''}, ${van.specs?.fuel || ''}. Finance available. Enquire now!`,
+    title: `${vanTitle} - Tyre Van For Sale | ${SITE_NAME}`,
+    description: `For sale: ${vanTitle}. Fully equipped mobile tyre van conversion${van.mileage ? ` — ${van.mileage.toLocaleString()} miles` : ''}. Finance available. Call 0151 203 8500.`,
     canonical: `/stock/${van.slug}`,
   };
 }

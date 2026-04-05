@@ -18,10 +18,10 @@ export default function Header() {
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Stock", href: "/stock" },
+    { name: "Conversions", href: "/van-conversions" },
     { name: "Finance", href: "/finance" },
     { name: "Gallery", href: "/gallery" },
     { name: "Opportunity", href: "/business-opportunity" },
-    { name: "Blog", href: "/blog" },
     { name: "Training", href: "/training" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },

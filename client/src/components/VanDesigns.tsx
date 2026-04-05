@@ -65,10 +65,16 @@ export default function VanDesigns() {
           ))}
         </div>
 
-        <div className="text-center">
+        <div className="text-center flex flex-wrap items-center justify-center gap-4">
           <Link href="/gallery">
             <Button size="lg" variant="default" className="bg-accent hover:bg-accent/90 text-accent-foreground" data-testid="button-view-gallery">
               Explore Full Gallery
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+          <Link href="/van-conversions">
+            <Button size="lg" variant="outline" data-testid="button-view-conversions">
+              View Van Conversion Models
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
