@@ -1,0 +1,536 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Bot, X, Send, RotateCcw, ArrowRight, Check, Plus, AlertCircle, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AI_CHAT_STORAGE_KEY,
+  CONFIGURATOR_STORAGE_KEY,
+  buildConfiguratorState,
+  defaultConfig,
+  defaultTrackers,
+  generateSessionId,
+  type AIConfig,
+  type AIMessage,
+  type AIChatState,
+  type AITrackers,
+  type Stage,
+} from "@/lib/aiConfiguratorMapping";
+
+type Kit = { id: string; name: string; serviceType: string[] | string };
+type Upgrade = { id: string; name: string; category: string; popular: boolean; forCommercial: boolean };
+
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start">
+      <div className="bg-white/10 rounded-xl px-4 py-3 flex items-center gap-1.5">
+        <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce [animation-delay:120ms]" />
+        <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce [animation-delay:240ms]" />
+      </div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  config,
+  trackers,
+  kits,
+  upgrades,
+  onAddUpgrade,
+  onViewConfig,
+  onStartAgain,
+}: {
+  config: AIConfig;
+  trackers: AITrackers;
+  kits: Kit[];
+  upgrades: Upgrade[];
+  onAddUpgrade: (id: string) => void;
+  onViewConfig: () => void;
+  onStartAgain: () => void;
+}) {
+  const kitName = kits.find(k => k.id === config.kitId)?.name;
+  const selectedUpgradeNames = config.upgradeIds.map(id => upgrades.find(u => u.id === id)?.name).filter(Boolean);
+
+  const suggestedPopular = upgrades
+    .filter(u => u.popular && !config.upgradeIds.includes(u.id))
+    .slice(0, 3);
+
+  const financeLabel: Record<string, string> = { outright: "Buy outright", lease: "Business lease", finance: "Spread the cost (finance)" };
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Zap size={16} className="text-[#8bc440]" />
+        <span className="text-white font-semibold text-sm">Your configuration</span>
+      </div>
+
+      <div className="space-y-2 text-sm">
+        {config.ownVan !== null && (
+          <div className="flex justify-between">
+            <span className="text-white/50">Van</span>
+            <span className="text-white">
+              {config.ownVan ? "Customer's own van" : `${config.vanSize ?? "Panel van"} (supplied by us)`}
+            </span>
+          </div>
+        )}
+        {config.serviceType && (
+          <div className="flex justify-between">
+            <span className="text-white/50">Service type</span>
+            <span className="text-white capitalize">{config.serviceType === "car" ? "Car tyres" : config.serviceType === "commercial" ? "Commercial tyres" : "Car & commercial"}</span>
+          </div>
+        )}
+        {kitName && (
+          <div className="flex justify-between">
+            <span className="text-white/50">Kit</span>
+            <span className="text-white">{kitName}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="text-white/50">48V silent compressor</span>
+          <span className={config.includes48v ? "text-[#8bc440] font-medium" : "text-white/40"}>
+            {config.includes48v ? "Included" : "Not included"}
+          </span>
+        </div>
+        {selectedUpgradeNames.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="text-white/50">Extras</span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {selectedUpgradeNames.map((name, i) => (
+                <span key={i} className="bg-white/10 text-white/80 text-xs px-2 py-0.5 rounded-md">{name}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {config.financePreference && (
+          <div className="flex justify-between">
+            <span className="text-white/50">Payment</span>
+            <span className="text-white">{financeLabel[config.financePreference] ?? config.financePreference}</span>
+          </div>
+        )}
+      </div>
+
+      {!config.includes48v && trackers.responseToThis48v !== "hard_no" && (
+        <div className="bg-[#8bc440]/10 border border-[#8bc440]/20 rounded-lg px-3 py-2 text-xs text-[#8bc440]">
+          Most customers add the 48V silent compressor system — worth including for fuel savings alone.
+        </div>
+      )}
+
+      {suggestedPopular.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-white/50 text-xs">Customers like you also typically add:</p>
+          {suggestedPopular.map(u => (
+            <div key={u.id} className="flex items-center justify-between gap-2">
+              <span className="text-white/80 text-xs flex-1">{u.name}</span>
+              <button
+                onClick={() => onAddUpgrade(u.id)}
+                data-testid={`button-add-upgrade-${u.id}`}
+                className="flex items-center gap-1 text-xs text-[#8bc440] border border-[#8bc440]/30 px-2 py-0.5 rounded-md hover:bg-[#8bc440]/10 transition-colors shrink-0"
+              >
+                <Plus size={10} /> Add
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 pt-1">
+        <Button
+          onClick={onViewConfig}
+          data-testid="button-view-configuration"
+          className="w-full bg-[#8bc440] text-[#191919] font-semibold hover:bg-[#8bc440]/90"
+        >
+          View your configuration <ArrowRight size={16} className="ml-1" />
+        </Button>
+        <button
+          onClick={onStartAgain}
+          data-testid="button-start-again"
+          className="text-white/40 text-xs text-center hover:text-white/70 transition-colors"
+        >
+          Start again
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AIChatWidget() {
+  const [location] = useLocation();
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [hasResume, setHasResume] = useState(false);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+
+  const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
+  const [messages, setMessages] = useState<AIMessage[]>([]);
+  const [config, setConfig] = useState<AIConfig>(defaultConfig);
+  const [trackers, setTrackers] = useState<AITrackers>(defaultTrackers);
+  const [stage, setStage] = useState<Stage>("chat");
+
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: kits = [] } = useQuery<Kit[]>({ queryKey: ["/api/kits"] });
+  const { data: upgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
+
+  // Don't render on admin or login pages
+  if (location.startsWith("/admin") || location === "/login") return null;
+
+  // Load saved state from localStorage on first mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(AI_CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as AIChatState;
+        if (parsed.stage !== "complete" && parsed.messages.length > 0) {
+          setHasResume(true);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    if (messages.length === 0 && stage === "chat") return;
+    try {
+      const state: AIChatState = { sessionId, messages, config, stage, trackers, savedAt: new Date().toISOString() };
+      localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // ignore
+    }
+  }, [messages, config, stage, trackers, sessionId]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading, stage]);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (open && stage === "chat") {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open, stage]);
+
+  const callAI = useCallback(async (msgs: AIMessage[]) => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/ai-chat/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: msgs, sessionId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message ?? "AI unavailable");
+      }
+
+      const data = await res.json();
+
+      const assistantMsg: AIMessage = { role: "assistant", content: data.message ?? "" };
+      setMessages(prev => [...prev, assistantMsg]);
+      if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
+      if (data.trackers) setTrackers(prev => ({ ...prev, ...data.trackers }));
+      if (data.stage) setStage(data.stage);
+
+      // Auto-save to DB at summary stage
+      if (data.stage === "summary") {
+        saveToDb([...msgs, assistantMsg], data.config ?? config, data.trackers ?? trackers, "in_progress");
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? "Our AI assistant is temporarily unavailable. You can still use the configurator directly.");
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, config, trackers]);
+
+  const saveToDb = useCallback(async (
+    msgs: AIMessage[],
+    cfg: AIConfig,
+    trk: AITrackers,
+    status: string,
+  ) => {
+    try {
+      await fetch("/api/ai-chat/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, status, messages: msgs, config: cfg, trackers: trk }),
+      });
+    } catch {
+      // silently fail — not critical
+    }
+  }, [sessionId]);
+
+  const handleOpen = () => {
+    setOpen(true);
+    if (hasResume && messages.length === 0) {
+      setShowResumePrompt(true);
+    } else if (messages.length === 0) {
+      // Start fresh — trigger the first AI message
+      callAI([]);
+    }
+  };
+
+  const handleResume = () => {
+    setShowResumePrompt(false);
+    try {
+      const saved = localStorage.getItem(AI_CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as AIChatState;
+        setSessionId(parsed.sessionId);
+        setMessages(parsed.messages);
+        setConfig(parsed.config);
+        setTrackers(parsed.trackers);
+        setStage(parsed.stage);
+      }
+    } catch {
+      setShowResumePrompt(false);
+      callAI([]);
+    }
+    setHasResume(false);
+  };
+
+  const handleFreshStart = () => {
+    setShowResumePrompt(false);
+    setHasResume(false);
+    const newId = generateSessionId();
+    setSessionId(newId);
+    setMessages([]);
+    setConfig(defaultConfig);
+    setTrackers(defaultTrackers);
+    setStage("chat");
+    callAI([]);
+  };
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg: AIMessage = { role: "user", content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    await callAI(newMessages);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleAddUpgrade = (upgradeId: string) => {
+    setConfig(prev => ({
+      ...prev,
+      upgradeIds: prev.upgradeIds.includes(upgradeId) ? prev.upgradeIds : [...prev.upgradeIds, upgradeId],
+    }));
+    setTrackers(prev => ({
+      ...prev,
+      addedUpgradeIds: prev.addedUpgradeIds.includes(upgradeId) ? prev.addedUpgradeIds : [...prev.addedUpgradeIds, upgradeId],
+    }));
+  };
+
+  const handleViewConfig = () => {
+    // Write to configurator localStorage
+    const configState = buildConfiguratorState(config);
+    try {
+      localStorage.setItem(CONFIGURATOR_STORAGE_KEY, JSON.stringify(configState));
+    } catch {
+      // ignore
+    }
+
+    // Save conversation as completed
+    saveToDb(messages, config, trackers, "completed");
+
+    // Mark chat as complete
+    setStage("complete");
+    try {
+      const state: AIChatState = { sessionId, messages, config, stage: "complete", trackers, savedAt: new Date().toISOString() };
+      localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // ignore
+    }
+
+    // Navigate to configurator
+    window.location.href = "/configurator/van";
+  };
+
+  const handleStartAgain = () => {
+    handleFreshStart();
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    // Save abandoned state if mid-conversation
+    if (messages.length > 0 && stage !== "complete") {
+      saveToDb(messages, config, trackers, "abandoned");
+    }
+  };
+
+  return (
+    <>
+      {/* Floating trigger button */}
+      {!open && (
+        <button
+          onClick={handleOpen}
+          data-testid="button-ai-chat-open"
+          className="fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#8bc440] text-[#191919] font-semibold shadow-lg hover:bg-[#8bc440]/90 transition-colors text-sm"
+        >
+          <Bot size={18} />
+          Build your van with AI
+          {hasResume && (
+            <span className="w-2 h-2 rounded-full bg-[#191919]/40 ml-0.5" />
+          )}
+        </button>
+      )}
+
+      {/* Chat panel */}
+      {open && (
+        <div
+          data-testid="panel-ai-chat"
+          className="fixed z-[100] flex flex-col bg-[#141414] border border-white/10 shadow-2xl
+            bottom-0 right-0 w-full h-full
+            md:bottom-6 md:right-6 md:w-[400px] md:h-[620px] md:rounded-2xl"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#8bc440]/20 flex items-center justify-center">
+                <Bot size={16} className="text-[#8bc440]" />
+              </div>
+              <div>
+                <div className="text-white font-semibold text-sm leading-none">Van Builder</div>
+                <div className="text-white/40 text-xs mt-0.5">Mobile Tyre Van City</div>
+              </div>
+            </div>
+            <button
+              onClick={handleClose}
+              data-testid="button-ai-chat-close"
+              className="text-white/40 hover:text-white/80 transition-colors p-1"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+
+            {/* Resume prompt */}
+            {showResumePrompt && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                <p className="text-white text-sm">Welcome back — you have a saved configuration. Would you like to pick up where you left off?</p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleResume} data-testid="button-resume-conversation" className="bg-[#8bc440] text-[#191919] font-semibold flex-1">
+                    <RotateCcw size={14} className="mr-1" /> Resume
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleFreshStart} data-testid="button-start-fresh" className="flex-1 border-white/20 text-white/70">
+                    Start fresh
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Messages */}
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  data-testid={`msg-${m.role}-${i}`}
+                  className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                    m.role === "user"
+                      ? "bg-[#8bc440] text-[#191919] font-medium rounded-br-sm"
+                      : "bg-white/10 text-white rounded-bl-sm"
+                  }`}
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))}
+
+            {/* Typing indicator */}
+            {loading && <TypingIndicator />}
+
+            {/* Error state */}
+            {errorMsg && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3.5 py-3 flex gap-2">
+                <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <p className="text-red-300 text-sm">{errorMsg}</p>
+                  <a href="/configurator/van" className="text-[#8bc440] text-xs hover:underline">
+                    Go to configurator directly →
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Summary card */}
+            {stage === "summary" && !loading && (
+              <SummaryCard
+                config={config}
+                trackers={trackers}
+                kits={kits}
+                upgrades={upgrades}
+                onAddUpgrade={handleAddUpgrade}
+                onViewConfig={handleViewConfig}
+                onStartAgain={handleStartAgain}
+              />
+            )}
+
+            {/* Complete state */}
+            {stage === "complete" && (
+              <div className="bg-[#8bc440]/10 border border-[#8bc440]/20 rounded-xl px-3.5 py-3 flex items-center gap-2">
+                <Check size={14} className="text-[#8bc440]" />
+                <p className="text-[#8bc440] text-sm">Sending you to the configurator...</p>
+              </div>
+            )}
+
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input area */}
+          {stage === "chat" && !showResumePrompt && (
+            <div className="px-3 py-3 border-t border-white/10 flex items-center gap-2 shrink-0">
+              <input
+                ref={inputRef}
+                data-testid="input-ai-chat"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your reply..."
+                disabled={loading}
+                className="flex-1 bg-white/8 text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors disabled:opacity-50"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || loading}
+                data-testid="button-ai-chat-send"
+                className="w-9 h-9 rounded-xl bg-[#8bc440] flex items-center justify-center text-[#191919] disabled:opacity-40 hover:bg-[#8bc440]/90 transition-colors shrink-0"
+              >
+                <Send size={15} />
+              </button>
+            </div>
+          )}
+
+          {/* Summary stage — no input, just the card above */}
+          {stage === "summary" && (
+            <div className="px-4 pb-4 shrink-0">
+              <button
+                onClick={handleStartAgain}
+                data-testid="button-ai-chat-restart"
+                className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors py-2"
+              >
+                Start again
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}

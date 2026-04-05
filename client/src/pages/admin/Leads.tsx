@@ -12,6 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Users,
   Search,
@@ -28,6 +35,12 @@ import {
   Plus,
   ExternalLink,
   StickyNote,
+  Bot,
+  CheckCircle2,
+  XCircle,
+  Percent,
+  Eye,
+  PhoneCall,
 } from "lucide-react";
 
 type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "closed" | "dead";
@@ -174,6 +187,47 @@ export default function AdminLeads() {
 
   const uniqueSources = [...new Set(leads.map((l) => l.source))];
 
+  // ─── AI Conversations ────────────────────────────────────────────────────────
+  const [aiStatusFilter, setAiStatusFilter] = useState("all");
+  const [ai48vFilter, setAi48vFilter] = useState("all");
+  const [aiDateFrom, setAiDateFrom] = useState("");
+  const [aiDateTo, setAiDateTo] = useState("");
+  const [transcriptConv, setTranscriptConv] = useState<any>(null);
+
+  const aiConvParams = new URLSearchParams();
+  if (aiStatusFilter !== "all") aiConvParams.set("status", aiStatusFilter);
+  if (ai48vFilter !== "all") aiConvParams.set("includes48v", ai48vFilter);
+  if (aiDateFrom) aiConvParams.set("dateFrom", aiDateFrom);
+  if (aiDateTo) aiConvParams.set("dateTo", aiDateTo);
+
+  const { data: aiData, isLoading: aiLoading, refetch: refetchAi } = useQuery<{
+    conversations: any[];
+    stats: { totalThisMonth: number; completionRate: number; fortyEightVConversionRate: number; leadCaptureRate: number };
+  }>({
+    queryKey: ["/api/admin/ai-conversations", aiStatusFilter, ai48vFilter, aiDateFrom, aiDateTo],
+    queryFn: async () => {
+      const r = await fetch(`/api/admin/ai-conversations?${aiConvParams}`);
+      return r.json();
+    },
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const handleMarkContacted = async (id: string) => {
+    await fetch(`/api/admin/ai-conversations/${id}/contacted`, { method: "PATCH" });
+    refetchAi();
+    toast({ title: "Marked as contacted" });
+  };
+
+  const handleExportAiCsv = () => {
+    window.open("/api/admin/ai-conversations/export/csv", "_blank");
+  };
+
+  const handleViewTranscript = async (conv: any) => {
+    const r = await fetch(`/api/admin/ai-conversations/${conv.id}`);
+    const data = await r.json();
+    setTranscriptConv(data);
+  };
+
   const handleExportLeads = () => {
     if (filteredLeads.length === 0) {
       toast({ title: "No Data", description: "No leads to export with current filters.", variant: "destructive" });
@@ -252,9 +306,22 @@ export default function AdminLeads() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="container mx-auto px-4 py-6">
         <AdminBackButton />
 
+        <Tabs defaultValue="leads" className="space-y-6">
+          <TabsList data-testid="tabs-leads">
+            <TabsTrigger value="leads" data-testid="tab-form-leads">
+              <Users className="w-4 h-4 mr-1.5" />
+              Form Leads
+            </TabsTrigger>
+            <TabsTrigger value="ai" data-testid="tab-ai-conversations">
+              <Bot className="w-4 h-4 mr-1.5" />
+              AI Conversations
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="leads" className="space-y-6">
         {/* Filters */}
         <Card data-testid="card-leads-filter">
           <CardHeader className="pb-3">
@@ -575,7 +642,218 @@ export default function AdminLeads() {
             })}
           </div>
         )}
+          </TabsContent>
+
+          {/* ─── AI Conversations Tab ─── */}
+          <TabsContent value="ai" className="space-y-6">
+            {/* Headline stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Conversations (month)</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-total">{aiData?.stats.totalThisMonth ?? 0}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Completion rate</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-completion">{aiData?.stats.completionRate ?? 0}%</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Percent className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">48V conversion rate</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-48v">{aiData?.stats.fortyEightVConversionRate ?? 0}%</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Lead capture rate</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-leads">{aiData?.stats.leadCaptureRate ?? 0}%</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Filters */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-base">AI Van Builder Conversations</CardTitle>
+                  <Button size="sm" variant="outline" onClick={handleExportAiCsv} data-testid="button-export-ai-csv">
+                    <Download className="w-3.5 h-3.5 mr-1.5" />
+                    Export CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Select value={aiStatusFilter} onValueChange={setAiStatusFilter}>
+                    <SelectTrigger data-testid="select-ai-status">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="in_progress">In progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="abandoned">Abandoned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={ai48vFilter} onValueChange={setAi48vFilter}>
+                    <SelectTrigger data-testid="select-ai-48v">
+                      <SelectValue placeholder="48V filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All (48V)</SelectItem>
+                      <SelectItem value="true">48V included</SelectItem>
+                      <SelectItem value="false">No 48V</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="date"
+                    value={aiDateFrom}
+                    onChange={e => setAiDateFrom(e.target.value)}
+                    placeholder="From date"
+                    data-testid="input-ai-date-from"
+                  />
+                  <Input
+                    type="date"
+                    value={aiDateTo}
+                    onChange={e => setAiDateTo(e.target.value)}
+                    placeholder="To date"
+                    data-testid="input-ai-date-to"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Conversations table */}
+            {aiLoading ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading conversations...</p>
+                </CardContent>
+              </Card>
+            ) : !aiData?.conversations?.length ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
+                  <p className="text-muted-foreground">AI van builder conversations will appear here once customers start using the chat widget.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {aiData.conversations.map((conv: any) => (
+                  <Card key={conv.id} data-testid={`card-ai-conv-${conv.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex flex-wrap items-start gap-4 justify-between">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Bot className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-sm" data-testid={`text-ai-name-${conv.id}`}>
+                                {conv.contact_name ?? "Anonymous"}
+                              </span>
+                              {conv.contact_phone && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />{conv.contact_phone}
+                                </span>
+                              )}
+                              <Badge variant="secondary" className={`text-xs ${
+                                conv.status === "completed" ? "bg-green-500/15 text-green-400 border-green-500/30" :
+                                conv.status === "abandoned" ? "bg-amber-500/15 text-amber-400 border-amber-500/30" :
+                                "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                              }`}>
+                                {conv.status?.replace("_", " ")}
+                              </Badge>
+                              {conv.includes_48v && (
+                                <Badge variant="secondary" className="text-xs bg-[#8bc440]/15 text-[#8bc440]">48V</Badge>
+                              )}
+                              {conv.marked_contacted && (
+                                <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">Contacted</Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
+                              {conv.van_size && <span>Van: {conv.van_size}</span>}
+                              {conv.van_type && <span>Service: {conv.van_type}</span>}
+                              {conv.finance_preference && <span>Finance: {conv.finance_preference}</span>}
+                              <span>{formatDate(conv.created_at)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewTranscript(conv)}
+                            data-testid={`button-view-transcript-${conv.id}`}
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1" />
+                            Transcript
+                          </Button>
+                          {!conv.marked_contacted && conv.contact_phone && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkContacted(conv.id)}
+                              data-testid={`button-mark-contacted-${conv.id}`}
+                            >
+                              <PhoneCall className="w-3.5 h-3.5 mr-1" />
+                              Mark contacted
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {/* Transcript modal */}
+      <Dialog open={!!transcriptConv} onOpenChange={open => !open && setTranscriptConv(null)}>
+        <DialogContent className="max-w-xl max-h-[80vh] flex flex-col" data-testid="dialog-transcript">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="w-5 h-5" />
+              Conversation Transcript
+              {transcriptConv?.contact_name && <span className="text-muted-foreground font-normal">— {transcriptConv.contact_name}</span>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {(transcriptConv?.messages ?? []).map((m: any, i: number) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
+                  m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                }`}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {(!transcriptConv?.messages?.length) && (
+              <p className="text-muted-foreground text-sm text-center py-8">No messages recorded</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

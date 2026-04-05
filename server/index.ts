@@ -176,6 +176,32 @@ app.use((req, res, next) => {
         .catch((err: Error) => console.error("Custom extras migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
+        CREATE TABLE IF NOT EXISTS ai_conversations (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          session_id VARCHAR NOT NULL,
+          status VARCHAR NOT NULL DEFAULT 'in_progress',
+          messages JSON NOT NULL DEFAULT '[]',
+          mapped_config JSON,
+          contact_name VARCHAR,
+          contact_phone VARCHAR,
+          van_type VARCHAR,
+          van_size VARCHAR,
+          spec_level VARCHAR,
+          finance_preference VARCHAR,
+          includes_48v BOOLEAN NOT NULL DEFAULT FALSE,
+          was_48v_pitched BOOLEAN NOT NULL DEFAULT FALSE,
+          response_to_48v VARCHAR,
+          suggested_upgrade_ids JSON NOT NULL DEFAULT '[]',
+          added_upgrade_ids JSON NOT NULL DEFAULT '[]',
+          config_completed BOOLEAN NOT NULL DEFAULT FALSE,
+          marked_contacted BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          completed_at TIMESTAMP
+        );
+      `)
+        .then(() => log("✅ AI conversations table ready"))
+        .catch((err: Error) => console.error("AI conversations migration:", err.message));
+      pool.query(`
         CREATE TABLE IF NOT EXISTS blog_posts (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
           slug TEXT NOT NULL UNIQUE,

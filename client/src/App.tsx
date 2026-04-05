@@ -7,6 +7,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
+import AIChatWidget from "@/components/AIChatWidget";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
@@ -128,6 +129,12 @@ function PublicChatBubble() {
   return <ChatBubble />;
 }
 
+function AIWidget() {
+  const [location] = useLocation();
+  if (location.startsWith("/admin") || location === "/login") return null;
+  return <AIChatWidget />;
+}
+
 function ConditionalLoadingScreen() {
   const [location] = useLocation();
   if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.includes("/build-progress")) {
@@ -167,6 +174,7 @@ function App() {
             </Suspense>
           </AnalyticsProvider>
           <PublicChatBubble />
+          <AIWidget />
           {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
         </TooltipProvider>
       </ConfiguratorProvider>

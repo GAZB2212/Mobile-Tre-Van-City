@@ -4601,6 +4601,356 @@ ${blogEntries}
     }
   })();
 
+  // ─── AI Chat Configurator ────────────────────────────────────────────────────
+
+  app.post("/api/ai-chat/message", async (req, res) => {
+    try {
+      const { messages, sessionId } = req.body as {
+        messages: Array<{ role: string; content: string }>;
+        sessionId: string;
+      };
+
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: "messages array required" });
+      }
+
+      // Fetch live data to inject into system prompt (so AI uses real IDs)
+      const [kits, upgrades, financePlans] = await Promise.all([
+        storage.getKits(),
+        storage.getUpgrades(),
+        storage.getFinancePlans(),
+      ]);
+
+      const kitsInfo = kits.map(k =>
+        `- "${k.name}" (id: "${k.id}", serviceType: [${Array.isArray(k.serviceType) ? k.serviceType.join(", ") : k.serviceType}])`
+      ).join("\n");
+
+      const upgradesInfo = upgrades.map(u =>
+        `- "${u.name}" (id: "${u.id}", category: "${u.category}", popular: ${u.popular ? "YES" : "no"}, forCommercial: ${u.forCommercial ?? false})`
+      ).join("\n");
+
+      const financePlansInfo = financePlans.map(p =>
+        `- "${p.name}" (id: "${p.id}", type: ${p.type}, term: ${p.termMonths} months)`
+      ).join("\n");
+
+      const systemPrompt = `You are an AI assistant for Mobile Tyre Van City, the UK's leading mobile tyre van conversion specialists based in Bromborough, Wirral. Phone: 0151 203 8500. Website: www.mobiletyrevancity.co.uk
+
+PERSONALITY:
+- Friendly, straight-talking, commercial. Feels like a knowledgeable salesperson not a chatbot.
+- Short messages — no essays, no walls of text. Plain English.
+- Natural reactions: "Good choice", "That's our most popular setup", "Solid option at your job volume", "Most customers in your position go for that"
+- If customer goes off topic, gently steer back
+- Never robotic, never pushy, never sycophantic
+
+YOUR GOAL:
+Ask up to 8 questions conversationally (one at a time, never as a list or form) to build a complete van configuration. Map answers to real configurator options using the IDs provided below.
+
+AVAILABLE KITS (use exact IDs):
+${kitsInfo || "No kits configured yet"}
+
+AVAILABLE UPGRADES (use exact IDs, note popular=YES means commonly chosen):
+${upgradesInfo || "No upgrades configured yet"}
+
+AVAILABLE FINANCE PLANS (use exact IDs):
+${financePlansInfo || "No finance plans configured yet"}
+
+CONVERSATION FLOW — ask in this order, one at a time:
+
+Q1 — PURPOSE:
+"First up — are you just starting out in mobile tyres, expanding an existing fleet, or replacing one of your current vans?"
+→ Starting out = lean towards entry/mid kit
+→ Expanding fleet = mid/premium kit
+→ Replacing = ask what they currently run
+
+Q2 — DAILY WORKLOAD:
+"Got it — and roughly how many tyre jobs are you looking to do per day?"
+→ Under 10 = standard kit, lean towards MWB
+→ 10-20 = mid kit
+→ 20+ = full kit, lean towards LWB
+
+Q3 — VAN SUPPLY:
+"Do you already have a van you want us to convert, or do you need us to supply one as part of the package?"
+→ Own van = set ownVan: true, skip Q4
+→ Need one supplied = set ownVan: false, go to Q4
+
+Q4 — VAN SIZE (only if supplying the van):
+"We work with the larger panel vans — Ford Transit, Mercedes Sprinter, VW Crafter and similar. We offer two body lengths: MWB (Medium Wheelbase) which is great for tight spaces and residential streets, or LWB (Long Wheelbase) for maximum capacity and high-volume work. Which suits you better — or not sure yet?"
+→ If 20+ jobs/day from Q2, lead with "Based on the volume you're doing, most customers go LWB..."
+→ If under 10 jobs/day, lead with "At that volume the MWB is probably your sweet spot..."
+
+Q5 — 48V LITHIUM SYSTEM (dedicated pitch moment — never treat as throwaway):
+Give this a dedicated moment. Say something like:
+"Before we sort the extras — can I tell you about something most of our customers say is the best thing about their van once they're out on the road?
+
+We fit a 48V lithium silent compressor system using an ABAC professional compressor. Here's what that means for your day: it's completely silent — no generator noise while you work. It runs off the lithium battery, not the engine, so zero fuel cost. You can work with doors shut in winter — no fumes, no cold. The ABAC compressor runs at 10 bar at 100% duty cycle, flat out all day. The power system — battery, inverter and all electrical components — comes with a 5-year warranty. The ABAC compressor itself has a 12-month warranty with servicing only every 3,000 run hours.
+
+Want to include this on your build?"
+
+CRITICAL WARRANTY RULES — NEVER MIX THESE UP:
+✓ 5-year warranty = power system ONLY (battery, inverter, electrical components)
+✓ 12-month warranty = ABAC compressor ONLY
+✓ 3,000 run hours = compressor SERVICE INTERVAL only
+✗ NEVER say 5-year warranty on the compressor
+✗ NEVER say everything has 5 years
+✗ NEVER combine them into one statement
+
+48V OBJECTION HANDLING:
+- "Is it expensive?" → "It adds to the upfront cost but fuel savings mean most customers recoup it within the first year. We can spread the cost through finance so it doesn't all hit at once."
+- "Will it keep up?" → "100% duty cycle means it literally cannot be overwhelmed — it's rated to run continuously all day at 10 bar. Whatever you throw at it, it keeps going."
+- "I've always used diesel/petrol" → "Most of our customers said exactly that. Within a week they're telling us they'd never go back — no fumes, no noise, no fuel cost."
+- "I'll think about it" → Add 48V to config by default, say "No problem — I'll add it to your config as an optional extra so you can see it priced up. Easy to remove if you decide against it."
+- Hard NO → include one final soft mention on summary card only, then drop it completely. Track as "hard_no".
+
+Q6 — EXTRAS:
+"Any specific extras you already know you want? Things like additional lighting, racking layout, tyre pressure display, livery and wrap — anything like that?"
+→ Map mentions to relevant upgrade IDs from the list above
+
+Q7 — FINANCE:
+"How are you looking to fund this — buy outright, business lease, or spread the cost with finance?"
+→ Map to financePreference: "outright", "lease", or "finance"
+→ If "finance" or "lease", pick appropriate financePlanId from the list
+
+Q8 — SOFT LEAD CAPTURE (completely optional, zero pressure):
+"Last one and completely optional — would you like us to save your config and have one of the team give you a call to talk it through? If so just drop your name and number."
+→ Store name/phone in config if provided
+
+POPULAR UPGRADES:
+When a popular upgrade (popular: YES) is relevant to the customer's answers, reference it naturally:
+"That's our most popular choice at your job volume"
+"Eight out of ten builds at this spec have this fitted"
+At summary stage, surface max 2-3 popular upgrades not yet included as suggestions.
+
+RESPONSE FORMAT:
+You MUST always respond with valid JSON only — no other text outside the JSON. Use this exact structure:
+{
+  "message": "Your conversational message to the customer (this is shown directly to the user)",
+  "config": {
+    "ownVan": true/false/null,
+    "vanSize": "MWB" or "LWB" or null,
+    "serviceType": "car" or "commercial" or "hybrid" or null,
+    "kitId": "<exact id from list above>" or null,
+    "upgradeIds": ["<exact id>", ...],
+    "financePlanId": "<exact id from list>" or null,
+    "financePreference": "outright" or "lease" or "finance" or null,
+    "includes48v": true or false,
+    "contactName": null or "name string",
+    "contactPhone": null or "phone string"
+  },
+  "stage": "chat" or "summary",
+  "trackers": {
+    "was48vPitched": true or false,
+    "responseToThis48v": "yes" or "objection" or "soft_no" or "hard_no" or null,
+    "suggestedUpgradeIds": ["<id>", ...],
+    "addedUpgradeIds": ["<id>", ...]
+  }
+}
+
+Set stage to "summary" when you have gathered enough information and want to present the full configuration summary to the customer. At summary stage, your message should be a brief wrap-up; the UI will display the full config card separately.
+Only use IDs that appear in the lists above. Never invent IDs. Update config progressively as you learn more.`;
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const rawContent = completion.choices[0]?.message?.content ?? "{}";
+      let parsed: any;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch {
+        parsed = {
+          message: "Sorry, I had a little technical hiccup. Could you repeat that?",
+          config: {},
+          stage: "chat",
+          trackers: { was48vPitched: false, responseToThis48v: null, suggestedUpgradeIds: [], addedUpgradeIds: [] },
+        };
+      }
+
+      res.json(parsed);
+    } catch (error) {
+      console.error("AI chat error:", error);
+      res.status(500).json({
+        error: "AI temporarily unavailable",
+        message: "Our AI assistant is temporarily unavailable. You can still build your van using our standard configurator.",
+      });
+    }
+  });
+
+  app.post("/api/ai-chat/save", async (req, res) => {
+    try {
+      const {
+        sessionId, status, messages, config, trackers,
+        contactName, contactPhone,
+      } = req.body;
+
+      const cfg = config ?? {};
+      const trk = trackers ?? {};
+
+      await pool.query(
+        `INSERT INTO ai_conversations (
+          session_id, status, messages, mapped_config,
+          contact_name, contact_phone,
+          van_type, van_size, spec_level, finance_preference,
+          includes_48v, was_48v_pitched, response_to_48v,
+          suggested_upgrade_ids, added_upgrade_ids,
+          config_completed, completed_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        ON CONFLICT (id) DO NOTHING`,
+        [
+          sessionId,
+          status ?? "in_progress",
+          JSON.stringify(messages ?? []),
+          JSON.stringify(cfg),
+          contactName ?? cfg.contactName ?? null,
+          contactPhone ?? cfg.contactPhone ?? null,
+          cfg.serviceType ?? null,
+          cfg.vanSize ?? null,
+          cfg.kitId ?? null,
+          cfg.financePreference ?? null,
+          cfg.includes48v ?? false,
+          trk.was48vPitched ?? false,
+          trk.responseToThis48v ?? null,
+          JSON.stringify(trk.suggestedUpgradeIds ?? []),
+          JSON.stringify(trk.addedUpgradeIds ?? []),
+          status === "completed",
+          status === "completed" ? new Date() : null,
+        ]
+      );
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("AI chat save error:", error);
+      res.status(500).json({ error: "Failed to save conversation" });
+    }
+  });
+
+  app.get("/api/admin/ai-conversations", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { status, includes48v, dateFrom, dateTo, limit = "50", offset = "0" } = req.query as Record<string, string>;
+
+      let where = "WHERE 1=1";
+      const params: any[] = [];
+      let idx = 1;
+
+      if (status) { where += ` AND status = $${idx++}`; params.push(status); }
+      if (includes48v !== undefined) { where += ` AND includes_48v = $${idx++}`; params.push(includes48v === "true"); }
+      if (dateFrom) { where += ` AND created_at >= $${idx++}`; params.push(new Date(dateFrom)); }
+      if (dateTo) { where += ` AND created_at <= $${idx++}`; params.push(new Date(dateTo)); }
+
+      const [rows, stats] = await Promise.all([
+        pool.query(
+          `SELECT id, session_id, status, contact_name, contact_phone, van_type, van_size, spec_level,
+                  finance_preference, includes_48v, was_48v_pitched, response_to_48v, config_completed,
+                  marked_contacted, created_at, completed_at
+           FROM ai_conversations ${where}
+           ORDER BY created_at DESC
+           LIMIT $${idx} OFFSET $${idx + 1}`,
+          [...params, parseInt(limit), parseInt(offset)]
+        ),
+        pool.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE created_at >= date_trunc('month', NOW())) AS total_this_month,
+            COUNT(*) FILTER (WHERE config_completed AND created_at >= date_trunc('month', NOW())) AS completed_this_month,
+            COUNT(*) FILTER (WHERE includes_48v AND created_at >= date_trunc('month', NOW())) AS includes_48v_this_month,
+            COUNT(*) FILTER (WHERE (contact_name IS NOT NULL OR contact_phone IS NOT NULL) AND created_at >= date_trunc('month', NOW())) AS leads_captured_this_month
+          FROM ai_conversations
+        `),
+      ]);
+
+      const s = stats.rows[0];
+      const totalThisMonth = parseInt(s.total_this_month) || 0;
+      const completedThisMonth = parseInt(s.completed_this_month) || 0;
+      const includes48vThisMonth = parseInt(s.includes_48v_this_month) || 0;
+      const leadsCapturedThisMonth = parseInt(s.leads_captured_this_month) || 0;
+
+      res.json({
+        conversations: rows.rows,
+        stats: {
+          totalThisMonth,
+          completionRate: totalThisMonth > 0 ? Math.round((completedThisMonth / totalThisMonth) * 100) : 0,
+          fortyEightVConversionRate: totalThisMonth > 0 ? Math.round((includes48vThisMonth / totalThisMonth) * 100) : 0,
+          leadCaptureRate: totalThisMonth > 0 ? Math.round((leadsCapturedThisMonth / totalThisMonth) * 100) : 0,
+        },
+      });
+    } catch (error) {
+      console.error("AI conversations list error:", error);
+      res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  // Static routes MUST come before parameterised /:id routes
+  app.get("/api/admin/ai-conversations/export/csv", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, session_id, status, contact_name, contact_phone, van_type, van_size,
+                finance_preference, includes_48v, was_48v_pitched, response_to_48v,
+                config_completed, marked_contacted, created_at
+         FROM ai_conversations ORDER BY created_at DESC`
+      );
+
+      const header = "ID,Session ID,Status,Name,Phone,Van Type,Van Size,Finance,48V,48V Pitched,48V Response,Config Completed,Contacted,Created At\n";
+      const csvRows = rows.map(r =>
+        [
+          r.id, r.session_id, r.status,
+          r.contact_name ?? "", r.contact_phone ?? "",
+          r.van_type ?? "", r.van_size ?? "",
+          r.finance_preference ?? "",
+          r.includes_48v ? "Yes" : "No",
+          r.was_48v_pitched ? "Yes" : "No",
+          r.response_to_48v ?? "",
+          r.config_completed ? "Yes" : "No",
+          r.marked_contacted ? "Yes" : "No",
+          new Date(r.created_at).toISOString(),
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")
+      ).join("\n");
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="ai-conversations-${Date.now()}.csv"`);
+      res.send(header + csvRows);
+    } catch (error) {
+      console.error("AI CSV export error:", error);
+      res.status(500).json({ error: "Export failed" });
+    }
+  });
+
+  app.get("/api/admin/ai-conversations/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { rows } = await pool.query(
+        "SELECT * FROM ai_conversations WHERE id = $1",
+        [req.params.id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "Not found" });
+      res.json(rows[0]);
+    } catch (error) {
+      console.error("AI conversation detail error:", error);
+      res.status(500).json({ error: "Failed to fetch conversation" });
+    }
+  });
+
+  app.patch("/api/admin/ai-conversations/:id/contacted", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      await pool.query(
+        "UPDATE ai_conversations SET marked_contacted = TRUE WHERE id = $1",
+        [req.params.id]
+      );
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("AI conversation mark contacted error:", error);
+      res.status(500).json({ error: "Failed to update" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

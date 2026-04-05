@@ -504,3 +504,28 @@ export const analyticsEvents = pgTable("analytics_events", {
 export type AnalyticsSession = typeof analyticsSessions.$inferSelect;
 export type AnalyticsPageview = typeof analyticsPageviews.$inferSelect;
 export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+
+export const aiConversations = pgTable("ai_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  status: varchar("status").notNull().default("in_progress"),
+  messages: json("messages").$type<Array<{role: string; content: string}>>().notNull().default([]),
+  mappedConfig: json("mapped_config").$type<Record<string, unknown>>(),
+  contactName: varchar("contact_name"),
+  contactPhone: varchar("contact_phone"),
+  vanType: varchar("van_type"),
+  vanSize: varchar("van_size"),
+  specLevel: varchar("spec_level"),
+  financePreference: varchar("finance_preference"),
+  includes48v: boolean("includes_48v").notNull().default(false),
+  was48vPitched: boolean("was_48v_pitched").notNull().default(false),
+  responseToThis48v: varchar("response_to_48v"),
+  suggestedUpgradeIds: json("suggested_upgrade_ids").$type<string[]>().notNull().default([]),
+  addedUpgradeIds: json("added_upgrade_ids").$type<string[]>().notNull().default([]),
+  configCompleted: boolean("config_completed").notNull().default(false),
+  markedContacted: boolean("marked_contacted").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export type AiConversation = typeof aiConversations.$inferSelect;
