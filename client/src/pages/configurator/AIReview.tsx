@@ -26,11 +26,21 @@ import {
   CreditCard,
   Car,
   Star,
+  ReceiptText,
+  Info,
 } from "lucide-react";
 import type { Kit, Upgrade, FinancePlan } from "@shared/schema";
 import type { AIConfig, AITrackers } from "@/lib/aiConfiguratorMapping";
 
 const AI_CHAT_KEY = "ai-chat:v1";
+
+const formatPrice = (pence: number): string =>
+  new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(pence / 100);
 
 const CATEGORY_LABELS: Record<string, string> = {
   "air-systems": "Air Systems",
@@ -98,11 +108,11 @@ function buildUpgradeGroups(upgrades: Upgrade[]): Record<string, UpgradeCategory
   }
 
   // Distribute into categories
-  for (const group of groupMap.values()) {
+  groupMap.forEach(group => {
     const cat = group.parent.category ?? "Other";
     ensureCat(cat);
     categoryMap[cat].groups.push(group);
-  }
+  });
 
   // Standalones: no parentId and not a parent of variants
   for (const u of upgrades) {
@@ -425,6 +435,9 @@ export default function AIReview() {
                       {groups.map(({ parent, variants }) => {
                         const selectedVariant = variants.find(v => state.upgradeIds.includes(v.id));
                         const groupSelected = !!selectedVariant;
+                        const minPrice = variants.length > 0
+                          ? Math.min(...variants.map(v => v.price).filter(p => p > 0))
+                          : 0;
                         return (
                           <div
                             key={parent.id}
@@ -443,11 +456,20 @@ export default function AIReview() {
                                 className="mt-0.5 data-[state=checked]:bg-[#8bc440] data-[state=checked]:border-[#8bc440]"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="text-sm font-medium">{parent.name}</span>
-                                  {parent.popular && (
-                                    <Badge variant="outline" className="text-[10px] py-0">Popular</Badge>
-                                  )}
+                                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-sm font-medium">{parent.name}</span>
+                                    {parent.popular && (
+                                      <Badge variant="outline" className="text-[10px] py-0">Popular</Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-semibold text-muted-foreground shrink-0">
+                                    {groupSelected && selectedVariant && selectedVariant.price > 0
+                                      ? formatPrice(selectedVariant.price)
+                                      : minPrice > 0
+                                      ? `From ${formatPrice(minPrice)}`
+                                      : ""}
+                                  </span>
                                 </div>
                                 {parent.description && (
                                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{parent.description}</p>
@@ -471,7 +493,7 @@ export default function AIReview() {
                                     {variants.map(v => (
                                       <SelectItem key={v.id} value={v.id} className="text-xs">
                                         {v.variantName ?? v.name}
-                                        {v.price ? ` — £${v.price.toLocaleString()}` : ""}
+                                        {v.price > 0 ? ` — ${formatPrice(v.price)}` : ""}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -499,10 +521,17 @@ export default function AIReview() {
                               className="mt-0.5 data-[state=checked]:bg-[#8bc440] data-[state=checked]:border-[#8bc440]"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-sm font-medium">{u.name}</span>
-                                {u.popular && (
-                                  <Badge variant="outline" className="text-[10px] py-0">Popular</Badge>
+                              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-sm font-medium">{u.name}</span>
+                                  {u.popular && (
+                                    <Badge variant="outline" className="text-[10px] py-0">Popular</Badge>
+                                  )}
+                                </div>
+                                {u.price > 1 && (
+                                  <span className="text-sm font-semibold text-muted-foreground shrink-0">
+                                    {formatPrice(u.price)}
+                                  </span>
                                 )}
                               </div>
                               {u.description && (
@@ -566,6 +595,73 @@ export default function AIReview() {
               })}
             </div>
           </Section>
+
+          {/* Price Summary */}
+          {(() => {
+            const kitPrice = selectedKit?.price ?? 0;
+            const upgradesSubtotal = selectedUpgrades.reduce((sum, u) => sum + (u.price > 1 ? u.price : 0), 0);
+            const subtotal = kitPrice + upgradesSubtotal;
+            const vat = Math.round(subtotal * 0.2);
+            const total = subtotal + vat;
+            if (subtotal === 0) return null;
+            return (
+              <Card data-testid="card-price-summary">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ReceiptText className="w-4 h-4 text-muted-foreground" />
+                    Build Estimate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {/* Line items */}
+                  <div className="space-y-1.5 text-sm">
+                    {selectedKit && kitPrice > 0 && (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground truncate">{selectedKit.name}</span>
+                        <span className="shrink-0 font-medium">{formatPrice(kitPrice)}</span>
+                      </div>
+                    )}
+                    {selectedUpgrades.filter(u => u.price > 1).map(u => {
+                      const parentName = u.parentId
+                        ? allUpgrades.find(p => p.id === u.parentId)?.name
+                        : null;
+                      const label = parentName
+                        ? `${parentName}${u.variantName ? ` (${u.variantName})` : ""}`
+                        : u.name;
+                      return (
+                        <div key={u.id} className="flex justify-between gap-4">
+                          <span className="text-muted-foreground truncate">{label}</span>
+                          <span className="shrink-0 font-medium">{formatPrice(u.price)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Subtotal + VAT + Total */}
+                  <div className="border-t pt-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between gap-4 text-muted-foreground">
+                      <span>Subtotal (ex VAT)</span>
+                      <span>{formatPrice(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between gap-4 text-muted-foreground">
+                      <span>VAT (20%)</span>
+                      <span>{formatPrice(vat)}</span>
+                    </div>
+                    <div className="flex justify-between gap-4 font-bold text-base border-t pt-2 mt-1">
+                      <span>Total inc VAT</span>
+                      <span className="text-[#8bc440]" data-testid="text-build-total">{formatPrice(total)}</span>
+                    </div>
+                  </div>
+
+                  {/* Disclaimer */}
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded-md p-2.5">
+                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <span>This is an estimate based on your selections. Final pricing is confirmed when you get your quote — there are no hidden costs.</span>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Proceed CTA */}
           <div className="pt-2 pb-10">
