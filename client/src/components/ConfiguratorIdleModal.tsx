@@ -59,14 +59,14 @@ export default function ConfiguratorIdleModal() {
             Struggling with the configurator?
           </h2>
           <p className="text-white/90 text-sm mt-2">
-            Let our AI expert build a van spec for you — just answer a few quick questions.
+            Let Max build your van spec for you — just answer a few quick questions.
           </p>
         </div>
 
         {/* Body */}
         <div className="px-6 py-6 space-y-3 bg-card">
           <p className="text-sm text-muted-foreground">
-            Our AI assistant will ask about your daily jobs, van preference and budget — then put together
+            Max will ask about your daily jobs, van preference and budget — then put together
             a complete, priced build in minutes.
           </p>
 
@@ -75,7 +75,7 @@ export default function ConfiguratorIdleModal() {
             className="w-full bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440] gap-2"
             data-testid="button-idle-open-ai"
           >
-            Chat with our AI expert
+            Chat with Max
             <ArrowRight className="w-4 h-4" />
           </Button>
 

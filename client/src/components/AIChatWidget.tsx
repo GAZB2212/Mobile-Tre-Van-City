@@ -251,7 +251,7 @@ export default function AIChatWidget() {
         saveToDb([...msgs, assistantMsg], data.config ?? config, data.trackers ?? trackers, "in_progress");
       }
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Our AI assistant is temporarily unavailable. You can still use the configurator directly.");
+      setErrorMsg(err?.message ?? "Max is temporarily unavailable. You can still use the configurator directly.");
     } finally {
       setLoading(false);
     }
@@ -391,7 +391,7 @@ export default function AIChatWidget() {
           className="fixed bottom-24 right-5 z-[10000] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#8bc440] text-[#191919] font-semibold shadow-lg hover:bg-[#8bc440]/90 transition-colors text-sm"
         >
           <Bot size={18} />
-          Build your van with AI
+          Build your van with Max
           {hasResume && (
             <span className="w-2 h-2 rounded-full bg-[#191919]/40 ml-0.5" />
           )}
@@ -413,8 +413,8 @@ export default function AIChatWidget() {
                 <Bot size={16} className="text-[#8bc440]" />
               </div>
               <div>
-                <div className="text-white font-semibold text-sm leading-none">Van Builder</div>
-                <div className="text-white/40 text-xs mt-0.5">Mobile Tyre Van City</div>
+                <div className="text-white font-semibold text-sm leading-none">Max</div>
+                <div className="text-white/40 text-xs mt-0.5">AI Van Builder · Mobile Tyre Van City</div>
               </div>
             </div>
             <button
