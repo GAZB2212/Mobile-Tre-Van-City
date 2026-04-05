@@ -4615,11 +4615,13 @@ ${blogEntries}
       }
 
       // Fetch live data to inject into system prompt (so AI uses real IDs)
-      const [kits, upgrades, financePlans] = await Promise.all([
+      const [kits, upgrades, financePlans, packagesResult] = await Promise.all([
         storage.getKits(),
         storage.getUpgrades(),
         storage.getFinancePlans(),
+        pool.query("SELECT * FROM ai_packages WHERE active = TRUE ORDER BY tier ASC"),
       ]);
+      const packages: Array<{ id: string; name: string; tier: number; description: string | null; recommended_for: string | null; upgrade_ids: string[] }> = packagesResult.rows;
 
       const kitsInfo = kits.map(k => {
         const isEuro6 = k.id.includes("euro6") && !k.id.includes("non-euro6");
@@ -4634,6 +4636,11 @@ ${blogEntries}
       const financePlansInfo = financePlans.map(p =>
         `- "${p.name}" (id: "${p.id}", type: ${p.type}, term: ${p.termMonths} months)`
       ).join("\n");
+
+      const packagesInfo = packages.map(p => {
+        const upgradeNames = p.upgrade_ids.map((uid: string) => upgrades.find(u => u.id === uid)?.name || uid).join(", ");
+        return `- ${p.name.toUpperCase()} (id: "${p.id}", tier: ${p.tier})\n  Recommended for: ${p.recommended_for || "N/A"}\n  Upgrades: ${upgradeNames || "none configured yet"}`;
+      }).join("\n");
 
       const systemPrompt = `You are an AI assistant for Mobile Tyre Van City, the UK's leading mobile tyre van conversion specialists based in Bromborough, Wirral. Phone: 0151 203 8500. Website: www.mobiletyrevancity.co.uk
 
@@ -4655,6 +4662,18 @@ ${upgradesInfo || "No upgrades configured yet"}
 
 AVAILABLE FINANCE PLANS (use exact IDs):
 ${financePlansInfo || "No finance plans configured yet"}
+
+AVAILABLE PACKAGES — choose exactly one per build (set packageId and upgradeIds together):
+${packagesInfo || "No packages configured yet. Use upgradeIds freely."}
+
+PACKAGE SELECTION RULES:
+Bronze = budget-conscious, just starting out, or lower volume (under 15 jobs/day)
+Silver = growing operation, 10–20 jobs/day, best balance of kit and cost — our most popular
+Gold = high volume (20+ jobs/day), maximum capability, professional setup
+Base your recommendation primarily on Q2 (daily workload) and Q1 (purpose/context).
+→ Once package is selected, set BOTH packageId and upgradeIds to that package's upgrade list exactly.
+→ If the customer wants a different tier, update BOTH packageId and upgradeIds together.
+→ NEVER mix upgrade IDs from different packages — a package is a complete spec.
 
 KIT SELECTION — how to determine the correct kitId:
 The kit is determined by TWO factors: Euro 6 status and machine type.
@@ -4713,9 +4732,16 @@ Ask something like: "One thing worth knowing about — do you want a standard ty
    - Lower volume → semi-auto is fine
 Once you have machineType AND isEuro6, set kitId immediately using the KIT SELECTION rules above.
 
-Q6 — 48V LITHIUM SYSTEM (dedicated pitch moment — never treat as throwaway):
+Q6 — PACKAGE RECOMMENDATION (after machine type is confirmed):
+Based on Q1 (purpose) and Q2 (daily workload), make a clear recommendation — do NOT present all three at once.
+Example: "Based on [their workload] jobs a day and [their situation], I'd suggest our Silver package — here's what comes with it: [2–3 key items from the package]. Want to go with that, or would you like to see what's in the Gold tier too?"
+→ Immediately set packageId and upgradeIds to the recommended package's values on recommendation
+→ If customer wants a different tier, update BOTH packageId and upgradeIds to that tier's values
+→ Keep it conversational — never present a bullet-list of all three packages unless they ask to compare
+
+Q7 — 48V LITHIUM SYSTEM (dedicated pitch moment — never treat as throwaway):
 Give this a dedicated moment. Say something like:
-"Before we sort the extras — can I tell you about something most of our customers say is the best thing about their van once they're out on the road?
+"Before we lock this in — can I tell you about something most of our customers say is the best thing about their van once they're out on the road?
 
 We fit a 48V lithium silent compressor system using an ABAC professional compressor. Here's what that means for your day: it's completely silent — no generator noise while you work. It runs off the lithium battery, not the engine, so zero fuel cost. You can work with doors shut in winter — no fumes, no cold. The ABAC compressor runs at 10 bar at 100% duty cycle, flat out all day. The power system — battery, inverter and all electrical components — comes with a 5-year warranty. The ABAC compressor itself has a 12-month warranty with servicing only every 3,000 run hours.
 
@@ -4735,10 +4761,6 @@ CRITICAL WARRANTY RULES — NEVER MIX THESE UP:
 - "I've always used diesel/petrol" → "Most of our customers said exactly that. Within a week they're telling us they'd never go back — no fumes, no noise, no fuel cost."
 - "I'll think about it" → Add 48V to config by default, say "No problem — I'll add it to your config as an optional extra so you can see it priced up. Easy to remove if you decide against it."
 - Hard NO → include one final soft mention on summary card only, then drop it completely. Track as "hard_no".
-
-Q7 — EXTRAS:
-"Any specific extras you already know you want? Things like additional lighting, racking layout, tyre pressure display, livery and wrap — anything like that?"
-→ Map mentions to relevant upgrade IDs from the list above
 
 Q8 — FINANCE:
 "How are you looking to fund this — buy outright, business lease, or spread the cost with finance?"
@@ -4765,6 +4787,7 @@ You MUST always respond with valid JSON only — no other text outside the JSON.
     "serviceType": "car" or "commercial" or "hybrid" or null,
     "isEuro6": true/false/null,
     "machineType": "semi-auto" or "fully-auto" or null,
+    "packageId": "bronze" or "silver" or "gold" or null,
     "kitId": "<exact id from list above>" or null,
     "upgradeIds": ["<exact id>", ...],
     "financePlanId": "<exact id from list>" or null,
@@ -4985,6 +5008,44 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     } catch (error) {
       console.error("AI conversation mark contacted error:", error);
       res.status(500).json({ error: "Failed to update" });
+    }
+  });
+
+  // ─── Admin: AI Packages (Bronze / Silver / Gold) ─────────────────────────
+  app.get("/api/admin/ai-packages", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const result = await pool.query("SELECT * FROM ai_packages ORDER BY tier ASC");
+      res.json(result.rows);
+    } catch (error) {
+      console.error("AI packages fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch packages" });
+    }
+  });
+
+  app.patch("/api/admin/ai-packages/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { description, recommendedFor, upgradeIds, active } = req.body;
+      const result = await pool.query(
+        `UPDATE ai_packages SET
+          description = COALESCE($1, description),
+          recommended_for = COALESCE($2, recommended_for),
+          upgrade_ids = COALESCE($3::jsonb, upgrade_ids),
+          active = COALESCE($4, active)
+         WHERE id = $5 RETURNING *`,
+        [
+          description ?? null,
+          recommendedFor ?? null,
+          upgradeIds !== undefined ? JSON.stringify(upgradeIds) : null,
+          active !== undefined ? active : null,
+          id,
+        ]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: "Package not found" });
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error("AI package update error:", error);
+      res.status(500).json({ error: "Failed to update package" });
     }
   });
 

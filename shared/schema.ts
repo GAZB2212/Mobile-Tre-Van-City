@@ -529,3 +529,18 @@ export const aiConversations = pgTable("ai_conversations", {
 });
 
 export type AiConversation = typeof aiConversations.$inferSelect;
+
+// ─── AI Packages (Bronze / Silver / Gold) ───────────────────────────────────
+// Managed in the admin panel. Provides the AI with a finite set of tiered
+// packages so it recommends a complete spec rather than picking upgrades ad-hoc.
+export const aiPackages = pgTable("ai_packages", {
+  id: varchar("id", { length: 50 }).primaryKey(), // "bronze" | "silver" | "gold"
+  name: varchar("name", { length: 50 }).notNull(),
+  tier: integer("tier").notNull(), // 1=bronze 2=silver 3=gold
+  description: text("description"),
+  recommendedFor: text("recommended_for"),
+  upgradeIds: json("upgrade_ids").$type<string[]>().notNull().default([]),
+  active: boolean("active").notNull().default(true),
+});
+
+export type AiPackage = typeof aiPackages.$inferSelect;

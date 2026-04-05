@@ -23,7 +23,8 @@ import {
   Image,
   RefreshCw,
   Video,
-  UserRound
+  UserRound,
+  Layers
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -173,6 +174,14 @@ export default function AdminDashboard() {
       icon: Video,
       href: "/admin/videos",
       badge: "Videos",
+      requiredRole: "full" as const
+    },
+    {
+      title: "AI Packages",
+      description: "Configure Bronze, Silver and Gold package tiers for the AI assistant to recommend",
+      icon: Layers,
+      href: "/admin/ai-packages",
+      badge: "AI",
       requiredRole: "full" as const
     },
     {

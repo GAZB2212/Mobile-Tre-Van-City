@@ -26,6 +26,7 @@ export interface AIConfig {
   serviceType: ServiceType | null;
   isEuro6: boolean | null;
   machineType: "semi-auto" | "fully-auto" | null;
+  packageId: "bronze" | "silver" | "gold" | null;
   kitId: string | null;
   upgradeIds: string[];
   financePlanId: string | null;
@@ -69,6 +70,7 @@ export const defaultConfig: AIConfig = {
   serviceType: null,
   isEuro6: null,
   machineType: null,
+  packageId: null,
   kitId: null,
   upgradeIds: [],
   financePlanId: null,

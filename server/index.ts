@@ -222,6 +222,34 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ Blog posts table ready"))
         .catch((err: Error) => console.error("Blog migration:", err.message));
+      // Create ai_packages table and seed Bronze/Silver/Gold defaults
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS ai_packages (
+          id VARCHAR(50) PRIMARY KEY,
+          name VARCHAR(50) NOT NULL,
+          tier INTEGER NOT NULL,
+          description TEXT,
+          recommended_for TEXT,
+          upgrade_ids JSONB NOT NULL DEFAULT '[]',
+          active BOOLEAN NOT NULL DEFAULT TRUE
+        );
+        INSERT INTO ai_packages (id, name, tier, description, recommended_for, upgrade_ids) VALUES
+          ('bronze', 'Bronze', 1,
+           'Essential starter package with everything you need to get up and running professionally.',
+           'Budget-conscious, just starting out, or lower volume (under 15 jobs per day).',
+           '["light-pack-standard","standard-reversing-camera","accessories-pack-1"]'::jsonb),
+          ('silver', 'Silver', 2,
+           'Our most popular mid-spec package — the right balance of capability and cost.',
+           'Growing operations, 10–20 jobs per day, or those wanting a professional setup without going full premium.',
+           '["light-pack-upgraded","front-facing-dash-camera","standard-reversing-camera","accessories-pack-2","vehicle-tracker"]'::jsonb),
+          ('gold', 'Gold', 3,
+           'Full-spec premium package — everything you need to run a high-volume, professional mobile tyre operation.',
+           'High-volume operators (20+ jobs per day), fleet expansions, or those wanting maximum capability from day one.',
+           '["light-pack-upgraded","van-cctv-system","apple-carplay","accessories-pack-3","vehicle-tracker","vehicle-immobiliser"]'::jsonb)
+        ON CONFLICT (id) DO NOTHING;
+      `)
+        .then(() => log("✅ AI packages table ready"))
+        .catch((err: Error) => console.error("AI packages migration:", err.message));
     });
   });
 })();
