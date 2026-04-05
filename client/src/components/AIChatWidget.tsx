@@ -504,7 +504,7 @@ export default function AIChatWidget() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type your reply..."
                 disabled={loading}
-                className="flex-1 bg-white/8 text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors disabled:opacity-50"
+                className="flex-1 bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
