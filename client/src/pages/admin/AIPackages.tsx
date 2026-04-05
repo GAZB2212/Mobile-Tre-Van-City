@@ -247,7 +247,7 @@ export default function AdminAIPackages() {
                             {includedUpgrades.map(u => (
                               <li key={u.id} className="flex items-center gap-2 text-sm">
                                 <Check className="w-3.5 h-3.5 text-[#8bc440] flex-shrink-0" />
-                                <span>{u.name}</span>
+                                <span>{u.variantName ? `${upgrades?.find(p => p.id === u.parentId)?.name ?? u.name} — ${u.variantName}` : u.name}</span>
                               </li>
                             ))}
                           </ul>
@@ -337,7 +337,7 @@ export default function AdminAIPackages() {
                                     <SelectItem value="__none__">Not included</SelectItem>
                                     {group.variants.map(v => (
                                       <SelectItem key={v.id} value={v.id}>
-                                        {v.name}
+                                        {v.variantName || v.name}
                                         {v.popular && " ★"}
                                       </SelectItem>
                                     ))}
