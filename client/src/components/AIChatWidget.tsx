@@ -376,12 +376,12 @@ export default function AIChatWidget() {
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Floating trigger button — sits above the contact chat bubble (which is at bottom-5) */}
       {!open && (
         <button
           onClick={handleOpen}
           data-testid="button-ai-chat-open"
-          className="fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#8bc440] text-[#191919] font-semibold shadow-lg hover:bg-[#8bc440]/90 transition-colors text-sm"
+          className="fixed bottom-24 right-5 z-[10000] flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[#8bc440] text-[#191919] font-semibold shadow-lg hover:bg-[#8bc440]/90 transition-colors text-sm"
         >
           <Bot size={18} />
           Build your van with AI
@@ -391,13 +391,13 @@ export default function AIChatWidget() {
         </button>
       )}
 
-      {/* Chat panel */}
+      {/* Chat panel — z-[10000] ensures it covers the contact chat bubble when open */}
       {open && (
         <div
           data-testid="panel-ai-chat"
-          className="fixed z-[100] flex flex-col bg-[#141414] border border-white/10 shadow-2xl
+          className="fixed z-[10000] flex flex-col bg-[#141414] border border-white/10 shadow-2xl
             bottom-0 right-0 w-full h-full
-            md:bottom-6 md:right-6 md:w-[400px] md:h-[620px] md:rounded-2xl"
+            md:bottom-5 md:right-5 md:w-[400px] md:h-[620px] md:rounded-2xl"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
