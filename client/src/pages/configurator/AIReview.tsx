@@ -9,11 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
   Check,
-  Pencil,
   Zap,
   Package,
   Layers,
@@ -51,6 +57,63 @@ interface AIChatState {
   stage: string;
   trackers: AITrackers;
   savedAt: string;
+}
+
+interface UpgradeGroup {
+  parent: Upgrade;
+  variants: Upgrade[];
+}
+
+interface UpgradeCategoryItems {
+  groups: UpgradeGroup[];
+  standalones: Upgrade[];
+}
+
+function buildUpgradeGroups(upgrades: Upgrade[]): Record<string, UpgradeCategoryItems> {
+  const parentIds = new Set<string>();
+  for (const u of upgrades) {
+    if (u.parentId) parentIds.add(u.parentId);
+  }
+
+  const categoryMap: Record<string, UpgradeCategoryItems> = {};
+
+  const ensureCat = (cat: string) => {
+    if (!categoryMap[cat]) categoryMap[cat] = { groups: [], standalones: [] };
+  };
+
+  // Build variant groups
+  const groupMap = new Map<string, UpgradeGroup>();
+  for (const u of upgrades) {
+    if (u.parentId) {
+      const parent = upgrades.find(p => p.id === u.parentId);
+      if (parent) {
+        let group = groupMap.get(u.parentId);
+        if (!group) {
+          group = { parent, variants: [] };
+          groupMap.set(u.parentId, group);
+        }
+        group.variants.push(u);
+      }
+    }
+  }
+
+  // Distribute into categories
+  for (const group of groupMap.values()) {
+    const cat = group.parent.category ?? "Other";
+    ensureCat(cat);
+    categoryMap[cat].groups.push(group);
+  }
+
+  // Standalones: no parentId and not a parent of variants
+  for (const u of upgrades) {
+    if (!u.parentId && !parentIds.has(u.id)) {
+      const cat = u.category ?? "Other";
+      ensureCat(cat);
+      categoryMap[cat].standalones.push(u);
+    }
+  }
+
+  return categoryMap;
 }
 
 function useAIChatState(): AIChatState | null {
@@ -114,13 +177,26 @@ export default function AIReview() {
   const selectedKit = kits.find(k => k.id === state.kitId);
   const selectedUpgrades = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
 
-  // Group upgrades by category
-  const upgradesByCategory = allUpgrades.reduce<Record<string, Upgrade[]>>((acc, u) => {
-    const cat = u.category ?? "Other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(u);
-    return acc;
-  }, {});
+  // Build grouped upgrade structure
+  const upgradesByCategory = buildUpgradeGroups(allUpgrades);
+
+  // Toggle a variant group on/off — selects first variant when enabling
+  const handleToggleGroup = (parentId: string, variants: Upgrade[]) => {
+    const selectedVariant = variants.find(v => state.upgradeIds.includes(v.id));
+    if (selectedVariant) {
+      removeUpgrade(selectedVariant.id);
+    } else if (variants.length > 0) {
+      addUpgrade(variants[0].id);
+    }
+  };
+
+  // Swap to a different variant within the same group
+  const handleVariantChange = (parentId: string, newVariantId: string) => {
+    const allVariantsForGroup = allUpgrades.filter(u => u.parentId === parentId);
+    const currentlySelected = allVariantsForGroup.find(v => state.upgradeIds.includes(v.id));
+    if (currentlySelected) removeUpgrade(currentlySelected.id);
+    addUpgrade(newVariantId);
+  };
 
   const packageLabel: Record<string, string> = {
     bronze: "Bronze",
@@ -247,26 +323,37 @@ export default function AIReview() {
                   Currently in your build
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {selectedUpgrades.map(u => (
-                    <button
-                      key={u.id}
-                      onClick={() => removeUpgrade(u.id)}
-                      data-testid={`button-remove-upgrade-${u.id}`}
-                      className="flex items-center gap-1.5 text-xs bg-[#8bc440]/15 text-[#8bc440] border border-[#8bc440]/30 rounded-md px-2 py-1 hover:bg-red-500/15 hover:text-red-400 hover:border-red-400/30 transition-colors"
-                    >
-                      <Check className="w-3 h-3" />
-                      {u.name}
-                      <span className="opacity-60 ml-0.5">✕</span>
-                    </button>
-                  ))}
+                  {selectedUpgrades.map(u => {
+                    const parentName = u.parentId
+                      ? allUpgrades.find(p => p.id === u.parentId)?.name
+                      : null;
+                    const label = parentName
+                      ? `${parentName} (${u.variantName ?? u.name})`
+                      : u.name;
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => removeUpgrade(u.id)}
+                        data-testid={`button-remove-upgrade-${u.id}`}
+                        className="flex items-center gap-1.5 text-xs bg-[#8bc440]/15 text-[#8bc440] border border-[#8bc440]/30 rounded-md px-2 py-1 hover:bg-red-500/15 hover:text-red-400 hover:border-red-400/30 transition-colors"
+                      >
+                        <Check className="w-3 h-3" />
+                        {label}
+                        <span className="opacity-60 ml-0.5">✕</span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-2">Click any item to remove it</p>
               </div>
             )}
 
             <div className="space-y-5">
-              {Object.entries(upgradesByCategory).sort().map(([category, catUpgrades]) => {
-                const hasSelected = catUpgrades.some(u => state.upgradeIds.includes(u.id));
+              {Object.entries(upgradesByCategory).sort().map(([category, { groups, standalones }]) => {
+                const hasSelected =
+                  groups.some(g => g.variants.some(v => state.upgradeIds.includes(v.id))) ||
+                  standalones.some(u => state.upgradeIds.includes(u.id));
+                if (groups.length === 0 && standalones.length === 0) return null;
                 return (
                   <div key={category}>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -274,7 +361,68 @@ export default function AIReview() {
                       {hasSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#8bc440] inline-block" />}
                     </p>
                     <div className="space-y-2">
-                      {catUpgrades.map(u => {
+                      {/* Variant groups — one row per parent, with dropdown when selected */}
+                      {groups.map(({ parent, variants }) => {
+                        const selectedVariant = variants.find(v => state.upgradeIds.includes(v.id));
+                        const groupSelected = !!selectedVariant;
+                        return (
+                          <div
+                            key={parent.id}
+                            className={`rounded-md border p-2.5 transition-colors ${
+                              groupSelected ? "border-[#8bc440]/50 bg-[#8bc440]/5" : "border-border"
+                            }`}
+                          >
+                            <div
+                              className="flex items-start gap-3 cursor-pointer"
+                              onClick={() => handleToggleGroup(parent.id, variants)}
+                              data-testid={`checkbox-upgrade-group-${parent.id}`}
+                            >
+                              <Checkbox
+                                checked={groupSelected}
+                                onCheckedChange={() => handleToggleGroup(parent.id, variants)}
+                                className="mt-0.5 data-[state=checked]:bg-[#8bc440] data-[state=checked]:border-[#8bc440]"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-sm font-medium">{parent.name}</span>
+                                  {parent.popular && (
+                                    <Badge variant="outline" className="text-[10px] py-0">Popular</Badge>
+                                  )}
+                                </div>
+                                {parent.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{parent.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            {/* Variant selector — only visible when group is checked */}
+                            {groupSelected && variants.length > 1 && (
+                              <div className="mt-2 ml-7" onClick={e => e.stopPropagation()}>
+                                <Select
+                                  value={selectedVariant?.id ?? ""}
+                                  onValueChange={val => handleVariantChange(parent.id, val)}
+                                >
+                                  <SelectTrigger
+                                    className="h-8 text-xs"
+                                    data-testid={`select-variant-${parent.id}`}
+                                  >
+                                    <SelectValue placeholder="Choose option…" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {variants.map(v => (
+                                      <SelectItem key={v.id} value={v.id} className="text-xs">
+                                        {v.variantName ?? v.name}
+                                        {v.price ? ` — £${v.price.toLocaleString()}` : ""}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {/* Standalone upgrades (no variants) */}
+                      {standalones.map(u => {
                         const selected = state.upgradeIds.includes(u.id);
                         return (
                           <div
