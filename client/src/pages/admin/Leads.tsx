@@ -35,13 +35,14 @@ import {
   Plus,
   ExternalLink,
   StickyNote,
-  Bot,
   CheckCircle2,
   XCircle,
   Percent,
   Eye,
   PhoneCall,
+  Zap,
 } from "lucide-react";
+import maxAvatarSrc from "@assets/max-avatar.png";
 
 type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "closed" | "dead";
 
@@ -761,8 +762,8 @@ export default function AdminLeads() {
                     <CardContent className="p-4">
                       <div className="flex flex-wrap items-start gap-4 justify-between">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                            <Bot className="w-4 h-4 text-muted-foreground" />
+                          <div className="w-9 h-9 rounded-full overflow-hidden ring-1 ring-border shrink-0">
+                            <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -830,26 +831,98 @@ export default function AdminLeads() {
 
       {/* Transcript modal */}
       <Dialog open={!!transcriptConv} onOpenChange={open => !open && setTranscriptConv(null)}>
-        <DialogContent className="max-w-xl max-h-[80vh] flex flex-col" data-testid="dialog-transcript">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="w-5 h-5" />
-              Conversation Transcript
-              {transcriptConv?.contact_name && <span className="text-muted-foreground font-normal">— {transcriptConv.contact_name}</span>}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0" data-testid="dialog-transcript">
+          <DialogTitle className="sr-only">
+            Chat transcript — {transcriptConv?.contact_name ?? "Anonymous"}
+          </DialogTitle>
+          {/* Header */}
+          <div className="flex items-center gap-3 px-5 py-4 border-b shrink-0">
+            <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#8bc440]/30 shrink-0">
+              <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm leading-none">
+                Max — Chat with {transcriptConv?.contact_name ?? "Anonymous"}
+              </p>
+              {transcriptConv?.contact_phone && (
+                <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                  <Phone className="w-3 h-3" />{transcriptConv.contact_phone}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 shrink-0">
+              {transcriptConv?.includes_48v && (
+                <Badge className="text-xs bg-[#8bc440]/15 text-[#8bc440] border-[#8bc440]/30" variant="outline">
+                  <Zap className="w-3 h-3 mr-1" />48V
+                </Badge>
+              )}
+              <Badge variant="secondary" className={`text-xs ${
+                transcriptConv?.status === "completed" ? "bg-green-500/15 text-green-400" :
+                transcriptConv?.status === "abandoned" ? "bg-amber-500/15 text-amber-400" :
+                "bg-blue-500/15 text-blue-400"
+              }`}>
+                {transcriptConv?.status?.replace("_", " ")}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Captured spec summary */}
+          {transcriptConv?.mapped_config && (() => {
+            const cfg = typeof transcriptConv.mapped_config === "string"
+              ? JSON.parse(transcriptConv.mapped_config)
+              : transcriptConv.mapped_config;
+            const hasSummary = cfg.serviceType || cfg.vanSize || cfg.machineType || cfg.kitId || cfg.packageId || cfg.financePreference;
+            if (!hasSummary) return null;
+            return (
+              <div className="px-5 py-3 bg-muted/40 border-b shrink-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Captured configuration</p>
+                <div className="flex flex-wrap gap-2">
+                  {cfg.packageId && (
+                    <Badge variant="outline" className="text-xs capitalize">{cfg.packageId} package</Badge>
+                  )}
+                  {cfg.serviceType && (
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {cfg.serviceType === "hybrid" ? "Cars + Commercials" : cfg.serviceType === "commercial" ? "Commercials" : "Cars & vans"}
+                    </Badge>
+                  )}
+                  {cfg.vanSize && <Badge variant="outline" className="text-xs">{cfg.vanSize}</Badge>}
+                  {cfg.machineType && (
+                    <Badge variant="outline" className="text-xs capitalize">{cfg.machineType.replace("-", " ")}</Badge>
+                  )}
+                  {cfg.kitId && <Badge variant="outline" className="text-xs">Kit: {cfg.kitId}</Badge>}
+                  {cfg.financePreference && (
+                    <Badge variant="outline" className="text-xs capitalize">{cfg.financePreference}</Badge>
+                  )}
+                  {cfg.includes48v && (
+                    <Badge variant="outline" className="text-xs text-[#8bc440] border-[#8bc440]/30">48V system</Badge>
+                  )}
+                  {cfg.ownVan === false && <Badge variant="outline" className="text-xs">Needs van supplied</Badge>}
+                  {cfg.ownVan === true && <Badge variant="outline" className="text-xs">Own van</Badge>}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Chat messages */}
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             {(transcriptConv?.messages ?? []).map((m: any, i: number) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-sm ${
-                  m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+              <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                {m.role === "assistant" && (
+                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 mb-0.5">
+                    <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                  </div>
+                )}
+                <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-[#8bc440] text-[#191919] rounded-br-sm"
+                    : "bg-muted text-foreground rounded-bl-sm"
                 }`}>
                   {m.content}
                 </div>
               </div>
             ))}
             {(!transcriptConv?.messages?.length) && (
-              <p className="text-muted-foreground text-sm text-center py-8">No messages recorded</p>
+              <p className="text-muted-foreground text-sm text-center py-8">No messages recorded for this session</p>
             )}
           </div>
         </DialogContent>
