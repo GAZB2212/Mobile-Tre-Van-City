@@ -594,17 +594,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Back-fill AI conversation with contact details if the quote came from an AI session
       const aiSessionId = req.body.aiSessionId as string | undefined;
-      if (aiSessionId && (validatedData.name || validatedData.phone)) {
-        pool.query(
-          `UPDATE ai_conversations
-           SET contact_name = COALESCE(contact_name, $2),
-               contact_phone = COALESCE(contact_phone, $3),
-               config_completed = TRUE,
-               completed_at = COALESCE(completed_at, NOW()),
-               status = CASE WHEN status = 'in_progress' THEN 'completed' ELSE status END
-           WHERE session_id = $1`,
-          [aiSessionId, validatedData.name ?? null, validatedData.phone ?? null]
-        ).catch(err => console.error("AI conversation back-fill error:", err.message));
+      if (aiSessionId) {
+        // Store the link on the quote itself (so we can join later)
+        pool.query(`UPDATE quotes SET ai_session_id = $1 WHERE id = $2`, [aiSessionId, quote.id])
+          .catch(err => console.error("Quote AI session link error:", err.message));
+
+        if (validatedData.name || validatedData.phone) {
+          pool.query(
+            `UPDATE ai_conversations
+             SET contact_name = COALESCE(contact_name, $2),
+                 contact_phone = COALESCE(contact_phone, $3),
+                 config_completed = TRUE,
+                 completed_at = COALESCE(completed_at, NOW()),
+                 status = CASE WHEN status = 'in_progress' THEN 'completed' ELSE status END
+             WHERE session_id = $1`,
+            [aiSessionId, validatedData.name ?? null, validatedData.phone ?? null]
+          ).catch(err => console.error("AI conversation back-fill error:", err.message));
+        }
       }
 
       // Send confirmation email to customer + notification to admin (non-blocking)
@@ -1814,7 +1820,21 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (!quote) {
         return res.status(404).json({ error: "Quote not found" });
       }
-      res.json(quote);
+      // If the quote has an AI session link, fetch the conversation too
+      let aiConversation: any = null;
+      const aiSessionId = (quote as any).aiSessionId || (quote as any).ai_session_id;
+      if (aiSessionId) {
+        const { rows } = await pool.query(
+          `SELECT id, session_id, status, messages, mapped_config, contact_name, contact_phone,
+                  van_type, van_size, spec_level, finance_preference, includes_48v,
+                  was_48v_pitched, response_to_48v, config_completed, marked_contacted,
+                  created_at, completed_at
+           FROM ai_conversations WHERE session_id = $1`,
+          [aiSessionId]
+        );
+        if (rows[0]) aiConversation = rows[0];
+      }
+      res.json({ ...quote, aiConversation });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch quote" });
     }

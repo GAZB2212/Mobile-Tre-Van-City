@@ -58,6 +58,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { upgradeCategories } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import maxAvatarSrc from "@assets/max-avatar.png";
 import type { UploadResult } from "@uppy/core";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -2687,6 +2688,63 @@ export default function AdminQuoteDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* ── Max AI Chat Transcript ── shown in overview when quote came via AI */}
+            {activeTab === "overview" && (quote as any).aiConversation && (() => {
+              const conv = (quote as any).aiConversation;
+              const msgs: Array<{role: string; content: string}> = Array.isArray(conv.messages)
+                ? conv.messages
+                : (typeof conv.messages === "string" ? JSON.parse(conv.messages) : []);
+              return (
+                <Card data-testid="card-ai-transcript">
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer pb-3 hover-elevate rounded-t-md">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-[#8bc440]/30 shrink-0">
+                              <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-base">Max AI Chat Transcript</CardTitle>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {msgs.length} message{msgs.length !== 1 ? "s" : ""} · {conv.status?.replace("_", " ")}
+                                {conv.includes_48v && " · 48V pitched"}
+                              </p>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0 pb-4">
+                        <div className="max-h-96 overflow-y-auto space-y-2.5 pr-1">
+                          {msgs.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-6">No messages recorded.</p>
+                          ) : msgs.map((m, i) => (
+                            <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                              {m.role === "assistant" && (
+                                <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mb-0.5">
+                                  <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                                </div>
+                              )}
+                              <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                                m.role === "user"
+                                  ? "bg-[#8bc440]/20 text-foreground rounded-br-sm"
+                                  : "bg-muted text-foreground rounded-bl-sm"
+                              }`}>
+                                {m.content}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              );
+            })()}
 
           </div>
 

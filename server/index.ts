@@ -174,6 +174,9 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS custom_extras JSONB DEFAULT '[]'`)
         .then(() => log("✅ Custom extras column ready"))
         .catch((err: Error) => console.error("Custom extras migration:", err.message));
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS ai_session_id VARCHAR`)
+        .then(() => log("✅ Quote AI session link column ready"))
+        .catch((err: Error) => console.error("Quote AI session migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_conversations (

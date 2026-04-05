@@ -237,6 +237,9 @@ export const quotes = pgTable("quotes", {
   // Stock management integration — ID returned by autotradeportal.com when build is dispatched
   stockBuildId: text("stock_build_id"),
 
+  // AI session link — session ID of the Max chat that led to this quote
+  aiSessionId: varchar("ai_session_id"),
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),
