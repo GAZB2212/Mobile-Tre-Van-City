@@ -41,6 +41,7 @@ import {
   Eye,
   PhoneCall,
   Zap,
+  Bot,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
