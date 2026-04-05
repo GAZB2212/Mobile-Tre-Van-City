@@ -178,7 +178,7 @@ app.use((req, res, next) => {
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_conversations (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-          session_id VARCHAR NOT NULL,
+          session_id VARCHAR NOT NULL UNIQUE,
           status VARCHAR NOT NULL DEFAULT 'in_progress',
           messages JSON NOT NULL DEFAULT '[]',
           mapped_config JSON,
@@ -201,6 +201,10 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ AI conversations table ready"))
         .catch((err: Error) => console.error("AI conversations migration:", err.message));
+      // Add UNIQUE constraint on session_id if not already present
+      pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS ai_conversations_session_id_unique ON ai_conversations (session_id)
+      `).catch(() => {/* already exists or duplicate rows — silent */});
       pool.query(`
         CREATE TABLE IF NOT EXISTS blog_posts (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),

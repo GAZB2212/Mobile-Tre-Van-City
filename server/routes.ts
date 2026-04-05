@@ -592,6 +592,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const quote = await storage.createQuote(quoteData);
 
+      // Back-fill AI conversation with contact details if the quote came from an AI session
+      const aiSessionId = req.body.aiSessionId as string | undefined;
+      if (aiSessionId && (validatedData.name || validatedData.phone)) {
+        pool.query(
+          `UPDATE ai_conversations
+           SET contact_name = COALESCE(contact_name, $2),
+               contact_phone = COALESCE(contact_phone, $3),
+               config_completed = TRUE,
+               completed_at = COALESCE(completed_at, NOW()),
+               status = CASE WHEN status = 'in_progress' THEN 'completed' ELSE status END
+           WHERE session_id = $1`,
+          [aiSessionId, validatedData.name ?? null, validatedData.phone ?? null]
+        ).catch(err => console.error("AI conversation back-fill error:", err.message));
+      }
+
       // Send confirmation email to customer + notification to admin (non-blocking)
       try {
         const { sendQuoteReceivedEmails } = await import('./email.js');
@@ -4887,7 +4902,23 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           suggested_upgrade_ids, added_upgrade_ids,
           config_completed, completed_at
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-        ON CONFLICT (id) DO NOTHING`,
+        ON CONFLICT (session_id) DO UPDATE SET
+          status = EXCLUDED.status,
+          messages = EXCLUDED.messages,
+          mapped_config = EXCLUDED.mapped_config,
+          contact_name = COALESCE(EXCLUDED.contact_name, ai_conversations.contact_name),
+          contact_phone = COALESCE(EXCLUDED.contact_phone, ai_conversations.contact_phone),
+          van_type = EXCLUDED.van_type,
+          van_size = EXCLUDED.van_size,
+          spec_level = EXCLUDED.spec_level,
+          finance_preference = EXCLUDED.finance_preference,
+          includes_48v = EXCLUDED.includes_48v,
+          was_48v_pitched = EXCLUDED.was_48v_pitched,
+          response_to_48v = EXCLUDED.response_to_48v,
+          suggested_upgrade_ids = EXCLUDED.suggested_upgrade_ids,
+          added_upgrade_ids = EXCLUDED.added_upgrade_ids,
+          config_completed = EXCLUDED.config_completed,
+          completed_at = COALESCE(EXCLUDED.completed_at, ai_conversations.completed_at)`,
         [
           sessionId,
           status ?? "in_progress",

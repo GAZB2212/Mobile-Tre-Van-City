@@ -119,8 +119,16 @@ export default function RequestQuote() {
       const sharedFinanceInputs = state.financeInputs ?? undefined;
       const slotBHasData = compareMode && !!(slotB.vanId || slotB.vanReg || slotB.customVanValue);
 
+      // Include AI session ID so the server can back-fill contact details into the AI conversation
+      let aiSessionId: string | undefined;
+      try {
+        const aiRaw = localStorage.getItem("ai-chat:v1");
+        if (aiRaw) aiSessionId = JSON.parse(aiRaw)?.sessionId;
+      } catch { /* ignore */ }
+
       const quoteData: Record<string, unknown> = {
         ...formData,
+        ...(aiSessionId ? { aiSessionId } : {}),
         serviceType: state.serviceType ?? undefined,
         vanId: state.vanId,
         customVanValue: ownVanPricePence > 0 ? ownVanPricePence : undefined,
