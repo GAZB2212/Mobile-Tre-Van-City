@@ -365,8 +365,8 @@ export default function AIChatWidget() {
       // ignore
     }
 
-    // Navigate to configurator
-    window.location.href = "/configurator/van";
+    // Navigate to the AI review page (dedicated review/adjust step)
+    window.location.href = "/configurator/ai-review";
   };
 
   const handleStartAgain = () => {
@@ -469,7 +469,7 @@ export default function AIChatWidget() {
                 <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <p className="text-red-300 text-sm">{errorMsg}</p>
-                  <a href="/configurator/van" className="text-[#8bc440] text-xs hover:underline">
+                  <a href="/configurator/ai-review" className="text-[#8bc440] text-xs hover:underline">
                     Go to configurator directly →
                   </a>
                 </div>
@@ -493,7 +493,7 @@ export default function AIChatWidget() {
             {stage === "complete" && (
               <div className="bg-[#8bc440]/10 border border-[#8bc440]/20 rounded-xl px-3.5 py-3 flex items-center gap-2">
                 <Check size={14} className="text-[#8bc440]" />
-                <p className="text-[#8bc440] text-sm">Sending you to the configurator...</p>
+                <p className="text-[#8bc440] text-sm">Taking you to your review page...</p>
               </div>
             )}
 

@@ -29,6 +29,7 @@ import SelectUpgrades from "@/pages/configurator/SelectUpgrades";
 import SelectTraining from "@/pages/configurator/SelectTraining";
 import SelectFinance from "@/pages/configurator/SelectFinance";
 import RequestQuote from "@/pages/configurator/RequestQuote";
+import AIReview from "@/pages/configurator/AIReview";
 import Login from "@/pages/Login";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
 import SpecApproval from "@/pages/SpecApproval";
@@ -87,6 +88,7 @@ function Router() {
       <Route path="/configurator/upgrades" component={SelectUpgrades} />
       <Route path="/configurator/training" component={SelectTraining} />
       <Route path="/configurator/finance" component={SelectFinance} />
+      <Route path="/configurator/ai-review" component={AIReview} />
       <Route path="/configurator/quote" component={RequestQuote} />
       <Route path="/login" component={Login} />
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
