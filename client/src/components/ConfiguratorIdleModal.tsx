@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
+import maxAvatarSrc from "@assets/max-avatar.png";
 
 const IDLE_DELAY_MS = 90_000; // 90 seconds
 const SESSION_KEY = "configurator-idle-modal-shown";
@@ -51,9 +52,11 @@ export default function ConfiguratorIdleModal() {
         {/* Header strip */}
         <div className="bg-[#8bc440] px-6 pt-8 pb-6">
           <div className="flex justify-center mb-4">
-            <div className="bg-white/20 rounded-full p-4">
-              <Bot className="w-10 h-10 text-white" />
-            </div>
+            <img
+              src={maxAvatarSrc}
+              alt="Max"
+              className="w-20 h-20 rounded-full object-cover ring-4 ring-white/30"
+            />
           </div>
           <h2 className="text-xl font-bold text-white leading-snug">
             Struggling with the configurator?
