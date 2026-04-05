@@ -4316,6 +4316,35 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
       const SITE_URL = 'https://www.mobiletyrevancity.co.uk';
       const BUILD_DATE = '2026-03-15';
 
+      const vanModelSlugs = [
+        'ford-transit',
+        'mercedes-sprinter',
+        'volkswagen-crafter',
+        'nissan-interstar',
+        'iveco-daily',
+        'citroen-relay',
+        'peugeot-boxer',
+        'vauxhall-movano',
+      ];
+
+      const locationSlugs = [
+        'liverpool', 'wirral', 'manchester', 'salford', 'bolton', 'wigan', 'preston',
+        'blackpool', 'blackburn', 'burnley', 'stockport', 'warrington', 'chester',
+        'st-helens', 'lancaster', 'oldham', 'rochdale',
+        'leeds', 'sheffield', 'bradford', 'hull', 'york', 'doncaster', 'huddersfield',
+        'rotherham', 'halifax',
+        'birmingham', 'coventry', 'wolverhampton', 'birmingham-dudley', 'walsall',
+        'stoke-on-trent', 'shrewsbury', 'telford',
+        'nottingham', 'derby', 'leicester', 'northampton', 'peterborough',
+        'norwich', 'ipswich', 'cambridge', 'luton', 'milton-keynes',
+        'london', 'east-london', 'south-london', 'north-london', 'west-london',
+        'reading', 'oxford', 'brighton', 'southampton', 'portsmouth', 'bournemouth',
+        'bristol', 'exeter', 'plymouth', 'taunton', 'bristol-gloucester', 'swindon',
+        'newcastle', 'sunderland', 'middlesbrough', 'gateshead', 'durham',
+        'glasgow', 'edinburgh', 'aberdeen', 'dundee', 'stirling', 'inverness',
+        'cardiff', 'swansea', 'newport-wales', 'wrexham',
+      ];
+
       const staticPages = [
         { url: '/', changefreq: 'weekly', priority: '1.0' },
         { url: '/stock', changefreq: 'daily', priority: '0.9' },
@@ -4323,6 +4352,10 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
         { url: '/finance', changefreq: 'monthly', priority: '0.8' },
         { url: '/training', changefreq: 'monthly', priority: '0.8' },
         { url: '/business-opportunity', changefreq: 'monthly', priority: '0.8' },
+        { url: '/van-conversions', changefreq: 'monthly', priority: '0.8' },
+        { url: '/mobile-tyre-vans', changefreq: 'monthly', priority: '0.8' },
+        ...vanModelSlugs.map(slug => ({ url: `/van-conversions/${slug}`, changefreq: 'monthly', priority: '0.7' })),
+        ...locationSlugs.map(slug => ({ url: `/mobile-tyre-vans/${slug}`, changefreq: 'monthly', priority: '0.6' })),
         { url: '/gallery', changefreq: 'weekly', priority: '0.7' },
         { url: '/blog', changefreq: 'weekly', priority: '0.7' },
         { url: '/about', changefreq: 'monthly', priority: '0.7' },

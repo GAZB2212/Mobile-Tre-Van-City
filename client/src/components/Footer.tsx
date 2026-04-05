@@ -13,7 +13,9 @@ export default function Footer() {
     { name: "Gallery", href: "/gallery" },
     { name: "Blog", href: "/blog" },
     { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" }
+    { name: "Contact", href: "/contact" },
+    { name: "Van Conversions", href: "/van-conversions" },
+    { name: "UK Delivery Areas", href: "/mobile-tyre-vans" },
   ];
 
   const legalLinks = [

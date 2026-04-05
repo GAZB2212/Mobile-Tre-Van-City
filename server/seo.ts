@@ -1,4 +1,6 @@
 import type { Request } from "express";
+import { vanModels } from "../client/src/pages/seo/data/vanModels";
+import { locations } from "../client/src/pages/seo/data/locations";
 
 export const SITE_URL = "https://www.mobiletyrevancity.co.uk";
 export const SITE_NAME = "Mobile Tyre Van City";
@@ -79,6 +81,50 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
 
   if (cleanPath.startsWith("/configurator/")) {
     return staticRouteMeta["/configurator"];
+  }
+
+  // Van conversion hub page
+  if (cleanPath === "/van-conversions") {
+    return {
+      title: `Mobile Tyre Van Conversions | All Models & Specs | ${SITE_NAME}`,
+      description: "We convert all major L3H3 and L3H4 panel vans into professional mobile tyre fitting vehicles. Ford Transit, Mercedes Sprinter, VW Crafter, and more. UK-built, nationwide delivery. Call 0151 203 8500.",
+      canonical: "/van-conversions",
+    };
+  }
+
+  // Van model page
+  if (cleanPath.startsWith("/van-conversions/")) {
+    const slug = cleanPath.replace("/van-conversions/", "");
+    const van = vanModels.find((v) => v.slug === slug);
+    if (van) {
+      return {
+        title: `${van.displayName} Mobile Tyre Van Conversion | ${SITE_NAME}`,
+        description: `${van.displayName} converted into a professional mobile tyre fitting van. ${van.loadVolumeCubicM} m³ load space, ${van.payloadKg} kg payload, Euro 6 compliant. UK-wide delivery from Wirral. Call 0151 203 8500.`,
+        canonical: `/van-conversions/${van.slug}`,
+      };
+    }
+  }
+
+  // Location hub page
+  if (cleanPath === "/mobile-tyre-vans") {
+    return {
+      title: `Mobile Tyre Vans for Sale — UK-Wide Delivery | ${SITE_NAME}`,
+      description: "Mobile tyre van conversions delivered across the UK — from Liverpool to London, Glasgow to Cardiff. Browse 76 covered areas or call 0151 203 8500 to discuss delivery to your location.",
+      canonical: "/mobile-tyre-vans",
+    };
+  }
+
+  // Location page
+  if (cleanPath.startsWith("/mobile-tyre-vans/")) {
+    const slug = cleanPath.replace("/mobile-tyre-vans/", "");
+    const location = locations.find((l) => l.slug === slug);
+    if (location) {
+      return {
+        title: `Mobile Tyre Van Conversions in ${location.name} | Delivery Available | ${SITE_NAME}`,
+        description: `Professional mobile tyre van conversions delivered to ${location.name}, ${location.county}. L3H3 builds fully equipped and ready to work. Finance available. Call 0151 203 8500.`,
+        canonical: `/mobile-tyre-vans/${location.slug}`,
+      };
+    }
   }
 
   return null;
