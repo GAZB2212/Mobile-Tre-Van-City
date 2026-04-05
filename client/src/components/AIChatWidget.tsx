@@ -175,6 +175,13 @@ export default function AIChatWidget() {
   const { data: kits = [] } = useQuery<Kit[]>({ queryKey: ["/api/kits"] });
   const { data: upgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
 
+  // Listen for external "openAIChat" events (e.g. from the configurator idle modal)
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener("openAIChat", handler);
+    return () => window.removeEventListener("openAIChat", handler);
+  }, []);
+
   // Don't render on admin or login pages
   if (location.startsWith("/admin") || location === "/login") return null;
 

@@ -8,6 +8,7 @@ import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
 import AIChatWidget from "@/components/AIChatWidget";
+import ConfiguratorIdleModal from "@/components/ConfiguratorIdleModal";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
@@ -177,6 +178,7 @@ function App() {
           </AnalyticsProvider>
           <PublicChatBubble />
           <AIWidget />
+          <ConfiguratorIdleModal />
           {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}
         </TooltipProvider>
       </ConfiguratorProvider>
