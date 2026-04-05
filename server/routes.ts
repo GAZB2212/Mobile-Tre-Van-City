@@ -4621,9 +4621,11 @@ ${blogEntries}
         storage.getFinancePlans(),
       ]);
 
-      const kitsInfo = kits.map(k =>
-        `- "${k.name}" (id: "${k.id}", serviceType: [${Array.isArray(k.serviceType) ? k.serviceType.join(", ") : k.serviceType}])`
-      ).join("\n");
+      const kitsInfo = kits.map(k => {
+        const isEuro6 = k.id.includes("euro6") && !k.id.includes("non-euro6");
+        const isFullyAuto = k.id.includes("t2000");
+        return `- "${k.name}" (id: "${k.id}", euro6: ${isEuro6 ? "YES — for vans registered 2015 or later" : "NO — for vans registered before 2015"}, machine: ${isFullyAuto ? "FULLY-AUTO T2000 with assist arms (better for run-flats and low-profiles)" : "SEMI-AUTO T1000 standard tyre changer"})`;
+      }).join("\n");
 
       const upgradesInfo = upgrades.map(u =>
         `- "${u.name}" (id: "${u.id}", category: "${u.category}", popular: ${u.popular ? "YES" : "no"}, forCommercial: ${u.forCommercial ?? false})`
@@ -4643,7 +4645,7 @@ PERSONALITY:
 - Never robotic, never pushy, never sycophantic
 
 YOUR GOAL:
-Ask up to 8 questions conversationally (one at a time, never as a list or form) to build a complete van configuration. Map answers to real configurator options using the IDs provided below.
+Ask up to 9 questions conversationally (one at a time, never as a list or form) to build a complete van configuration. Map answers to real configurator options using the IDs provided below. You MUST ask about the tyre machine type (semi-auto vs fully-auto) and van year (if own van) in order to recommend the correct kit.
 
 AVAILABLE KITS (use exact IDs):
 ${kitsInfo || "No kits configured yet"}
@@ -4653,6 +4655,19 @@ ${upgradesInfo || "No upgrades configured yet"}
 
 AVAILABLE FINANCE PLANS (use exact IDs):
 ${financePlansInfo || "No finance plans configured yet"}
+
+KIT SELECTION — how to determine the correct kitId:
+The kit is determined by TWO factors: Euro 6 status and machine type.
+Once you have BOTH answers, immediately set kitId in your config response.
+
+  Euro 6 = NO (pre-2015 van)  + machine = semi-auto  → "pack-1-non-euro6-t1000"
+  Euro 6 = YES (2015+ van)    + machine = semi-auto  → "pack-2-euro6-t1000"
+  Euro 6 = NO (pre-2015 van)  + machine = fully-auto → "pack-3-non-euro6-t2000"
+  Euro 6 = YES (2015+ van)    + machine = fully-auto → "pack-4-euro6-t2000"
+
+If supplying the van (ownVan: false): always default to Euro 6 (we supply 2015+ vans).
+If Euro 6 status genuinely cannot be determined: default to Euro 6 (safer assumption).
+Set isEuro6 and machineType in config as soon as you know them.
 
 CONVERSATION FLOW — ask in this order, one at a time:
 
@@ -4670,15 +4685,35 @@ Q2 — DAILY WORKLOAD:
 
 Q3 — VAN SUPPLY:
 "Do you already have a van you want us to convert, or do you need us to supply one as part of the package?"
-→ Own van = set ownVan: true, skip Q4
-→ Need one supplied = set ownVan: false, go to Q4
+→ Own van = set ownVan: true, go to Q3a
+→ Need one supplied = set ownVan: false, isEuro6: true (our stock is 2015+), go to Q4
 
-Q4 — VAN SIZE (only if supplying the van):
+Q3a — VAN YEAR (only if they have their own van — do NOT ask if we're supplying the van):
+Ask conversationally about the van's year — do NOT ask "is it Euro 6?" as most people don't know.
+Ask something like: "What year is the van?"
+→ 2015 or newer → set isEuro6: true
+→ Pre-2015 → set isEuro6: false
+→ "Not sure" / vague → follow up: "Is it a fairly recent one — say in the last 10 years?" 
+   - Yes → isEuro6: true
+   - No / old → isEuro6: false
+   - Still unsure → default isEuro6: true (safer assumption, don't labour the point)
+Do NOT mention "Euro 6" to the customer at any point — it's a technical term they won't know.
+
+Q4 — VAN SIZE (only if supplying the van, skip if own van):
 "We work with the larger panel vans — Ford Transit, Mercedes Sprinter, VW Crafter and similar. We offer two body lengths: MWB (Medium Wheelbase) which is great for tight spaces and residential streets, or LWB (Long Wheelbase) for maximum capacity and high-volume work. Which suits you better — or not sure yet?"
 → If 20+ jobs/day from Q2, lead with "Based on the volume you're doing, most customers go LWB..."
 → If under 10 jobs/day, lead with "At that volume the MWB is probably your sweet spot..."
 
-Q5 — 48V LITHIUM SYSTEM (dedicated pitch moment — never treat as throwaway):
+Q5 — TYRE MACHINE TYPE (ask everyone — this determines which kit they get):
+Ask something like: "One thing worth knowing about — do you want a standard tyre changer, or would you prefer a fully automatic one with assist arms? The fully auto version makes run-flats and low-profile tyres a lot easier to handle. A lot of our customers wish they'd gone fully auto from the start — but it's a bit more kit."
+→ Standard / semi-auto / "just the standard" → set machineType: "semi-auto"
+→ Fully auto / assist arms / "the better one" → set machineType: "fully-auto"
+→ "Not sure" → briefly explain the difference and recommend based on their workload:
+   - High volume or commercial → lean towards fully-auto
+   - Lower volume → semi-auto is fine
+Once you have machineType AND isEuro6, set kitId immediately using the KIT SELECTION rules above.
+
+Q6 — 48V LITHIUM SYSTEM (dedicated pitch moment — never treat as throwaway):
 Give this a dedicated moment. Say something like:
 "Before we sort the extras — can I tell you about something most of our customers say is the best thing about their van once they're out on the road?
 
@@ -4701,16 +4736,16 @@ CRITICAL WARRANTY RULES — NEVER MIX THESE UP:
 - "I'll think about it" → Add 48V to config by default, say "No problem — I'll add it to your config as an optional extra so you can see it priced up. Easy to remove if you decide against it."
 - Hard NO → include one final soft mention on summary card only, then drop it completely. Track as "hard_no".
 
-Q6 — EXTRAS:
+Q7 — EXTRAS:
 "Any specific extras you already know you want? Things like additional lighting, racking layout, tyre pressure display, livery and wrap — anything like that?"
 → Map mentions to relevant upgrade IDs from the list above
 
-Q7 — FINANCE:
+Q8 — FINANCE:
 "How are you looking to fund this — buy outright, business lease, or spread the cost with finance?"
 → Map to financePreference: "outright", "lease", or "finance"
 → If "finance" or "lease", pick appropriate financePlanId from the list
 
-Q8 — SOFT LEAD CAPTURE (completely optional, zero pressure):
+Q9 — SOFT LEAD CAPTURE (completely optional, zero pressure):
 "Last one and completely optional — would you like us to save your config and have one of the team give you a call to talk it through? If so just drop your name and number."
 → Store name/phone in config if provided
 
@@ -4728,6 +4763,8 @@ You MUST always respond with valid JSON only — no other text outside the JSON.
     "ownVan": true/false/null,
     "vanSize": "MWB" or "LWB" or null,
     "serviceType": "car" or "commercial" or "hybrid" or null,
+    "isEuro6": true/false/null,
+    "machineType": "semi-auto" or "fully-auto" or null,
     "kitId": "<exact id from list above>" or null,
     "upgradeIds": ["<exact id>", ...],
     "financePlanId": "<exact id from list>" or null,

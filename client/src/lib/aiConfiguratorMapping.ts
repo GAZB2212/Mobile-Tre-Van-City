@@ -24,6 +24,8 @@ export interface AIConfig {
   ownVan: boolean | null;
   vanSize: VanSize | null;
   serviceType: ServiceType | null;
+  isEuro6: boolean | null;
+  machineType: "semi-auto" | "fully-auto" | null;
   kitId: string | null;
   upgradeIds: string[];
   financePlanId: string | null;
@@ -65,6 +67,8 @@ export const defaultConfig: AIConfig = {
   ownVan: null,
   vanSize: null,
   serviceType: null,
+  isEuro6: null,
+  machineType: null,
   kitId: null,
   upgradeIds: [],
   financePlanId: null,
