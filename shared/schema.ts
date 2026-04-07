@@ -240,6 +240,9 @@ export const quotes = pgTable("quotes", {
   // AI session link — session ID of the Max chat that led to this quote
   aiSessionId: varchar("ai_session_id"),
 
+  // Staff attribution — which team member created this quote in the admin configurator
+  staffName: text("staff_name"),
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),

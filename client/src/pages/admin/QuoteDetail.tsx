@@ -1187,6 +1187,11 @@ export default function AdminQuoteDetail() {
                             {new Date(quote.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </span>
                         )}
+                        {(quote as any).staffName && (
+                          <span className="text-sm text-muted-foreground" data-testid="text-quote-staff-name">
+                            Quoted by {(quote as any).staffName}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

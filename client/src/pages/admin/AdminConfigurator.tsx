@@ -135,7 +135,7 @@ function groupUpgrades(upgrades: Upgrade[]) {
   return { groups: Array.from(parentMap.values()), standalone };
 }
 
-interface SaveForm { userName: string; email: string; phone: string; company: string; notes: string; }
+interface SaveForm { userName: string; email: string; phone: string; company: string; notes: string; staffName: string; }
 interface DiscountState { type: 'none' | 'percentage' | 'fixed'; value: string; }
 interface ConfiguratorData { kits: any[]; upgrades: Record<string, Upgrade[]>; financePlans: any[]; }
 
@@ -184,7 +184,7 @@ export default function AdminConfigurator() {
 
   // ── Save as quote dialog
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveForm, setSaveForm] = useState<SaveForm>({ userName: "", email: "", phone: "", company: "", notes: "" });
+  const [saveForm, setSaveForm] = useState<SaveForm>({ userName: "", email: "", phone: "", company: "", notes: "", staffName: "" });
   const [discount, setDiscount] = useState<DiscountState>({ type: 'none', value: '' });
 
   // ── Auth guard
@@ -433,6 +433,7 @@ export default function AdminConfigurator() {
       const body: Record<string, unknown> = {
         userName: form.userName, email: form.email, phone: form.phone,
         company: form.company || undefined, notes: form.notes || undefined,
+        staffName: form.staffName || undefined,
         serviceType: slotA.serviceType,
         vanId: slotA.vanId || undefined,
         customVanDescription: slotA.customVanDescription || undefined,
@@ -495,7 +496,7 @@ export default function AdminConfigurator() {
       const hasDiscount = discount.type !== 'none' && discount.value;
       toast({ title: "Quote saved", description: `Quote created for ${saveForm.userName}${hasDiscount ? ' with discount applied' : ''}` });
       setSaveOpen(false);
-      setSaveForm({ userName: "", email: "", phone: "", company: "", notes: "" });
+      setSaveForm({ userName: "", email: "", phone: "", company: "", notes: "", staffName: "" });
       setDiscount({ type: 'none', value: '' });
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       navigate(`/admin/quotes/${quote.id}`);
@@ -1528,9 +1529,16 @@ export default function AdminConfigurator() {
         <DialogContent className="sm:max-w-md flex flex-col max-h-[90vh]">
           <DialogHeader className="shrink-0"><DialogTitle>Save as Quote</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2 overflow-y-auto flex-1 pr-1">
+            <div className="bg-muted/40 rounded-md px-3 py-2.5 flex items-center gap-2">
+              <UserRound className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="sq-staff" className="text-xs text-muted-foreground mb-1 block">Quoted by (your name)</Label>
+                <Input id="sq-staff" value={saveForm.staffName} onChange={e => setSaveForm(f => ({ ...f, staffName: e.target.value }))} placeholder="e.g. Carl" className="h-7 text-sm border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60" data-testid="input-quote-staff-name" />
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="sq-name" className="text-sm mb-1.5 block">Full name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="sq-name" className="text-sm mb-1.5 block">Customer full name <span className="text-destructive">*</span></Label>
                 <Input id="sq-name" value={saveForm.userName} onChange={e => setSaveForm(f => ({ ...f, userName: e.target.value }))} placeholder="John Smith" data-testid="input-quote-name" />
               </div>
               <div>

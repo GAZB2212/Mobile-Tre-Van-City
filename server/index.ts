@@ -177,6 +177,9 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS ai_session_id VARCHAR`)
         .then(() => log("✅ Quote AI session link column ready"))
         .catch((err: Error) => console.error("Quote AI session migration:", err.message));
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS staff_name TEXT`)
+        .then(() => log("✅ Quote staff name column ready"))
+        .catch((err: Error) => console.error("Quote staff name migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_conversations (
