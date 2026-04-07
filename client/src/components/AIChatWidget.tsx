@@ -172,16 +172,50 @@ export default function AIChatWidget() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Ref to avoid stale closure when reading messages inside event handlers
+  const messagesRef = useRef<AIMessage[]>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const { data: kits = [] } = useQuery<Kit[]>({ queryKey: ["/api/kits"] });
   const { data: upgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
 
+  // Trigger Max's greeting when the chat is opened with no existing conversation
+  const triggerGreeting = useCallback(async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/ai-chat/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: "__GREET__" }], sessionId }),
+      });
+      if (!res.ok) throw new Error("AI unavailable");
+      const data = await res.json();
+      const assistantMsg: AIMessage = { role: "assistant", content: data.message ?? "" };
+      // Only add Max's response — the __GREET__ trigger is never shown in the UI
+      setMessages([assistantMsg]);
+      if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
+      if (data.trackers) setTrackers(prev => ({ ...prev, ...data.trackers }));
+      if (data.stage) setStage(data.stage);
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? "Max is temporarily unavailable.");
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
+
   // Listen for external "openAIChat" events (e.g. from the configurator idle modal)
   useEffect(() => {
-    const handler = () => setOpen(true);
+    const handler = () => {
+      setOpen(true);
+      // If there's no conversation yet, have Max introduce himself automatically
+      if (messagesRef.current.length === 0) {
+        triggerGreeting();
+      }
+    };
     window.addEventListener("openAIChat", handler);
     return () => window.removeEventListener("openAIChat", handler);
-  }, []);
+  }, [triggerGreeting]);
 
   // Don't render on admin or login pages
   if (location.startsWith("/admin") || location === "/login") return null;
