@@ -636,7 +636,7 @@ export default function AdminConfigurator() {
                         <Card
                           key={van.id}
                           className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${isSelected ? "ring-2 ring-accent" : ""}`}
-                          onClick={() => setVanOnly(van.id)}
+                          onClick={() => setVanOnly(isSelected ? null : van.id)}
                           data-testid={`card-van-${van.id}`}
                         >
                           <div className="relative w-full h-28 overflow-hidden rounded-t-md bg-muted">
@@ -652,10 +652,10 @@ export default function AdminConfigurator() {
                               size="sm"
                               className={`w-full h-7 text-xs ${isSelected ? "bg-accent text-accent-foreground" : "!border !border-accent text-accent"}`}
                               variant={isSelected ? "default" : "outline"}
-                              onClick={e => { e.stopPropagation(); setVanOnly(van.id); }}
+                              onClick={e => { e.stopPropagation(); setVanOnly(isSelected ? null : van.id); }}
                               data-testid={`button-select-van-${van.id}`}
                             >
-                              {isSelected ? "Selected" : "Select"}
+                              {isSelected ? "Deselect" : "Select"}
                             </Button>
                           </CardContent>
                         </Card>
