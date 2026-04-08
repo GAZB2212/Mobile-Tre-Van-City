@@ -1472,28 +1472,6 @@ export default function AdminQuoteDetail() {
                   </CardContent>
                 </>)}
 
-                {/* ── Send to Depot — visible to any admin for submitted quotes ── */}
-                {quote.status !== "new" && (
-                  <>
-                    <Separator />
-                    <CardContent className="pt-3 pb-4 space-y-1.5">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => sendToDepotMutation.mutate()}
-                        disabled={sendToDepotMutation.isPending}
-                        data-testid="button-send-to-depot"
-                      >
-                        <Send className="w-3.5 h-3.5 mr-1.5" />
-                        {sendToDepotMutation.isPending ? "Sending..." : "Send to Depot"}
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        Emails the full build spec and pricing to sharon@geg.co to raise an invoice.
-                      </p>
-                    </CardContent>
-                  </>
-                )}
 
                 {/* ── Manual Status Override ── */}
                 <Separator />
@@ -2843,6 +2821,27 @@ export default function AdminQuoteDetail() {
                     )}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Send to Depot */}
+            <Card>
+              <CardContent className="pt-4 pb-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Depot</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => sendToDepotMutation.mutate()}
+                  disabled={sendToDepotMutation.isPending}
+                  data-testid="button-send-to-depot"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1.5" />
+                  {sendToDepotMutation.isPending ? "Sending..." : "Send to Depot"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Emails the full build spec and pricing to sharon@geg.co to raise an invoice.
+                </p>
               </CardContent>
             </Card>
 

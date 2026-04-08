@@ -2708,11 +2708,6 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         return res.status(404).json({ error: "Quote not found" });
       }
 
-      // Only allow for submitted (non-draft) quotes
-      if (quote.status === "new") {
-        return res.status(400).json({ error: "Quote must be submitted before sending to depot" });
-      }
-
       const [van, kit, selectedUpgrades] = await Promise.all([
         quote.vanId ? storage.getVan(quote.vanId) : Promise.resolve(null),
         quote.kitId ? storage.getKit(quote.kitId) : Promise.resolve(null),
