@@ -2824,10 +2824,10 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
-            {/* Send to Depot */}
+            {/* Send to Admin */}
             <Card>
               <CardContent className="pt-4 pb-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Depot</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Admin</p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -2837,7 +2837,7 @@ export default function AdminQuoteDetail() {
                   data-testid="button-send-to-depot"
                 >
                   <Send className="w-3.5 h-3.5 mr-1.5" />
-                  {sendToDepotMutation.isPending ? "Sending..." : "Send to Depot"}
+                  {sendToDepotMutation.isPending ? "Sending..." : "Send to Admin"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   Emails the full build spec and pricing to sharon@geg.co to raise an invoice.
