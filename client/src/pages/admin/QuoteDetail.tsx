@@ -2829,9 +2829,8 @@ export default function AdminQuoteDetail() {
               <CardContent className="pt-4 pb-4 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Admin</p>
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full bg-[#8bc440e6] text-[#191919] border-green-600"
                   onClick={() => sendToDepotMutation.mutate()}
                   disabled={sendToDepotMutation.isPending}
                   data-testid="button-send-to-depot"
