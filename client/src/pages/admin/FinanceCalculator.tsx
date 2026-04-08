@@ -93,7 +93,7 @@ export default function AdminFinanceCalculator() {
   const [depositStr, setDepositStr] = useState("");
   const [depositMode, setDepositMode] = useState<"amount" | "percent">("amount");
   const [termMonths, setTermMonths] = useState(36);
-  const [aprStr, setAprStr] = useState("10.9");
+  const [aprStr, setAprStr] = useState("12");
   const [balloonPctStr, setBalloonPctStr] = useState("0");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -276,7 +276,7 @@ export default function AdminFinanceCalculator() {
                     type="number"
                     inputMode="decimal"
                     step="0.1"
-                    placeholder="10.9"
+                    placeholder="12"
                     value={aprStr}
                     onChange={e => setAprStr(e.target.value)}
                     data-testid="input-apr"
