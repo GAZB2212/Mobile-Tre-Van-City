@@ -149,7 +149,8 @@ export default function AdminConfigurator() {
   };
 
   const {
-    state, setVan, setVanOnly, setVanReg, setCustomVanValue, setServiceType, setKit,
+    state, setVan, setVanOnly, setVanReg, setCustomVanValue,
+    setServiceTypeOnly, setKitOnly,
     addUpgrade, removeUpgrade, replaceUpgrades, clearAll,
     compareMode, activeSlot, enableCompareMode, slotA, slotB,
   } = useConfigurator();
@@ -725,7 +726,7 @@ export default function AdminConfigurator() {
                     <Card
                       key={value}
                       className={`cursor-pointer hover-elevate transition-all ${isSelected ? "ring-2 ring-accent" : ""}`}
-                      onClick={() => setServiceType(value)}
+                      onClick={() => setServiceTypeOnly(value)}
                       data-testid={`card-service-type-${value}`}
                     >
                       <CardContent className="p-6 flex flex-col gap-4 h-full">
@@ -740,7 +741,7 @@ export default function AdminConfigurator() {
                         <Button
                           className={`w-full mt-2 ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
                           variant={isSelected ? "default" : "outline"}
-                          onClick={e => { e.stopPropagation(); setServiceType(value); }}
+                          onClick={e => { e.stopPropagation(); setServiceTypeOnly(value); }}
                           data-testid={`button-select-service-type-${value}`}
                         >
                           {isSelected ? <>Selected<ArrowRight className="w-4 h-4 ml-2" /></> : "Select"}
@@ -791,7 +792,7 @@ export default function AdminConfigurator() {
                             <Card
                               key={kit.id}
                               className={`hover-elevate cursor-pointer ${isSelected ? "ring-2 ring-accent" : ""} ${incompatible ? "opacity-75" : ""}`}
-                              onClick={() => incompatible ? setWarnKit(kit) : setKit(kit.id)}
+                              onClick={() => incompatible ? setWarnKit(kit) : setKitOnly(kit.id)}
                               data-testid={`card-kit-${kit.id}`}
                             >
                               {kit.images?.[0] && (
@@ -835,7 +836,7 @@ export default function AdminConfigurator() {
                                 <Button
                                   className={`w-full ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
                                   variant={isSelected ? "default" : "outline"}
-                                  onClick={e => { e.stopPropagation(); incompatible ? setWarnKit(kit) : setKit(kit.id); }}
+                                  onClick={e => { e.stopPropagation(); incompatible ? setWarnKit(kit) : setKitOnly(kit.id); }}
                                   data-testid={`button-select-kit-${kit.id}`}
                                 >
                                   {isSelected ? "Selected" : "Select Kit"}<ArrowRight className="w-4 h-4 ml-2" />
@@ -1444,7 +1445,7 @@ export default function AdminConfigurator() {
                 <div className="pt-4 border-t">
                   <Button className="w-full bg-accent text-accent-foreground" onClick={() => {
                     if (kitNeedsWarning(modalKit)) { setWarnKit(modalKit); setModalKit(null); }
-                    else { setKit(modalKit.id); setModalKit(null); }
+                    else { setKitOnly(modalKit.id); setModalKit(null); }
                   }}>
                     {state.kitId === modalKit.id ? "Selected — Continue" : "Select This Kit"}<ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -1472,7 +1473,7 @@ export default function AdminConfigurator() {
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-2">
             <Button className="w-full bg-accent text-accent-foreground" onClick={() => setWarnKit(null)}>Choose a Different Pack</Button>
-            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => { if (warnKit) setKit(warnKit.id); setWarnKit(null); }}>
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => { if (warnKit) setKitOnly(warnKit.id); setWarnKit(null); }}>
               I know what I'm doing — proceed anyway
             </Button>
           </div>

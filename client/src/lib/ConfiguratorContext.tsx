@@ -37,7 +37,9 @@ interface ConfiguratorContextValue {
   clearSlotA: () => void;
   clearSlotB: () => void;
   setVan: (vanId: string | null) => void;
-  setVanOnly: (vanId: string | null) => void; // admin-only: swap van without resetting kit/upgrades
+  setVanOnly: (vanId: string | null) => void;
+  setServiceTypeOnly: (serviceType: KitServiceType | null) => void;
+  setKitOnly: (kitId: string | null) => void;
   setCustomVan: (description: string, valueInPence: number) => void;
   setCustomVanValue: (valueInPence: number | null) => void;
   setVanReg: (reg: string | null) => void;
@@ -213,6 +215,32 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           pricingSnapshot: null,
         },
       };
+    });
+  };
+
+  // Admin-only: change service type without clearing kit or upgrades
+  const setServiceTypeOnly = (serviceType: KitServiceType | null) => {
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = {
+        ...prev,
+        [slot]: { ...prev[slot], serviceType },
+      };
+      return syncSlotBFromA(updated);
+    });
+  };
+
+  // Admin-only: change kit without clearing upgrades
+  const setKitOnly = (kitId: string | null) => {
+    if (isLockedSlotB()) return;
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      const updated = {
+        ...prev,
+        [slot]: { ...prev[slot], kitId },
+      };
+      return syncSlotBFromA(updated);
     });
   };
 
@@ -513,6 +541,8 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     clearSlotB,
     setVan,
     setVanOnly,
+    setServiceTypeOnly,
+    setKitOnly,
     setCustomVan,
     setCustomVanValue,
     setVanReg,
