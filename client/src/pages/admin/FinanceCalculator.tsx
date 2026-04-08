@@ -35,8 +35,6 @@ const TERM_OPTIONS = [
   { label: "36 months (3 years)", value: 36 },
   { label: "48 months (4 years)", value: 48 },
   { label: "60 months (5 years)", value: 60 },
-  { label: "72 months (6 years)", value: 72 },
-  { label: "84 months (7 years)", value: 84 },
 ];
 
 function fmt(pence: number) {
