@@ -322,9 +322,14 @@ export default function AdminConfigurator() {
     }
   };
 
-  const handleVariantSelect = (parentId: string, variantId: string | null) => {
+  const handleVariantSelect = (parentId: string, variantId: string | null, variantItems?: Upgrade[]) => {
     const all = Object.values(filteredUpgrades).flat();
-    const toRemove: string[] = all.filter(u => u.parentId === parentId && state.upgradeIds.includes(u.id)).map(u => u.id);
+    // Use provided variantItems if available (more reliable than filtering all),
+    // falling back to searching the flat list.
+    const siblingIds: string[] = variantItems
+      ? variantItems.map(v => v.id)
+      : all.filter(u => u.parentId === parentId).map(u => u.id);
+    const toRemove: string[] = siblingIds.filter(id => state.upgradeIds.includes(id));
     if (variantId) {
       const v = all.find(u => u.id === variantId);
       if (v) {
@@ -959,8 +964,8 @@ export default function AdminConfigurator() {
                                             id={`variant-group-${parent.id}`}
                                             checked={isSelected}
                                             onCheckedChange={checked => {
-                                              if (checked && variants.length > 0) handleVariantSelect(parent.id, variants[0].id);
-                                              else handleVariantSelect(parent.id, null);
+                                              if (checked && variants.length > 0) handleVariantSelect(parent.id, variants[0].id, variants);
+                                              else handleVariantSelect(parent.id, null, variants);
                                             }}
                                             data-testid={`checkbox-variant-${parent.id}`}
                                           />
@@ -994,7 +999,7 @@ export default function AdminConfigurator() {
                                               </span>
                                             )}
                                             {isSelected && (
-                                              <Select value={selectedVariantId ?? ""} onValueChange={v => v && handleVariantSelect(parent.id, v)}>
+                                              <Select value={selectedVariantId ?? ""} onValueChange={v => v && handleVariantSelect(parent.id, v, variants)}>
                                                 <SelectTrigger data-testid={`select-variant-${parent.id}`}>
                                                   <SelectValue placeholder="Select option..." />
                                                 </SelectTrigger>
