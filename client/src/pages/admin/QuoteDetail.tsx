@@ -543,6 +543,25 @@ export default function AdminQuoteDetail() {
     },
   });
 
+  const sendToDepotMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/admin/quotes/${id}/send-to-depot`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sent to Depot",
+        description: "Invoice request emailed to sharon@geg.co.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send depot email. Please try again.",
+      });
+    },
+  });
+
   const undoChoiceMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest("DELETE", `/api/admin/quotes/${id}/choose-option`);
@@ -1452,6 +1471,29 @@ export default function AdminQuoteDetail() {
                     )}
                   </CardContent>
                 </>)}
+
+                {/* ── Send to Depot — visible to any admin for submitted quotes ── */}
+                {quote.status !== "new" && (
+                  <>
+                    <Separator />
+                    <CardContent className="pt-3 pb-4 space-y-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => sendToDepotMutation.mutate()}
+                        disabled={sendToDepotMutation.isPending}
+                        data-testid="button-send-to-depot"
+                      >
+                        <Send className="w-3.5 h-3.5 mr-1.5" />
+                        {sendToDepotMutation.isPending ? "Sending..." : "Send to Depot"}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Emails the full build spec and pricing to sharon@geg.co to raise an invoice.
+                      </p>
+                    </CardContent>
+                  </>
+                )}
 
                 {/* ── Manual Status Override ── */}
                 <Separator />

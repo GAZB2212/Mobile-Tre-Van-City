@@ -1292,6 +1292,205 @@ export async function sendPasswordResetEmail({
   });
 }
 
+export async function sendDepotInvoiceEmail({
+  quoteId,
+  customerName,
+  customerPhone,
+  customerEmail,
+  vanDetails,
+  kitName,
+  upgradeNames,
+  customExtras,
+  subtotal,
+  vat,
+  discount,
+  total,
+  financeInfo,
+}: {
+  quoteId: string;
+  customerName: string;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  vanDetails: {
+    make?: string | null;
+    model?: string | null;
+    year?: number | null;
+    registration?: string | null;
+    mileage?: number | null;
+    transmission?: string | null;
+    fuelType?: string | null;
+    title?: string | null;
+    isCustom?: boolean;
+    customDescription?: string | null;
+  };
+  kitName?: string | null;
+  upgradeNames?: string[];
+  customExtras?: Array<{ id: string; description: string; pricePence: number }>;
+  subtotal: number;
+  vat: number;
+  discount?: number;
+  total: number;
+  financeInfo?: {
+    depositAmount: number;
+    termMonths: number;
+    monthlyPayment: number;
+    weeklyPayment: number;
+  } | null;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const ref = quoteId.slice(0, 8).toUpperCase();
+  const brandGreen = '#8bc440';
+  const brandDark = '#191919';
+  const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+
+  const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
+
+  const vanDescriptionLines: string[] = [];
+  if (vanDetails.isCustom) {
+    vanDescriptionLines.push(vanDetails.customDescription || 'Customer-supplied van');
+  } else {
+    if (vanDetails.title) vanDescriptionLines.push(vanDetails.title);
+    else if (vanDetails.make || vanDetails.model || vanDetails.year) {
+      vanDescriptionLines.push([vanDetails.year, vanDetails.make, vanDetails.model].filter(Boolean).join(' '));
+    }
+  }
+  if (vanDetails.registration) vanDescriptionLines.push(`Reg: ${vanDetails.registration.toUpperCase()}`);
+  if (vanDetails.mileage != null) vanDescriptionLines.push(`Mileage: ${vanDetails.mileage.toLocaleString('en-GB')} miles`);
+  if (vanDetails.transmission) vanDescriptionLines.push(`Transmission: ${vanDetails.transmission}`);
+  if (vanDetails.fuelType) vanDescriptionLines.push(`Fuel: ${vanDetails.fuelType}`);
+
+  const vanTableRows = vanDescriptionLines.map(l => `<tr><td colspan="2" style="padding:5px 12px; font-size:14px; color:#374151;">${l}</td></tr>`).join('');
+
+  const upgradesList = upgradeNames && upgradeNames.length > 0
+    ? `<ul style="margin:4px 0; padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul>`
+    : '<em style="color:#6b7280;">None</em>';
+
+  const extrasList = customExtras && customExtras.length > 0
+    ? `<ul style="margin:4px 0; padding-left:18px;">${customExtras.map(e => `<li style="margin-bottom:2px;">${e.description} &mdash; ${fmt(e.pricePence)}</li>`).join('')}</ul>`
+    : '';
+
+  const financeRows = financeInfo ? `
+    <tr><td colspan="2" style="padding:10px 12px 4px; font-weight:bold; font-size:13px; color:${brandDark}; border-top:1px solid #e5e7eb;">Finance (HP – 10.9% APR est.)</td></tr>
+    <tr><td>Deposit</td><td>${fmt(financeInfo.depositAmount)}</td></tr>
+    <tr><td>Term</td><td>${financeInfo.termMonths} months${financeInfo.termMonths % 12 === 0 ? ` (${financeInfo.termMonths / 12} yr)` : ''}</td></tr>
+    <tr><td>Monthly (est.)</td><td style="font-weight:bold; color:${brandGreen};">${fmt(financeInfo.monthlyPayment)}/month</td></tr>
+    <tr><td>Weekly (est.)</td><td>${fmt(financeInfo.weeklyPayment)}/week</td></tr>
+  ` : '';
+
+  const financeText = financeInfo
+    ? `\nFinance (HP – 10.9% APR est.)\nDeposit: ${fmt(financeInfo.depositAmount)}\nTerm: ${financeInfo.termMonths} months\nMonthly: ${fmt(financeInfo.monthlyPayment)}\nWeekly: ${fmt(financeInfo.weeklyPayment)}\n`
+    : '';
+
+  const extrasText = customExtras && customExtras.length > 0
+    ? `Bespoke Extras:\n${customExtras.map(e => `  - ${e.description} (${fmt(e.pricePence)})`).join('\n')}\n`
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 620px; margin: 0 auto; width: 100%; }
+    .header { background-color: ${brandDark}; padding: 28px 30px; text-align: center; }
+    .header h1 { color: ${brandGreen}; margin: 0; font-size: 24px; }
+    .header p { color: #ccc; margin: 4px 0 0; font-size: 13px; }
+    .content { background: #fff; padding: 28px 30px; border: 1px solid #e5e7eb; }
+    .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 20px 0 6px; }
+    .ref-box { background: #f3f4f6; border-left: 4px solid ${brandGreen}; padding: 12px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 15px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
+    td { padding: 7px 12px; border-bottom: 1px solid #f3f4f6; font-size: 14px; word-break: break-word; }
+    td:first-child { color: #6b7280; width: 42%; }
+    .total-row td { font-weight: bold; font-size: 16px; border-top: 2px solid ${brandGreen}; border-bottom: none; color: ${brandDark}; }
+    .total-row td:last-child { color: ${brandGreen}; }
+    .footer { text-align: center; padding: 18px; color: #6b7280; font-size: 12px; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .header, .content { padding: 20px 16px !important; }
+      td { padding: 6px 8px !important; }
+      td:first-child { width: 44% !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+      <p>Depot Invoice Request</p>
+    </div>
+    <div class="content">
+      <p style="margin-top:0;">Please raise an invoice for the following build.</p>
+      <div class="ref-box">Quote Reference: #${ref}</div>
+
+      <p class="section-title">Customer Details</p>
+      <table>
+        <tr><td>Name</td><td>${customerName}</td></tr>
+        ${customerPhone ? `<tr><td>Phone</td><td>${customerPhone}</td></tr>` : ''}
+        ${customerEmail ? `<tr><td>Email</td><td>${customerEmail}</td></tr>` : ''}
+      </table>
+
+      <p class="section-title">Van Details</p>
+      <table>
+        ${vanTableRows || `<tr><td colspan="2" style="padding:5px 12px; color:#6b7280; font-size:14px;"><em>No van details recorded</em></td></tr>`}
+      </table>
+
+      <p class="section-title">Build Specification</p>
+      <table>
+        ${kitName ? `<tr><td>Conversion Pack</td><td>${kitName}</td></tr>` : ''}
+        <tr><td valign="top">Upgrades</td><td>${upgradesList}</td></tr>
+        ${extrasList ? `<tr><td valign="top">Bespoke Extras</td><td>${extrasList}</td></tr>` : ''}
+      </table>
+
+      <p class="section-title">Pricing</p>
+      <table>
+        ${discount && discount > 0 ? `<tr><td>Original Price (inc. VAT)</td><td>${fmt(total)}</td></tr>` : ''}
+        ${discount && discount > 0 ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>` : ''}
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
+        <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
+        <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
+        ${financeRows}
+      </table>
+
+      <p style="font-size:13px; color:#6b7280; margin-top:16px;">Please reply to this email or call the office if you have any questions.</p>
+      <p style="margin-bottom:0;">Mobile Tyre Van City<br>5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL<br>0151 203 8500</p>
+    </div>
+    <div class="footer">
+      <p>This is an internal invoice request — please do not forward externally.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `DEPOT INVOICE REQUEST — Quote #${ref}
+
+CUSTOMER
+Name: ${customerName}${customerPhone ? `\nPhone: ${customerPhone}` : ''}${customerEmail ? `\nEmail: ${customerEmail}` : ''}
+
+VAN DETAILS
+${vanDescriptionLines.join('\n') || 'No van details recorded'}
+
+BUILD SPECIFICATION
+${kitName ? `Conversion Pack: ${kitName}\n` : ''}Upgrades:
+${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `  - ${u}`).join('\n') : '  None'}
+${extrasText}
+PRICING
+${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}
+VAT (20%): ${fmt(vat)}
+Total (inc. VAT): ${fmt(totalAfterDiscount)}
+${financeText}
+Mobile Tyre Van City | 0151 203 8500
+5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL`;
+
+  await client.emails.send({
+    to: 'sharon@geg.co',
+    from: fromEmail,
+    subject: `Invoice Request – Quote #${ref} – ${customerName}`,
+    html,
+    text,
+  });
+}
+
 export async function sendEmail({
   to,
   subject,

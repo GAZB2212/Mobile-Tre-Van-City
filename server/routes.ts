@@ -2700,6 +2700,89 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Send depot invoice request email to sharon@geg.co
+  app.post("/api/admin/quotes/:id/send-to-depot", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      // Only allow for submitted (non-draft) quotes
+      if (quote.status === "new") {
+        return res.status(400).json({ error: "Quote must be submitted before sending to depot" });
+      }
+
+      const [van, kit, selectedUpgrades] = await Promise.all([
+        quote.vanId ? storage.getVan(quote.vanId) : Promise.resolve(null),
+        quote.kitId ? storage.getKit(quote.kitId) : Promise.resolve(null),
+        quote.selectedUpgradeIds && quote.selectedUpgradeIds.length > 0
+          ? Promise.all(quote.selectedUpgradeIds.map((uid: string) => storage.getUpgrade(uid)))
+          : Promise.resolve([]),
+      ]);
+
+      const discount = quote.estDiscount || 0;
+      const totalAfterDiscount = quote.estTotal;
+      const totalWithVat = totalAfterDiscount + discount;
+
+      // Build finance info if available
+      let financeInfo: { depositAmount: number; termMonths: number; monthlyPayment: number; weeklyPayment: number } | null = null;
+      const fi = quote.financeInputs as { deposit?: number; term?: number } | null | undefined;
+      if (fi?.term && fi.term > 0 && totalAfterDiscount > 0) {
+        const depositAmount = fi.deposit ?? 0;
+        const termMonths = fi.term;
+        const principal = totalAfterDiscount - depositAmount;
+        if (principal > 0) {
+          const FINANCE_APR = 0.109;
+          const monthlyRate = FINANCE_APR / 12;
+          const pv = Math.pow(1 + monthlyRate, termMonths);
+          const monthlyPayment = Math.round((principal * monthlyRate * pv) / (pv - 1));
+          const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
+          financeInfo = { depositAmount, termMonths, monthlyPayment, weeklyPayment };
+        }
+      }
+
+      const isCustomVan = !quote.vanId && !!(quote.customVanDescription || quote.customVanValue || quote.vanRegistration);
+      const vanDetails = {
+        make: van?.make ?? null,
+        model: van?.model ?? null,
+        year: van?.year ?? null,
+        registration: quote.vanRegistration ?? van?.reg ?? null,
+        mileage: (quote.vanMileage as number | null) ?? van?.mileage ?? null,
+        transmission: van?.specs?.transmission ?? null,
+        fuelType: van?.specs?.fuel ?? null,
+        title: van?.title ?? null,
+        isCustom: isCustomVan,
+        customDescription: quote.customVanDescription ?? quote.vanRegistration ?? null,
+      };
+
+      const { sendDepotInvoiceEmail } = await import('./email.js');
+      type DepotUpgrade = { id: string; name: string; [key: string]: unknown };
+      const quoteCustomExtras = quote.customExtras ?? [];
+
+      await sendDepotInvoiceEmail({
+        quoteId: quote.id,
+        customerName: quote.userName,
+        customerPhone: quote.phone ?? null,
+        customerEmail: quote.email ?? null,
+        vanDetails,
+        kitName: kit?.name ?? null,
+        upgradeNames: (selectedUpgrades.filter(Boolean) as DepotUpgrade[]).map(u => u.name),
+        customExtras: quoteCustomExtras,
+        subtotal: quote.estSubtotal,
+        vat: quote.estVAT,
+        discount: discount > 0 ? discount : undefined,
+        total: totalWithVat,
+        financeInfo,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error sending depot invoice email:', error);
+      res.status(500).json({ error: "Failed to send depot email" });
+    }
+  });
+
   // Send finance submission email to finance company
   app.post("/api/admin/quotes/:id/send-finance", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
