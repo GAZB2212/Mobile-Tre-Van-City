@@ -37,6 +37,7 @@ interface ConfiguratorContextValue {
   clearSlotA: () => void;
   clearSlotB: () => void;
   setVan: (vanId: string | null) => void;
+  setVanOnly: (vanId: string | null) => void; // admin-only: swap van without resetting kit/upgrades
   setCustomVan: (description: string, valueInPence: number) => void;
   setCustomVanValue: (valueInPence: number | null) => void;
   setVanReg: (reg: string | null) => void;
@@ -210,6 +211,23 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           financePlanId: null,
           financeInputs: null,
           pricingSnapshot: null,
+        },
+      };
+    });
+  };
+
+  // Admin-only: swap just the van without clearing kit, service type, or upgrades
+  const setVanOnly = (vanId: string | null) => {
+    setFullState(prev => {
+      const slot = prev.activeSlot === 'A' ? 'slotA' : 'slotB';
+      return {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          vanId,
+          customVanDescription: null,
+          customVanValue: null,
+          vanReg: null,
         },
       };
     });
@@ -494,6 +512,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     clearSlotA,
     clearSlotB,
     setVan,
+    setVanOnly,
     setCustomVan,
     setCustomVanValue,
     setVanReg,

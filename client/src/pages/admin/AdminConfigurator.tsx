@@ -149,7 +149,7 @@ export default function AdminConfigurator() {
   };
 
   const {
-    state, setVan, setVanReg, setCustomVanValue, setServiceType, setKit,
+    state, setVan, setVanOnly, setVanReg, setCustomVanValue, setServiceType, setKit,
     addUpgrade, removeUpgrade, replaceUpgrades, clearAll,
     compareMode, activeSlot, enableCompareMode, slotA, slotB,
   } = useConfigurator();
@@ -635,7 +635,7 @@ export default function AdminConfigurator() {
                         <Card
                           key={van.id}
                           className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${isSelected ? "ring-2 ring-accent" : ""}`}
-                          onClick={() => setVan(van.id)}
+                          onClick={() => setVanOnly(van.id)}
                           data-testid={`card-van-${van.id}`}
                         >
                           <div className="relative w-full h-28 overflow-hidden rounded-t-md bg-muted">
@@ -651,7 +651,7 @@ export default function AdminConfigurator() {
                               size="sm"
                               className={`w-full h-7 text-xs ${isSelected ? "bg-accent text-accent-foreground" : "!border !border-accent text-accent"}`}
                               variant={isSelected ? "default" : "outline"}
-                              onClick={e => { e.stopPropagation(); setVan(van.id); }}
+                              onClick={e => { e.stopPropagation(); setVanOnly(van.id); }}
                               data-testid={`button-select-van-${van.id}`}
                             >
                               {isSelected ? "Selected" : "Select"}
@@ -753,7 +753,7 @@ export default function AdminConfigurator() {
             </section>
 
             {/* ── STEP 3: EQUIPMENT KIT ─────────────────────────── */}
-            {state.serviceType && !skippedKit && (
+            {!skippedKit && (
               <section>
                 <h2 className="text-2xl font-bold mb-2">3. Choose Your Equipment Kit</h2>
                 <p className="text-muted-foreground mb-5">Select the perfect equipment package.</p>
@@ -852,8 +852,7 @@ export default function AdminConfigurator() {
             )}
 
             {/* ── STEP 4: UPGRADES ──────────────────────────────── */}
-            {state.serviceType && (skippedKit || state.kitId) && (
-              <section>
+            <section>
                 <h2 className="text-2xl font-bold mb-2">
                   {skippedKit ? "3." : "4."}{" "}
                   {state.serviceType === "hybrid" ? "Add Commercial & Extra Equipment"
@@ -1021,7 +1020,6 @@ export default function AdminConfigurator() {
                   </div>
                 )}
               </section>
-            )}
 
             {/* ── Custom Extras ───────────────────────────────────────── */}
             <section>
@@ -1399,7 +1397,7 @@ export default function AdminConfigurator() {
                   </div>
                 </div>
                 <div className="pt-4 border-t">
-                  <Button className="w-full bg-accent text-accent-foreground" onClick={() => { setVan(modalVan.id); setModalVan(null); }}>
+                  <Button className="w-full bg-accent text-accent-foreground" onClick={() => { setVanOnly(modalVan.id); setModalVan(null); }}>
                     Select This Van<ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
