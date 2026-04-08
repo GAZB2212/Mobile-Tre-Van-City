@@ -999,9 +999,13 @@ export default function AdminConfigurator() {
                                               </span>
                                             )}
                                             {isSelected && (
-                                              <Select key={selectedVariantId} value={selectedVariantId ?? ""} onValueChange={v => v && handleVariantSelect(parent.id, v, variants)}>
+                                              <Select value={selectedVariantId ?? ""} onValueChange={v => v && handleVariantSelect(parent.id, v, variants)}>
                                                 <SelectTrigger data-testid={`select-variant-${parent.id}`}>
-                                                  <SelectValue placeholder="Select option..." />
+                                                  <span>
+                                                    {selectedVariant
+                                                      ? `${selectedVariant.variantName || selectedVariant.name} — ${fmt(selectedVariant.price)}`
+                                                      : "Select option..."}
+                                                  </span>
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                   {variants.map(v => (
