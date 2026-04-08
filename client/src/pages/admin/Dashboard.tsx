@@ -194,14 +194,24 @@ export default function AdminDashboard() {
     }
   ];
 
-  const configuratorItem = {
-    title: "Admin Configurator",
-    description: "Build a spec live on a call — compare vans, add kit and upgrades, calculate monthly payments in real time, then save as a quote",
-    icon: UserRound,
-    href: "/admin/configurator",
-    badge: "Sales Tool",
-    requiredRole: "basic" as const
-  };
+  const salesToolItems = [
+    {
+      title: "Admin Configurator",
+      description: "Build a spec live on a call — compare vans, add kit and upgrades, calculate monthly payments in real time, then save as a quote",
+      icon: UserRound,
+      href: "/admin/configurator",
+      badge: "Sales Tool",
+      requiredRole: "basic" as const
+    },
+    {
+      title: "Finance Calculator",
+      description: "Quick standalone finance calculator — enter price, deposit and term to get instant monthly and weekly repayment figures",
+      icon: Calculator,
+      href: "/admin/finance-calculator",
+      badge: "Sales Tool",
+      requiredRole: "basic" as const
+    },
+  ];
 
   const allLeadsItems = [
     {
@@ -271,32 +281,36 @@ export default function AdminDashboard() {
       </div>
 
       <div className="container mx-auto px-4 py-8 space-y-10">
-        {/* Admin Configurator Section */}
+        {/* Sales Tools Section */}
         {user?.adminRole && (
           <div>
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <UserRound className="w-5 h-5 text-accent" />
-              Admin Configurator
+              Sales Tools
             </h2>
-            <Card className="hover-elevate cursor-pointer transition-all">
-              <Link href={configuratorItem.href} className="block h-full" data-testid="link-admin-configurator">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center space-x-2">
-                      <configuratorItem.icon className="w-5 h-5 text-accent" />
-                      <CardTitle className="text-lg">{configuratorItem.title}</CardTitle>
-                    </div>
-                    <Badge variant="outline">{configuratorItem.badge}</Badge>
-                  </div>
-                  <CardDescription>{configuratorItem.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <span>Click to open →</span>
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {salesToolItems.map(item => (
+                <Card key={item.href} className="hover-elevate cursor-pointer transition-all">
+                  <Link href={item.href} className="block h-full" data-testid={`link-admin-${item.href.split('/').pop()}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center space-x-2">
+                          <item.icon className="w-5 h-5 text-accent" />
+                          <CardTitle className="text-lg">{item.title}</CardTitle>
+                        </div>
+                        <Badge variant="outline">{item.badge}</Badge>
+                      </div>
+                      <CardDescription>{item.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <span>Click to open →</span>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 

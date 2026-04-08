@@ -65,6 +65,7 @@ const BuildSheet = lazy(() => import("@/pages/admin/BuildSheet"));
 const BuildProgress = lazy(() => import("@/pages/admin/BuildProgress"));
 const AdminBlog = lazy(() => import("@/pages/admin/Blog"));
 const AdminAIPackages = lazy(() => import("@/pages/admin/AIPackages"));
+const AdminFinanceCalculator = lazy(() => import("@/pages/admin/FinanceCalculator"));
 
 function Router() {
   return (
@@ -122,6 +123,7 @@ function Router() {
       <Route path="/admin/leads" component={AdminLeads} />
       <Route path="/admin/users" component={AdminUsers} />
       <Route path="/admin/blog" component={AdminBlog} />
+      <Route path="/admin/finance-calculator" component={AdminFinanceCalculator} />
       <Route path="/admin/ai-packages" component={AdminAIPackages} />
       <Route component={NotFound} />
     </Switch>
