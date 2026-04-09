@@ -221,7 +221,9 @@ export default function AdminQuotes() {
       const normalizedPhone = normalizedSearch.replace(/[\s\-().+]/g, '');
       const shortId = quote.id.slice(0, 8).toUpperCase();
       const vanName = quote.vanId ? (vans.find(v => v.id === quote.vanId)?.title ?? '') : '';
+      const kitName = quote.kitId ? (kits.find(k => k.id === quote.kitId)?.name ?? '') : '';
       const quotePhone = (quote.phone ?? '').replace(/[\s\-().+]/g, '');
+      const upgradeNames = getUpgradeList((quote.selectedUpgradeIds as string[]) ?? []);
       const matchesSearch = !normalizedSearch ||
         quote.userName.toLowerCase().includes(normalizedSearch) ||
         quote.email.toLowerCase().includes(normalizedSearch) ||
@@ -231,7 +233,9 @@ export default function AdminQuotes() {
         (quote.phone && quote.phone.toLowerCase().includes(normalizedSearch)) ||
         (normalizedPhone && quotePhone.includes(normalizedPhone)) ||
         (quote.vanRegistration && quote.vanRegistration.toLowerCase().replace(/\s/g, '').includes(normalizedSearch.replace(/\s/g, ''))) ||
-        vanName.toLowerCase().includes(normalizedSearch);
+        vanName.toLowerCase().includes(normalizedSearch) ||
+        kitName.toLowerCase().includes(normalizedSearch) ||
+        upgradeNames.some(name => name.toLowerCase().includes(normalizedSearch));
 
       if (!quote.createdAt) return matchesSearch;
       const quoteDate = new Date(quote.createdAt);
@@ -459,7 +463,7 @@ export default function AdminQuotes() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, email, phone, reg number, van or quote number..."
+                  placeholder="Search by name, email, phone, reg, van, kit or equipment..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
