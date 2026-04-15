@@ -50,8 +50,16 @@ import {
   Calculator,
   Plus,
   RefreshCw,
-  GitCompare
+  GitCompare,
+  Bot,
+  Eye,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -188,6 +196,9 @@ export default function AdminQuoteDetail() {
 
   // Undo choice confirmation dialog
   const [showUndoChoiceDialog, setShowUndoChoiceDialog] = useState(false);
+
+  // AI transcript viewer
+  const [showAiTranscript, setShowAiTranscript] = useState(false);
 
   // Unsaved-changes guard (all tabs + back navigation)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -2777,6 +2788,54 @@ export default function AdminQuoteDetail() {
           {(activeTab === "overview" || activeTab === "finance") && <div className="lg:col-span-1 space-y-6">
             {/* Overview-only sections */}
             {activeTab === "overview" && <>
+
+            {/* Max AI Chat link — shown when this quote originated from a Max chat */}
+            {(quote as any)?.aiConversation && (() => {
+              const ai = (quote as any).aiConversation;
+              const msgs: Array<{role: string; content: string}> = Array.isArray(ai.messages) ? ai.messages : [];
+              const displayName = ai.contact_name || ai.contactName || quote?.userName || "Customer";
+              return (
+                <Card data-testid="card-ai-conversation">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Bot className="w-4 h-4 text-[#8bc440]" />
+                      Max AI Chat
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full overflow-hidden ring-1 ring-[#8bc440]/30 shrink-0">
+                        <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ai.created_at ? new Date(ai.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ai.van_size && <Badge variant="secondary" className="text-xs">{ai.van_size}</Badge>}
+                      {ai.van_type && <Badge variant="secondary" className="text-xs capitalize">{ai.van_type}</Badge>}
+                      {ai.finance_preference && <Badge variant="secondary" className="text-xs capitalize">{ai.finance_preference}</Badge>}
+                      {(ai.includes_48v ?? ai.includes48v) && <Badge variant="secondary" className="text-xs bg-[#8bc440]/15 text-[#8bc440]">48V</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{msgs.length} message{msgs.length !== 1 ? "s" : ""} in conversation</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowAiTranscript(true)}
+                      data-testid="button-view-ai-transcript"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                      View Transcript
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
             {/* Discount */}
             <Card>
               <CardHeader>
@@ -3082,6 +3141,45 @@ export default function AdminQuoteDetail() {
           </div>
         </Tabs>
       </div>
+
+      {/* AI Transcript Dialog */}
+      {(quote as any)?.aiConversation && (() => {
+        const ai = (quote as any).aiConversation;
+        const msgs: Array<{role: string; content: string}> = Array.isArray(ai.messages) ? ai.messages : [];
+        const displayName = ai.contact_name || ai.contactName || quote?.userName || "Customer";
+        return (
+          <Dialog open={showAiTranscript} onOpenChange={setShowAiTranscript}>
+            <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0" data-testid="dialog-ai-transcript">
+              <DialogHeader className="px-5 py-4 border-b shrink-0">
+                <DialogTitle className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-[#8bc440]/30 shrink-0">
+                    <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                  </div>
+                  Max — Chat with {displayName}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+                {msgs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No messages in this conversation.</p>
+                ) : msgs.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${
+                      msg.role === "user"
+                        ? "bg-[#8bc440]/15 text-foreground"
+                        : "bg-muted text-foreground"
+                    }`}>
+                      <p className="text-xs font-medium mb-1 opacity-60">
+                        {msg.role === "user" ? displayName : "Max"}
+                      </p>
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -808,6 +809,18 @@ export default function AdminLeads() {
                             <Eye className="w-3.5 h-3.5 mr-1" />
                             Transcript
                           </Button>
+                          {conv.linked_quote_id && (
+                            <Link href={`/admin/quotes/${conv.linked_quote_id}`}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                data-testid={`button-view-quote-${conv.id}`}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                                View Quote
+                              </Button>
+                            </Link>
+                          )}
                           {!conv.marked_contacted && conv.contact_phone && (
                             <Button
                               size="sm"

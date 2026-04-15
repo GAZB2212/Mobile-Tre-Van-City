@@ -5082,18 +5082,25 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const params: any[] = [];
       let idx = 1;
 
-      if (status) { where += ` AND status = $${idx++}`; params.push(status); }
-      if (includes48v !== undefined) { where += ` AND includes_48v = $${idx++}`; params.push(includes48v === "true"); }
-      if (dateFrom) { where += ` AND created_at >= $${idx++}`; params.push(new Date(dateFrom)); }
-      if (dateTo) { where += ` AND created_at <= $${idx++}`; params.push(new Date(dateTo)); }
+      if (status) { where += ` AND ac.status = $${idx++}`; params.push(status); }
+      if (includes48v !== undefined) { where += ` AND ac.includes_48v = $${idx++}`; params.push(includes48v === "true"); }
+      if (dateFrom) { where += ` AND ac.created_at >= $${idx++}`; params.push(new Date(dateFrom)); }
+      if (dateTo) { where += ` AND ac.created_at <= $${idx++}`; params.push(new Date(dateTo)); }
 
       const [rows, stats] = await Promise.all([
         pool.query(
-          `SELECT id, session_id, status, contact_name, contact_phone, van_type, van_size, spec_level,
-                  finance_preference, includes_48v, was_48v_pitched, response_to_48v, config_completed,
-                  marked_contacted, created_at, completed_at
-           FROM ai_conversations ${where}
-           ORDER BY created_at DESC
+          `SELECT ac.id, ac.session_id, ac.status,
+                  COALESCE(ac.contact_name, q.user_name) AS contact_name,
+                  COALESCE(ac.contact_phone, q.phone) AS contact_phone,
+                  ac.van_type, ac.van_size, ac.spec_level,
+                  ac.finance_preference, ac.includes_48v, ac.was_48v_pitched,
+                  ac.response_to_48v, ac.config_completed,
+                  ac.marked_contacted, ac.created_at, ac.completed_at,
+                  q.id AS linked_quote_id
+           FROM ai_conversations ac
+           LEFT JOIN quotes q ON q.ai_session_id = ac.session_id
+           ${where}
+           ORDER BY ac.created_at DESC
            LIMIT $${idx} OFFSET $${idx + 1}`,
           [...params, parseInt(limit), parseInt(offset)]
         ),
