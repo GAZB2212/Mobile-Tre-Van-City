@@ -163,7 +163,22 @@ export default function TermsConditions() {
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-contact">12. Contact Information</h2>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-ip-ownership">12. Intellectual Property Ownership</h2>
+              <p className="mb-3">
+                This website, including but not limited to its design, layout, source code, databases, content, graphics, branding assets, SEO infrastructure, and all associated digital materials (collectively, the "Digital Assets"), was designed and developed by GAJO Creative Ltd, a company registered in England and Wales (Company No. 16669280). All intellectual property rights in the Digital Assets, including copyright, database rights, and design rights, are and shall remain the sole and exclusive property of GAJO Creative Ltd, regardless of any commercial arrangement with the operating entity of this website.
+              </p>
+              <p className="mb-3">
+                No intellectual property rights in the Digital Assets are transferred or assigned to any third party by virtue of their use of or access to this website. Unauthorised reproduction, copying, distribution, or modification of any part of this website without the prior written consent of GAJO Creative Ltd is strictly prohibited.
+              </p>
+              <p>
+                For licensing enquiries please contact: <a href="mailto:hello@gajocreative.co.uk" className="text-primary hover:underline">hello@gajocreative.co.uk</a>
+              </p>
+            </section>
+
+            <Separator />
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-contact">13. Contact Information</h2>
               <p>For questions about these Terms, please contact us:</p>
               <div className="bg-muted p-4 rounded-lg mt-3">
                 <p><strong>Email:</strong> info@mobiletyravan.co.uk</p>
