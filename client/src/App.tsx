@@ -41,6 +41,7 @@ import CookiePolicy from "@/pages/CookiePolicy";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
+import { AdminLayout } from "@/components/AdminLayout";
 import VanConversionsHub from "@/pages/seo/VanConversionsHub";
 import VanModelPage from "@/pages/seo/VanModelPage";
 import LocationsHub from "@/pages/seo/LocationsHub";
@@ -105,26 +106,26 @@ function Router() {
       <Route path="/van-conversions/:slug" component={VanModelPage} />
       <Route path="/mobile-tyre-vans" component={LocationsHub} />
       <Route path="/mobile-tyre-vans/:slug" component={LocationPage} />
-      {/* Admin routes — bypassed by SSR, loaded lazily */}
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/configurator" component={AdminConfigurator} />
-      <Route path="/admin/analytics" component={AdminAnalytics} />
-      <Route path="/admin/vans" component={AdminVans} />
-      <Route path="/admin/kits" component={AdminKits} />
-      <Route path="/admin/upgrades" component={AdminUpgrades} />
-      <Route path="/admin/finance-plans" component={AdminFinancePlans} />
-      <Route path="/admin/training-options" component={AdminTrainingOptions} />
-      <Route path="/admin/gallery-items" component={AdminGalleryItems} />
-      <Route path="/admin/videos" component={AdminVideos} />
-      <Route path="/admin/quotes" component={AdminQuotes} />
-      <Route path="/admin/quotes/:id" component={AdminQuoteDetail} />
-      <Route path="/admin/quotes/:id/build-sheet" component={BuildSheet} />
-      <Route path="/admin/quotes/:id/build-progress" component={BuildProgress} />
-      <Route path="/admin/leads" component={AdminLeads} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/blog" component={AdminBlog} />
-      <Route path="/admin/finance-calculator" component={AdminFinanceCalculator} />
-      <Route path="/admin/ai-packages" component={AdminAIPackages} />
+      {/* Admin routes — bypassed by SSR, loaded lazily, wrapped in AdminLayout */}
+      <Route path="/admin">{() => <AdminLayout><AdminDashboard /></AdminLayout>}</Route>
+      <Route path="/admin/configurator">{() => <AdminLayout><AdminConfigurator /></AdminLayout>}</Route>
+      <Route path="/admin/analytics">{() => <AdminLayout><AdminAnalytics /></AdminLayout>}</Route>
+      <Route path="/admin/vans">{() => <AdminLayout><AdminVans /></AdminLayout>}</Route>
+      <Route path="/admin/kits">{() => <AdminLayout><AdminKits /></AdminLayout>}</Route>
+      <Route path="/admin/upgrades">{() => <AdminLayout><AdminUpgrades /></AdminLayout>}</Route>
+      <Route path="/admin/finance-plans">{() => <AdminLayout><AdminFinancePlans /></AdminLayout>}</Route>
+      <Route path="/admin/training-options">{() => <AdminLayout><AdminTrainingOptions /></AdminLayout>}</Route>
+      <Route path="/admin/gallery-items">{() => <AdminLayout><AdminGalleryItems /></AdminLayout>}</Route>
+      <Route path="/admin/videos">{() => <AdminLayout><AdminVideos /></AdminLayout>}</Route>
+      <Route path="/admin/quotes">{() => <AdminLayout><AdminQuotes /></AdminLayout>}</Route>
+      <Route path="/admin/quotes/:id/build-sheet">{(params) => <AdminLayout><BuildSheet /></AdminLayout>}</Route>
+      <Route path="/admin/quotes/:id/build-progress">{(params) => <AdminLayout><BuildProgress /></AdminLayout>}</Route>
+      <Route path="/admin/quotes/:id">{(params) => <AdminLayout><AdminQuoteDetail /></AdminLayout>}</Route>
+      <Route path="/admin/leads">{() => <AdminLayout><AdminLeads /></AdminLayout>}</Route>
+      <Route path="/admin/users">{() => <AdminLayout><AdminUsers /></AdminLayout>}</Route>
+      <Route path="/admin/blog">{() => <AdminLayout><AdminBlog /></AdminLayout>}</Route>
+      <Route path="/admin/finance-calculator">{() => <AdminLayout><AdminFinanceCalculator /></AdminLayout>}</Route>
+      <Route path="/admin/ai-packages">{() => <AdminLayout><AdminAIPackages /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
   );

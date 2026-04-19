@@ -245,42 +245,14 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-              <p className="text-muted-foreground">
-                Welcome back, {user?.firstName || user?.email}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/admin">
-                <Badge variant={user?.adminRole === "full" ? "default" : "secondary"} className="cursor-pointer">
-                  {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
-                </Badge>
-              </Link>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/" data-testid="link-main-site">
-                  <Globe className="w-4 h-4 mr-2" />
-                  Main Site
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={async () => {
-                try { await apiRequest("POST", "/api/auth/logout"); } catch {}
-                localStorage.removeItem('sessionId');
-                window.location.href = "/login";
-              }} data-testid="button-logout">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-full">
       <div className="container mx-auto px-4 py-8 space-y-10">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Welcome back, {user?.firstName || user?.email}
+          </p>
+        </div>
         {/* Sales Tools Section */}
         {user?.adminRole && (
           <div>
