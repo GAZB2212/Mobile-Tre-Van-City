@@ -151,32 +151,38 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       `}
     >
       {/* Brand header */}
-      <div className={`flex items-center border-b border-white/[0.06] ${collapsed && !isMobile ? "justify-center px-3 py-4" : "px-4 py-4"} gap-3`}>
-        {(!collapsed || isMobile) && (
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="w-7 h-7 rounded-md bg-[#8bc440] flex items-center justify-center shrink-0">
-              <Car size={14} className="text-[#0d0d0d]" />
-            </div>
-            <span className="font-semibold text-sm text-zinc-100 truncate leading-tight">
-              Van City Admin
-            </span>
-          </div>
-        )}
-        {collapsed && !isMobile && (
-          <div className="w-7 h-7 rounded-md bg-[#8bc440] flex items-center justify-center">
+      {collapsed && !isMobile ? (
+        /* Collapsed: just the icon, clickable to expand */
+        <div className="flex items-center justify-center border-b border-white/[0.06] py-4">
+          <button
+            onClick={() => setCollapsed(false)}
+            className="w-7 h-7 rounded-md bg-[#8bc440] flex items-center justify-center hover:opacity-80 transition-opacity"
+            data-testid="button-toggle-sidebar"
+            title="Expand sidebar"
+          >
+            <Car size={14} className="text-[#0d0d0d]" />
+          </button>
+        </div>
+      ) : (
+        /* Expanded (desktop or mobile) */
+        <div className="flex items-center gap-2 px-4 py-4 border-b border-white/[0.06]">
+          <div className="w-7 h-7 rounded-md bg-[#8bc440] flex items-center justify-center shrink-0">
             <Car size={14} className="text-[#0d0d0d]" />
           </div>
-        )}
-        {!isMobile && (
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0"
-            data-testid="button-toggle-sidebar"
-          >
-            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-          </button>
-        )}
-      </div>
+          <span className="font-semibold text-sm text-zinc-100 truncate leading-tight flex-1">
+            Van City Admin
+          </span>
+          {!isMobile && (
+            <button
+              onClick={() => setCollapsed(true)}
+              className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0"
+              data-testid="button-toggle-sidebar"
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-5 px-2">
