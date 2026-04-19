@@ -19,6 +19,7 @@ import {
   UserPlus,
   Trash2
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminBackButton } from "@/components/AdminBackButton";
 
 export default function AdminUsers() {
@@ -338,9 +339,12 @@ export default function AdminUsers() {
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                      <UsersIcon className="w-5 h-5 text-accent" />
-                    </div>
+                    <Avatar className="w-10 h-10 shrink-0">
+                      <AvatarImage src={u.profileImageUrl || undefined} alt={u.firstName || u.username} />
+                      <AvatarFallback className="bg-accent/10 text-accent font-semibold">
+                        {u.firstName?.[0] || u.email?.[0] || u.username[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="min-w-0">
                       <CardTitle className="text-lg truncate" data-testid={`text-username-${u.id}`}>{u.username}</CardTitle>
                       {u.email && <p className="text-sm text-muted-foreground truncate">{u.email}</p>}

@@ -5,6 +5,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AdminProfileModal } from "@/components/AdminProfileModal";
 import {
   Tooltip,
   TooltipContent,
@@ -122,6 +124,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { user } = useAuth() as { user: User | undefined };
 
   const handleLogout = async () => {
@@ -213,19 +216,33 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       {/* Footer */}
       <div className={`border-t border-white/[0.06] p-3 space-y-1`}>
-        {(!collapsed || isMobile) && (
-          <div className="px-2 pb-2">
-            <p className="text-xs font-medium text-zinc-300 truncate">
-              {user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.email}
-            </p>
-            <Badge
-              variant="outline"
-              className="mt-1 text-[10px] border-[#8bc440]/30 text-[#8bc440] bg-[#8bc440]/10"
+        {/* User profile row */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setProfileOpen(true)}
+              className={`w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/5 transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
+              data-testid="button-open-profile"
             >
-              {user?.adminRole === "full" ? "Full Admin" : "Basic Admin"}
-            </Badge>
-          </div>
-        )}
+              <Avatar className="w-7 h-7 shrink-0 ring-1 ring-white/10">
+                <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || user?.username} />
+                <AvatarFallback className="text-[10px] font-semibold bg-[#8bc440]/15 text-[#8bc440]">
+                  {user?.firstName?.[0] || user?.email?.[0] || "A"}
+                </AvatarFallback>
+              </Avatar>
+              {(!collapsed || isMobile) && (
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-xs font-medium text-zinc-300 truncate">
+                    {user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.email}
+                  </p>
+                  <p className="text-[10px] text-zinc-600 truncate">Edit profile</p>
+                </div>
+              )}
+            </button>
+          </TooltipTrigger>
+          {(collapsed && !isMobile) && <TooltipContent side="right">Edit Profile</TooltipContent>}
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -298,6 +315,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Profile modal */}
+      {user && (
+        <AdminProfileModal
+          user={user}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        />
+      )}
     </div>
   );
 }

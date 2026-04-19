@@ -254,6 +254,29 @@ export class ObjectStorageService {
     return { uploadURL, publicURL };
   }
 
+  // Upload avatar image directly to public storage
+  async uploadAvatarToPublicStorage(
+    fileBuffer: Buffer,
+    filename: string,
+    contentType: string
+  ): Promise<string> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+    const publicPath = publicPaths[0];
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/avatars/${objectId}-${safeFilename}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    await file.save(fileBuffer, { contentType, metadata: { contentType } });
+    const pathParts = objectName.split('/');
+    const uploadedFilename = pathParts[pathParts.length - 1];
+    return `/objects/avatars/${uploadedFilename}`;
+  }
+
   // Upload file buffer directly to public storage (backend proxy - no CORS)
   async uploadFileToPublicStorage(
     fileBuffer: Buffer,
@@ -390,7 +413,7 @@ export class ObjectStorageService {
     const entityId = parts.slice(1).join("/");
     
     // Check if this is a public resource (van-images, product-images, upgrade-images, or videos directory)
-    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/") || entityId.startsWith("videos/")) {
+    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/") || entityId.startsWith("videos/") || entityId.startsWith("avatars/")) {
       const publicPaths = this.getPublicObjectSearchPaths();
       if (publicPaths && publicPaths.length > 0) {
         const publicPath = publicPaths[0];

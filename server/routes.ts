@@ -96,6 +96,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Avatar upload — any authenticated user can update their own avatar
+  app.post("/api/user/avatar", isAuthenticated, async (req, res) => {
+    const multer = await import("multer");
+    const upload = multer.default({ storage: multer.memoryStorage() });
+    upload.single("file")(req, res, async (err: any) => {
+      if (err) return res.status(400).json({ error: "File upload failed" });
+      try {
+        if (!req.file) return res.status(400).json({ error: "No file provided" });
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+        if (!allowedTypes.includes(req.file.mimetype.toLowerCase())) {
+          return res.status(400).json({ error: "Only image files are allowed" });
+        }
+        const userId = (req.session as any).user?.id;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        const { ObjectStorageService } = await import("./objectStorage");
+        const objectStorageService = new ObjectStorageService();
+        const avatarUrl = await objectStorageService.uploadAvatarToPublicStorage(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+
+        await storage.updateUser(userId, { profileImageUrl: avatarUrl });
+        res.json({ avatarUrl });
+      } catch (error) {
+        console.error("Error uploading avatar:", error);
+        res.status(500).json({ error: "Failed to upload avatar" });
+      }
+    });
+  });
+
   // User management endpoints (for full admins only)
   app.get("/api/admin/users", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
