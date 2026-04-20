@@ -209,6 +209,15 @@ export default function SelectUpgrades() {
 
   const vanSize = getVanSize();
 
+  const purgeQuantities = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setUpgradeQuantities((prev: Record<string, number>) => {
+      const next = { ...prev };
+      ids.forEach(id => delete next[id]);
+      return next;
+    });
+  };
+
   // Auto-remove incompatible interior walls when van size changes
   useEffect(() => {
     if (!vanSize || !configuratorData) return;
@@ -228,6 +237,7 @@ export default function SelectUpgrades() {
         
         if (isIncompatible) {
           removeUpgrade(upgrade.id);
+          purgeQuantities([upgrade.id]);
         }
       }
     });
@@ -255,6 +265,7 @@ export default function SelectUpgrades() {
       if (ids.length > 1) {
         const [keep, ...toRemove] = ids;
         replaceUpgrades(toRemove, keep);
+        purgeQuantities(toRemove);
       }
     });
   }, [configuratorData, state.upgradeIds, replaceUpgrades]);
@@ -266,6 +277,7 @@ export default function SelectUpgrades() {
     
     if (state.upgradeIds.includes(upgradeId)) {
       removeUpgrade(upgradeId);
+      purgeQuantities([upgradeId]);
     } else {
       const allUpgrades = configuratorData?.upgrades 
         ? Object.values(filteredUpgrades).flat()
@@ -289,6 +301,7 @@ export default function SelectUpgrades() {
       // Use atomic replace if we need to remove items, otherwise just add
       if (toRemove.length > 0) {
         replaceUpgrades(toRemove, upgradeId);
+        purgeQuantities(toRemove);
       } else {
         addUpgrade(upgradeId);
       }
@@ -337,9 +350,11 @@ export default function SelectUpgrades() {
       
       // Use atomic replace to remove all items and add the new variant in one update
       replaceUpgrades(toRemove, variantId);
+      purgeQuantities(toRemove);
     } else if (toRemove.length > 0) {
       // If no variant selected, just remove the old ones
       toRemove.forEach(id => removeUpgrade(id));
+      purgeQuantities(toRemove);
     }
   };
 
