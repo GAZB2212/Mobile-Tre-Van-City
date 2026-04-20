@@ -446,11 +446,12 @@ export default function AdminQuotes() {
 
         {/* ── Conversion Stats ── */}
         {(() => {
+          const CONVERTED_STATUSES = ["deposit_taken", "finance_approved", "in_build", "completed"];
           const total = quotes.length;
-          const completedQuotes = quotes.filter(q => q.status === "completed");
-          const completed = completedQuotes.length;
-          const convPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-          const revenueConverted = completedQuotes.reduce((s, q) => s + q.estTotal, 0);
+          const convertedQuotes = quotes.filter(q => CONVERTED_STATUSES.includes(q.status));
+          const converted = convertedQuotes.length;
+          const convPct = total > 0 ? Math.round((converted / total) * 100) : 0;
+          const revenueConverted = convertedQuotes.reduce((s, q) => s + q.estTotal, 0);
           return (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               <Card>
@@ -460,14 +461,14 @@ export default function AdminQuotes() {
                   <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
                     <div className="h-full bg-accent rounded-full" style={{ width: `${convPct}%` }} />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{completed} of {total} completed</p>
+                  <p className="text-xs text-muted-foreground mt-1">{converted} of {total} became real builds</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Revenue Converted</p>
                   <p className="text-2xl font-bold text-accent" data-testid="stat-revenue-converted">{formatPrice(revenueConverted)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">from {completed} completed job{completed !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground mt-1">across {converted} converted job{converted !== 1 ? "s" : ""}</p>
                 </CardContent>
               </Card>
               <Card>
