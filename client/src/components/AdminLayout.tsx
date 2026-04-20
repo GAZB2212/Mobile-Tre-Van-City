@@ -63,7 +63,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Content",
     items: [
-      { title: "Vans", href: "/admin/vans", icon: Car, requiredRole: "full" },
+      { title: "Vans", href: "/admin/vans", icon: Car, requiredRole: "basic" },
       { title: "Packs", href: "/admin/kits", icon: Package, requiredRole: "full" },
       { title: "Upgrades", href: "/admin/upgrades", icon: Wrench, requiredRole: "full" },
       { title: "Finance Plans", href: "/admin/finance-plans", icon: Calculator, requiredRole: "full" },

@@ -118,7 +118,7 @@ export default function AdminDashboard() {
       icon: Car,
       href: "/admin/vans",
       badge: "Inventory",
-      requiredRole: "full" as const
+      requiredRole: "basic" as const
     },
     {
       title: "Manage Packs",
