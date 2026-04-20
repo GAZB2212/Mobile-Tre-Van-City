@@ -121,15 +121,31 @@ export default function AdminQuotes() {
       });
       toast({ title: "Update failed", description: err.message, variant: "destructive" });
     },
-    onSuccess: (_data, { id }) => {
-      // Clear pending override — query refetch will now provide authoritative value
-      setPendingStatuses(prev => { const next = { ...prev }; delete next[id]; return next; });
+    onSuccess: () => {
       toast({ title: "Status updated" });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
     },
   });
+
+  // Clear pending status overrides only once the refetched query data
+  // confirms the server has the updated status — avoids the brief revert
+  // that happens when onSuccess clears the override before the refetch lands.
+  useEffect(() => {
+    if (!quotes || Object.keys(pendingStatuses).length === 0) return;
+    setPendingStatuses(prev => {
+      const next = { ...prev };
+      let changed = false;
+      quotes.forEach((q: Quote) => {
+        if (next[q.id] !== undefined && next[q.id] === q.status) {
+          delete next[q.id];
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [quotes]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
