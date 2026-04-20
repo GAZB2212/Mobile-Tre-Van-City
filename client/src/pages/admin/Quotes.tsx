@@ -6,7 +6,7 @@ function getStatusBadgeClass(status: string): string {
     case "awaiting_finance": return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
     case "deposit_taken": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
     case "finance_approved": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
-    case "in_build": return "bg-[#8bc440]/20 text-[#3a6a0a] dark:text-[#8bc440]";
+    case "in_build": return "bg-red-600 text-white dark:bg-red-600 dark:text-white";
     case "completed": return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
     case "cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
     default: return "bg-muted text-muted-foreground";
