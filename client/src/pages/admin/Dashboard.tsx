@@ -1,12 +1,14 @@
 import { useAuth } from "@/hooks/useAuth";
-import type { User } from "@shared/schema";
+import type { User, Quote } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
+import { Separator } from "@/components/ui/separator";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Car, 
   Package, 
@@ -16,7 +18,6 @@ import {
   Shield,
   Globe,
   Settings,
-  LogOut,
   Calculator,
   GraduationCap,
   BarChart3,
@@ -24,8 +25,32 @@ import {
   RefreshCw,
   Video,
   UserRound,
-  Layers
+  Layers,
+  TrendingUp,
+  CheckCircle2,
+  Hammer,
+  PoundSterling,
 } from "lucide-react";
+
+const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
+const COMMITTED_LABEL: Record<string, string> = {
+  deposit_taken: "Deposit Taken",
+  finance_approved: "Finance Approved",
+  in_build: "In Build",
+};
+const COMMITTED_BADGE: Record<string, string> = {
+  deposit_taken: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300",
+  finance_approved: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300",
+  in_build: "bg-red-600 text-white",
+};
+
+function fmtGBP(pence: number) {
+  return "£" + (pence / 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function customerName(q: Quote): string {
+  return [q.firstName, q.lastName].filter(Boolean).join(" ") || q.email || "Unknown";
+}
 
 export default function AdminDashboard() {
   const { toast } = useToast();
