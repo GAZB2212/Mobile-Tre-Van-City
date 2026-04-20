@@ -687,16 +687,18 @@ export default function AdminQuoteDetail() {
     const isSelected = selectedUpgradeIds.includes(upgradeId);
     
     if (isSelected) {
-      // Remove upgrade
-      setSelectedUpgradeIds(selectedUpgradeIds.filter(id => id !== upgradeId));
-      const newUpgrades = { ...selectedUpgrades };
-      delete newUpgrades[upgradeId];
-      setSelectedUpgrades(newUpgrades);
+      // Remove upgrade and its stale quantity entry
+      setSelectedUpgradeIds(prev => prev.filter(id => id !== upgradeId));
+      setSelectedUpgrades(prev => {
+        const next = { ...prev };
+        delete next[upgradeId];
+        return next;
+      });
     } else {
       // Add upgrade
-      setSelectedUpgradeIds([...selectedUpgradeIds, upgradeId]);
+      setSelectedUpgradeIds(prev => [...prev, upgradeId]);
       if (upgrade.allowQuantity) {
-        setSelectedUpgrades({ ...selectedUpgrades, [upgradeId]: 1 });
+        setSelectedUpgrades(prev => ({ ...prev, [upgradeId]: 1 }));
       }
     }
   };
