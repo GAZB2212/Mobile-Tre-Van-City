@@ -6,8 +6,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Car, 
@@ -28,7 +27,6 @@ import {
   Layers,
   TrendingUp,
   CheckCircle2,
-  Hammer,
   PoundSterling,
 } from "lucide-react";
 
@@ -61,6 +59,17 @@ export default function AdminDashboard() {
   };
   const [syncing, setSyncing] = useState(false);
   const [syncConfirm, setSyncConfirm] = useState(false);
+
+  const { data: quotes = [] } = useQuery<Quote[]>({
+    queryKey: ["/api/admin/quotes"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const committedQuotes = quotes.filter(q => COMMITTED_STATUSES.has(q.status));
+  const committedTotal = committedQuotes.reduce((sum, q) => sum + (q.estTotal ?? 0), 0);
+
+  const completedQuotes = quotes.filter(q => q.status === "completed");
+  const completedTotal = completedQuotes.reduce((sum, q) => sum + (q.estTotal ?? 0), 0);
 
   const handleCatalogSync = async () => {
     if (!syncConfirm) {
@@ -278,6 +287,103 @@ export default function AdminDashboard() {
             Welcome back, {user?.firstName || user?.email}
           </p>
         </div>
+
+        {/* ── Committed Pipeline ── */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-accent" />
+            Committed Pipeline
+            {committedQuotes.length > 0 && (
+              <Badge variant="outline" className="ml-1">{committedQuotes.length} job{committedQuotes.length !== 1 ? "s" : ""}</Badge>
+            )}
+          </h2>
+
+          {committedQuotes.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                No committed jobs at the moment.
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              {/* Summary bar */}
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <CardDescription>Jobs with deposit taken, finance approved, or in build</CardDescription>
+                  <div className="flex items-center gap-1.5 text-sm font-semibold">
+                    <PoundSterling className="w-4 h-4 text-accent" />
+                    <span>Pipeline value: <span className="text-accent">{fmtGBP(committedTotal)}</span></span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {committedQuotes.map((q) => (
+                    <Link
+                      key={q.id}
+                      href={`/admin/quotes/${q.id}`}
+                      className="flex items-center gap-3 px-6 py-3 hover-elevate transition-colors cursor-pointer"
+                      data-testid={`link-pipeline-quote-${q.id}`}
+                    >
+                      {/* Status badge */}
+                      <span className={`shrink-0 inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${COMMITTED_BADGE[q.status] ?? "bg-muted text-muted-foreground"}`}>
+                        {COMMITTED_LABEL[q.status] ?? q.status}
+                      </span>
+
+                      {/* Customer name + van */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{customerName(q)}</p>
+                        {q.vanTitle && (
+                          <p className="text-xs text-muted-foreground truncate">{q.vanTitle}</p>
+                        )}
+                      </div>
+
+                      {/* Value */}
+                      {q.estTotal != null && q.estTotal > 0 && (
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">
+                          {fmtGBP(q.estTotal)}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ── Completed Jobs ── */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-accent" />
+            Completed Jobs
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="flex items-center gap-4 py-5">
+                <div className="rounded-md bg-accent/10 p-2.5">
+                  <CheckCircle2 className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Completed</p>
+                  <p className="text-2xl font-bold" data-testid="text-completed-count">{completedQuotes.length}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center gap-4 py-5">
+                <div className="rounded-md bg-accent/10 p-2.5">
+                  <PoundSterling className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Value</p>
+                  <p className="text-2xl font-bold text-accent" data-testid="text-completed-total">{fmtGBP(completedTotal)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
         {/* Sales Tools Section */}
         {user?.adminRole && (
           <div>
