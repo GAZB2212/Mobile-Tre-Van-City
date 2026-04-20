@@ -23,7 +23,6 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
@@ -237,7 +236,7 @@ export default function AdminFinanceCalculator() {
                     className="h-4 w-4 rounded accent-accent cursor-pointer shrink-0"
                   />
                   <div className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <PoundSterling className="w-4 h-4 text-muted-foreground shrink-0" />
                     <div>
                       <p className="text-sm font-medium leading-tight">VAT Deferred</p>
                       <p className="text-xs text-muted-foreground leading-tight mt-0.5">
@@ -421,7 +420,7 @@ export default function AdminFinanceCalculator() {
                     {vatDeferred && (
                       <div className="rounded-md bg-accent/10 border border-accent/20 px-3 py-2 flex items-center justify-between text-sm">
                         <span className="text-muted-foreground flex items-center gap-1.5">
-                          <Receipt className="w-3.5 h-3.5" />
+                          <PoundSterling className="w-3.5 h-3.5" />
                           Deferred VAT (due separately)
                         </span>
                         <span className="font-semibold text-accent" data-testid="text-deferred-vat">
