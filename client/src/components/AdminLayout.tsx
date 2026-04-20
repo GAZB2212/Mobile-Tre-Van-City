@@ -174,8 +174,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <img
             src={mtvcLogoWide}
             alt="Mobile Tyre Van City"
-            className="h-9 w-auto object-contain flex-1 min-w-0"
+            className="h-9 w-auto object-contain shrink-0"
+            style={{ maxWidth: "120px" }}
           />
+          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest leading-tight flex-1 min-w-0">
+            Admin
+          </span>
           {!isMobile && (
             <button
               onClick={() => setCollapsed(true)}
