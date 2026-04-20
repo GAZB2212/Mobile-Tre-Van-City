@@ -447,13 +447,19 @@ export default function AdminQuotes() {
         {/* ── Conversion Stats ── */}
         {(() => {
           const total = quotes.length;
-          const completed = quotes.filter(q => q.status === "completed").length;
-          const active = quotes.filter(q => ["deposit_taken","finance_approved","in_build"].includes(q.status)).length;
-          const cancelled = quotes.filter(q => q.status === "cancelled").length;
+          const completedQuotes = quotes.filter(q => q.status === "completed");
+          const pipelineQuotes = quotes.filter(q => ["deposit_taken","finance_approved","in_build"].includes(q.status));
+          const cancelledQuotes = quotes.filter(q => q.status === "cancelled");
+          const completed = completedQuotes.length;
+          const active = pipelineQuotes.length;
+          const cancelled = cancelledQuotes.length;
           const convPct = total > 0 ? Math.round((completed / total) * 100) : 0;
           const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
+          const revenueConverted = completedQuotes.reduce((s, q) => s + q.estTotal, 0);
+          const pipelineValue = pipelineQuotes.reduce((s, q) => s + q.estTotal, 0);
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+              {/* Row 1 — key financial KPIs */}
               <Card>
                 <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
@@ -466,8 +472,24 @@ export default function AdminQuotes() {
               </Card>
               <Card>
                 <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">Revenue Converted</p>
+                  <p className="text-2xl font-bold text-accent" data-testid="stat-revenue-converted">{formatPrice(revenueConverted)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">from {completed} completed job{completed !== 1 ? "s" : ""}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">Pipeline Value</p>
+                  <p className="text-2xl font-bold" data-testid="stat-pipeline-value">{formatPrice(pipelineValue)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{active} job{active !== 1 ? "s" : ""} in progress</p>
+                </CardContent>
+              </Card>
+              {/* Row 2 — volume counts */}
+              <Card>
+                <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Total Configurators</p>
                   <p className="text-2xl font-bold" data-testid="stat-total-quotes">{total}</p>
+                  <p className="text-xs text-muted-foreground mt-1">all time</p>
                 </CardContent>
               </Card>
               <Card>
