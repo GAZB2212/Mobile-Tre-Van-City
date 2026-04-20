@@ -281,7 +281,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop sidebar */}
-      <div className="hidden md:flex flex-col shrink-0" style={{ transition: "width 200ms" }}>
+      <div className="hidden md:flex flex-col shrink-0 no-print" style={{ transition: "width 200ms" }}>
         {sidebarContent(false)}
       </div>
 
@@ -301,7 +301,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center h-12 px-4 border-b border-white/[0.06] bg-[#0d0d0d] shrink-0">
+        <header className="flex items-center h-12 px-4 border-b border-white/[0.06] bg-[#0d0d0d] shrink-0 no-print">
           <button
             className="md:hidden text-zinc-400 hover:text-zinc-100 mr-3"
             onClick={() => setMobileOpen(true)}

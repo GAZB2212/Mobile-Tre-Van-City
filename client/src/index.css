@@ -360,6 +360,16 @@
     text-decoration: none !important;
   }
 
+  /* Admin layout — remove overflow clipping so content isn't cut */
+  .overflow-hidden, .overflow-y-auto {
+    overflow: visible !important;
+  }
+
+  /* Remove fixed height on admin shell so content can reflow across pages */
+  .h-screen {
+    height: auto !important;
+  }
+
   @page {
     margin: 1.5cm;
     size: A4;
