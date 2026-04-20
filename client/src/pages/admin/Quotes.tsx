@@ -85,6 +85,8 @@ export default function AdminQuotes() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Local pending status overrides — updated instantly on selection, cleared after server confirms
+  const [pendingStatuses, setPendingStatuses] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
     try { return (localStorage.getItem("quotesViewMode") as "list" | "kanban") || "list"; } catch { return "list"; }
   });
@@ -104,27 +106,27 @@ export default function AdminQuotes() {
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
       return res.json();
     },
-    onMutate: async ({ id, status }) => {
-      // Cancel any in-flight refetches so they don't overwrite the optimistic update
-      await queryClient.cancelQueries({ queryKey: ["/api/admin/quotes"] });
-      // Snapshot previous value for rollback
-      const previous = queryClient.getQueryData<Quote[]>(["/api/admin/quotes"]);
-      // Optimistically update the cache immediately
-      queryClient.setQueryData<Quote[]>(["/api/admin/quotes"], old =>
-        old ? old.map(q => q.id === id ? { ...q, status } : q) : old
-      );
-      return { previous };
+    onMutate: ({ id, status }) => {
+      // Show the new status instantly in local state — independent of query cache
+      setPendingStatuses(prev => ({ ...prev, [id]: status }));
+      return { id, previousStatus: pendingStatuses[id] };
     },
-    onError: (err: Error, _vars, ctx) => {
-      // Rollback on error
-      if (ctx?.previous) queryClient.setQueryData(["/api/admin/quotes"], ctx.previous);
+    onError: (err: Error, { id }, ctx) => {
+      // Roll back to previous value on error
+      setPendingStatuses(prev => {
+        const next = { ...prev };
+        if (ctx?.previousStatus) next[id] = ctx.previousStatus;
+        else delete next[id];
+        return next;
+      });
       toast({ title: "Update failed", description: err.message, variant: "destructive" });
     },
-    onSuccess: () => {
+    onSuccess: (_data, { id }) => {
+      // Clear pending override — query refetch will now provide authoritative value
+      setPendingStatuses(prev => { const next = { ...prev }; delete next[id]; return next; });
       toast({ title: "Status updated" });
     },
     onSettled: () => {
-      // Always sync with server after mutation
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
     },
   });
@@ -783,12 +785,11 @@ export default function AdminQuotes() {
                           data-testid={`status-select-wrapper-${quote.id}`}
                         >
                           <Select
-                            value={quote.status}
-                            disabled={statusMutation.isPending}
+                            value={pendingStatuses[quote.id] ?? quote.status}
                             onValueChange={(v) => statusMutation.mutate({ id: quote.id, status: v })}
                           >
                             <SelectTrigger
-                              className={`h-auto py-0.5 pl-2 pr-1.5 text-xs font-medium border-0 gap-1 shadow-none focus:ring-1 focus:ring-ring ${getStatusBadgeClass(quote.status)}`}
+                              className={`h-auto py-0.5 pl-2 pr-1.5 text-xs font-medium border-0 gap-1 shadow-none focus:ring-1 focus:ring-ring ${getStatusBadgeClass(pendingStatuses[quote.id] ?? quote.status)}`}
                               data-testid={`status-select-${quote.id}`}
                             >
                               <SelectValue />
