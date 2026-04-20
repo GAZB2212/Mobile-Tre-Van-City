@@ -129,24 +129,6 @@ export default function AdminQuotes() {
     },
   });
 
-  // Clear pending status overrides only once the refetched query data
-  // confirms the server has the updated status — avoids the brief revert
-  // that happens when onSuccess clears the override before the refetch lands.
-  useEffect(() => {
-    if (!quotes || Object.keys(pendingStatuses).length === 0) return;
-    setPendingStatuses(prev => {
-      const next = { ...prev };
-      let changed = false;
-      quotes.forEach((q: Quote) => {
-        if (next[q.id] !== undefined && next[q.id] === q.status) {
-          delete next[q.id];
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
-  }, [quotes]);
-
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -186,6 +168,23 @@ export default function AdminQuotes() {
     refetchInterval: isActive ? 60_000 : false,
     refetchIntervalInBackground: false,
   });
+
+  // Clear pending status overrides only once the refetched query data
+  // confirms the server has the updated status — avoids the brief revert.
+  useEffect(() => {
+    if (!quotes.length || Object.keys(pendingStatuses).length === 0) return;
+    setPendingStatuses(prev => {
+      const next = { ...prev };
+      let changed = false;
+      quotes.forEach((q: Quote) => {
+        if (next[q.id] !== undefined && next[q.id] === q.status) {
+          delete next[q.id];
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [quotes]);
 
   // Fetch vans, kits, and upgrades for reference data
   const { data: vans = [] } = useQuery<Van[]>({
