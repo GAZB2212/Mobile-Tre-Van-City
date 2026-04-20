@@ -443,6 +443,57 @@ export default function AdminQuotes() {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+
+        {/* ── Conversion Stats ── */}
+        {(() => {
+          const total = quotes.length;
+          const completed = quotes.filter(q => q.status === "completed").length;
+          const active = quotes.filter(q => ["deposit_taken","finance_approved","in_build"].includes(q.status)).length;
+          const cancelled = quotes.filter(q => q.status === "cancelled").length;
+          const convPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+          const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">Total Configurators</p>
+                  <p className="text-2xl font-bold" data-testid="stat-total-quotes">{total}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
+                  <div className="flex items-end gap-2">
+                    <p className="text-2xl font-bold text-accent" data-testid="stat-conversion-rate">{convPct}%</p>
+                    <p className="text-sm text-muted-foreground mb-0.5">{completed} completed</p>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-accent rounded-full" style={{ width: `${convPct}%` }} />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">In Pipeline</p>
+                  <div className="flex items-end gap-2">
+                    <p className="text-2xl font-bold" data-testid="stat-pipeline">{active}</p>
+                    <p className="text-sm text-muted-foreground mb-0.5">{activePct}% of total</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">Cancelled</p>
+                  <div className="flex items-end gap-2">
+                    <p className="text-2xl font-bold" data-testid="stat-cancelled">{cancelled}</p>
+                    {total > 0 && <p className="text-sm text-muted-foreground mb-0.5">{Math.round((cancelled/total)*100)}%</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })()}
+
         {/* Filters */}
         <Card className="mb-6">
           <CardHeader>
