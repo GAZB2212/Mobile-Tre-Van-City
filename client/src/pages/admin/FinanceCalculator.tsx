@@ -41,11 +41,11 @@ const TERM_OPTIONS = [
 const VAT_RATE = 0.2;
 
 function fmt(pence: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+  return "£" + (pence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtPounds(pounds: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pounds);
+  return "£" + pounds.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 interface CalcResult {
