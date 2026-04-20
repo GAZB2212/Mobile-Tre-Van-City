@@ -718,7 +718,20 @@ export default function AdminQuotes() {
                     onClick={() => toggleExpanded(quote.id)}
                     data-testid={`button-expand-${quote.id}`}
                   >
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 hover-elevate rounded-md">
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 hover-elevate rounded-md">
+                      {/* Date stamp */}
+                      <div className="flex flex-col items-center justify-center w-10 shrink-0 select-none" data-testid={`text-date-${quote.id}`}>
+                        <span className="text-base font-bold leading-none">
+                          {quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { day: "2-digit" }) : "—"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide leading-tight mt-0.5">
+                          {quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { month: "short" }) : ""}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground leading-tight">
+                          {quote.createdAt ? new Date(quote.createdAt).getFullYear() : ""}
+                        </span>
+                      </div>
+
                       {/* Left: name, company, status */}
                       <div className="flex items-center gap-3 flex-wrap min-w-0">
                         <UserIcon className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -799,10 +812,6 @@ export default function AdminQuotes() {
                         <span className="flex items-center gap-1">
                           <Mail className="w-3 h-3" />
                           {quote.email}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(quote.createdAt)}
                         </span>
                       </div>
 
