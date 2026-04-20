@@ -456,20 +456,18 @@ export default function AdminQuotes() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <Card>
                 <CardContent className="py-4 px-5">
-                  <p className="text-xs text-muted-foreground mb-1">Total Configurators</p>
-                  <p className="text-2xl font-bold" data-testid="stat-total-quotes">{total}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
+                  <p className="text-3xl font-bold text-accent" data-testid="stat-conversion-rate">{convPct}%</p>
+                  <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-accent rounded-full" style={{ width: `${convPct}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{completed} of {total} completed</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="py-4 px-5">
-                  <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
-                  <div className="flex items-end gap-2">
-                    <p className="text-2xl font-bold text-accent" data-testid="stat-conversion-rate">{convPct}%</p>
-                    <p className="text-sm text-muted-foreground mb-0.5">{completed} completed</p>
-                  </div>
-                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent rounded-full" style={{ width: `${convPct}%` }} />
-                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">Total Configurators</p>
+                  <p className="text-2xl font-bold" data-testid="stat-total-quotes">{total}</p>
                 </CardContent>
               </Card>
               <Card>
