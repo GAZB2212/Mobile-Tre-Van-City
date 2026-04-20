@@ -1983,22 +1983,14 @@ export default function AdminQuoteDetail() {
                                 <Select
                                   value={selectedVariantId || "none"}
                                   onValueChange={(value) => {
+                                    const variantIds = variants.map(v => v.id);
                                     if (value === "none") {
-                                      variants.forEach(v => {
-                                        if (selectedUpgradeIds.includes(v.id)) {
-                                          handleUpgradeToggle(v.id, v);
-                                        }
-                                      });
+                                      setSelectedUpgradeIds(prev => prev.filter(id => !variantIds.includes(id)));
                                     } else {
-                                      variants.forEach(v => {
-                                        if (selectedUpgradeIds.includes(v.id)) {
-                                          handleUpgradeToggle(v.id, v);
-                                        }
-                                      });
-                                      const variant = variants.find(v => v.id === value);
-                                      if (variant) {
-                                        handleUpgradeToggle(variant.id, variant);
-                                      }
+                                      setSelectedUpgradeIds(prev => [
+                                        ...prev.filter(id => !variantIds.includes(id)),
+                                        value,
+                                      ]);
                                     }
                                   }}
                                 >
