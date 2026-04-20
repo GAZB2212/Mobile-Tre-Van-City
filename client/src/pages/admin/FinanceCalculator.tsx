@@ -23,6 +23,7 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
@@ -36,6 +37,8 @@ const TERM_OPTIONS = [
   { label: "48 months (4 years)", value: 48 },
   { label: "60 months (5 years)", value: 60 },
 ];
+
+const VAT_RATE = 0.2;
 
 function fmt(pence: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
@@ -53,6 +56,8 @@ interface CalcResult {
   totalInterest: number;
   balloon: number;
   termMonths: number;
+  deferredVat: number;
+  priceExVat: number;
 }
 
 function calculate(
@@ -61,11 +66,18 @@ function calculate(
   termMonths: number,
   apr: number,
   balloonPct: number,
+  vatDeferred: boolean,
 ): CalcResult | null {
-  const principal = priceIncVat - deposit;
+  const priceExVat = Math.round((priceIncVat / (1 + VAT_RATE)) * 100) / 100;
+  const deferredVat = vatDeferred ? Math.round((priceIncVat - priceExVat) * 100) / 100 : 0;
+
+  // Base for repayments: ex-VAT price if deferred, else full inc-VAT price
+  const financeBase = vatDeferred ? priceExVat : priceIncVat;
+
+  const principal = financeBase - deposit;
   if (principal <= 0 || termMonths <= 0 || apr <= 0) return null;
 
-  const balloon = Math.round(priceIncVat * (balloonPct / 100));
+  const balloon = Math.round(financeBase * (balloonPct / 100));
   const financedAmount = principal - balloon;
   if (financedAmount <= 0) return null;
 
@@ -73,10 +85,10 @@ function calculate(
   const pv = Math.pow(1 + monthlyRate, termMonths);
   const monthlyPayment = Math.round((financedAmount * monthlyRate * pv) / (pv - 1));
   const weeklyPayment = Math.round((monthlyPayment * 12) / 52);
-  const totalPayable = monthlyPayment * termMonths + balloon + deposit;
+  const totalPayable = monthlyPayment * termMonths + balloon + deposit + deferredVat;
   const totalInterest = totalPayable - priceIncVat;
 
-  return { principal, monthlyPayment, weeklyPayment, totalPayable, totalInterest, balloon, termMonths };
+  return { principal, monthlyPayment, weeklyPayment, totalPayable, totalInterest, balloon, termMonths, deferredVat, priceExVat };
 }
 
 export default function AdminFinanceCalculator() {
@@ -94,6 +106,7 @@ export default function AdminFinanceCalculator() {
   const [aprStr, setAprStr] = useState("12");
   const [balloonPctStr, setBalloonPctStr] = useState("0");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [vatDeferred, setVatDeferred] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -106,28 +119,33 @@ export default function AdminFinanceCalculator() {
   const apr = parseFloat(aprStr) || 0;
   const balloonPct = Math.min(parseFloat(balloonPctStr) || 0, 50);
 
+  const priceExVat = priceIncVat > 0 ? Math.round((priceIncVat / (1 + VAT_RATE)) * 100) / 100 : 0;
+  const vatAmount = priceIncVat > 0 ? Math.round((priceIncVat - priceExVat) * 100) / 100 : 0;
+
   const depositAmount = useMemo(() => {
     if (depositMode === "percent") {
       const pct = parseFloat(depositStr) || 0;
-      return Math.round(priceIncVat * (pct / 100) * 100) / 100;
+      const base = vatDeferred ? priceExVat : priceIncVat;
+      return Math.round(base * (pct / 100) * 100) / 100;
     }
     return parseFloat(depositStr.replace(/,/g, "")) || 0;
-  }, [depositMode, depositStr, priceIncVat]);
+  }, [depositMode, depositStr, priceIncVat, priceExVat, vatDeferred]);
 
-  const depositPercent = priceIncVat > 0 ? (depositAmount / priceIncVat) * 100 : 0;
+  const depositPercent = priceIncVat > 0 ? (depositAmount / (vatDeferred ? priceExVat : priceIncVat)) * 100 : 0;
 
   const result = useMemo(() => {
     if (priceIncVat <= 0) return null;
-    return calculate(priceIncVat, depositAmount, termMonths, apr, balloonPct);
-  }, [priceIncVat, depositAmount, termMonths, apr, balloonPct]);
+    return calculate(priceIncVat, depositAmount, termMonths, apr, balloonPct, vatDeferred);
+  }, [priceIncVat, depositAmount, termMonths, apr, balloonPct, vatDeferred]);
 
   const handleReset = () => {
     setPriceStr("");
     setDepositStr("");
     setTermMonths(36);
-    setAprStr("10.9");
+    setAprStr("12");
     setBalloonPctStr("0");
     setDepositMode("amount");
+    setVatDeferred(false);
   };
 
   if (isLoading) {
@@ -197,7 +215,51 @@ export default function AdminFinanceCalculator() {
                     onChange={e => setPriceStr(e.target.value)}
                     data-testid="input-price"
                   />
+                  {priceIncVat > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Ex VAT: {fmtPounds(priceExVat)} &nbsp;|&nbsp; VAT: {fmtPounds(vatAmount)}
+                    </p>
+                  )}
                 </div>
+
+                {/* VAT Deferred toggle */}
+                <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium leading-tight">VAT Deferred</p>
+                      <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+                        Finance ex-VAT price; VAT paid separately
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={vatDeferred}
+                    onClick={() => setVatDeferred(p => !p)}
+                    data-testid="button-vat-deferred"
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      vatDeferred ? "bg-accent" : "bg-muted"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform ${
+                        vatDeferred ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {vatDeferred && priceIncVat > 0 && (
+                  <div className="rounded-md bg-accent/10 border border-accent/20 px-3 py-2.5 text-xs space-y-1">
+                    <p className="font-medium text-accent">VAT Deferred active</p>
+                    <p className="text-muted-foreground">
+                      Repayments based on ex-VAT price of <span className="font-medium text-foreground">{fmtPounds(priceExVat)}</span>.
+                      Deferred VAT of <span className="font-medium text-foreground">{fmtPounds(vatAmount)}</span> is payable separately.
+                    </p>
+                  </div>
+                )}
 
                 {/* Deposit */}
                 <div className="space-y-1.5">
@@ -231,10 +293,10 @@ export default function AdminFinanceCalculator() {
                     onChange={e => setDepositStr(e.target.value)}
                     data-testid="input-deposit"
                   />
-                  {priceIncVat > 0 && depositAmount > 0 && (
+                  {(vatDeferred ? priceExVat : priceIncVat) > 0 && depositAmount > 0 && (
                     <p className="text-xs text-muted-foreground">
                       {depositMode === "amount"
-                        ? `${depositPercent.toFixed(1)}% of total price`
+                        ? `${depositPercent.toFixed(1)}% of ${vatDeferred ? "ex-VAT" : "total"} price`
                         : `${fmtPounds(depositAmount)} deposit`}
                     </p>
                   )}
@@ -295,7 +357,7 @@ export default function AdminFinanceCalculator() {
                   {showAdvanced && (
                     <div className="mt-3 space-y-1.5">
                       <Label htmlFor="balloon-input" className="text-sm font-medium">
-                        Balloon Payment — % of total price
+                        Balloon Payment — % of {vatDeferred ? "ex-VAT" : "total"} price
                       </Label>
                       <Input
                         id="balloon-input"
@@ -311,7 +373,7 @@ export default function AdminFinanceCalculator() {
                       />
                       {priceIncVat > 0 && balloonPct > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Balloon payment: {fmtPounds(priceIncVat * (balloonPct / 100))}
+                          Balloon payment: {fmtPounds((vatDeferred ? priceExVat : priceIncVat) * (balloonPct / 100))}
                         </p>
                       )}
                     </div>
@@ -331,6 +393,7 @@ export default function AdminFinanceCalculator() {
                 </CardTitle>
                 <CardDescription>
                   Based on {apr}% APR over {termMonths} months
+                  {vatDeferred && " · VAT deferred"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -359,6 +422,18 @@ export default function AdminFinanceCalculator() {
                       </div>
                     </div>
 
+                    {vatDeferred && (
+                      <div className="rounded-md bg-accent/10 border border-accent/20 px-3 py-2 flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
+                          <Receipt className="w-3.5 h-3.5" />
+                          Deferred VAT (due separately)
+                        </span>
+                        <span className="font-semibold text-accent" data-testid="text-deferred-vat">
+                          {fmtPounds(result.deferredVat)}
+                        </span>
+                      </div>
+                    )}
+
                     <Separator />
 
                     {/* Breakdown */}
@@ -367,6 +442,18 @@ export default function AdminFinanceCalculator() {
                         <span className="text-muted-foreground">Total price (inc VAT)</span>
                         <span className="font-medium" data-testid="text-total-price">{fmtPounds(priceIncVat)}</span>
                       </div>
+                      {vatDeferred && (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Price (ex VAT)</span>
+                            <span className="font-medium" data-testid="text-price-ex-vat">{fmtPounds(result.priceExVat)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">VAT deferred</span>
+                            <span className="font-medium">{fmtPounds(result.deferredVat)}</span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Deposit</span>
                         <span className="font-medium" data-testid="text-deposit">{fmtPounds(depositAmount)}</span>
@@ -409,18 +496,20 @@ export default function AdminFinanceCalculator() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Quick Scenarios — {apr}% APR
+                    Quick Scenarios — {apr}% APR{vatDeferred ? " · VAT Deferred" : ""}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {[
-                      { label: "10% deposit, 36 months", deposit: priceIncVat * 0.1, term: 36 },
-                      { label: "10% deposit, 48 months", deposit: priceIncVat * 0.1, term: 48 },
-                      { label: "20% deposit, 36 months", deposit: priceIncVat * 0.2, term: 36 },
-                      { label: "20% deposit, 60 months", deposit: priceIncVat * 0.2, term: 60 },
+                      { label: "10% deposit, 36 months", depositPct: 0.1, term: 36 },
+                      { label: "10% deposit, 48 months", depositPct: 0.1, term: 48 },
+                      { label: "20% deposit, 36 months", depositPct: 0.2, term: 36 },
+                      { label: "20% deposit, 60 months", depositPct: 0.2, term: 60 },
                     ].map(scenario => {
-                      const r = calculate(priceIncVat, scenario.deposit, scenario.term, apr, 0);
+                      const base = vatDeferred ? priceExVat : priceIncVat;
+                      const dep = base * scenario.depositPct;
+                      const r = calculate(priceIncVat, dep, scenario.term, apr, 0, vatDeferred);
                       if (!r) return null;
                       return (
                         <button
@@ -429,7 +518,7 @@ export default function AdminFinanceCalculator() {
                           className="w-full flex items-center justify-between text-sm p-2.5 rounded-md hover-elevate text-left"
                           onClick={() => {
                             setDepositMode("amount");
-                            setDepositStr(String(Math.round(scenario.deposit)));
+                            setDepositStr(String(Math.round(dep)));
                             setTermMonths(scenario.term);
                             setBalloonPctStr("0");
                           }}
