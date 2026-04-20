@@ -222,10 +222,22 @@ export default function AdminFinanceCalculator() {
                   )}
                 </div>
 
-                {/* VAT Deferred toggle */}
-                <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+                {/* VAT Deferred checkbox */}
+                <label
+                  htmlFor="vat-deferred-checkbox"
+                  className="flex items-center gap-3 rounded-md border px-3 py-2.5 cursor-pointer hover-elevate"
+                  data-testid="label-vat-deferred"
+                >
+                  <input
+                    id="vat-deferred-checkbox"
+                    type="checkbox"
+                    checked={vatDeferred}
+                    onChange={e => setVatDeferred(e.target.checked)}
+                    data-testid="checkbox-vat-deferred"
+                    className="h-4 w-4 rounded accent-accent cursor-pointer shrink-0"
+                  />
                   <div className="flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-muted-foreground" />
+                    <Receipt className="w-4 h-4 text-muted-foreground shrink-0" />
                     <div>
                       <p className="text-sm font-medium leading-tight">VAT Deferred</p>
                       <p className="text-xs text-muted-foreground leading-tight mt-0.5">
@@ -233,23 +245,7 @@ export default function AdminFinanceCalculator() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={vatDeferred}
-                    onClick={() => setVatDeferred(p => !p)}
-                    data-testid="button-vat-deferred"
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      vatDeferred ? "bg-accent" : "bg-muted"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform ${
-                        vatDeferred ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
+                </label>
 
                 {vatDeferred && priceIncVat > 0 && (
                   <div className="rounded-md bg-accent/10 border border-accent/20 px-3 py-2.5 text-xs space-y-1">
