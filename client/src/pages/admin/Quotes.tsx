@@ -28,12 +28,18 @@ function getStatusLabel(status: string): string {
   return labels[status] ?? status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 }
 
+const ALL_STATUSES = [
+  "new", "contacted", "awaiting_deposit", "awaiting_finance",
+  "deposit_taken", "finance_approved", "in_build", "completed", "cancelled",
+] as const;
+
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { Button } from "@/components/ui/button";
@@ -91,6 +97,20 @@ export default function AdminQuotes() {
       return next;
     });
   };
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/quotes/${id}`, { status });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      toast({ title: "Status updated" });
+    },
+    onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+  });
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -739,12 +759,25 @@ export default function AdminQuotes() {
                         {quote.company && (
                           <Badge variant="secondary" className="shrink-0" data-testid={`text-company-${quote.id}`}>{quote.company}</Badge>
                         )}
-                        <span
-                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium shrink-0 ${getStatusBadgeClass(quote.status)}`}
-                          data-testid={`status-badge-${quote.id}`}
+                        {/* Quick status dropdown */}
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="shrink-0"
+                          data-testid={`status-select-wrapper-${quote.id}`}
                         >
-                          {getStatusLabel(quote.status)}
-                        </span>
+                          <select
+                            value={quote.status}
+                            disabled={statusMutation.isPending}
+                            onChange={(e) => statusMutation.mutate({ id: quote.id, status: e.target.value })}
+                            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium border-0 cursor-pointer appearance-none pr-5 bg-no-repeat focus:outline-none focus:ring-1 focus:ring-ring ${getStatusBadgeClass(quote.status)}`}
+                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='currentColor' opacity='0.5'/%3E%3C/svg%3E\")", backgroundPosition: "right 4px center", backgroundSize: "8px" }}
+                            data-testid={`status-select-${quote.id}`}
+                          >
+                            {ALL_STATUSES.map(s => (
+                              <option key={s} value={s}>{getStatusLabel(s)}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       {/* Centre: phone & email as quick-action links */}
