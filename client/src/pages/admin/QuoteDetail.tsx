@@ -1986,11 +1986,21 @@ export default function AdminQuoteDetail() {
                                     const variantIds = variants.map(v => v.id);
                                     if (value === "none") {
                                       setSelectedUpgradeIds(prev => prev.filter(id => !variantIds.includes(id)));
+                                      setSelectedUpgrades(prev => {
+                                        const next = { ...prev };
+                                        variantIds.forEach(id => delete next[id]);
+                                        return next;
+                                      });
                                     } else {
                                       setSelectedUpgradeIds(prev => [
                                         ...prev.filter(id => !variantIds.includes(id)),
                                         value,
                                       ]);
+                                      setSelectedUpgrades(prev => {
+                                        const next = { ...prev };
+                                        variantIds.forEach(id => delete next[id]);
+                                        return next;
+                                      });
                                     }
                                   }}
                                 >
