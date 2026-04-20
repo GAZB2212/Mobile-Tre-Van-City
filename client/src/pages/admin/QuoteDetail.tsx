@@ -53,10 +53,13 @@ import {
   GitCompare,
   Bot,
   Eye,
+  Mail,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -197,6 +200,9 @@ export default function AdminQuoteDetail() {
   // Undo choice confirmation dialog
   const [showUndoChoiceDialog, setShowUndoChoiceDialog] = useState(false);
 
+  // Resend-to-customer prompt after saving config changes
+  const [showResendDialog, setShowResendDialog] = useState(false);
+
   // AI transcript viewer
   const [showAiTranscript, setShowAiTranscript] = useState(false);
 
@@ -335,6 +341,7 @@ export default function AdminQuoteDetail() {
         description: "Quote updated successfully",
       });
       // If save was triggered by the unsaved-changes dialog, navigate to the pending tab or page
+      const hasPendingNav = !!(pendingTabRef.current || pendingNavRef.current);
       if (pendingTabRef.current) {
         setActiveTab(pendingTabRef.current as any);
         pendingTabRef.current = null;
@@ -342,6 +349,10 @@ export default function AdminQuoteDetail() {
       if (pendingNavRef.current) {
         setLocation(pendingNavRef.current);
         pendingNavRef.current = null;
+      }
+      // Prompt to resend only when the user manually saved (no nav pending)
+      if (!hasPendingNav) {
+        setShowResendDialog(true);
       }
     },
     onError: () => {
@@ -360,6 +371,7 @@ export default function AdminQuoteDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      setShowResendDialog(false);
       toast({
         title: "Spec Summary Sent",
         description: `Configuration summary emailed to ${quote?.email}.`,
@@ -1075,6 +1087,40 @@ export default function AdminQuoteDetail() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Resend to customer prompt — appears after every manual save */}
+        <Dialog open={showResendDialog} onOpenChange={setShowResendDialog}>
+          <DialogContent className="sm:max-w-md" data-testid="dialog-resend-quote">
+            <DialogHeader>
+              <DialogTitle>Changes saved — resend to customer?</DialogTitle>
+              <DialogDescription>
+                Would you like to send the updated configuration summary to the customer?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-3 py-2">
+              <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium break-all" data-testid="text-resend-email">{quote?.email}</span>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowResendDialog(false)}
+                data-testid="button-resend-no"
+              >
+                No thanks
+              </Button>
+              <Button
+                onClick={() => sendConfirmationMutation.mutate()}
+                disabled={sendConfirmationMutation.isPending}
+                className="bg-accent hover:bg-accent/90"
+                data-testid="button-resend-yes"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {sendConfirmationMutation.isPending ? "Sending..." : "Send Email"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Unsaved changes dialog — fires for any tab switch or navigation when dirty */}
         <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
