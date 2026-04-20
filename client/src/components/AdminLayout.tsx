@@ -2,6 +2,8 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import mtvcLogoWide from "@assets/Untitled_design-36_1773155683674.png";
+import mtvcLogoRound from "@assets/Untitled design-47_1759231860895.png";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,26 +157,25 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     >
       {/* Brand header */}
       {collapsed && !isMobile ? (
-        /* Collapsed: just the icon, clickable to expand */
-        <div className="flex items-center justify-center border-b border-white/[0.06] py-4">
+        /* Collapsed: round logo, clickable to expand */
+        <div className="flex items-center justify-center border-b border-white/[0.06] py-3">
           <button
             onClick={() => setCollapsed(false)}
-            className="w-7 h-7 rounded-md bg-[#8bc440] flex items-center justify-center hover:opacity-80 transition-opacity"
+            className="w-9 h-9 rounded-full overflow-hidden hover:opacity-80 transition-opacity shrink-0"
             data-testid="button-toggle-sidebar"
             title="Expand sidebar"
           >
-            <Car size={14} className="text-[#0d0d0d]" />
+            <img src={mtvcLogoRound} alt="MTVC" className="w-full h-full object-cover" />
           </button>
         </div>
       ) : (
         /* Expanded (desktop or mobile) */
-        <div className="flex items-center gap-2 px-4 py-4 border-b border-white/[0.06]">
-          <div className="w-7 h-7 rounded-md bg-[#8bc440] flex items-center justify-center shrink-0">
-            <Car size={14} className="text-[#0d0d0d]" />
-          </div>
-          <span className="font-semibold text-sm text-zinc-100 truncate leading-tight flex-1">
-            Van City Admin
-          </span>
+        <div className="flex items-center gap-2 px-3 py-3 border-b border-white/[0.06]">
+          <img
+            src={mtvcLogoWide}
+            alt="Mobile Tyre Van City"
+            className="h-9 w-auto object-contain flex-1 min-w-0"
+          />
           {!isMobile && (
             <button
               onClick={() => setCollapsed(true)}
