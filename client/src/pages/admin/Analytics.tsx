@@ -8,15 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { DateRange } from "react-day-picker";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 import {
   TrendingUp, Users, FileText, Car, Package,
-  ArrowLeft, Activity, Calendar, Globe, Monitor,
+  ArrowLeft, Activity, CalendarDays, Globe, Monitor,
   Smartphone, Tablet, MousePointer, Eye, Timer,
-  BarChart2, RefreshCw, Zap
+  BarChart2, RefreshCw, Zap, ChevronDown
 } from "lucide-react";
 
 interface BusinessAnalytics {
@@ -88,8 +91,40 @@ export default function AdminAnalytics() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
-  const [activeTab, setActiveTab] = useState<"web" | "business">("web");
+  const [activeTab, setActiveTab] = useState<"web" | "business" | "configurators">("web");
   const [days, setDays] = useState("30");
+
+  // Configurators date range — default: last 30 days
+  const defaultTo = new Date();
+  const defaultFrom = new Date();
+  defaultFrom.setDate(defaultFrom.getDate() - 29);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: defaultFrom, to: defaultTo });
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const fmtDate = (d: Date | undefined) =>
+    d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
+
+  const configuratorFrom = dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : "";
+  const configuratorTo = dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : "";
+
+  const { data: configuratorData, isLoading: configuratorLoading } = useQuery<{
+    total: number;
+    daily: Array<{ date: string; total: number; byStatus: Record<string, number> }>;
+    statusTotals: Record<string, number>;
+    from: string;
+    to: string;
+  }>({
+    queryKey: ["/api/admin/analytics/configurators", configuratorFrom, configuratorTo],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (configuratorFrom) params.set("from", configuratorFrom);
+      if (configuratorTo) params.set("to", configuratorTo);
+      const res = await fetch(`/api/admin/analytics/configurators?${params}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch configurator analytics");
+      return res.json();
+    },
+    enabled: !!user?.adminRole && user.adminRole !== "none",
+  });
 
   const { data: businessAnalytics, isLoading: businessLoading } = useQuery<BusinessAnalytics>({
     queryKey: ["/api/admin/analytics"],
@@ -184,6 +219,15 @@ export default function AdminAnalytics() {
             >
               <BarChart2 className="w-4 h-4 mr-2" />
               Business Metrics
+            </Button>
+            <Button
+              variant={activeTab === "configurators" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("configurators")}
+              data-testid="button-tab-configurators"
+            >
+              <CalendarDays className="w-4 h-4 mr-2" />
+              Configurator Activity
             </Button>
           </div>
         </div>
@@ -817,7 +861,7 @@ export default function AdminAnalytics() {
                               <div className="flex items-center justify-between mt-2">
                                 <span className="text-sm font-medium" data-testid={`text-quote-price-${index}`}>{formatPrice(quote.totalPrice)}</span>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
+                                  <CalendarDays className="w-3 h-3" />
                                   {new Date(quote.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
@@ -849,7 +893,7 @@ export default function AdminAnalytics() {
                                   <p className="text-xs text-muted-foreground truncate">{lead.email}</p>
                                 </div>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
+                                  <CalendarDays className="w-3 h-3" />
                                   {new Date(lead.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
@@ -863,6 +907,173 @@ export default function AdminAnalytics() {
                     </CardContent>
                   </Card>
                 </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ===== CONFIGURATOR ACTIVITY TAB ===== */}
+        {activeTab === "configurators" && (
+          <div className="space-y-6">
+            {/* Date Range Picker */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Configurator Activity</h2>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" data-testid="button-date-range-picker">
+                    <CalendarDays className="w-4 h-4 mr-2" />
+                    {dateRange?.from && dateRange?.to
+                      ? `${fmtDate(dateRange.from)} — ${fmtDate(dateRange.to)}`
+                      : dateRange?.from
+                      ? `From ${fmtDate(dateRange.from)}`
+                      : "Select date range"}
+                    <ChevronDown className="w-3 h-3 ml-2" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      setDateRange(range);
+                      if (range?.from && range?.to) setCalendarOpen(false);
+                    }}
+                    numberOfMonths={2}
+                    disabled={{ after: new Date() }}
+                    data-testid="calendar-date-range"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {configuratorLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Total Configurators</CardDescription>
+                      <CardTitle className="text-3xl">{configuratorData?.total ?? 0}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        {configuratorData?.from && configuratorData?.to
+                          ? `${fmtDate(new Date(configuratorData.from + "T12:00:00"))} — ${fmtDate(new Date(configuratorData.to + "T12:00:00"))}`
+                          : "Selected period"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Peak Day</CardDescription>
+                      <CardTitle className="text-3xl">
+                        {configuratorData?.daily && configuratorData.daily.length > 0
+                          ? Math.max(...configuratorData.daily.map(d => d.total))
+                          : 0}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        {(() => {
+                          if (!configuratorData?.daily?.length) return "No data";
+                          const peak = configuratorData.daily.reduce((a, b) => b.total > a.total ? b : a);
+                          return peak.total > 0
+                            ? fmtDate(new Date(peak.date + "T12:00:00"))
+                            : "No activity";
+                        })()}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardDescription>Daily Average</CardDescription>
+                      <CardTitle className="text-3xl">
+                        {configuratorData?.daily && configuratorData.daily.length > 0
+                          ? (configuratorData.total / configuratorData.daily.length).toFixed(1)
+                          : "0"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">Configurators per day</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Daily Bar Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Daily Configurator Submissions</CardTitle>
+                    <CardDescription>Number of configurators submitted each day in the selected range</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {configuratorData?.total === 0 ? (
+                      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                        No configurators submitted in this date range
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={280}>
+                        <BarChart data={configuratorData?.daily ?? []} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.1} />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(v) => {
+                              const d = new Date(v + "T12:00:00");
+                              return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                            }}
+                            interval={Math.max(0, Math.floor((configuratorData?.daily?.length ?? 1) / 10) - 1)}
+                          />
+                          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                          <Tooltip
+                            formatter={(value: number) => [value, "Configurators"]}
+                            labelFormatter={(label) => {
+                              const d = new Date(label + "T12:00:00");
+                              return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+                            }}
+                          />
+                          <Bar dataKey="total" fill={CHART_COLORS[0]} radius={[3, 3, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Status Breakdown */}
+                {configuratorData?.total > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Status Breakdown</CardTitle>
+                      <CardDescription>How configurators are progressing across the pipeline</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {Object.entries(configuratorData?.statusTotals ?? {})
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([status, count]) => {
+                            const pct = configuratorData.total > 0 ? Math.round((count / configuratorData.total) * 100) : 0;
+                            const label = status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                            return (
+                              <div key={status} className="flex items-center gap-3" data-testid={`row-status-${status}`}>
+                                <div className="w-32 text-sm text-muted-foreground truncate shrink-0">{label}</div>
+                                <div className="flex-1 bg-muted rounded-full h-2">
+                                  <div
+                                    className="h-2 rounded-full bg-primary"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <div className="w-12 text-right text-sm font-medium shrink-0">{count}</div>
+                                <div className="w-10 text-right text-xs text-muted-foreground shrink-0">{pct}%</div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
           </div>

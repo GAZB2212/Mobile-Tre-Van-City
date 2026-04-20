@@ -3618,6 +3618,67 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // ============================================================
+  // Configurator Date-Range Analytics Endpoint
+  // ============================================================
+  app.get("/api/admin/analytics/configurators", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const fromParam = req.query.from as string;
+      const toParam = req.query.to as string;
+
+      const quotes = await storage.getQuotes();
+
+      const fromDate = fromParam ? new Date(fromParam) : (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d; })();
+      const toDate = toParam ? new Date(toParam) : new Date();
+      // normalise toDate to end of day
+      toDate.setHours(23, 59, 59, 999);
+
+      const filtered = quotes.filter(q => {
+        if (!q.createdAt) return false;
+        const d = new Date(q.createdAt);
+        return d >= fromDate && d <= toDate;
+      });
+
+      // Group by date (YYYY-MM-DD)
+      const byDay: Record<string, { total: number; byStatus: Record<string, number> }> = {};
+      filtered.forEach(q => {
+        const day = new Date(q.createdAt!).toISOString().slice(0, 10);
+        if (!byDay[day]) byDay[day] = { total: 0, byStatus: {} };
+        byDay[day].total++;
+        byDay[day].byStatus[q.status] = (byDay[day].byStatus[q.status] || 0) + 1;
+      });
+
+      // Fill in every date in range with 0 if missing
+      const daily: Array<{ date: string; total: number; byStatus: Record<string, number> }> = [];
+      const cursor = new Date(fromDate);
+      cursor.setHours(0, 0, 0, 0);
+      const end = new Date(toDate);
+      end.setHours(0, 0, 0, 0);
+      while (cursor <= end) {
+        const day = cursor.toISOString().slice(0, 10);
+        daily.push({ date: day, total: byDay[day]?.total ?? 0, byStatus: byDay[day]?.byStatus ?? {} });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      // Status totals across range
+      const statusTotals: Record<string, number> = {};
+      filtered.forEach(q => {
+        statusTotals[q.status] = (statusTotals[q.status] || 0) + 1;
+      });
+
+      res.json({
+        total: filtered.length,
+        daily,
+        statusTotals,
+        from: fromDate.toISOString().slice(0, 10),
+        to: toDate.toISOString().slice(0, 10),
+      });
+    } catch (error) {
+      console.error("GET /api/admin/analytics/configurators error:", error);
+      res.status(500).json({ message: "Failed to fetch configurator analytics" });
+    }
+  });
+
+  // ============================================================
   // Web Analytics Admin Query Endpoint
   // ============================================================
   app.get("/api/admin/analytics/web", isAuthenticated, isBasicAdmin, async (req, res) => {
