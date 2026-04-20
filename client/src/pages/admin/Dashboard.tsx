@@ -1,12 +1,10 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User, Quote } from "@shared/schema";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Car, 
@@ -21,7 +19,6 @@ import {
   GraduationCap,
   BarChart3,
   Image,
-  RefreshCw,
   Video,
   UserRound,
   Layers,
@@ -57,9 +54,6 @@ export default function AdminDashboard() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
-  const [syncing, setSyncing] = useState(false);
-  const [syncConfirm, setSyncConfirm] = useState(false);
-
   const { data: quotes = [] } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
@@ -70,27 +64,6 @@ export default function AdminDashboard() {
 
   const completedQuotes = quotes.filter(q => q.status === "completed");
   const completedTotal = completedQuotes.reduce((sum, q) => sum + (q.estTotal ?? 0), 0);
-
-  const handleCatalogSync = async () => {
-    if (!syncConfirm) {
-      setSyncConfirm(true);
-      return;
-    }
-    setSyncing(true);
-    setSyncConfirm(false);
-    try {
-      const result = await apiRequest("POST", "/api/admin/sync-catalog");
-      const data = await result.json();
-      toast({
-        title: "Catalog Synced",
-        description: `Synced: ${data.counts?.vans} vans, ${data.counts?.kits} kits, ${data.counts?.upgrades} upgrades, ${data.counts?.training_options} training options`,
-      });
-    } catch (err) {
-      toast({ title: "Sync Failed", description: String(err), variant: "destructive" });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -512,37 +485,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {user?.adminRole === "full" && (
-          <Card className="mt-6 border-amber-200 dark:border-amber-800">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-accent" />
-                <CardTitle>Sync Catalog Data</CardTitle>
-              </div>
-              <CardDescription>
-                Replace this database's vans, kits, upgrades and training options with the latest dev version. Quotes and leads are preserved.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {syncConfirm ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-sm text-muted-foreground">This will replace all catalog data. Are you sure?</p>
-                  <Button variant="destructive" size="sm" onClick={handleCatalogSync} disabled={syncing} data-testid="button-sync-confirm">
-                    {syncing ? "Syncing..." : "Yes, Sync Now"}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setSyncConfirm(false)} data-testid="button-sync-cancel">
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={handleCatalogSync} disabled={syncing} data-testid="button-sync-catalog">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync from Dev
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
