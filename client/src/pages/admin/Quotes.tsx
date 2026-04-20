@@ -448,18 +448,11 @@ export default function AdminQuotes() {
         {(() => {
           const total = quotes.length;
           const completedQuotes = quotes.filter(q => q.status === "completed");
-          const pipelineQuotes = quotes.filter(q => ["deposit_taken","finance_approved","in_build"].includes(q.status));
-          const cancelledQuotes = quotes.filter(q => q.status === "cancelled");
           const completed = completedQuotes.length;
-          const active = pipelineQuotes.length;
-          const cancelled = cancelledQuotes.length;
           const convPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-          const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
           const revenueConverted = completedQuotes.reduce((s, q) => s + q.estTotal, 0);
-          const pipelineValue = pipelineQuotes.reduce((s, q) => s + q.estTotal, 0);
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-              {/* Row 1 — key financial KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               <Card>
                 <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
@@ -479,35 +472,9 @@ export default function AdminQuotes() {
               </Card>
               <Card>
                 <CardContent className="py-4 px-5">
-                  <p className="text-xs text-muted-foreground mb-1">Pipeline Value</p>
-                  <p className="text-2xl font-bold" data-testid="stat-pipeline-value">{formatPrice(pipelineValue)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{active} job{active !== 1 ? "s" : ""} in progress</p>
-                </CardContent>
-              </Card>
-              {/* Row 2 — volume counts */}
-              <Card>
-                <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Total Configurators</p>
                   <p className="text-2xl font-bold" data-testid="stat-total-quotes">{total}</p>
                   <p className="text-xs text-muted-foreground mt-1">all time</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="py-4 px-5">
-                  <p className="text-xs text-muted-foreground mb-1">In Pipeline</p>
-                  <div className="flex items-end gap-2">
-                    <p className="text-2xl font-bold" data-testid="stat-pipeline">{active}</p>
-                    <p className="text-sm text-muted-foreground mb-0.5">{activePct}% of total</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="py-4 px-5">
-                  <p className="text-xs text-muted-foreground mb-1">Cancelled</p>
-                  <div className="flex items-end gap-2">
-                    <p className="text-2xl font-bold" data-testid="stat-cancelled">{cancelled}</p>
-                    {total > 0 && <p className="text-sm text-muted-foreground mb-0.5">{Math.round((cancelled/total)*100)}%</p>}
-                  </div>
                 </CardContent>
               </Card>
             </div>
