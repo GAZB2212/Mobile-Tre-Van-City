@@ -794,9 +794,9 @@ export default function AdminQuotes() {
                             >
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-[#0d0d0d] border-white/[0.06]">
+                            <SelectContent>
                               {ALL_STATUSES.map(s => (
-                                <SelectItem key={s} value={s} className="focus:bg-white/[0.06]">
+                                <SelectItem key={s} value={s}>
                                   <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(s)}`}>
                                     {getStatusLabel(s)}
                                   </span>
