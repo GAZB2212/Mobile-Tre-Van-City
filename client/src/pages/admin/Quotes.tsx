@@ -765,18 +765,27 @@ export default function AdminQuotes() {
                           className="shrink-0"
                           data-testid={`status-select-wrapper-${quote.id}`}
                         >
-                          <select
+                          <Select
                             value={quote.status}
                             disabled={statusMutation.isPending}
-                            onChange={(e) => statusMutation.mutate({ id: quote.id, status: e.target.value })}
-                            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium border-0 cursor-pointer appearance-none pr-5 bg-no-repeat focus:outline-none focus:ring-1 focus:ring-ring ${getStatusBadgeClass(quote.status)}`}
-                            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='currentColor' opacity='0.5'/%3E%3C/svg%3E\")", backgroundPosition: "right 4px center", backgroundSize: "8px" }}
-                            data-testid={`status-select-${quote.id}`}
+                            onValueChange={(v) => statusMutation.mutate({ id: quote.id, status: v })}
                           >
-                            {ALL_STATUSES.map(s => (
-                              <option key={s} value={s}>{getStatusLabel(s)}</option>
-                            ))}
-                          </select>
+                            <SelectTrigger
+                              className={`h-auto py-0.5 pl-2 pr-1.5 text-xs font-medium border-0 gap-1 shadow-none focus:ring-1 focus:ring-ring ${getStatusBadgeClass(quote.status)}`}
+                              data-testid={`status-select-${quote.id}`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ALL_STATUSES.map(s => (
+                                <SelectItem key={s} value={s}>
+                                  <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(s)}`}>
+                                    {getStatusLabel(s)}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
