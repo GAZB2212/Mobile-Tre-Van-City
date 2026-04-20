@@ -288,6 +288,15 @@ export default function AdminConfigurator() {
     return null;
   };
 
+  const purgeQuantities = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setUpgradeQuantities(prev => {
+      const next = { ...prev };
+      ids.forEach(id => { delete next[id]; });
+      return next;
+    });
+  };
+
   // Auto-remove duplicate exclusive groups
   useEffect(() => {
     if (!configData) return;
@@ -298,7 +307,13 @@ export default function AdminConfigurator() {
       const g = getExclusiveGroup(u, all);
       if (g) { if (!groupMap.has(g)) groupMap.set(g, []); groupMap.get(g)!.push(u.id); }
     });
-    groupMap.forEach(ids => { if (ids.length > 1) { const [keep, ...rem] = ids; replaceUpgrades(rem, keep); } });
+    groupMap.forEach(ids => {
+      if (ids.length > 1) {
+        const [keep, ...rem] = ids;
+        replaceUpgrades(rem, keep);
+        purgeQuantities(rem);
+      }
+    });
   }, [configData, state.upgradeIds, replaceUpgrades, filteredUpgrades]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
@@ -306,6 +321,7 @@ export default function AdminConfigurator() {
     const upgrade = all.find(u => u.id === upgradeId);
     if (state.upgradeIds.includes(upgradeId)) {
       removeUpgrade(upgradeId);
+      purgeQuantities([upgradeId]);
     } else {
       const toRemove: string[] = [];
       if (upgrade) {
@@ -317,8 +333,10 @@ export default function AdminConfigurator() {
           });
         }
       }
-      if (toRemove.length > 0) replaceUpgrades(toRemove, upgradeId);
-      else addUpgrade(upgradeId);
+      if (toRemove.length > 0) {
+        replaceUpgrades(toRemove, upgradeId);
+        purgeQuantities(toRemove);
+      } else addUpgrade(upgradeId);
     }
   };
 
@@ -342,8 +360,10 @@ export default function AdminConfigurator() {
         }
       }
       replaceUpgrades(toRemove, variantId);
+      purgeQuantities(toRemove);
     } else {
       toRemove.forEach(id => removeUpgrade(id));
+      purgeQuantities(toRemove);
     }
   };
 
