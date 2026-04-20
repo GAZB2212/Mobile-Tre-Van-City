@@ -104,12 +104,29 @@ export default function AdminQuotes() {
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
       return res.json();
     },
+    onMutate: async ({ id, status }) => {
+      // Cancel any in-flight refetches so they don't overwrite the optimistic update
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/quotes"] });
+      // Snapshot previous value for rollback
+      const previous = queryClient.getQueryData<Quote[]>(["/api/admin/quotes"]);
+      // Optimistically update the cache immediately
+      queryClient.setQueryData<Quote[]>(["/api/admin/quotes"], old =>
+        old ? old.map(q => q.id === id ? { ...q, status } : q) : old
+      );
+      return { previous };
+    },
+    onError: (err: Error, _vars, ctx) => {
+      // Rollback on error
+      if (ctx?.previous) queryClient.setQueryData(["/api/admin/quotes"], ctx.previous);
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       toast({ title: "Status updated" });
     },
-    onError: (err: Error) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+    onSettled: () => {
+      // Always sync with server after mutation
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+    },
   });
 
   // Redirect to login if not authenticated
