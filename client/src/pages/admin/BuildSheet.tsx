@@ -207,6 +207,39 @@ export default function BuildSheet() {
     return stage.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const upgradeSearchText = (u: Upgrade) => [
+    u.id,
+    u.name,
+    u.category,
+    u.description,
+    u.parentId,
+    u.variantName,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  const isInteriorWallUpgrade = (u: Upgrade) => {
+    const text = upgradeSearchText(u);
+    return text.includes("van-interior") ||
+      /\binterior\s+walls?\b/.test(text) ||
+      /\bdiamond\s+liner\b/.test(text);
+  };
+
+  const isBrandedInteriorWallUpgrade = (u: Upgrade) => {
+    const text = [
+      u.id,
+      u.name,
+      u.parentId,
+      u.variantName,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return isInteriorWallUpgrade(u) &&
+      (/\bbranded\b/.test(text) || text.includes("with branding")) &&
+      !/\bnon\s*branded\b|\bunbranded\b/.test(text);
+  };
+
+  const isWrapGraphicsUpgrade = (u: Upgrade) => {
+    const text = upgradeSearchText(u);
+    return !isInteriorWallUpgrade(u) && /\bwrap\b|\bgraphics?\b|\blivery\b/.test(text);
+  };
+
   // Mirror the auto-generation logic from QuoteDetail — produces the ordered build stage checklist
   const autoGenerateStages = (): Array<{id: string; label: string; section?: string}> => {
     const stages: Array<{id: string; label: string; section?: string}> = [];
@@ -214,14 +247,9 @@ export default function BuildSheet() {
     if (kit) {
       stages.push({ id: "kit", label: `Install ${kit.name}` });
     }
-    const wrapGraphicsPattern = /wrap|graphics|livery/i;
-    const interiorWallPattern = /interior.wall/i;
-    const isInteriorWall = (u: Upgrade) =>
-      interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
-    const isWrapGraphics = (u: Upgrade) => wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
-    const nonWrapUpgrades = upgrades.filter(u => !isWrapGraphics(u) && !isInteriorWall(u));
-    const wrapUpgrades = upgrades.filter(u => isWrapGraphics(u) && !isInteriorWall(u));
-    const interiorWallUpgrades = upgrades.filter(u => isInteriorWall(u) && !isWrapGraphics(u));
+    const nonWrapUpgrades = upgrades.filter(u => !isWrapGraphicsUpgrade(u) && !isBrandedInteriorWallUpgrade(u));
+    const wrapUpgrades = upgrades.filter(u => isWrapGraphicsUpgrade(u));
+    const brandedInteriorWallUpgrades = upgrades.filter(u => isBrandedInteriorWallUpgrade(u));
     for (const u of nonWrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
@@ -233,12 +261,12 @@ export default function BuildSheet() {
     for (const u of wrapUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
-    if (interiorWallUpgrades.length > 0) {
+    if (brandedInteriorWallUpgrades.length > 0) {
       stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
       stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
       stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
-    for (const u of interiorWallUpgrades) {
+    for (const u of brandedInteriorWallUpgrades) {
       stages.push({ id: `upg_${u.id}`, label: u.name });
     }
     stages.push({ id: "final_checks", label: "Final Checks" });
@@ -473,18 +501,11 @@ export default function BuildSheet() {
             </Card>
           ) : null}
 
-          {/* Artwork & Design — shown only when wrap/graphic pack or interior walls upgrades are selected */}
+          {/* Artwork & Design — shown only when wrap/graphic pack or branded interior walls upgrades are selected */}
           {(() => {
-            const wrapGraphicsPattern = /wrap|graphics|livery/i;
-            const interiorWallPattern = /interior.wall/i;
-            const isInteriorWall = (u: { name: string; category: string }) =>
-              interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
-            const hasWrap = upgrades.some(u =>
-              (wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category)) &&
-              !isInteriorWall(u)
-            );
-            const hasInteriorWalls = upgrades.some(u => isInteriorWall(u));
-            if (!hasWrap && !hasInteriorWalls) return null;
+            const hasWrap = upgrades.some(u => isWrapGraphicsUpgrade(u));
+            const hasBrandedInteriorWalls = upgrades.some(u => isBrandedInteriorWallUpgrade(u));
+            if (!hasWrap && !hasBrandedInteriorWalls) return null;
             return (
               <Card data-testid="card-artwork-design">
                 <CardHeader>
@@ -515,7 +536,7 @@ export default function BuildSheet() {
                         ))}
                       </>
                     )}
-                    {hasInteriorWalls && (
+                    {hasBrandedInteriorWalls && (
                       <>
                         {[
                           { key: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" },
