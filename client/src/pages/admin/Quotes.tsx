@@ -4,6 +4,7 @@ function getStatusBadgeClass(status: string): string {
     case "contacted": return "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300";
     case "awaiting_deposit": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-800";
     case "awaiting_finance": return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+    case "finance_declined": return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
     case "deposit_taken": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
     case "finance_approved": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
     case "in_build": return "bg-red-600 text-white dark:bg-red-600 dark:text-white";
@@ -19,6 +20,7 @@ function getStatusLabel(status: string): string {
     contacted: "Contacted",
     awaiting_deposit: "Awaiting Deposit",
     awaiting_finance: "Finance Submitted",
+    finance_declined: "Finance Declined",
     deposit_taken: "Deposit Taken",
     finance_approved: "Finance Approved",
     in_build: "In Build",
@@ -30,7 +32,7 @@ function getStatusLabel(status: string): string {
 
 const ALL_STATUSES = [
   "new", "contacted", "awaiting_deposit", "awaiting_finance",
-  "deposit_taken", "finance_approved", "in_build", "completed", "cancelled",
+  "finance_declined", "deposit_taken", "finance_approved", "in_build", "completed", "cancelled",
 ] as const;
 
 import { useAuth } from "@/hooks/useAuth";
@@ -513,6 +515,7 @@ export default function AdminQuotes() {
                   <SelectItem value="contacted">Contacted</SelectItem>
                   <SelectItem value="awaiting_deposit">Awaiting Deposit</SelectItem>
                   <SelectItem value="awaiting_finance">Finance Submitted</SelectItem>
+                  <SelectItem value="finance_declined">Finance Declined</SelectItem>
                   <SelectItem value="deposit_taken">Deposit Taken</SelectItem>
                   <SelectItem value="finance_approved">Finance Approved</SelectItem>
                   <SelectItem value="in_build">In Build</SelectItem>
@@ -688,6 +691,7 @@ export default function AdminQuotes() {
               { key: "contacted", label: "Contacted" },
               { key: "awaiting_deposit", label: "Awaiting Deposit" },
               { key: "awaiting_finance", label: "Finance Submitted" },
+              { key: "finance_declined", label: "Finance Declined" },
               { key: "deposit_taken", label: "Deposit Taken" },
               { key: "finance_approved", label: "Finance Approved" },
               { key: "in_build", label: "In Build" },

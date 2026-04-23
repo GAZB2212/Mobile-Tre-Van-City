@@ -102,9 +102,10 @@ export const quoteStatuses = [
   "new",              // Customer submitted, not yet called
   "contacted",        // Staff called and went through configurator
   "awaiting_deposit", // Customer happy, waiting for deposit payment
-  "awaiting_finance", // Sent to finance company, awaiting decision
-  "deposit_taken",    // Deposit received — ready for build
-  "finance_approved", // Finance company approved — ready for build
+  "awaiting_finance",   // Sent to finance company, awaiting decision
+  "finance_declined",   // Finance company declined the application
+  "deposit_taken",      // Deposit received — ready for build
+  "finance_approved",   // Finance company approved — ready for build
   "in_build",         // Build underway, build sheet generated
   "completed",        // Van built and delivered
   "cancelled",        // Cancelled

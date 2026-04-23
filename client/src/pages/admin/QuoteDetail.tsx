@@ -129,7 +129,7 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
 
 const quoteStatuses = [
   "new", "contacted", "awaiting_deposit", "awaiting_finance",
-  "deposit_taken", "finance_approved", "in_build", "completed", "cancelled"
+  "finance_declined", "deposit_taken", "finance_approved", "in_build", "completed", "cancelled"
 ] as const;
 
 const STATUS_LABELS: Record<string, string> = {
@@ -137,6 +137,7 @@ const STATUS_LABELS: Record<string, string> = {
   contacted: "Contacted",
   awaiting_deposit: "Awaiting Deposit",
   awaiting_finance: "Finance Submitted",
+  finance_declined: "Finance Declined",
   deposit_taken: "Deposit Taken",
   finance_approved: "Finance Approved",
   in_build: "In Build",
@@ -1444,7 +1445,7 @@ export default function AdminQuoteDetail() {
                           <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("finance_approved")} disabled={quickStatusMutation.isPending} data-testid="button-finance-approved">
                             Finance Approved
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
+                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("finance_declined")} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
                             Finance Declined
                           </Button>
                         </>
