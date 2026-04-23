@@ -193,6 +193,7 @@ export default function AdminLeads() {
   // ─── AI Conversations ────────────────────────────────────────────────────────
   const [aiStatusFilter, setAiStatusFilter] = useState("all");
   const [ai48vFilter, setAi48vFilter] = useState("all");
+  const [aiContactFilter, setAiContactFilter] = useState("all");
   const [aiDateFrom, setAiDateFrom] = useState("");
   const [aiDateTo, setAiDateTo] = useState("");
   const [transcriptConv, setTranscriptConv] = useState<any>(null);
@@ -205,7 +206,7 @@ export default function AdminLeads() {
 
   const { data: aiData, isLoading: aiLoading, refetch: refetchAi } = useQuery<{
     conversations: any[];
-    stats: { totalThisMonth: number; completionRate: number; fortyEightVConversionRate: number; leadCaptureRate: number };
+    stats: { totalThisMonth: number; completionRate: number; fortyEightVConversionRate: number; leadCaptureRate: number; leadsCapturedThisMonth: number };
   }>({
     queryKey: ["/api/admin/ai-conversations", aiStatusFilter, ai48vFilter, aiDateFrom, aiDateTo],
     queryFn: async () => {
@@ -682,8 +683,13 @@ export default function AdminLeads() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Lead capture rate</p>
-                    <p className="text-2xl font-bold" data-testid="stat-ai-leads">{aiData?.stats.leadCaptureRate ?? 0}%</p>
+                    <p className="text-xs text-muted-foreground">With contact details</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-leads">
+                      {aiData?.stats.leadsCapturedThisMonth ?? 0}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        ({aiData?.stats.leadCaptureRate ?? 0}%)
+                      </span>
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -701,7 +707,7 @@ export default function AdminLeads() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <Select value={aiStatusFilter} onValueChange={setAiStatusFilter}>
                     <SelectTrigger data-testid="select-ai-status">
                       <SelectValue placeholder="All statuses" />
@@ -711,6 +717,16 @@ export default function AdminLeads() {
                       <SelectItem value="in_progress">In progress</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="abandoned">Abandoned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={aiContactFilter} onValueChange={setAiContactFilter}>
+                    <SelectTrigger data-testid="select-ai-contact">
+                      <SelectValue placeholder="Contact details" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All conversations</SelectItem>
+                      <SelectItem value="with_contact">Has contact details</SelectItem>
+                      <SelectItem value="no_contact">Anonymous only</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={ai48vFilter} onValueChange={setAi48vFilter}>
@@ -759,8 +775,15 @@ export default function AdminLeads() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {aiData.conversations.map((conv: any) => (
-                  <Card key={conv.id} data-testid={`card-ai-conv-${conv.id}`}>
+                {aiData.conversations
+                  .filter((conv: any) => {
+                    const hasContact = !!(conv.contact_name || conv.contact_phone);
+                    if (aiContactFilter === "with_contact") return hasContact;
+                    if (aiContactFilter === "no_contact") return !hasContact;
+                    return true;
+                  })
+                  .map((conv: any) => (
+                  <Card key={conv.id} data-testid={`card-ai-conv-${conv.id}`} className={conv.contact_name || conv.contact_phone ? "border-[#8bc440]/30" : ""}>
                     <CardContent className="p-4">
                       <div className="flex flex-wrap items-start gap-4 justify-between">
                         <div className="flex items-start gap-3 min-w-0">
@@ -776,6 +799,11 @@ export default function AdminLeads() {
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Phone className="w-3 h-3" />{conv.contact_phone}
                                 </span>
+                              )}
+                              {(conv.contact_name || conv.contact_phone) && (
+                                <Badge variant="secondary" className="text-xs bg-[#8bc440]/15 text-[#8bc440]">
+                                  Contact captured
+                                </Badge>
                               )}
                               <Badge variant="secondary" className={`text-xs ${
                                 conv.status === "completed" ? "bg-green-500/15 text-green-400 border-green-500/30" :

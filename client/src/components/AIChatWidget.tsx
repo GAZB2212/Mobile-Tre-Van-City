@@ -277,13 +277,19 @@ export default function AIChatWidget() {
 
       const assistantMsg: AIMessage = { role: "assistant", content: data.message ?? "" };
       setMessages(prev => [...prev, assistantMsg]);
-      if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
-      if (data.trackers) setTrackers(prev => ({ ...prev, ...data.trackers }));
+      const newConfig = data.config ? { ...config, ...data.config } : config;
+      const newTrackers = data.trackers ? { ...trackers, ...data.trackers } : trackers;
+      if (data.config) setConfig(newConfig);
+      if (data.trackers) setTrackers(newTrackers);
       if (data.stage) setStage(data.stage);
 
-      // Auto-save to DB at summary stage
-      if (data.stage === "summary") {
-        saveToDb([...msgs, assistantMsg], data.config ?? config, data.trackers ?? trackers, "in_progress");
+      // Save to DB when contact details first appear OR at summary stage
+      const newMsgs = [...msgs, assistantMsg];
+      const contactJustArrived =
+        (data.config?.contactName && !config.contactName) ||
+        (data.config?.contactPhone && !config.contactPhone);
+      if (data.stage === "summary" || contactJustArrived) {
+        saveToDb(newMsgs, newConfig, newTrackers, "in_progress");
       }
     } catch (err: any) {
       setErrorMsg(err?.message ?? "Max is temporarily unavailable. You can still use the configurator directly.");
