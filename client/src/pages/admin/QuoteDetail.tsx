@@ -351,8 +351,8 @@ export default function AdminQuoteDetail() {
         setLocation(pendingNavRef.current);
         pendingNavRef.current = null;
       }
-      // Prompt to resend only when the user manually saved (no nav pending)
-      if (!hasPendingNav) {
+      // Prompt to resend only when customer-visible config actually changed (not for notes/status/internal fields)
+      if (!hasPendingNav && hasConfigurationChanged()) {
         setShowResendDialog(true);
       }
     },
@@ -767,7 +767,17 @@ export default function AdminQuoteDetail() {
       ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
       : "";
     if (discountValue !== origDiscountValue) return true;
-    
+
+    // Check if custom extras changed
+    if (JSON.stringify(customExtras) !== JSON.stringify((quote as any)?.customExtras || [])) return true;
+
+    // Check if custom van details changed
+    const origCustomVanDesc = quote?.customVanDescription ?? (quote?.vanRegistration ?? "");
+    if (customVanDescription !== origCustomVanDesc) return true;
+    const origCustomVanValue = quote?.customVanValue !== null && quote?.customVanValue !== undefined
+      ? String(quote.customVanValue / 100) : "";
+    if (customVanValue !== origCustomVanValue) return true;
+
     return false;
   };
 
