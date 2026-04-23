@@ -674,7 +674,7 @@ export default function AdminLeads() {
                   <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">Conversations (month)</p>
-                    <p className="text-2xl font-bold" data-testid="stat-ai-total">{aiData?.stats.totalThisMonth ?? 0}</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-total">{aiData?.stats?.totalThisMonth ?? 0}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -683,7 +683,7 @@ export default function AdminLeads() {
                   <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">Completion rate</p>
-                    <p className="text-2xl font-bold" data-testid="stat-ai-completion">{aiData?.stats.completionRate ?? 0}%</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-completion">{aiData?.stats?.completionRate ?? 0}%</p>
                   </div>
                 </CardContent>
               </Card>
@@ -692,7 +692,7 @@ export default function AdminLeads() {
                   <Percent className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">48V conversion rate</p>
-                    <p className="text-2xl font-bold" data-testid="stat-ai-48v">{aiData?.stats.fortyEightVConversionRate ?? 0}%</p>
+                    <p className="text-2xl font-bold" data-testid="stat-ai-48v">{aiData?.stats?.fortyEightVConversionRate ?? 0}%</p>
                   </div>
                 </CardContent>
               </Card>
@@ -702,9 +702,9 @@ export default function AdminLeads() {
                   <div>
                     <p className="text-xs text-muted-foreground">With contact details</p>
                     <p className="text-2xl font-bold" data-testid="stat-ai-leads">
-                      {aiData?.stats.leadsCapturedThisMonth ?? 0}
+                      {aiData?.stats?.leadsCapturedThisMonth ?? 0}
                       <span className="text-sm font-normal text-muted-foreground ml-1">
-                        ({aiData?.stats.leadCaptureRate ?? 0}%)
+                        ({aiData?.stats?.leadCaptureRate ?? 0}%)
                       </span>
                     </p>
                   </div>
