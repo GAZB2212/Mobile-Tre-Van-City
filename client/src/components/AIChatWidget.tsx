@@ -183,13 +183,16 @@ export default function AIChatWidget() {
   const triggerGreeting = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const res = await fetch("/api/ai-chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [{ role: "user", content: "__GREET__" }], sessionId }),
+        signal: controller.signal,
       });
-      if (!res.ok) throw new Error("AI unavailable");
+      if (!res.ok) throw new Error("Max is temporarily busy. Tap the chat bubble to try again.");
       const data = await res.json();
       const assistantMsg: AIMessage = { role: "assistant", content: data.message ?? "" };
       // Only add Max's response — the __GREET__ trigger is never shown in the UI
@@ -198,8 +201,12 @@ export default function AIChatWidget() {
       if (data.trackers) setTrackers(prev => ({ ...prev, ...data.trackers }));
       if (data.stage) setStage(data.stage);
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Max is temporarily unavailable.");
+      const msg = err?.name === "AbortError"
+        ? "Max took too long to respond. Please try again."
+        : (err?.message ?? "Max is temporarily unavailable. Please try again in a moment.");
+      setErrorMsg(msg);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   }, [sessionId]);
@@ -261,16 +268,19 @@ export default function AIChatWidget() {
   const callAI = useCallback(async (msgs: AIMessage[]) => {
     setLoading(true);
     setErrorMsg(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const res = await fetch("/api/ai-chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: msgs, sessionId }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message ?? "AI unavailable");
+        throw new Error(err.message ?? "Max is temporarily busy. Please try again in a moment.");
       }
 
       const data = await res.json();
@@ -292,8 +302,12 @@ export default function AIChatWidget() {
         saveToDb(newMsgs, newConfig, newTrackers, "in_progress");
       }
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Max is temporarily unavailable. You can still use the configurator directly.");
+      const msg = err?.name === "AbortError"
+        ? "Max took too long to respond. Please try again."
+        : (err?.message ?? "Max is temporarily unavailable. You can still use the configurator directly.");
+      setErrorMsg(msg);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   }, [sessionId, config, trackers]);
@@ -517,9 +531,19 @@ export default function AIChatWidget() {
                 <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <p className="text-red-300 text-sm">{errorMsg}</p>
-                  <a href="/configurator/ai-review" className="text-[#8bc440] text-xs hover:underline">
-                    Go to configurator directly →
-                  </a>
+                  <div className="flex items-center gap-3">
+                    {messages.length === 0 && (
+                      <button
+                        onClick={triggerGreeting}
+                        className="text-[#8bc440] text-xs hover:underline"
+                      >
+                        Try again →
+                      </button>
+                    )}
+                    <a href="/configurator/ai-review" className="text-white/40 text-xs hover:underline">
+                      Go to configurator directly
+                    </a>
+                  </div>
                 </div>
               </div>
             )}

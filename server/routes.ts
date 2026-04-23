@@ -5094,15 +5094,28 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       });
 
-      const completion = await openai.chat.completions.create({
+      const aiPayload = {
         model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
-        ],
-        response_format: { type: "json_object" },
+        ] as any,
+        response_format: { type: "json_object" as const },
         temperature: 0.7,
-      });
+      };
+
+      let completion;
+      try {
+        completion = await openai.chat.completions.create(aiPayload);
+      } catch (firstErr: any) {
+        if (firstErr?.status === 429) {
+          // Rate limited — wait 4 seconds and try once more
+          await new Promise(r => setTimeout(r, 4000));
+          completion = await openai.chat.completions.create(aiPayload);
+        } else {
+          throw firstErr;
+        }
+      }
 
       const rawContent = completion.choices[0]?.message?.content ?? "{}";
       let parsed: any;
