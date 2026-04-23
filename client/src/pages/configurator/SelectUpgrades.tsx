@@ -120,8 +120,7 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
 
 export default function SelectUpgrades() {
   const [, setLocation] = useLocation();
-  const { state, addUpgrade, removeUpgrade, replaceUpgrades } = useConfigurator();
-  const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
+  const { state, addUpgrade, removeUpgrade, replaceUpgrades, setUpgradeQuantity, purgeUpgradeQuantities } = useConfigurator();
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [galleryTitle, setGalleryTitle] = useState("");
@@ -210,12 +209,7 @@ export default function SelectUpgrades() {
   const vanSize = getVanSize();
 
   const purgeQuantities = (ids: string[]) => {
-    if (ids.length === 0) return;
-    setUpgradeQuantities((prev: Record<string, number>) => {
-      const next = { ...prev };
-      ids.forEach(id => delete next[id]);
-      return next;
-    });
+    purgeUpgradeQuantities(ids);
   };
 
   // Auto-remove incompatible interior walls when van size changes
@@ -309,10 +303,7 @@ export default function SelectUpgrades() {
   };
 
   const handleQuantityChange = (upgradeId: string, quantity: number) => {
-    setUpgradeQuantities((prev: Record<string, number>) => ({
-      ...prev,
-      [upgradeId]: quantity
-    }));
+    setUpgradeQuantity(upgradeId, quantity);
   };
 
   const handleVariantSelect = (parentId: string, variantId: string | null) => {
@@ -486,7 +477,7 @@ export default function SelectUpgrades() {
                               if (item.type === 'standalone') {
                                 const upgrade = item.data;
                                 const isSelected = state.upgradeIds.includes(upgrade.id);
-                                const quantity = upgradeQuantities[upgrade.id] || 1;
+                                const quantity = state.upgradeQuantities[upgrade.id] || 1;
                                 
                                 return (
                                   <div 

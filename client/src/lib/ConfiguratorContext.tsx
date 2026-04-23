@@ -9,6 +9,7 @@ export interface ConfiguratorSlotState {
   serviceType: KitServiceType | null;
   kitId: string | null;
   upgradeIds: string[];
+  upgradeQuantities: Record<string, number>;
   trainingOptionIds: string[];
   financePlanId: string | null;
   financeInputs: {
@@ -49,6 +50,8 @@ interface ConfiguratorContextValue {
   addUpgrade: (upgradeId: string) => void;
   removeUpgrade: (upgradeId: string) => void;
   replaceUpgrades: (toRemove: string[], toAdd: string) => void;
+  setUpgradeQuantity: (upgradeId: string, quantity: number) => void;
+  purgeUpgradeQuantities: (upgradeIds: string[]) => void;
   setTrainingOptions: (trainingOptionIds: string[]) => void;
   addTrainingOption: (trainingOptionId: string) => void;
   removeTrainingOption: (trainingOptionId: string) => void;
@@ -63,7 +66,7 @@ interface ConfiguratorContextValue {
   resetFromFinance: () => void;
 }
 
-const STORAGE_KEY = 'configurator:v5';
+const STORAGE_KEY = 'configurator:v6';
 
 const defaultSlotState: ConfiguratorSlotState = {
   vanId: null,
@@ -73,6 +76,7 @@ const defaultSlotState: ConfiguratorSlotState = {
   serviceType: null,
   kitId: null,
   upgradeIds: [],
+  upgradeQuantities: {},
   trainingOptionIds: [],
   financePlanId: null,
   financeInputs: null,
@@ -110,13 +114,25 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           activeSlot: parsed.activeSlot ?? 'A',
         };
       }
+      // Try upgrading from old v5 key (add upgradeQuantities with empty default)
+      const v5Stored = localStorage.getItem('configurator:v5');
+      if (v5Stored) {
+        const parsed = JSON.parse(v5Stored);
+        return {
+          ...defaultFullState,
+          slotA: { ...defaultSlotState, ...(parsed.slotA || parsed), upgradeQuantities: {} },
+          slotB: { ...defaultSlotState, ...(parsed.slotB || {}), upgradeQuantities: {} },
+          compareMode: parsed.compareMode ?? false,
+          activeSlot: parsed.activeSlot ?? 'A',
+        };
+      }
       // Try upgrading from old v4 key
       const oldStored = localStorage.getItem('configurator:v4');
       if (oldStored) {
         const parsed = JSON.parse(oldStored);
         return {
           ...defaultFullState,
-          slotA: { ...defaultSlotState, ...parsed },
+          slotA: { ...defaultSlotState, ...parsed, upgradeQuantities: {} },
         };
       }
     } catch (error) {
@@ -209,6 +225,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           serviceType: null,
           kitId: null,
           upgradeIds: [],
+          upgradeQuantities: {},
           trainingOptionIds: [],
           financePlanId: null,
           financeInputs: null,
@@ -286,6 +303,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           serviceType: null,
           kitId: null,
           upgradeIds: [],
+          upgradeQuantities: {},
           trainingOptionIds: [],
           financePlanId: null,
           financeInputs: null,
@@ -319,6 +337,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
         serviceType: prev.slotA.serviceType,
         kitId: prev.slotA.kitId,
         upgradeIds: [...prev.slotA.upgradeIds],
+        upgradeQuantities: { ...prev.slotA.upgradeQuantities },
         trainingOptionIds: [...prev.slotA.trainingOptionIds],
       },
     };
@@ -335,6 +354,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           serviceType,
           kitId: null,
           upgradeIds: [],
+          upgradeQuantities: {},
           trainingOptionIds: [],
           financePlanId: null,
           financeInputs: null,
@@ -355,12 +375,38 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           ...prev[slot],
           kitId,
           upgradeIds: [],
+          upgradeQuantities: {},
           trainingOptionIds: [],
           financePlanId: null,
           financeInputs: null,
           pricingSnapshot: null,
         },
       };
+      return syncSlotBFromA(updated);
+    });
+  };
+
+  const setUpgradeQuantity = (upgradeId: string, quantity: number) => {
+    setFullState(prev => {
+      const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
+      const updated = {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          upgradeQuantities: { ...prev[slot].upgradeQuantities, [upgradeId]: quantity },
+        },
+      };
+      return syncSlotBFromA(updated);
+    });
+  };
+
+  const purgeUpgradeQuantities = (upgradeIds: string[]) => {
+    if (upgradeIds.length === 0) return;
+    setFullState(prev => {
+      const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
+      const next = { ...prev[slot].upgradeQuantities };
+      upgradeIds.forEach(id => delete next[id]);
+      const updated = { ...prev, [slot]: { ...prev[slot], upgradeQuantities: next } };
       return syncSlotBFromA(updated);
     });
   };
@@ -387,7 +433,16 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setFullState(prev => {
       // Upgrades are always shared from slotA in compare mode
       const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
-      const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: prev[slot].upgradeIds.filter(id => id !== upgradeId) } };
+      const nextQuantities = { ...prev[slot].upgradeQuantities };
+      delete nextQuantities[upgradeId];
+      const updated = {
+        ...prev,
+        [slot]: {
+          ...prev[slot],
+          upgradeIds: prev[slot].upgradeIds.filter(id => id !== upgradeId),
+          upgradeQuantities: nextQuantities,
+        },
+      };
       return syncSlotBFromA(updated);
     });
   };
@@ -398,7 +453,12 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       const slot = prev.compareMode ? 'slotA' : (prev.activeSlot === 'A' ? 'slotA' : 'slotB');
       let newUpgradeIds = prev[slot].upgradeIds.filter(id => !toRemove.includes(id));
       if (!newUpgradeIds.includes(toAdd)) newUpgradeIds = [...newUpgradeIds, toAdd];
-      const updated = { ...prev, [slot]: { ...prev[slot], upgradeIds: newUpgradeIds } };
+      const nextQuantities = { ...prev[slot].upgradeQuantities };
+      toRemove.forEach(id => delete nextQuantities[id]);
+      const updated = {
+        ...prev,
+        [slot]: { ...prev[slot], upgradeIds: newUpgradeIds, upgradeQuantities: nextQuantities },
+      };
       return syncSlotBFromA(updated);
     });
   };
@@ -477,6 +537,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       serviceType: null,
       kitId: null,
       upgradeIds: [],
+      upgradeQuantities: {},
       trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
@@ -490,6 +551,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       ...prev,
       kitId: null,
       upgradeIds: [],
+      upgradeQuantities: {},
       trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
@@ -502,6 +564,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     updateActiveSlot(prev => ({
       ...prev,
       upgradeIds: [],
+      upgradeQuantities: {},
       trainingOptionIds: [],
       financePlanId: null,
       financeInputs: null,
@@ -552,6 +615,8 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     addUpgrade,
     removeUpgrade,
     replaceUpgrades,
+    setUpgradeQuantity,
+    purgeUpgradeQuantities,
     setTrainingOptions,
     addTrainingOption,
     removeTrainingOption,
