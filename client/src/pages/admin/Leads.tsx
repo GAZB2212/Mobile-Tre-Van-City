@@ -473,62 +473,79 @@ export default function AdminLeads() {
               return (
                 <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className={status === 'dead' ? 'opacity-60' : ''}>
                   {/* ── Main summary row ── */}
-                  <div
-                    className="px-5 py-4 cursor-pointer"
-                    onClick={() => toggleExpand(lead.id)}
-                    data-testid={`button-expand-lead-${lead.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      {/* Left: name + contact */}
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                          <UserIcon className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xl font-bold leading-tight" data-testid={`text-lead-name-${lead.id}`}>
-                              {lead.name}
-                            </span>
-                            {getSourceBadge(lead.source)}
-                            <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold border ${statusCfg.className}`}
-                              data-testid={`badge-lead-status-${lead.id}`}>
-                              {statusCfg.label}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 mt-1 flex-wrap">
-                            {lead.phone && (
-                              <a
-                                href={`tel:${lead.phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1.5 font-bold text-foreground hover:text-[#8bc440] transition-colors text-base"
-                                data-testid={`link-lead-phone-${lead.id}`}
-                              >
-                                <Phone className="w-4 h-4 shrink-0" />
-                                {lead.phone}
-                              </a>
-                            )}
-                            <a
-                              href={`mailto:${lead.email}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                              data-testid={`link-lead-email-${lead.id}`}
-                            >
-                              <Mail className="w-3.5 h-3.5 shrink-0" />
-                              {lead.email}
-                            </a>
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Calendar className="w-3 h-3 shrink-0" />
-                              {formatDate(lead.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: expand toggle */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground hidden sm:inline">
-                          {crmNotes.length} {crmNotes.length === 1 ? "note" : "notes"}
+                  <div className="px-5 pt-4 pb-3">
+                    {/* Top row: name + status */}
+                    <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <span className="text-xl font-bold leading-tight" data-testid={`text-lead-name-${lead.id}`}>
+                          {lead.name}
                         </span>
+                        {getSourceBadge(lead.source)}
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold border shrink-0 ${statusCfg.className}`}
+                        data-testid={`badge-lead-status-${lead.id}`}
+                      >
+                        {statusCfg.label}
+                      </span>
+                    </div>
+
+                    {/* Phone — prominent call row */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {lead.phone ? (
+                        <>
+                          <a
+                            href={`tel:${lead.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 text-2xl font-bold text-[#8bc440] hover:text-[#8bc440]/80 transition-colors leading-none"
+                            data-testid={`link-lead-phone-${lead.id}`}
+                          >
+                            <Phone className="w-5 h-5 shrink-0" />
+                            {lead.phone}
+                          </a>
+                          <a
+                            href={`tel:${lead.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`button-call-${lead.id}`}
+                          >
+                            <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
+                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+                              Call now
+                            </Button>
+                          </a>
+                        </>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">No phone provided</span>
+                      )}
+                    </div>
+
+                    {/* Secondary row: email + date + expand */}
+                    <div
+                      className="flex items-center justify-between gap-3 mt-2 flex-wrap cursor-pointer"
+                      onClick={() => toggleExpand(lead.id)}
+                      data-testid={`button-expand-lead-${lead.id}`}
+                    >
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <a
+                          href={`mailto:${lead.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid={`link-lead-email-${lead.id}`}
+                        >
+                          <Mail className="w-3.5 h-3.5 shrink-0" />
+                          {lead.email}
+                        </a>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3 shrink-0" />
+                          {formatDate(lead.createdAt)}
+                        </span>
+                        {crmNotes.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {crmNotes.length} {crmNotes.length === 1 ? "note" : "notes"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="shrink-0">
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
                           : <ChevronDown className="w-4 h-4 text-muted-foreground" />
