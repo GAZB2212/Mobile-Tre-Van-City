@@ -482,8 +482,9 @@ export default function AdminQuotes() {
           const converted = convertedQuotes.length;
           const convPct = total > 0 ? Math.round((converted / total) * 100) : 0;
           const revenueConverted = convertedQuotes.reduce((s, q) => s + q.estTotal, 0);
+          const overdueCount = quotes.filter(q => isOverdue(q)).length;
           return (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <Card>
                 <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
@@ -508,6 +509,25 @@ export default function AdminQuotes() {
                   <p className="text-xs text-muted-foreground mt-1">all time</p>
                 </CardContent>
               </Card>
+              {/* Needs attention card — clickable to filter */}
+              <button
+                className="text-left"
+                onClick={() => setStatusFilter(statusFilter === "overdue" ? "all" : "overdue")}
+                data-testid="stat-needs-attention"
+              >
+                <Card className={`h-full transition-colors ${overdueCount > 0 ? "border-amber-400/60" : ""} ${statusFilter === "overdue" ? "ring-2 ring-amber-400" : ""}`}>
+                  <CardContent className="py-4 px-5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Bell className={`w-3.5 h-3.5 ${overdueCount > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
+                      <p className="text-xs text-muted-foreground">Needs Attention</p>
+                    </div>
+                    <p className={`text-3xl font-bold ${overdueCount > 0 ? "text-amber-500" : ""}`} data-testid="value-needs-attention">{overdueCount}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {overdueCount === 0 ? "All up to date" : `${overdueCount === 1 ? "lead" : "leads"} gone quiet`}
+                    </p>
+                  </CardContent>
+                </Card>
+              </button>
             </div>
           );
         })()}
@@ -539,6 +559,7 @@ export default function AdminQuotes() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="overdue">Needs attention</SelectItem>
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="contacted">Contacted</SelectItem>
                   <SelectItem value="awaiting_deposit">Awaiting Deposit</SelectItem>
@@ -740,7 +761,7 @@ export default function AdminQuotes() {
                         <div className="space-y-2 min-h-16">
                           {colQuotes.map(quote => (
                             <Link key={quote.id} href={`/admin/quotes/${quote.id}`}>
-                              <Card className="hover-elevate cursor-pointer" data-testid={`kanban-card-${quote.id}`}>
+                              <Card className={`hover-elevate cursor-pointer ${isOverdue(quote) ? "border-amber-400/50" : ""}`} data-testid={`kanban-card-${quote.id}`}>
                                 <CardContent className="p-3 space-y-1.5">
                                   <p className="font-semibold text-sm truncate">{quote.userName}</p>
                                   {quote.company && (
@@ -753,6 +774,12 @@ export default function AdminQuotes() {
                                     <span className="text-xs font-bold text-accent">{formatPrice(quote.estTotal)}</span>
                                     <span className="text-xs text-muted-foreground">{quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : ""}</span>
                                   </div>
+                                  {isOverdue(quote) && (
+                                    <div className="flex items-center gap-1 pt-0.5" data-testid={`badge-overdue-kanban-${quote.id}`}>
+                                      <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{daysInStatus(quote)}d — action needed</span>
+                                    </div>
+                                  )}
                                 </CardContent>
                               </Card>
                             </Link>
@@ -830,6 +857,16 @@ export default function AdminQuotes() {
                             </SelectContent>
                           </Select>
                         </div>
+                        {/* Overdue nudge — show when stuck in status too long */}
+                        {isOverdue(quote) && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0"
+                            data-testid={`badge-overdue-${quote.id}`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            {daysInStatus(quote)}d — action needed
+                          </span>
+                        )}
                       </div>
 
                       {/* Centre: phone & email as quick-action links */}
