@@ -4811,9 +4811,11 @@ ${blogEntries}
 
   app.post("/api/ai-chat/message", async (req, res) => {
     try {
-      const { messages, sessionId } = req.body as {
+      const { messages, sessionId, contactName, contactPhone } = req.body as {
         messages: Array<{ role: string; content: string }>;
         sessionId: string;
+        contactName?: string | null;
+        contactPhone?: string | null;
       };
 
       if (!messages || !Array.isArray(messages)) {
@@ -4896,11 +4898,16 @@ If supplying the van (ownVan: false): always default to Euro 6 (we supply 2015+ 
 If Euro 6 status genuinely cannot be determined: default to Euro 6 (safer assumption).
 Set isEuro6 and machineType in config as soon as you know them.
 
+PRE-CAPTURED CONTACT INFO (from the form the customer filled in before chatting):
+${contactName ? `✅ Name already captured: "${contactName}". You MUST NOT ask for their name — you already have it. Set config.contactName = "${contactName}" immediately. Greet them by name from the very first message.` : "❌ Name not yet captured — ask for it in your opening message (Q0)."}
+${contactPhone ? `✅ Phone already captured: "${contactPhone}". You MUST NOT ask for their phone number — you already have it. Set config.contactPhone = "${contactPhone}" immediately. Skip the phone collection step entirely.` : "❌ Phone not yet captured — ask for it at the summary stage as normal."}
+
 CONVERSATION FLOW — ask in this order, one at a time:
 
-SPECIAL TRIGGER: If the user's message is exactly "__GREET__", this is a system trigger meaning the chat has just been opened and the customer is waiting. Respond with your opening NAME REQUEST message immediately — do not acknowledge or repeat the trigger word.
+SPECIAL TRIGGER: If the user's message is exactly "__GREET__", this is a system trigger meaning the chat has just been opened and the customer is waiting. Respond with your opening message immediately — do not acknowledge or repeat the trigger word.
+${contactName ? `Since you already know the customer's name is "${contactName}", skip Q0 entirely. Open with a warm personalised greeting using their name, introduce yourself as Max, briefly explain what you'll do (a few questions → priced build → review and quote), then go straight to Q1.` : ""}
 
-Q0 — NAME (this is ALWAYS your very first message — before any van questions):
+Q0 — NAME (skip this entirely if name is already captured above):
 Ask for the customer's name in a warm, natural way as part of your greeting. Always do this first — before asking about their van or purpose. Something like:
 
 "Hi there — I'm Max, the van builder for Mobile Tyre Van City. I'm going to ask you a few quick questions and put together a full, priced conversion spec for you — takes about 5 minutes. What's your name?"

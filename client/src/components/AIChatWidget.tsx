@@ -183,7 +183,7 @@ export default function AIChatWidget() {
   const { data: upgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
 
   // Trigger Max's greeting when the chat is opened with no existing conversation
-  const triggerGreeting = useCallback(async () => {
+  const triggerGreeting = useCallback(async (capturedName?: string, capturedPhone?: string) => {
     setLoading(true);
     setErrorMsg(null);
     const controller = new AbortController();
@@ -192,7 +192,12 @@ export default function AIChatWidget() {
       const res = await fetch("/api/ai-chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: "__GREET__" }], sessionId }),
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "__GREET__" }],
+          sessionId,
+          contactName: capturedName ?? config.contactName ?? null,
+          contactPhone: capturedPhone ?? config.contactPhone ?? null,
+        }),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error("Max is temporarily busy. Tap the chat bubble to try again.");
@@ -277,7 +282,12 @@ export default function AIChatWidget() {
       const res = await fetch("/api/ai-chat/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: msgs, sessionId }),
+        body: JSON.stringify({
+          messages: msgs,
+          sessionId,
+          contactName: config.contactName ?? null,
+          contactPhone: config.contactPhone ?? null,
+        }),
         signal: controller.signal,
       });
 
@@ -342,7 +352,7 @@ export default function AIChatWidget() {
     if (name.trim() || phone.trim()) {
       saveToDb([], updatedConfig, trackers, "in_progress");
     }
-    triggerGreeting();
+    triggerGreeting(name.trim() || undefined, phone.trim() || undefined);
   };
 
   const handleOpen = () => {
