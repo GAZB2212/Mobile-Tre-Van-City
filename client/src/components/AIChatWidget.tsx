@@ -180,6 +180,8 @@ export default function AIChatWidget() {
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   // Ref for pre-chat captured contact details — avoids stale-closure issues in triggerGreeting
   const capturedContactRef = useRef<{ name: string | null; phone: string | null }>({ name: null, phone: null });
+  // Always-current snapshot of session state — used by beforeunload to save on page exit
+  const liveStateRef = useRef({ sessionId, messages, config, trackers, stage, captureNameInput, capturePhoneInput });
 
   const { data: kits = [] } = useQuery<Kit[]>({ queryKey: ["/api/kits"] });
   const { data: upgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
@@ -190,7 +192,6 @@ export default function AIChatWidget() {
     setErrorMsg(null);
     const resolvedName = capturedContactRef.current.name;
     const resolvedPhone = capturedContactRef.current.phone;
-    console.log("[MAX] triggerGreeting called — capturedContactRef:", capturedContactRef.current, "| resolvedName:", resolvedName);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
     try {
@@ -265,6 +266,36 @@ export default function AIChatWidget() {
       // ignore
     }
   }, [messages, config, stage, trackers, sessionId]);
+
+  // Keep liveStateRef in sync so beforeunload can read without stale closures
+  useEffect(() => {
+    liveStateRef.current = { sessionId, messages, config, trackers, stage, captureNameInput, capturePhoneInput };
+  }, [sessionId, messages, config, trackers, stage, captureNameInput, capturePhoneInput]);
+
+  // Save contact/conversation data if the user navigates away or closes the tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const s = liveStateRef.current;
+      if (s.stage === "complete") return;
+      // Nothing to save if there's no contact info at all
+      const hasContact = s.config.contactName || s.config.contactPhone;
+      const hasCapture = s.captureNameInput.trim() || s.capturePhoneInput.trim();
+      if (!s.messages.length && !hasContact && !hasCapture) return;
+      const saveConfig = hasContact
+        ? s.config
+        : { ...s.config, contactName: s.captureNameInput.trim() || null, contactPhone: s.capturePhoneInput.trim() || null };
+      const payload = JSON.stringify({
+        sessionId: s.sessionId,
+        status: "abandoned",
+        messages: s.messages,
+        config: saveConfig,
+        trackers: s.trackers,
+      });
+      navigator.sendBeacon("/api/ai-chat/save", new Blob([payload], { type: "application/json" }));
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []); // empty deps — always reads from liveStateRef which is kept current above
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -350,7 +381,6 @@ export default function AIChatWidget() {
   const handleContactStart = (name: string, phone: string) => {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
-    console.log("[MAX] handleContactStart — name:", trimmedName, "| phone:", trimmedPhone);
     // Write to ref FIRST so triggerGreeting (useCallback) always reads the latest value
     capturedContactRef.current = { name: trimmedName || null, phone: trimmedPhone || null };
     const updatedConfig = { ...config, contactName: trimmedName || null, contactPhone: trimmedPhone || null };
@@ -468,9 +498,17 @@ export default function AIChatWidget() {
 
   const handleClose = () => {
     setOpen(false);
-    // Save abandoned state if mid-conversation
-    if (messages.length > 0 && stage !== "complete") {
+    if (stage === "complete") return;
+    if (messages.length > 0) {
+      // Mid-conversation abandon
       saveToDb(messages, config, trackers, "abandoned");
+    } else if (config.contactName || config.contactPhone) {
+      // Contact captured but no messages yet (e.g. closed while Max was loading)
+      saveToDb([], config, trackers, "abandoned");
+    } else if (captureNameInput.trim() || capturePhoneInput.trim()) {
+      // User typed in the form but never clicked "Get started"
+      const partialConfig = { ...config, contactName: captureNameInput.trim() || null, contactPhone: capturePhoneInput.trim() || null };
+      saveToDb([], partialConfig, trackers, "abandoned");
     }
   };
 
