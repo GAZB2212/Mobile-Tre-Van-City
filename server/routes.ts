@@ -5294,11 +5294,37 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   // Static routes MUST come before parameterised /:id routes
   app.get("/api/admin/ai-conversations/export/csv", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
+      const conditions: string[] = [];
+      const values: unknown[] = [];
+      let idx = 1;
+
+      const { status, dateFrom, dateTo, markedContacted } = req.query as Record<string, string | undefined>;
+
+      if (status && status !== "all") {
+        conditions.push(`status = $${idx++}`);
+        values.push(status);
+      }
+      if (dateFrom) {
+        conditions.push(`created_at >= $${idx++}`);
+        values.push(new Date(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        conditions.push(`created_at <= $${idx++}`);
+        values.push(new Date(dateTo).toISOString());
+      }
+      if (markedContacted === "yes") {
+        conditions.push(`marked_contacted = true`);
+      } else if (markedContacted === "no") {
+        conditions.push(`marked_contacted = false`);
+      }
+
+      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
       const { rows } = await pool.query(
         `SELECT id, session_id, status, contact_name, contact_phone, van_type, van_size,
                 finance_preference, includes_48v, was_48v_pitched, response_to_48v,
                 config_completed, marked_contacted, contacted_note, created_at
-         FROM ai_conversations ORDER BY created_at DESC`
+         FROM ai_conversations ${where} ORDER BY created_at DESC`,
+        values
       );
 
       const header = "ID,Session ID,Status,Name,Phone,Van Type,Van Size,Finance,48V,48V Pitched,48V Response,Config Completed,Contacted,Call Note,Created At\n";

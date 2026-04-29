@@ -115,6 +115,13 @@ export default function AdminAIConversations() {
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [transcriptConv, setTranscriptConv] = useState<AiConversationRow | null>(null);
+
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState("all");
+  const [exportDateFrom, setExportDateFrom] = useState("");
+  const [exportDateTo, setExportDateTo] = useState("");
+  const [exportMarkedContacted, setExportMarkedContacted] = useState("all");
+  const [exportLoading, setExportLoading] = useState(false);
   const [contactNoteDialogConv, setContactNoteDialogConv] = useState<AiConversationRow | null>(null);
   const [contactNoteText, setContactNoteText] = useState("");
   const [contactNoteSubmitting, setContactNoteSubmitting] = useState(false);
@@ -260,8 +267,15 @@ export default function AdminAIConversations() {
   };
 
   const handleExportCsv = async () => {
+    setExportLoading(true);
     try {
-      const r = await apiRequest("GET", "/api/admin/ai-conversations/export/csv");
+      const p = new URLSearchParams();
+      if (exportStatus !== "all") p.set("status", exportStatus);
+      if (exportDateFrom) p.set("dateFrom", exportDateFrom);
+      if (exportDateTo) p.set("dateTo", `${exportDateTo}T23:59:59`);
+      if (exportMarkedContacted !== "all") p.set("markedContacted", exportMarkedContacted);
+      const qs = p.toString() ? `?${p.toString()}` : "";
+      const r = await apiRequest("GET", `/api/admin/ai-conversations/export/csv${qs}`);
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -269,8 +283,11 @@ export default function AdminAIConversations() {
       a.download = "ai-conversations.csv";
       a.click();
       URL.revokeObjectURL(url);
+      setExportDialogOpen(false);
     } catch {
       toast({ title: "Error", description: "Failed to export CSV.", variant: "destructive" });
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -367,7 +384,7 @@ export default function AdminAIConversations() {
             </div>
             <Button
               variant="outline"
-              onClick={handleExportCsv}
+              onClick={() => setExportDialogOpen(true)}
               data-testid="button-export-ai-csv"
             >
               <Download className="w-4 h-4 mr-2" />
@@ -790,6 +807,86 @@ export default function AdminAIConversations() {
           </div>
         )}
       </div>
+
+      {/* Export CSV filter dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={(open) => !open && setExportDialogOpen(false)}>
+        <DialogContent className="max-w-sm" data-testid="dialog-export-csv">
+          <DialogHeader>
+            <DialogTitle>Export conversations</DialogTitle>
+            <DialogDescription>
+              Choose which conversations to include in the CSV. Leave filters unset to export all.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1">
+              <Label htmlFor="export-status">Status</Label>
+              <Select value={exportStatus} onValueChange={setExportStatus}>
+                <SelectTrigger id="export-status" data-testid="select-export-status">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="in_progress">In progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="abandoned">Abandoned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="export-contacted">Contacted</Label>
+              <Select value={exportMarkedContacted} onValueChange={setExportMarkedContacted}>
+                <SelectTrigger id="export-contacted" data-testid="select-export-contacted">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="yes">Contacted only</SelectItem>
+                  <SelectItem value="no">Not yet contacted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="export-date-from">From date</Label>
+                <Input
+                  id="export-date-from"
+                  type="date"
+                  value={exportDateFrom}
+                  onChange={(e) => setExportDateFrom(e.target.value)}
+                  data-testid="input-export-date-from"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="export-date-to">To date</Label>
+                <Input
+                  id="export-date-to"
+                  type="date"
+                  value={exportDateTo}
+                  onChange={(e) => setExportDateTo(e.target.value)}
+                  data-testid="input-export-date-to"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setExportDialogOpen(false)}
+              data-testid="button-export-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleExportCsv}
+              disabled={exportLoading}
+              data-testid="button-export-confirm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {exportLoading ? "Exporting..." : "Download CSV"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Mark contacted dialog */}
       <Dialog
