@@ -150,13 +150,12 @@ export default function AdminAIConversations() {
 
   const isActive = useIdlePolling();
 
-  const params = new URLSearchParams();
-  if (statusFilter !== "all") params.set("status", statusFilter);
-  if (v48Filter !== "all") params.set("includes48v", v48Filter);
-  if (dateFrom) params.set("dateFrom", dateFrom);
-  if (dateTo) params.set("dateTo", `${dateTo}T23:59:59`);
-
-  const conversationsUrl = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
+  const filters = {
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    includes48v: v48Filter !== "all" ? v48Filter : undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo ? `${dateTo}T23:59:59` : undefined,
+  };
 
   const {
     data: aiData,
@@ -164,7 +163,21 @@ export default function AdminAIConversations() {
     isFetching: aiFetching,
     refetch,
   } = useQuery<AiConversationsResponse>({
-    queryKey: [conversationsUrl],
+    queryKey: ["/api/admin/ai-conversations", filters],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters.status) params.set("status", filters.status);
+      if (filters.includes48v) params.set("includes48v", filters.includes48v);
+      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+      if (filters.dateTo) params.set("dateTo", filters.dateTo);
+      const url = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
+      const sessionId = localStorage.getItem("sessionId");
+      const headers: Record<string, string> = {};
+      if (sessionId) headers["Authorization"] = `Bearer ${sessionId}`;
+      const res = await fetch(url, { headers, credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      return res.json();
+    },
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? 60_000 : false,
     refetchIntervalInBackground: false,
