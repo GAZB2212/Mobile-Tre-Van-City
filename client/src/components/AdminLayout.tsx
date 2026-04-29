@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   BarChart3,
+  Bot,
   Car,
   Package,
   Wrench,
@@ -59,6 +60,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { title: "Configurators", href: "/admin/quotes", icon: FileText, requiredRole: "basic" },
       { title: "Leads", href: "/admin/leads", icon: Users, requiredRole: "basic" },
+      { title: "AI Conversations", href: "/admin/ai-conversations", icon: Bot, requiredRole: "basic" },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3, requiredRole: "basic" },
     ],
   },
