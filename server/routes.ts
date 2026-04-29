@@ -5292,6 +5292,45 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   });
 
   // Static routes MUST come before parameterised /:id routes
+  app.get("/api/admin/ai-conversations/export/count", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const conditions: string[] = [];
+      const values: unknown[] = [];
+      let idx = 1;
+
+      const { status, dateFrom, dateTo, markedContacted } = req.query as Record<string, string | undefined>;
+
+      if (status && status !== "all") {
+        conditions.push(`status = $${idx++}`);
+        values.push(status);
+      }
+      if (dateFrom) {
+        conditions.push(`created_at >= $${idx++}`);
+        values.push(new Date(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        conditions.push(`created_at <= $${idx++}`);
+        values.push(new Date(dateTo).toISOString());
+      }
+      if (markedContacted === "yes") {
+        conditions.push(`marked_contacted = true`);
+      } else if (markedContacted === "no") {
+        conditions.push(`marked_contacted = false`);
+      }
+
+      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+      const { rows } = await pool.query(
+        `SELECT COUNT(*) AS count FROM ai_conversations ${where}`,
+        values
+      );
+
+      res.json({ count: parseInt(rows[0].count, 10) });
+    } catch (error) {
+      console.error("AI CSV export count error:", error);
+      res.status(500).json({ error: "Count failed" });
+    }
+  });
+
   app.get("/api/admin/ai-conversations/export/csv", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const conditions: string[] = [];

@@ -122,6 +122,12 @@ export default function AdminAIConversations() {
   const [exportDateTo, setExportDateTo] = useState("");
   const [exportMarkedContacted, setExportMarkedContacted] = useState("all");
   const [exportLoading, setExportLoading] = useState(false);
+  const [debouncedExportFilters, setDebouncedExportFilters] = useState({
+    status: "all",
+    dateFrom: "",
+    dateTo: "",
+    markedContacted: "all",
+  });
   const [contactNoteDialogConv, setContactNoteDialogConv] = useState<AiConversationRow | null>(null);
   const [contactNoteText, setContactNoteText] = useState("");
   const [contactNoteSubmitting, setContactNoteSubmitting] = useState(false);
@@ -154,6 +160,35 @@ export default function AdminAIConversations() {
       }, 1000);
     }
   }, [user, toast]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedExportFilters({
+        status: exportStatus,
+        dateFrom: exportDateFrom,
+        dateTo: exportDateTo,
+        markedContacted: exportMarkedContacted,
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [exportStatus, exportDateFrom, exportDateTo, exportMarkedContacted]);
+
+  const exportCountParams = new URLSearchParams();
+  if (debouncedExportFilters.status !== "all") exportCountParams.set("status", debouncedExportFilters.status);
+  if (debouncedExportFilters.dateFrom) exportCountParams.set("dateFrom", debouncedExportFilters.dateFrom);
+  if (debouncedExportFilters.dateTo) exportCountParams.set("dateTo", `${debouncedExportFilters.dateTo}T23:59:59`);
+  if (debouncedExportFilters.markedContacted !== "all") exportCountParams.set("markedContacted", debouncedExportFilters.markedContacted);
+
+  const { data: exportCountData, isFetching: exportCountFetching, isError: exportCountError } = useQuery<{ count: number }>({
+    queryKey: ["/api/admin/ai-conversations/export/count", debouncedExportFilters],
+    queryFn: async () => {
+      const qs = exportCountParams.toString() ? `?${exportCountParams}` : "";
+      const res = await apiRequest("GET", `/api/admin/ai-conversations/export/count${qs}`);
+      if (!res.ok) throw new Error("Count failed");
+      return res.json();
+    },
+    enabled: exportDialogOpen && !!(user?.adminRole && user.adminRole !== "none"),
+  });
 
   const isActive = useIdlePolling();
 
@@ -867,6 +902,15 @@ export default function AdminAIConversations() {
                 />
               </div>
             </div>
+          </div>
+          <div className="text-sm text-muted-foreground" data-testid="text-export-count">
+            {exportCountFetching ? (
+              <span className="animate-pulse">Counting...</span>
+            ) : exportCountError ? (
+              <span>Couldn't load count</span>
+            ) : exportCountData !== undefined ? (
+              <span>{exportCountData.count} conversation{exportCountData.count !== 1 ? "s" : ""} will be exported</span>
+            ) : null}
           </div>
           <DialogFooter>
             <Button
