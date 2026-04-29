@@ -23,8 +23,12 @@ export default function ConfiguratorIdleModal() {
 
     const timer = setTimeout(() => {
       if (!sessionStorage.getItem(SESSION_KEY)) {
-        setShow(true);
-        sessionStorage.setItem(SESSION_KEY, "1");
+        // Don't interrupt if the user already has the AI chat open
+        const aiChatOpen = !!document.querySelector('[data-testid="panel-ai-chat"]');
+        if (!aiChatOpen) {
+          setShow(true);
+          sessionStorage.setItem(SESSION_KEY, "1");
+        }
       }
     }, IDLE_DELAY_MS);
 
