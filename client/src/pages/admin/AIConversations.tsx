@@ -35,6 +35,7 @@ import {
   Calendar,
   Bell,
   X,
+  Pencil,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -117,6 +118,9 @@ export default function AdminAIConversations() {
   const [contactNoteDialogConv, setContactNoteDialogConv] = useState<AiConversationRow | null>(null);
   const [contactNoteText, setContactNoteText] = useState("");
   const [contactNoteSubmitting, setContactNoteSubmitting] = useState(false);
+  const [editNoteDialogConv, setEditNoteDialogConv] = useState<AiConversationRow | null>(null);
+  const [editNoteText, setEditNoteText] = useState("");
+  const [editNoteSubmitting, setEditNoteSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -186,6 +190,29 @@ export default function AdminAIConversations() {
       toast({ title: "Error", description: "Failed to mark as contacted.", variant: "destructive" });
     } finally {
       setContactNoteSubmitting(false);
+    }
+  };
+
+  const openEditNoteDialog = (conv: AiConversationRow) => {
+    setEditNoteText(conv.contacted_note ?? "");
+    setEditNoteDialogConv(conv);
+  };
+
+  const handleSubmitEditNote = async () => {
+    if (!editNoteDialogConv) return;
+    setEditNoteSubmitting(true);
+    try {
+      await apiRequest("PATCH", `/api/admin/ai-conversations/${editNoteDialogConv.id}/contacted`, {
+        note: editNoteText,
+      });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-conversations"] });
+      toast({ title: "Note updated" });
+      setEditNoteDialogConv(null);
+    } catch {
+      toast({ title: "Error", description: "Failed to update note.", variant: "destructive" });
+    } finally {
+      setEditNoteSubmitting(false);
     }
   };
 
@@ -590,12 +617,24 @@ export default function AdminAIConversations() {
                           )}
                         </div>
                         {conv.marked_contacted && conv.contacted_note && (
-                          <p
-                            className="text-xs text-muted-foreground mt-1 italic"
-                            data-testid={`text-contacted-note-${conv.id}`}
-                          >
-                            Note: {conv.contacted_note}
-                          </p>
+                          <div className="flex items-start gap-1.5 mt-1">
+                            <p
+                              className="text-xs text-muted-foreground italic flex-1"
+                              data-testid={`text-contacted-note-${conv.id}`}
+                            >
+                              Note: {conv.contacted_note}
+                            </p>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="shrink-0 opacity-60 hover:opacity-100"
+                              onClick={() => openEditNoteDialog(conv)}
+                              data-testid={`button-edit-note-${conv.id}`}
+                              title="Edit note"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
                         )}
                         {/* Config summary */}
                         <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
@@ -709,6 +748,52 @@ export default function AdminAIConversations() {
             >
               <PhoneCall className="w-4 h-4 mr-2" />
               {contactNoteSubmitting ? "Saving..." : "Mark contacted"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit note dialog */}
+      <Dialog
+        open={!!editNoteDialogConv}
+        onOpenChange={(open) => !open && setEditNoteDialogConv(null)}
+      >
+        <DialogContent className="max-w-md" data-testid="dialog-edit-note">
+          <DialogHeader>
+            <DialogTitle>Edit contact note</DialogTitle>
+            <DialogDescription>
+              Update the note for this contact
+              {editNoteDialogConv?.contact_name
+                ? ` with ${editNoteDialogConv.contact_name}`
+                : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <Label htmlFor="edit-contacted-note">Call note</Label>
+            <Textarea
+              id="edit-contacted-note"
+              placeholder="e.g. Left voicemail, Quoted £X, Not interested..."
+              value={editNoteText}
+              onChange={(e) => setEditNoteText(e.target.value)}
+              rows={3}
+              data-testid="textarea-edit-note"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditNoteDialogConv(null)}
+              data-testid="button-cancel-edit-note"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitEditNote}
+              disabled={editNoteSubmitting}
+              data-testid="button-confirm-edit-note"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              {editNoteSubmitting ? "Saving..." : "Save note"}
             </Button>
           </DialogFooter>
         </DialogContent>
