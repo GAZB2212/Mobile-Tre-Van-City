@@ -44,7 +44,6 @@ const STALE_THRESHOLDS: Partial<Record<string, number>> = {
   finance_declined: 3,   // Needs alternative offer quickly
   deposit_taken:    14,  // Should be moving into build
   finance_approved: 14,  // Should be moving into build
-  in_build:         30,  // Build shouldn't go quiet for a month
 };
 
 function daysInStatus(quote: { status: string; statusChangedAt?: string | Date | null; createdAt?: string | Date | null }): number {
