@@ -236,12 +236,12 @@ export default function AdminAIConversations() {
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: ["/api/admin/ai-conversations"] });
 
-      const previousData = queryClient.getQueryData<AiConversationsResponse>([
-        "/api/admin/ai-conversations",
-      ]);
+      const previousEntries = queryClient.getQueriesData<AiConversationsResponse>({
+        queryKey: ["/api/admin/ai-conversations"],
+      });
 
-      queryClient.setQueryData<AiConversationsResponse>(
-        ["/api/admin/ai-conversations"],
+      queryClient.setQueriesData<AiConversationsResponse>(
+        { queryKey: ["/api/admin/ai-conversations"] },
         (old) => {
           if (!old) return old;
           return {
@@ -253,11 +253,13 @@ export default function AdminAIConversations() {
         }
       );
 
-      return { previousData };
+      return { previousEntries };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousData !== undefined) {
-        queryClient.setQueryData(["/api/admin/ai-conversations"], context.previousData);
+      if (context?.previousEntries) {
+        for (const [queryKey, data] of context.previousEntries) {
+          queryClient.setQueryData(queryKey, data);
+        }
       }
       toast({ title: "Error", description: "Failed to mark as contacted.", variant: "destructive" });
     },
