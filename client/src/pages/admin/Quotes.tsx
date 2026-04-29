@@ -35,6 +35,30 @@ const ALL_STATUSES = [
   "finance_declined", "deposit_taken", "finance_approved", "in_build", "completed", "cancelled",
 ] as const;
 
+// How many days a quote can sit in each status before it's flagged as needing attention
+const STALE_THRESHOLDS: Partial<Record<string, number>> = {
+  new:              1,   // Should be contacted same day / next day
+  contacted:        4,   // Should be chasing within 4 days
+  awaiting_deposit: 7,   // Deposit pending for a week
+  awaiting_finance: 7,   // Finance pending for a week
+  finance_declined: 3,   // Needs alternative offer quickly
+  deposit_taken:    14,  // Should be moving into build
+  finance_approved: 14,  // Should be moving into build
+  in_build:         30,  // Build shouldn't go quiet for a month
+};
+
+function daysInStatus(quote: { status: string; statusChangedAt?: string | Date | null; createdAt?: string | Date | null }): number {
+  const since = (quote as any).statusChangedAt ?? quote.createdAt;
+  if (!since) return 0;
+  return Math.floor((Date.now() - new Date(since).getTime()) / 86_400_000);
+}
+
+function isOverdue(quote: { status: string; statusChangedAt?: string | Date | null; createdAt?: string | Date | null }): boolean {
+  const threshold = STALE_THRESHOLDS[quote.status];
+  if (threshold === undefined) return false;
+  return daysInStatus(quote) >= threshold;
+}
+
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
@@ -71,6 +95,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Clock,
+  Bell,
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -302,7 +328,9 @@ export default function AdminQuotes() {
       else if (dateFilter === "week") matchesDate = daysDiff <= 7;
       else if (dateFilter === "month") matchesDate = daysDiff <= 30;
 
-      const matchesStatus = statusFilter === "all" || quote.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "overdue" ? isOverdue(quote) : quote.status === statusFilter);
 
       return matchesSearch && matchesDate && matchesStatus;
     })

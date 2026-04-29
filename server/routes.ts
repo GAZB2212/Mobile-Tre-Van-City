@@ -2101,6 +2101,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         }
       }
 
+      // Auto-stamp statusChangedAt whenever status is being changed
+      if ('status' in validatedData) {
+        (validatedData as any).statusChangedAt = new Date();
+      }
+
       const updated = await storage.updateQuote(req.params.id, validatedData);
       
       if (!updated) {

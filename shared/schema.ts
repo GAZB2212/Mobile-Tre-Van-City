@@ -191,6 +191,7 @@ export const quotes = pgTable("quotes", {
   
   featuredInPortfolio: boolean("featured_in_portfolio").notNull().default(false),
   status: text("status").notNull().default("pending"),
+  statusChangedAt: timestamp("status_changed_at"), // Set automatically whenever status changes
   buildStage: text("build_stage"),
   completedBuildStages: json("completed_build_stages").$type<Array<string | { id: string; initials: string }>>().notNull().default([]),
   customBuildStages: json("custom_build_stages").$type<Array<{id: string; label: string}>>(), // null = auto-generate from config
