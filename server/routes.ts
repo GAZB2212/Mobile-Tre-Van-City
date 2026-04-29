@@ -5101,11 +5101,24 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       });
 
+      // If a name was pre-captured in the form and this is the opening __GREET__ trigger,
+      // inject a synthetic Q0 exchange into the message history so Max sees the name was
+      // already given and skips straight to Q1 — much more reliable than a prompt instruction.
+      const isGreetTrigger = messages.length === 1 && messages[0].content === "__GREET__";
+      let effectiveMessages: Array<{ role: "user" | "assistant"; content: string }>;
+      if (contactName && isGreetTrigger) {
+        effectiveMessages = [
+          { role: "user", content: `Hi, my name is ${contactName}.` },
+        ];
+      } else {
+        effectiveMessages = messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+      }
+
       const aiPayload = {
         model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+          ...effectiveMessages,
         ] as any,
         response_format: { type: "json_object" as const },
         temperature: 0.7,
