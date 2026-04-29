@@ -271,11 +271,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     collapsed={collapsed && !isMobile}
                     isActive={isActive(item.href)}
                     badge={
-                    item.href === "/admin/ai-conversations" ? uncontactedCount :
-                    item.href === "/admin/quotes" ? newQuotesCount :
-                    item.href === "/admin/leads" ? newLeadsCount :
-                    undefined
-                  }
+                      item.href === "/admin/ai-conversations" ? uncontactedCount :
+                      item.href === "/admin/quotes" ? newQuotesCount :
+                      item.href === "/admin/leads" ? newLeadsCount :
+                      undefined
+                    }
                   />
                 ))}
               </div>
