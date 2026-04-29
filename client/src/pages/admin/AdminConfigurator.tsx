@@ -150,7 +150,7 @@ export default function AdminConfigurator() {
 
   const {
     state, setVan, setVanOnly, setVanReg, setCustomVanValue,
-    setServiceTypeOnly, setKitOnly,
+    setServiceTypeOnly, setKitOnly, setUpgrades,
     addUpgrade, removeUpgrade, replaceUpgrades, clearAll,
     compareMode, activeSlot, enableCompareMode, slotA, slotB,
   } = useConfigurator();
@@ -295,6 +295,37 @@ export default function AdminConfigurator() {
       ids.forEach(id => { delete next[id]; });
       return next;
     });
+  };
+
+  // Change service type while stripping upgrades / kit that are incompatible with the new type
+  const handleServiceTypeChange = (newType: KitServiceType) => {
+    if (!configData) { setServiceTypeOnly(newType); return; }
+    const allUpgrades = Object.values(configData.upgrades).flat() as Upgrade[];
+    const newIsCommercial = newType === "commercial" || newType === "hybrid";
+    const newIsHybrid = newType === "hybrid";
+    const incompatibleIds = state.upgradeIds.filter(id => {
+      const u = allUpgrades.find(x => x.id === id);
+      if (!u) return false;
+      if (newIsCommercial) return u.carOnly || (newIsHybrid && u.hideForHybrid);
+      return u.forCommercial;
+    });
+    if (incompatibleIds.length > 0) {
+      setUpgrades(state.upgradeIds.filter(id => !incompatibleIds.includes(id)));
+      purgeQuantities(incompatibleIds);
+    }
+    if (state.kitId) {
+      const kit = configData.kits.find((k: any) => k.id === state.kitId);
+      if (kit) {
+        const types: string[] = Array.isArray(kit.serviceType) ? kit.serviceType : ["car", "commercial", "hybrid"];
+        const compatible = types.length === 0 || types.length === 3
+          ? true
+          : newType === "hybrid"
+            ? types.includes("hybrid") || types.includes("car")
+            : types.includes(newType);
+        if (!compatible) setKitOnly(null);
+      }
+    }
+    setServiceTypeOnly(newType);
   };
 
   // Auto-remove duplicate exclusive groups
@@ -751,7 +782,7 @@ export default function AdminConfigurator() {
                     <Card
                       key={value}
                       className={`cursor-pointer hover-elevate transition-all ${isSelected ? "ring-2 ring-accent" : ""}`}
-                      onClick={() => setServiceTypeOnly(value)}
+                      onClick={() => handleServiceTypeChange(value)}
                       data-testid={`card-service-type-${value}`}
                     >
                       <CardContent className="p-6 flex flex-col gap-4 h-full">
@@ -766,7 +797,7 @@ export default function AdminConfigurator() {
                         <Button
                           className={`w-full mt-2 ${isSelected ? "bg-accent text-accent-foreground" : "!border-2 !border-accent text-accent hover:bg-accent/10"}`}
                           variant={isSelected ? "default" : "outline"}
-                          onClick={e => { e.stopPropagation(); setServiceTypeOnly(value); }}
+                          onClick={e => { e.stopPropagation(); handleServiceTypeChange(value); }}
                           data-testid={`button-select-service-type-${value}`}
                         >
                           {isSelected ? <>Selected<ArrowRight className="w-4 h-4 ml-2" /></> : "Select"}
