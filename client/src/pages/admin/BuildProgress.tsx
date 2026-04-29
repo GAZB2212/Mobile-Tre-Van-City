@@ -41,7 +41,6 @@ export default function BuildProgress() {
   });
 
   const [completedStages, setCompletedStages] = useState<CompletedStage[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   // Initials — stored in localStorage so persists between sessions on same device
@@ -58,7 +57,7 @@ export default function BuildProgress() {
 
   // Sync from server on every poll, but skip while a save is in-flight to avoid race conditions
   useEffect(() => {
-    if (data && !isSaving) {
+    if (data && !saveMutation.isPending) {
       setCompletedStages(normalizeStages(data.completedBuildStages));
     }
   }, [data]);
@@ -126,9 +125,6 @@ export default function BuildProgress() {
     onError: () => {
       toast({ title: "Save failed", description: "Could not save. Please try again.", variant: "destructive" });
     },
-    onSettled: () => {
-      setIsSaving(false);
-    },
   });
 
   const handleStagePress = (stageId: string) => {
@@ -146,7 +142,6 @@ export default function BuildProgress() {
       const updated = completedStages.filter((s) => s.id !== stageId);
       setCompletedStages(updated);
       setPendingId(null);
-      setIsSaving(true);
       saveMutation.mutate(updated);
       return;
     }
@@ -159,7 +154,6 @@ export default function BuildProgress() {
     const updated = [...completedStages, entry];
     setCompletedStages(updated);
     setPendingId(null);
-    setIsSaving(true);
     const label = activeStages.find((s) => s.id === pendingId)?.label;
     saveMutation.mutate(updated);
     toast({ title: "Stage marked complete", description: label });
