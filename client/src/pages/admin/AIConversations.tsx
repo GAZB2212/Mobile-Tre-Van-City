@@ -439,16 +439,6 @@ export default function AdminAIConversations() {
                             </Badge>
                           )}
                         </div>
-                        {conv.contact_phone && (
-                          <a
-                            href={`tel:${conv.contact_phone}`}
-                            className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-[#8bc440] transition-colors"
-                            data-testid={`link-ai-phone-${conv.id}`}
-                          >
-                            <Phone className="w-3.5 h-3.5 text-[#8bc440]" />
-                            {conv.contact_phone}
-                          </a>
-                        )}
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                           <StatusBadge status={conv.status} />
                           {conv.includes_48v && (
@@ -493,38 +483,50 @@ export default function AdminAIConversations() {
                     </div>
 
                     {/* Right: actions */}
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewTranscript(conv)}
-                        data-testid={`button-view-transcript-${conv.id}`}
-                      >
-                        <Eye className="w-3.5 h-3.5 mr-1" />
-                        Transcript
-                      </Button>
-                      {conv.linked_quote_id && (
-                        <Link href={`/admin/quotes/${conv.linked_quote_id}`}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            data-testid={`button-view-quote-${conv.id}`}
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                            View Quote
-                          </Button>
-                        </Link>
-                      )}
-                      {!conv.marked_contacted && conv.contact_phone && (
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="flex flex-wrap gap-2 justify-end">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleMarkContacted(conv.id)}
-                          data-testid={`button-mark-contacted-${conv.id}`}
+                          onClick={() => handleViewTranscript(conv)}
+                          data-testid={`button-view-transcript-${conv.id}`}
                         >
-                          <PhoneCall className="w-3.5 h-3.5 mr-1" />
-                          Mark contacted
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          Transcript
                         </Button>
+                        {conv.linked_quote_id && (
+                          <Link href={`/admin/quotes/${conv.linked_quote_id}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid={`button-view-quote-${conv.id}`}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                              View Quote
+                            </Button>
+                          </Link>
+                        )}
+                        {!conv.marked_contacted && conv.contact_phone && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleMarkContacted(conv.id)}
+                            data-testid={`button-mark-contacted-${conv.id}`}
+                          >
+                            <PhoneCall className="w-3.5 h-3.5 mr-1" />
+                            Mark contacted
+                          </Button>
+                        )}
+                      </div>
+                      {conv.contact_phone && (
+                        <a
+                          href={`tel:${conv.contact_phone}`}
+                          className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-[#8bc440] transition-colors"
+                          data-testid={`link-ai-phone-${conv.id}`}
+                        >
+                          <Phone className="w-3.5 h-3.5 text-[#8bc440]" />
+                          {conv.contact_phone}
+                        </a>
                       )}
                     </div>
                   </div>
