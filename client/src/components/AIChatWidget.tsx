@@ -163,6 +163,9 @@ export default function AIChatWidget() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasResume, setHasResume] = useState(false);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [showContactCapture, setShowContactCapture] = useState(false);
+  const [captureNameInput, setCaptureNameInput] = useState("");
+  const [capturePhoneInput, setCapturePhoneInput] = useState("");
 
   const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
   const [messages, setMessages] = useState<AIMessage[]>([]);
@@ -329,13 +332,25 @@ export default function AIChatWidget() {
     }
   }, [sessionId]);
 
+  const handleContactStart = (name: string, phone: string) => {
+    const updatedConfig = { ...config, contactName: name.trim() || null, contactPhone: phone.trim() || null };
+    if (name.trim() || phone.trim()) setConfig(updatedConfig);
+    setShowContactCapture(false);
+    setCaptureNameInput("");
+    setCapturePhoneInput("");
+    // Persist the contact details to DB immediately — captures the lead even if they abandon
+    if (name.trim() || phone.trim()) {
+      saveToDb([], updatedConfig, trackers, "in_progress");
+    }
+    triggerGreeting();
+  };
+
   const handleOpen = () => {
     setOpen(true);
     if (hasResume && messages.length === 0) {
       setShowResumePrompt(true);
     } else if (messages.length === 0) {
-      // Start fresh — trigger the first AI message
-      callAI([]);
+      setShowContactCapture(true);
     }
   };
 
@@ -367,7 +382,9 @@ export default function AIChatWidget() {
     setConfig(defaultConfig);
     setTrackers(defaultTrackers);
     setStage("chat");
-    callAI([]);
+    setCaptureNameInput("");
+    setCapturePhoneInput("");
+    setShowContactCapture(true);
   };
 
   const handleSend = async () => {
@@ -491,6 +508,54 @@ export default function AIChatWidget() {
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
 
+            {/* Contact capture — shown before Max's first message on a fresh start */}
+            {showContactCapture && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+                <div>
+                  <p className="text-white font-semibold text-sm leading-snug mb-1">Quick one before we get going</p>
+                  <p className="text-white/50 text-xs leading-relaxed">
+                    Leave your name and number — if you need to step away, one of the team can ring you back and pick up right where you left off.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <input
+                    data-testid="input-capture-name"
+                    type="text"
+                    placeholder="Your name"
+                    value={captureNameInput}
+                    onChange={e => setCaptureNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleContactStart(captureNameInput, capturePhoneInput); }}
+                    className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                    autoFocus
+                  />
+                  <input
+                    data-testid="input-capture-phone"
+                    type="tel"
+                    placeholder="Mobile number"
+                    value={capturePhoneInput}
+                    onChange={e => setCapturePhoneInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleContactStart(captureNameInput, capturePhoneInput); }}
+                    className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                  />
+                </div>
+                <Button
+                  onClick={() => handleContactStart(captureNameInput, capturePhoneInput)}
+                  disabled={!captureNameInput.trim() && !capturePhoneInput.trim()}
+                  data-testid="button-contact-capture-submit"
+                  className="w-full bg-[#8bc440] text-[#191919] font-semibold"
+                >
+                  Get started <ArrowRight size={15} className="ml-1" />
+                </Button>
+                <button
+                  onClick={() => handleContactStart("", "")}
+                  data-testid="button-contact-capture-skip"
+                  className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors pt-1"
+                >
+                  Skip for now
+                </button>
+              </div>
+            )}
+
             {/* Resume prompt */}
             {showResumePrompt && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
@@ -573,7 +638,7 @@ export default function AIChatWidget() {
           </div>
 
           {/* Input area */}
-          {stage === "chat" && !showResumePrompt && (
+          {stage === "chat" && !showResumePrompt && !showContactCapture && (
             <div className="px-3 py-3 border-t border-white/10 flex items-center gap-2 shrink-0">
               <input
                 ref={inputRef}
