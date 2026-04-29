@@ -5348,6 +5348,108 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ─── Admin: Max AI Analytics ─────────────────────────────────────────────
+  app.get("/api/admin/analytics/ai", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const [allTime, thisMonth, daily, statusBreakdown] = await Promise.all([
+        pool.query(`
+          SELECT
+            COUNT(*)                                                                 AS total,
+            COUNT(*) FILTER (WHERE status = 'completed')                            AS completed,
+            COUNT(*) FILTER (WHERE status = 'abandoned')                            AS abandoned,
+            COUNT(*) FILTER (WHERE status = 'in_progress')                          AS in_progress,
+            COUNT(*) FILTER (WHERE contact_name IS NOT NULL OR contact_phone IS NOT NULL) AS leads_captured,
+            COUNT(*) FILTER (WHERE includes_48v = TRUE)                             AS includes_48v,
+            COUNT(*) FILTER (WHERE was_48v_pitched = TRUE)                          AS pitched_48v,
+            COUNT(*) FILTER (WHERE config_completed = TRUE)                         AS config_completed
+          FROM ai_conversations
+        `),
+        pool.query(`
+          SELECT
+            COUNT(*)                                                                 AS total,
+            COUNT(*) FILTER (WHERE status = 'completed')                            AS completed,
+            COUNT(*) FILTER (WHERE status = 'abandoned')                            AS abandoned,
+            COUNT(*) FILTER (WHERE status = 'in_progress')                          AS in_progress,
+            COUNT(*) FILTER (WHERE contact_name IS NOT NULL OR contact_phone IS NOT NULL) AS leads_captured,
+            COUNT(*) FILTER (WHERE includes_48v = TRUE)                             AS includes_48v,
+            COUNT(*) FILTER (WHERE was_48v_pitched = TRUE)                          AS pitched_48v,
+            COUNT(*) FILTER (WHERE config_completed = TRUE)                         AS config_completed
+          FROM ai_conversations
+          WHERE created_at >= date_trunc('month', NOW())
+        `),
+        pool.query(`
+          SELECT
+            TO_CHAR(DATE(created_at), 'YYYY-MM-DD')                                 AS date,
+            COUNT(*)                                                                 AS total,
+            COUNT(*) FILTER (WHERE status = 'completed')                            AS completed,
+            COUNT(*) FILTER (WHERE status = 'abandoned')                            AS abandoned,
+            COUNT(*) FILTER (WHERE contact_name IS NOT NULL OR contact_phone IS NOT NULL) AS leads
+          FROM ai_conversations
+          WHERE created_at >= NOW() - INTERVAL '30 days'
+          GROUP BY DATE(created_at)
+          ORDER BY DATE(created_at) ASC
+        `),
+        pool.query(`
+          SELECT status, COUNT(*) AS count
+          FROM ai_conversations
+          GROUP BY status
+          ORDER BY count DESC
+        `),
+      ]);
+
+      const a = allTime.rows[0];
+      const m = thisMonth.rows[0];
+
+      const pct = (n: string, d: string) =>
+        parseInt(d) > 0 ? Math.round((parseInt(n) / parseInt(d)) * 100) : 0;
+
+      res.json({
+        allTime: {
+          total:           parseInt(a.total)          || 0,
+          completed:       parseInt(a.completed)      || 0,
+          abandoned:       parseInt(a.abandoned)      || 0,
+          inProgress:      parseInt(a.in_progress)    || 0,
+          leadsCapured:    parseInt(a.leads_captured) || 0,
+          includes48v:     parseInt(a.includes_48v)   || 0,
+          pitched48v:      parseInt(a.pitched_48v)    || 0,
+          configCompleted: parseInt(a.config_completed) || 0,
+          completionRate:  pct(a.completed,      a.total),
+          leadCaptureRate: pct(a.leads_captured, a.total),
+          v48PitchRate:    pct(a.pitched_48v,    a.total),
+          v48ConvRate:     pct(a.includes_48v,   a.pitched_48v),
+        },
+        thisMonth: {
+          total:           parseInt(m.total)          || 0,
+          completed:       parseInt(m.completed)      || 0,
+          abandoned:       parseInt(m.abandoned)      || 0,
+          inProgress:      parseInt(m.in_progress)    || 0,
+          leadsCapured:    parseInt(m.leads_captured) || 0,
+          includes48v:     parseInt(m.includes_48v)   || 0,
+          pitched48v:      parseInt(m.pitched_48v)    || 0,
+          configCompleted: parseInt(m.config_completed) || 0,
+          completionRate:  pct(m.completed,      m.total),
+          leadCaptureRate: pct(m.leads_captured, m.total),
+          v48PitchRate:    pct(m.pitched_48v,    m.total),
+          v48ConvRate:     pct(m.includes_48v,   m.pitched_48v),
+        },
+        daily: daily.rows.map((r: any) => ({
+          date:      r.date,
+          total:     parseInt(r.total)     || 0,
+          completed: parseInt(r.completed) || 0,
+          abandoned: parseInt(r.abandoned) || 0,
+          leads:     parseInt(r.leads)     || 0,
+        })),
+        statusBreakdown: statusBreakdown.rows.map((r: any) => ({
+          status: r.status,
+          count:  parseInt(r.count) || 0,
+        })),
+      });
+    } catch (error) {
+      console.error("AI analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch AI analytics" });
+    }
+  });
+
   // ─── Admin: AI Packages (Bronze / Silver / Gold) ─────────────────────────
   app.get("/api/admin/ai-packages", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

@@ -19,7 +19,8 @@ import {
   TrendingUp, Users, FileText, Car, Package,
   ArrowLeft, Activity, CalendarDays, Globe, Monitor,
   Smartphone, Tablet, MousePointer, Eye, Timer,
-  BarChart2, RefreshCw, Zap, ChevronDown
+  BarChart2, RefreshCw, Zap, ChevronDown,
+  Bot, Phone, CheckCircle2, XCircle, MessageSquare, Percent
 } from "lucide-react";
 
 interface BusinessAnalytics {
@@ -84,6 +85,18 @@ function formatUrl(url: string): string {
   return url.length > 40 ? url.substring(0, 40) + "…" : url;
 }
 
+interface AiPeriodStats {
+  total: number; completed: number; abandoned: number; inProgress: number;
+  leadsCapured: number; includes48v: number; pitched48v: number; configCompleted: number;
+  completionRate: number; leadCaptureRate: number; v48PitchRate: number; v48ConvRate: number;
+}
+interface AiAnalytics {
+  allTime: AiPeriodStats;
+  thisMonth: AiPeriodStats;
+  daily: Array<{ date: string; total: number; completed: number; abandoned: number; leads: number }>;
+  statusBreakdown: Array<{ status: string; count: number }>;
+}
+
 export default function AdminAnalytics() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth() as {
@@ -91,7 +104,7 @@ export default function AdminAnalytics() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
-  const [activeTab, setActiveTab] = useState<"web" | "business" | "configurators">("web");
+  const [activeTab, setActiveTab] = useState<"web" | "business" | "configurators" | "max_ai">("web");
   const [days, setDays] = useState("30");
 
   // Configurators date range — default: last 30 days
@@ -128,6 +141,11 @@ export default function AdminAnalytics() {
 
   const { data: businessAnalytics, isLoading: businessLoading } = useQuery<BusinessAnalytics>({
     queryKey: ["/api/admin/analytics"],
+    enabled: !!user?.adminRole && user.adminRole !== "none",
+  });
+
+  const { data: aiAnalytics, isLoading: aiLoading } = useQuery<AiAnalytics>({
+    queryKey: ["/api/admin/analytics/ai"],
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
@@ -228,6 +246,15 @@ export default function AdminAnalytics() {
             >
               <CalendarDays className="w-4 h-4 mr-2" />
               Configurator Activity
+            </Button>
+            <Button
+              variant={activeTab === "max_ai" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("max_ai")}
+              data-testid="button-tab-max-ai"
+            >
+              <Bot className="w-4 h-4 mr-2" />
+              Max AI
             </Button>
           </div>
         </div>
@@ -1074,6 +1101,226 @@ export default function AdminAnalytics() {
                     </CardContent>
                   </Card>
                 )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ===== MAX AI TAB ===== */}
+        {activeTab === "max_ai" && (
+          <div className="space-y-6">
+            {aiLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+                  <p className="mt-2 text-muted-foreground">Loading Max AI data...</p>
+                </div>
+              </div>
+            ) : !aiAnalytics ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">No AI analytics data available.</CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* This Month headline cards */}
+                <div>
+                  <h2 className="text-lg font-semibold mb-3">This Month</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card data-testid="card-ai-sessions-month">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
+                        <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-sessions-month">{aiAnalytics.thisMonth.total}</div>
+                      </CardContent>
+                    </Card>
+                    <Card data-testid="card-ai-completion-month">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
+                        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-completion-month">{aiAnalytics.thisMonth.completionRate}%</div>
+                        <p className="text-xs text-muted-foreground mt-1">{aiAnalytics.thisMonth.completed} completed</p>
+                      </CardContent>
+                    </Card>
+                    <Card data-testid="card-ai-leads-month">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Lead Capture Rate</CardTitle>
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-leads-month">{aiAnalytics.thisMonth.leadCaptureRate}%</div>
+                        <p className="text-xs text-muted-foreground mt-1">{aiAnalytics.thisMonth.leadsCapured} leads captured</p>
+                      </CardContent>
+                    </Card>
+                    <Card data-testid="card-ai-48v-month">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">48V Conversion</CardTitle>
+                        <Zap className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-48v-month">{aiAnalytics.thisMonth.v48ConvRate}%</div>
+                        <p className="text-xs text-muted-foreground mt-1">{aiAnalytics.thisMonth.pitched48v} pitched · {aiAnalytics.thisMonth.includes48v} converted</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* All-time summary row */}
+                <div>
+                  <h2 className="text-lg font-semibold mb-3">All Time</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card data-testid="card-ai-sessions-all">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
+                        <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-sessions-all">{aiAnalytics.allTime.total}</div>
+                      </CardContent>
+                    </Card>
+                    <Card data-testid="card-ai-completion-all">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
+                        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-completion-all">{aiAnalytics.allTime.completionRate}%</div>
+                        <p className="text-xs text-muted-foreground mt-1">{aiAnalytics.allTime.completed} completed</p>
+                      </CardContent>
+                    </Card>
+                    <Card data-testid="card-ai-leads-all">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Lead Capture Rate</CardTitle>
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-leads-all">{aiAnalytics.allTime.leadCaptureRate}%</div>
+                        <p className="text-xs text-muted-foreground mt-1">{aiAnalytics.allTime.leadsCapured} leads captured</p>
+                      </CardContent>
+                    </Card>
+                    <Card data-testid="card-ai-48v-all">
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">48V Conversion</CardTitle>
+                        <Zap className="w-4 h-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold" data-testid="value-ai-48v-all">{aiAnalytics.allTime.v48ConvRate}%</div>
+                        <p className="text-xs text-muted-foreground mt-1">{aiAnalytics.allTime.pitched48v} pitched · {aiAnalytics.allTime.includes48v} converted</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Daily sessions — last 30 days */}
+                {aiAnalytics.daily.length > 0 && (
+                  <Card data-testid="card-ai-daily-chart">
+                    <CardHeader>
+                      <CardTitle>Sessions — Last 30 Days</CardTitle>
+                      <CardDescription>Daily breakdown of total sessions, completions, and leads captured</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={280}>
+                        <AreaChart data={aiAnalytics.daily} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={(d) => {
+                              const dt = new Date(d);
+                              return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                            }}
+                            tick={{ fontSize: 11 }}
+                          />
+                          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                          <Tooltip
+                            labelFormatter={(d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                          />
+                          <Legend />
+                          <Area type="monotone" dataKey="total"     name="Sessions"   stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.15)" strokeWidth={2} />
+                          <Area type="monotone" dataKey="completed" name="Completed"  stroke="hsl(var(--chart-2, 142 76% 36%))" fill="hsl(var(--chart-2, 142 76% 36%) / 0.1)" strokeWidth={2} />
+                          <Area type="monotone" dataKey="leads"     name="Leads"      stroke="hsl(var(--chart-3, 27 96% 61%))" fill="hsl(var(--chart-3, 27 96% 61%) / 0.1)" strokeWidth={2} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Status breakdown */}
+                {aiAnalytics.statusBreakdown.length > 0 && (
+                  <Card data-testid="card-ai-status-breakdown">
+                    <CardHeader>
+                      <CardTitle>Session Status Breakdown</CardTitle>
+                      <CardDescription>All-time distribution across session statuses</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {aiAnalytics.statusBreakdown.map(({ status, count }) => {
+                          const pct = aiAnalytics.allTime.total > 0
+                            ? Math.round((count / aiAnalytics.allTime.total) * 100)
+                            : 0;
+                          const label = status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                          const colorClass =
+                            status === "completed"   ? "bg-green-500" :
+                            status === "abandoned"   ? "bg-red-400"   :
+                                                       "bg-primary";
+                          return (
+                            <div key={status} className="flex items-center gap-3" data-testid={`row-ai-status-${status}`}>
+                              <div className="w-28 text-sm text-muted-foreground truncate shrink-0">{label}</div>
+                              <div className="flex-1 bg-muted rounded-full h-2">
+                                <div className={`h-2 rounded-full ${colorClass}`} style={{ width: `${pct}%` }} />
+                              </div>
+                              <div className="w-10 text-right text-sm font-medium shrink-0">{count}</div>
+                              <div className="w-10 text-right text-xs text-muted-foreground shrink-0">{pct}%</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 48V pitch detail */}
+                <Card data-testid="card-ai-48v-detail">
+                  <CardHeader>
+                    <CardTitle>48V Upsell Performance</CardTitle>
+                    <CardDescription>How often Max pitches 48V and how many customers go for it</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      {[
+                        {
+                          label: "Sessions where 48V was pitched",
+                          value: aiAnalytics.allTime.pitched48v,
+                          rate: aiAnalytics.allTime.v48PitchRate,
+                          sub: "of all sessions",
+                          testid: "stat-48v-pitched",
+                        },
+                        {
+                          label: "Sessions that included 48V",
+                          value: aiAnalytics.allTime.includes48v,
+                          rate: aiAnalytics.allTime.v48ConvRate,
+                          sub: "of pitched sessions",
+                          testid: "stat-48v-included",
+                        },
+                        {
+                          label: "Config completed with 48V",
+                          value: aiAnalytics.allTime.configCompleted,
+                          rate: aiAnalytics.allTime.total > 0 ? Math.round((aiAnalytics.allTime.configCompleted / aiAnalytics.allTime.total) * 100) : 0,
+                          sub: "config completion rate",
+                          testid: "stat-config-completed",
+                        },
+                      ].map(({ label, value, rate, sub, testid }) => (
+                        <div key={testid} data-testid={testid} className="text-center">
+                          <div className="text-3xl font-bold">{value}</div>
+                          <div className="text-sm font-medium mt-1">{label}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{rate}% {sub}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </>
             )}
           </div>
