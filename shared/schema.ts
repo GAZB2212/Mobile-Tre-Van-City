@@ -190,7 +190,7 @@ export const quotes = pgTable("quotes", {
   specApprovalComments: text("spec_approval_comments"), // Customer comments if rejected
   
   featuredInPortfolio: boolean("featured_in_portfolio").notNull().default(false),
-  status: text("status").notNull().default("pending"),
+  status: text("status").notNull().default("new"),
   statusChangedAt: timestamp("status_changed_at"), // Set automatically whenever status changes
   buildStage: text("build_stage"),
   completedBuildStages: json("completed_build_stages").$type<Array<string | { id: string; initials: string }>>().notNull().default([]),

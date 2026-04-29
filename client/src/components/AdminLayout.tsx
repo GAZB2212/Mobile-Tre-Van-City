@@ -112,7 +112,7 @@ function NavLink({
         <Icon className={`${isActive ? "text-[#8bc440]" : "text-zinc-500"}`} size={17} />
         {collapsed && badge != null && badge > 0 && (
           <span
-            data-testid="badge-ai-conversations-collapsed"
+            data-testid={`badge-nav-${item.href.split("/").pop()}-collapsed`}
             className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[#8bc440] text-black text-[9px] font-bold px-0.5 leading-none"
           >
             {badge > 99 ? "99+" : badge}
@@ -122,7 +122,7 @@ function NavLink({
       {!collapsed && <span className="truncate flex-1">{item.title}</span>}
       {!collapsed && badge != null && badge > 0 && (
         <Badge
-          data-testid="badge-ai-conversations"
+          data-testid={`badge-nav-${item.href.split("/").pop()}`}
           className="ml-auto shrink-0 bg-[#8bc440] text-black text-[10px] font-bold px-1.5 py-0 h-5 no-default-active-elevate"
         >
           {badge > 99 ? "99+" : badge}
@@ -137,7 +137,7 @@ function NavLink({
         <TooltipTrigger asChild>{inner}</TooltipTrigger>
         <TooltipContent side="right" className="text-xs">
           {item.title}
-          {badge != null && badge > 0 && ` (${badge} uncontacted)`}
+          {badge != null && badge > 0 && ` (${badge} new)`}
         </TooltipContent>
       </Tooltip>
     );
@@ -162,10 +162,30 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
+  const { data: quotesData } = useQuery<{ status?: string | null }[]>({
+    queryKey: ["/api/admin/quotes"],
+    refetchInterval: 60_000,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const { data: leadsData } = useQuery<{ status?: string | null }[]>({
+    queryKey: ["/api/admin/leads"],
+    refetchInterval: 60_000,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
   const uncontactedCount = aiConversationsData?.conversations
     ? aiConversationsData.conversations.filter(
         (s) => s.contact_phone && !s.marked_contacted
       ).length
+    : 0;
+
+  const newQuotesCount = quotesData
+    ? quotesData.filter((q) => q.status === "new").length
+    : 0;
+
+  const newLeadsCount = leadsData
+    ? leadsData.filter((l) => l.status === "new").length
     : 0;
 
   const handleLogout = async () => {
@@ -250,7 +270,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     item={item}
                     collapsed={collapsed && !isMobile}
                     isActive={isActive(item.href)}
-                    badge={item.href === "/admin/ai-conversations" ? uncontactedCount : undefined}
+                    badge={
+                    item.href === "/admin/ai-conversations" ? uncontactedCount :
+                    item.href === "/admin/quotes" ? newQuotesCount :
+                    item.href === "/admin/leads" ? newLeadsCount :
+                    undefined
+                  }
                   />
                 ))}
               </div>
