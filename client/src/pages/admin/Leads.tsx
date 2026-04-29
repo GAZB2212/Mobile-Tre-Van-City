@@ -83,6 +83,7 @@ export default function AdminLeads() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [showClosed, setShowClosed] = useState(false);
@@ -162,6 +163,7 @@ export default function AdminLeads() {
         (f) => f?.toLowerCase().includes(term)
       )) return false;
       if (sourceFilter !== "all" && lead.source !== sourceFilter) return false;
+      if (statusFilter !== "all" && (lead.status || "new") !== statusFilter) return false;
       if (dateFilter !== "all" && lead.createdAt) {
         const d = new Date(lead.createdAt);
         const now = new Date();
@@ -284,7 +286,7 @@ export default function AdminLeads() {
                   data-testid="input-search-leads"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
                 <SelectTrigger className="w-full" data-testid="select-source-filter">
                   <SelectValue placeholder="All sources" />
@@ -295,6 +297,17 @@ export default function AdminLeads() {
                     <SelectItem key={s} value={s}>
                       {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full" data-testid="select-status-filter">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {(Object.entries(STATUS_CONFIG) as [LeadStatus, typeof STATUS_CONFIG[LeadStatus]][]).map(([val, cfg]) => (
+                    <SelectItem key={val} value={val}>{cfg.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -421,7 +434,7 @@ export default function AdminLeads() {
               <p className="text-muted-foreground">
                 {!showClosed && closedLeadCount > 0
                   ? "All leads are closed."
-                  : searchTerm || sourceFilter !== "all" || dateFilter !== "all"
+                  : searchTerm || sourceFilter !== "all" || statusFilter !== "all" || dateFilter !== "all"
                   ? "Try adjusting your filters to see more leads."
                   : "Customer inquiries and leads will appear here."}
               </p>
