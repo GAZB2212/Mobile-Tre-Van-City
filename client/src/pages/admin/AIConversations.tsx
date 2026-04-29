@@ -419,7 +419,12 @@ export default function AdminAIConversations() {
             </div>
             <Button
               variant="outline"
-              onClick={() => setExportDialogOpen(true)}
+              onClick={() => {
+                setExportStatus(statusFilter);
+                setExportDateFrom(dateFrom);
+                setExportDateTo(dateTo);
+                setExportDialogOpen(true);
+              }}
               data-testid="button-export-ai-csv"
             >
               <Download className="w-4 h-4 mr-2" />
