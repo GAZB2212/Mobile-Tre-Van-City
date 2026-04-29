@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { X, Send, RotateCcw, ArrowRight, Check, Plus, AlertCircle, Zap } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   AI_CHAT_STORAGE_KEY,
   CONFIGURATOR_STORAGE_KEY,
@@ -156,6 +157,7 @@ function SummaryCard({
 }
 
 export default function AIChatWidget() {
+  const { toast } = useToast();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -368,15 +370,22 @@ export default function AIChatWidget() {
     status: string,
   ) => {
     try {
-      await fetch("/api/ai-chat/save", {
+      const res = await fetch("/api/ai-chat/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, status, messages: msgs, config: cfg, trackers: trk }),
       });
+      if (!res.ok) {
+        throw new Error(`Save failed with status ${res.status}`);
+      }
     } catch {
-      // silently fail — not critical
+      toast({
+        title: "Session not saved",
+        description: "Your conversation may not have been saved. Please check your connection and try again.",
+        variant: "destructive",
+      });
     }
-  }, [sessionId]);
+  }, [sessionId, toast]);
 
   const handleContactStart = (name: string, phone: string) => {
     const trimmedName = name.trim();
