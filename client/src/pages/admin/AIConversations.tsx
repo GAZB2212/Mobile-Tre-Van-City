@@ -4,7 +4,7 @@ import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,18 +140,15 @@ export default function AdminAIConversations() {
   if (dateFrom) params.set("dateFrom", dateFrom);
   if (dateTo) params.set("dateTo", `${dateTo}T23:59:59`);
 
+  const conversationsUrl = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
+
   const {
     data: aiData,
     isLoading: aiLoading,
     isFetching: aiFetching,
     refetch,
   } = useQuery<AiConversationsResponse>({
-    queryKey: ["/api/admin/ai-conversations", statusFilter, v48Filter, dateFrom, dateTo],
-    queryFn: async () => {
-      const r = await fetch(`/api/admin/ai-conversations?${params}`);
-      if (!r.ok) throw new Error("Failed to fetch AI conversations");
-      return r.json();
-    },
+    queryKey: [conversationsUrl],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? 60_000 : false,
     refetchIntervalInBackground: false,
@@ -159,8 +156,7 @@ export default function AdminAIConversations() {
 
   const handleMarkContacted = async (id: string) => {
     try {
-      const r = await fetch(`/api/admin/ai-conversations/${id}/contacted`, { method: "PATCH" });
-      if (!r.ok) throw new Error();
+      await apiRequest("PATCH", `/api/admin/ai-conversations/${id}/contacted`);
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-conversations"] });
       toast({ title: "Marked as contacted" });
@@ -169,14 +165,24 @@ export default function AdminAIConversations() {
     }
   };
 
-  const handleExportCsv = () => {
-    window.open("/api/admin/ai-conversations/export/csv", "_blank");
+  const handleExportCsv = async () => {
+    try {
+      const r = await apiRequest("GET", "/api/admin/ai-conversations/export/csv");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ai-conversations.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "Error", description: "Failed to export CSV.", variant: "destructive" });
+    }
   };
 
   const handleViewTranscript = async (conv: AiConversationRow) => {
     try {
-      const r = await fetch(`/api/admin/ai-conversations/${conv.id}`);
-      if (!r.ok) throw new Error();
+      const r = await apiRequest("GET", `/api/admin/ai-conversations/${conv.id}`);
       const data = await r.json();
       setTranscriptConv(data);
     } catch {
