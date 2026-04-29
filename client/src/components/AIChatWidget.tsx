@@ -174,6 +174,7 @@ export default function AIChatWidget() {
   const [config, setConfig] = useState<AIConfig>(defaultConfig);
   const [trackers, setTrackers] = useState<AITrackers>(defaultTrackers);
   const [stage, setStage] = useState<Stage>("chat");
+  const [saveError, setSaveError] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -382,7 +383,9 @@ export default function AIChatWidget() {
         throw new Error(`Save failed with status ${res.status}`);
       }
       lastSaveErrorTimeRef.current = 0;
+      setSaveError(false);
     } catch {
+      setSaveError(true);
       const now = Date.now();
       if (now - lastSaveErrorTimeRef.current >= SAVE_ERROR_COOLDOWN_MS) {
         lastSaveErrorTimeRef.current = now;
@@ -580,6 +583,19 @@ export default function AIChatWidget() {
               <X size={18} />
             </button>
           </div>
+
+          {/* Persistent save-error banner */}
+          {saveError && (
+            <div
+              data-testid="banner-save-error"
+              className="flex items-center gap-2 px-4 py-2 bg-red-500/15 border-b border-red-500/20 shrink-0"
+            >
+              <AlertCircle size={13} className="text-red-400 shrink-0" />
+              <p className="text-red-300 text-xs leading-snug">
+                Your session is not being saved — check your connection.
+              </p>
+            </div>
+          )}
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
