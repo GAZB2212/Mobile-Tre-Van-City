@@ -345,6 +345,15 @@ export default function AdminLeads() {
           </CardContent>
         </Card>
 
+        {/* Result count — visible only when filters are active */}
+        {!leadsLoading && (searchTerm !== "" || sourceFilter !== "all" || statusFilter !== "all" || dateFilter !== "all") && (
+          <p className="text-sm text-muted-foreground" data-testid="text-leads-result-count">
+            Showing <span className="font-medium text-foreground">{filteredLeads.length}</span> of{" "}
+            <span className="font-medium text-foreground">{leads.length}</span>{" "}
+            {filteredLeads.length === 1 ? "lead" : "leads"}
+          </p>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
