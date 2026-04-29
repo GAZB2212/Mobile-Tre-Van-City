@@ -22,6 +22,10 @@ import {
 type Kit = { id: string; name: string; serviceType: string[] | string };
 type Upgrade = { id: string; name: string; category: string; popular: boolean; forCommercial: boolean };
 
+// Module-level flag so saveError survives component remounts within the same page session
+// (e.g. when the user visits an admin page and navigates back, causing AIChatWidget to unmount/remount)
+let _persistedSaveError = false;
+
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
@@ -174,7 +178,7 @@ export default function AIChatWidget() {
   const [config, setConfig] = useState<AIConfig>(defaultConfig);
   const [trackers, setTrackers] = useState<AITrackers>(defaultTrackers);
   const [stage, setStage] = useState<Stage>("chat");
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState(() => _persistedSaveError);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -274,6 +278,11 @@ export default function AIChatWidget() {
   useEffect(() => {
     liveStateRef.current = { sessionId, messages, config, trackers, stage, captureNameInput, capturePhoneInput };
   }, [sessionId, messages, config, trackers, stage, captureNameInput, capturePhoneInput]);
+
+  // Persist saveError at module level so it survives unmount/remount within the same page session
+  useEffect(() => {
+    _persistedSaveError = saveError;
+  }, [saveError]);
 
   // Save contact/conversation data if the user navigates away or closes the tab
   useEffect(() => {
