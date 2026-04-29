@@ -178,14 +178,19 @@ export default function AIChatWidget() {
   // Ref to avoid stale closure when reading messages inside event handlers
   const messagesRef = useRef<AIMessage[]>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+  // Ref for pre-chat captured contact details — avoids stale-closure issues in triggerGreeting
+  const capturedContactRef = useRef<{ name: string | null; phone: string | null }>({ name: null, phone: null });
 
   const { data: kits = [] } = useQuery<Kit[]>({ queryKey: ["/api/kits"] });
   const { data: upgrades = [] } = useQuery<Upgrade[]>({ queryKey: ["/api/upgrades"] });
 
   // Trigger Max's greeting when the chat is opened with no existing conversation
-  const triggerGreeting = useCallback(async (capturedName?: string, capturedPhone?: string) => {
+  const triggerGreeting = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
+    const resolvedName = capturedContactRef.current.name;
+    const resolvedPhone = capturedContactRef.current.phone;
+    console.log("[MAX] triggerGreeting called — capturedContactRef:", capturedContactRef.current, "| resolvedName:", resolvedName);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
     try {
@@ -195,8 +200,8 @@ export default function AIChatWidget() {
         body: JSON.stringify({
           messages: [{ role: "user", content: "__GREET__" }],
           sessionId,
-          contactName: capturedName ?? config.contactName ?? null,
-          contactPhone: capturedPhone ?? config.contactPhone ?? null,
+          contactName: resolvedName,
+          contactPhone: resolvedPhone,
         }),
         signal: controller.signal,
       });
@@ -343,16 +348,21 @@ export default function AIChatWidget() {
   }, [sessionId]);
 
   const handleContactStart = (name: string, phone: string) => {
-    const updatedConfig = { ...config, contactName: name.trim() || null, contactPhone: phone.trim() || null };
-    if (name.trim() || phone.trim()) setConfig(updatedConfig);
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+    console.log("[MAX] handleContactStart — name:", trimmedName, "| phone:", trimmedPhone);
+    // Write to ref FIRST so triggerGreeting (useCallback) always reads the latest value
+    capturedContactRef.current = { name: trimmedName || null, phone: trimmedPhone || null };
+    const updatedConfig = { ...config, contactName: trimmedName || null, contactPhone: trimmedPhone || null };
+    if (trimmedName || trimmedPhone) setConfig(updatedConfig);
     setShowContactCapture(false);
     setCaptureNameInput("");
     setCapturePhoneInput("");
     // Persist the contact details to DB immediately — captures the lead even if they abandon
-    if (name.trim() || phone.trim()) {
+    if (trimmedName || trimmedPhone) {
       saveToDb([], updatedConfig, trackers, "in_progress");
     }
-    triggerGreeting(name.trim() || undefined, phone.trim() || undefined);
+    triggerGreeting();
   };
 
   const handleOpen = () => {
@@ -394,6 +404,7 @@ export default function AIChatWidget() {
     setStage("chat");
     setCaptureNameInput("");
     setCapturePhoneInput("");
+    capturedContactRef.current = { name: null, phone: null };
     setShowContactCapture(true);
   };
 
@@ -609,7 +620,7 @@ export default function AIChatWidget() {
                   <div className="flex items-center gap-3">
                     {messages.length === 0 && (
                       <button
-                        onClick={triggerGreeting}
+                        onClick={() => triggerGreeting()}
                         className="text-[#8bc440] text-xs hover:underline"
                       >
                         Try again →

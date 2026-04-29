@@ -4822,6 +4822,8 @@ ${blogEntries}
         return res.status(400).json({ error: "messages array required" });
       }
 
+      console.log("[AI-CHAT] received contactName:", JSON.stringify(contactName), "| msgs:", messages.map(m => m.content.slice(0,40)));
+
       // Fetch live data to inject into system prompt (so AI uses real IDs)
       const [kits, upgrades, financePlans, packagesResult] = await Promise.all([
         storage.getKits(),
