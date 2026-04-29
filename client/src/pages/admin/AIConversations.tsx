@@ -104,6 +104,7 @@ export default function AdminAIConversations() {
   const [v48Filter, setV48Filter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [transcriptConv, setTranscriptConv] = useState<AiConversationRow | null>(null);
 
   useEffect(() => {
@@ -192,8 +193,14 @@ export default function AdminAIConversations() {
 
   const visibleConversations = (aiData?.conversations ?? []).filter((conv) => {
     const hasContact = !!(conv.contact_name || conv.contact_phone);
-    if (contactFilter === "with_contact") return hasContact;
-    if (contactFilter === "no_contact") return !hasContact;
+    if (contactFilter === "with_contact" && !hasContact) return false;
+    if (contactFilter === "no_contact" && hasContact) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const nameMatch = conv.contact_name?.toLowerCase().includes(q) ?? false;
+      const phoneMatch = conv.contact_phone?.toLowerCase().includes(q) ?? false;
+      if (!nameMatch && !phoneMatch) return false;
+    }
     return true;
   });
 
@@ -311,6 +318,14 @@ export default function AdminAIConversations() {
             <CardTitle className="text-base">Filter Conversations</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="space-y-3">
+            <Input
+              type="search"
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              data-testid="input-search-ai-conversations"
+            />
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger data-testid="select-ai-status">
@@ -358,6 +373,7 @@ export default function AdminAIConversations() {
                 data-testid="input-ai-date-to"
               />
             </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -379,7 +395,8 @@ export default function AdminAIConversations() {
                 contactFilter !== "all" ||
                 v48Filter !== "all" ||
                 dateFrom ||
-                dateTo
+                dateTo ||
+                searchQuery.trim()
                   ? "Try adjusting your filters to see more sessions."
                   : "AI van builder conversations will appear here once customers use the chat widget."}
               </p>
