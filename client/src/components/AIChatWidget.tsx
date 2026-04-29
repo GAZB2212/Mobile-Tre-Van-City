@@ -363,6 +363,9 @@ export default function AIChatWidget() {
     }
   }, [sessionId, config, trackers]);
 
+  const lastSaveErrorTimeRef = useRef<number>(0);
+  const SAVE_ERROR_COOLDOWN_MS = 30_000;
+
   const saveToDb = useCallback(async (
     msgs: AIMessage[],
     cfg: AIConfig,
@@ -378,12 +381,17 @@ export default function AIChatWidget() {
       if (!res.ok) {
         throw new Error(`Save failed with status ${res.status}`);
       }
+      lastSaveErrorTimeRef.current = 0;
     } catch {
-      toast({
-        title: "Session not saved",
-        description: "Your conversation may not have been saved. Please check your connection and try again.",
-        variant: "destructive",
-      });
+      const now = Date.now();
+      if (now - lastSaveErrorTimeRef.current >= SAVE_ERROR_COOLDOWN_MS) {
+        lastSaveErrorTimeRef.current = now;
+        toast({
+          title: "Session not saved",
+          description: "Your conversation may not have been saved. Please check your connection and try again.",
+          variant: "destructive",
+        });
+      }
     }
   }, [sessionId, toast]);
 
