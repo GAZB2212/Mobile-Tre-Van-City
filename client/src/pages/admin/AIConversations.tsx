@@ -584,6 +584,17 @@ export default function AdminAIConversations() {
           </CardContent>
         </Card>
 
+        {/* Results count */}
+        {!aiLoading && aiData && hasActiveFilters && (
+          <p className="text-sm text-muted-foreground" data-testid="text-ai-results-count">
+            Showing{" "}
+            <span className="font-medium text-foreground">{visibleConversations.length}</span>{" "}
+            of{" "}
+            <span className="font-medium text-foreground">{aiData.conversations.length}</span>{" "}
+            conversation{aiData.conversations.length !== 1 ? "s" : ""}
+          </p>
+        )}
+
         {/* Conversations list */}
         {aiLoading ? (
           <Card>
