@@ -3,7 +3,7 @@ import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -188,22 +188,52 @@ export default function AdminAIConversations() {
     setContactNoteDialogConv(conv);
   };
 
-  const handleSubmitContacted = async () => {
-    if (!contactNoteDialogConv) return;
-    setContactNoteSubmitting(true);
-    try {
-      await apiRequest("PATCH", `/api/admin/ai-conversations/${contactNoteDialogConv.id}/contacted`, {
-        note: contactNoteText,
-      });
+  const contactedMutation = useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string }) =>
+      apiRequest("PATCH", `/api/admin/ai-conversations/${id}/contacted`, { note }),
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/ai-conversations"] });
+
+      const previousData = queryClient.getQueryData<AiConversationsResponse>([
+        "/api/admin/ai-conversations",
+      ]);
+
+      queryClient.setQueryData<AiConversationsResponse>(
+        ["/api/admin/ai-conversations"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            conversations: old.conversations.map((c) =>
+              c.id === id ? { ...c, marked_contacted: true } : c
+            ),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData !== undefined) {
+        queryClient.setQueryData(["/api/admin/ai-conversations"], context.previousData);
+      }
+      toast({ title: "Error", description: "Failed to mark as contacted.", variant: "destructive" });
+    },
+    onSuccess: () => {
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-conversations"] });
       toast({ title: "Marked as contacted" });
       setContactNoteDialogConv(null);
-    } catch {
-      toast({ title: "Error", description: "Failed to mark as contacted.", variant: "destructive" });
-    } finally {
+    },
+    onSettled: () => {
       setContactNoteSubmitting(false);
-    }
+    },
+  });
+
+  const handleSubmitContacted = () => {
+    if (!contactNoteDialogConv) return;
+    setContactNoteSubmitting(true);
+    contactedMutation.mutate({ id: contactNoteDialogConv.id, note: contactNoteText });
   };
 
   const openEditNoteDialog = (conv: AiConversationRow) => {
