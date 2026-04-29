@@ -405,20 +405,14 @@ export default function AdminAIConversations() {
                         />
                       </div>
                       <div className="min-w-0">
-                        {/* Name + badges */}
-                        <div className="flex flex-wrap items-center gap-2">
+                        {/* Name + phone */}
+                        <div className="flex flex-wrap items-center gap-2 mb-0.5">
                           <span
-                            className="font-medium text-sm"
+                            className="font-semibold text-sm"
                             data-testid={`text-ai-name-${conv.id}`}
                           >
                             {conv.contact_name ?? "Anonymous"}
                           </span>
-                          {conv.contact_phone && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {conv.contact_phone}
-                            </span>
-                          )}
                           {(conv.contact_name || conv.contact_phone) && (
                             <Badge
                               variant="secondary"
@@ -427,6 +421,18 @@ export default function AdminAIConversations() {
                               Contact captured
                             </Badge>
                           )}
+                        </div>
+                        {conv.contact_phone && (
+                          <a
+                            href={`tel:${conv.contact_phone}`}
+                            className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-[#8bc440] transition-colors"
+                            data-testid={`link-ai-phone-${conv.id}`}
+                          >
+                            <Phone className="w-3.5 h-3.5 text-[#8bc440]" />
+                            {conv.contact_phone}
+                          </a>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
                           <StatusBadge status={conv.status} />
                           {conv.includes_48v && (
                             <Badge
