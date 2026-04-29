@@ -85,6 +85,7 @@ export default function AdminLeads() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [showClosed, setShowClosed] = useState(false);
 
   // CRM expansion state
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
@@ -147,8 +148,15 @@ export default function AdminLeads() {
   };
 
   // Filtering & sorting
+  const closedLeadCount = leads.filter((l) => {
+    const s = (l as any).status || "new";
+    return s === "closed" || s === "dead";
+  }).length;
+
   const filteredLeads = leads
     .filter((lead) => {
+      const s = (lead as any).status || "new";
+      if (!showClosed && (s === "closed" || s === "dead")) return false;
       const term = searchTerm.toLowerCase();
       if (term && ![lead.name, lead.email, lead.phone, lead.message].some(
         (f) => f?.toLowerCase().includes(term)
@@ -374,6 +382,29 @@ export default function AdminLeads() {
           </Card>
         </div>
 
+        {/* Closed leads toggle — always visible when there are closed/dead leads */}
+        {!leadsLoading && closedLeadCount > 0 && (
+          <div className="text-center">
+            {!showClosed ? (
+              <button
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                onClick={() => setShowClosed(true)}
+                data-testid="button-show-closed-leads"
+              >
+                {closedLeadCount} closed {closedLeadCount === 1 ? "lead" : "leads"} hidden — show
+              </button>
+            ) : (
+              <button
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                onClick={() => setShowClosed(false)}
+                data-testid="button-hide-closed-leads"
+              >
+                Hide closed leads
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Leads list */}
         {leadsLoading ? (
           <Card>
@@ -388,7 +419,9 @@ export default function AdminLeads() {
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No leads found</h3>
               <p className="text-muted-foreground">
-                {searchTerm || sourceFilter !== "all" || dateFilter !== "all"
+                {!showClosed && closedLeadCount > 0
+                  ? "All leads are closed."
+                  : searchTerm || sourceFilter !== "all" || dateFilter !== "all"
                   ? "Try adjusting your filters to see more leads."
                   : "Customer inquiries and leads will appear here."}
               </p>
@@ -404,7 +437,7 @@ export default function AdminLeads() {
                 (lead as any).crmNotes || [];
 
               return (
-                <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className={status === 'dead' ? 'opacity-60' : ''}>
+                <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className={(status === 'dead' || status === 'closed') ? 'opacity-60' : ''}>
                   {/* ── Main summary row ── */}
                   <div className="px-5 pt-4 pb-3">
                     {/* Top row: name + status */}
@@ -415,12 +448,26 @@ export default function AdminLeads() {
                         </span>
                         {getSourceBadge(lead.source)}
                       </div>
-                      <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold border shrink-0 ${statusCfg.className}`}
-                        data-testid={`badge-lead-status-${lead.id}`}
-                      >
-                        {statusCfg.label}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold border ${statusCfg.className}`}
+                          data-testid={`badge-lead-status-${lead.id}`}
+                        >
+                          {statusCfg.label}
+                        </span>
+                        {status !== 'closed' && status !== 'dead' && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-muted-foreground"
+                            onClick={(e) => { e.stopPropagation(); handleStatusChange(lead, 'closed'); }}
+                            data-testid={`button-close-lead-${lead.id}`}
+                          >
+                            <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                            Close lead
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Phone — prominent call row */}
