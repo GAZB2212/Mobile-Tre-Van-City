@@ -15,7 +15,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogHeader,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Bot,
   MessageSquare,
@@ -54,6 +59,7 @@ interface AiConversationRow {
   response_to_48v?: string;
   config_completed?: boolean;
   marked_contacted?: boolean;
+  contacted_note?: string | null;
   created_at?: string;
   completed_at?: string;
   contact_name?: string;
@@ -108,6 +114,9 @@ export default function AdminAIConversations() {
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [transcriptConv, setTranscriptConv] = useState<AiConversationRow | null>(null);
+  const [contactNoteDialogConv, setContactNoteDialogConv] = useState<AiConversationRow | null>(null);
+  const [contactNoteText, setContactNoteText] = useState("");
+  const [contactNoteSubmitting, setContactNoteSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -157,14 +166,26 @@ export default function AdminAIConversations() {
     refetchIntervalInBackground: false,
   });
 
-  const handleMarkContacted = async (id: string) => {
+  const openContactNoteDialog = (conv: AiConversationRow) => {
+    setContactNoteText("");
+    setContactNoteDialogConv(conv);
+  };
+
+  const handleSubmitContacted = async () => {
+    if (!contactNoteDialogConv) return;
+    setContactNoteSubmitting(true);
     try {
-      await apiRequest("PATCH", `/api/admin/ai-conversations/${id}/contacted`);
+      await apiRequest("PATCH", `/api/admin/ai-conversations/${contactNoteDialogConv.id}/contacted`, {
+        note: contactNoteText,
+      });
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-conversations"] });
       toast({ title: "Marked as contacted" });
+      setContactNoteDialogConv(null);
     } catch {
       toast({ title: "Error", description: "Failed to mark as contacted.", variant: "destructive" });
+    } finally {
+      setContactNoteSubmitting(false);
     }
   };
 
@@ -540,6 +561,14 @@ export default function AdminAIConversations() {
                             </Badge>
                           )}
                         </div>
+                        {conv.marked_contacted && conv.contacted_note && (
+                          <p
+                            className="text-xs text-muted-foreground mt-1 italic"
+                            data-testid={`text-contacted-note-${conv.id}`}
+                          >
+                            Note: {conv.contacted_note}
+                          </p>
+                        )}
                         {/* Config summary */}
                         <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
                           {conv.van_size && <span>Size: {conv.van_size}</span>}
@@ -584,7 +613,7 @@ export default function AdminAIConversations() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleMarkContacted(conv.id)}
+                            onClick={() => openContactNoteDialog(conv)}
                             data-testid={`button-mark-contacted-${conv.id}`}
                           >
                             <PhoneCall className="w-3.5 h-3.5 mr-1" />
@@ -610,6 +639,52 @@ export default function AdminAIConversations() {
           </div>
         )}
       </div>
+
+      {/* Mark contacted dialog */}
+      <Dialog
+        open={!!contactNoteDialogConv}
+        onOpenChange={(open) => !open && setContactNoteDialogConv(null)}
+      >
+        <DialogContent className="max-w-md" data-testid="dialog-mark-contacted">
+          <DialogHeader>
+            <DialogTitle>Mark as contacted</DialogTitle>
+            <DialogDescription>
+              Optionally add a note about what happened on the call
+              {contactNoteDialogConv?.contact_name
+                ? ` with ${contactNoteDialogConv.contact_name}`
+                : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <Label htmlFor="contacted-note">Call note (optional)</Label>
+            <Textarea
+              id="contacted-note"
+              placeholder="e.g. Left voicemail, Quoted £X, Not interested..."
+              value={contactNoteText}
+              onChange={(e) => setContactNoteText(e.target.value)}
+              rows={3}
+              data-testid="textarea-contacted-note"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setContactNoteDialogConv(null)}
+              data-testid="button-cancel-contacted"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitContacted}
+              disabled={contactNoteSubmitting}
+              data-testid="button-confirm-contacted"
+            >
+              <PhoneCall className="w-4 h-4 mr-2" />
+              {contactNoteSubmitting ? "Saving..." : "Mark contacted"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Transcript dialog */}
       <Dialog
@@ -659,6 +734,15 @@ export default function AdminAIConversations() {
               )}
             </div>
           </div>
+          {transcriptConv?.marked_contacted && transcriptConv.contacted_note && (
+            <div
+              className="px-5 py-2.5 bg-muted/40 border-b shrink-0 text-xs text-muted-foreground italic"
+              data-testid="text-transcript-contacted-note"
+            >
+              <span className="font-medium not-italic text-foreground">Call note:</span>{" "}
+              {transcriptConv.contacted_note}
+            </div>
+          )}
 
           {/* Config summary in dialog */}
           {transcriptConv?.mapped_config &&

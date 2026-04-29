@@ -532,6 +532,7 @@ export const aiConversations = pgTable("ai_conversations", {
   addedUpgradeIds: json("added_upgrade_ids").$type<string[]>().notNull().default([]),
   configCompleted: boolean("config_completed").notNull().default(false),
   markedContacted: boolean("marked_contacted").notNull().default(false),
+  contactedNote: text("contacted_note"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });

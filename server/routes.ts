@@ -5250,7 +5250,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
                   ac.van_type, ac.van_size, ac.spec_level,
                   ac.finance_preference, ac.includes_48v, ac.was_48v_pitched,
                   ac.response_to_48v, ac.config_completed,
-                  ac.marked_contacted, ac.created_at, ac.completed_at,
+                  ac.marked_contacted, ac.contacted_note, ac.created_at, ac.completed_at,
                   q.id AS linked_quote_id
            FROM ai_conversations ac
            LEFT JOIN quotes q ON q.ai_session_id = ac.session_id
@@ -5342,9 +5342,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   app.patch("/api/admin/ai-conversations/:id/contacted", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
+      const note = typeof req.body?.note === "string" ? req.body.note.trim() : null;
       await pool.query(
-        "UPDATE ai_conversations SET marked_contacted = TRUE WHERE id = $1",
-        [req.params.id]
+        "UPDATE ai_conversations SET marked_contacted = TRUE, contacted_note = $2 WHERE id = $1",
+        [req.params.id, note || null]
       );
       res.json({ ok: true });
     } catch (error) {
