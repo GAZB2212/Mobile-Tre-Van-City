@@ -14,6 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Users,
   Search,
   Download,
@@ -31,6 +38,7 @@ import {
   StickyNote,
   XCircle,
   PhoneCall,
+  CheckCircle2,
 } from "lucide-react";
 
 type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "closed" | "dead";
@@ -469,16 +477,42 @@ export default function AdminLeads() {
                           {statusCfg.label}
                         </span>
                         {status !== 'closed' && status !== 'dead' && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-muted-foreground"
-                            onClick={(e) => { e.stopPropagation(); handleStatusChange(lead, 'closed'); }}
-                            data-testid={`button-close-lead-${lead.id}`}
-                          >
-                            <XCircle className="w-3.5 h-3.5 mr-1.5" />
-                            Close lead
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-muted-foreground"
+                                onClick={(e) => e.stopPropagation()}
+                                data-testid={`button-quick-actions-${lead.id}`}
+                              >
+                                Actions
+                                <ChevronDown className="w-3 h-3 ml-1" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(lead, 'contacted')}
+                                data-testid={`button-mark-contacted-${lead.id}`}
+                                disabled={status === 'contacted'}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-amber-500" />
+                                Contacted
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(lead, 'closed')}
+                                data-testid={`button-close-lead-${lead.id}`}
+                                className="text-muted-foreground"
+                              >
+                                <XCircle className="w-3.5 h-3.5 mr-2" />
+                                Close lead
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </div>
