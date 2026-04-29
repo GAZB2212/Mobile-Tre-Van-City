@@ -591,9 +591,19 @@ export default function AIChatWidget() {
               className="flex items-center gap-2 px-4 py-2 bg-red-500/15 border-b border-red-500/20 shrink-0"
             >
               <AlertCircle size={13} className="text-red-400 shrink-0" />
-              <p className="text-red-300 text-xs leading-snug">
+              <p className="text-red-300 text-xs leading-snug flex-1">
                 Your session is not being saved — check your connection.
               </p>
+              <button
+                data-testid="button-save-error-retry"
+                onClick={() => {
+                  lastSaveErrorTimeRef.current = 0;
+                  saveToDb(messages, config, trackers, "in_progress");
+                }}
+                className="text-red-300 text-xs underline underline-offset-2 shrink-0 hover:text-red-100 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           )}
 
