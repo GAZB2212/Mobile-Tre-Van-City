@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import mtvcLogoWide from "@assets/Untitled_design-36_1773155683674.png";
 import mtvcLogoRound from "@assets/Untitled design-47_1759231860895.png";
 import { useState } from "react";
@@ -85,10 +86,12 @@ function NavLink({
   item,
   collapsed,
   isActive,
+  badge,
 }: {
   item: NavItem;
   collapsed: boolean;
   isActive: boolean;
+  badge?: number;
 }) {
   const Icon = item.icon;
   const inner = (
@@ -105,8 +108,26 @@ function NavLink({
         ${collapsed ? "justify-center" : ""}
       `}
     >
-      <Icon className={`shrink-0 ${isActive ? "text-[#8bc440]" : "text-zinc-500"}`} size={17} />
-      {!collapsed && <span className="truncate">{item.title}</span>}
+      <div className="relative shrink-0">
+        <Icon className={`${isActive ? "text-[#8bc440]" : "text-zinc-500"}`} size={17} />
+        {collapsed && badge != null && badge > 0 && (
+          <span
+            data-testid="badge-ai-conversations-collapsed"
+            className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[#8bc440] text-black text-[9px] font-bold px-0.5 leading-none"
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </div>
+      {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+      {!collapsed && badge != null && badge > 0 && (
+        <Badge
+          data-testid="badge-ai-conversations"
+          className="ml-auto shrink-0 bg-[#8bc440] text-black text-[10px] font-bold px-1.5 py-0 h-5 no-default-active-elevate"
+        >
+          {badge > 99 ? "99+" : badge}
+        </Badge>
+      )}
     </Link>
   );
 
@@ -116,6 +137,7 @@ function NavLink({
         <TooltipTrigger asChild>{inner}</TooltipTrigger>
         <TooltipContent side="right" className="text-xs">
           {item.title}
+          {badge != null && badge > 0 && ` (${badge} uncontacted)`}
         </TooltipContent>
       </Tooltip>
     );
@@ -130,6 +152,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user } = useAuth() as { user: User | undefined };
+
+  const { data: aiConversationsData } = useQuery<{
+    conversations: { contact_phone?: string | null; marked_contacted?: boolean | null }[];
+    stats: unknown;
+  }>({
+    queryKey: ["/api/admin/ai-conversations"],
+    refetchInterval: 60_000,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const uncontactedCount = aiConversationsData?.conversations
+    ? aiConversationsData.conversations.filter(
+        (s) => s.contact_phone && !s.marked_contacted
+      ).length
+    : 0;
 
   const handleLogout = async () => {
     try { await apiRequest("POST", "/api/auth/logout"); } catch {}
@@ -213,6 +250,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     item={item}
                     collapsed={collapsed && !isMobile}
                     isActive={isActive(item.href)}
+                    badge={item.href === "/admin/ai-conversations" ? uncontactedCount : undefined}
                   />
                 ))}
               </div>
