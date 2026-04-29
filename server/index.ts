@@ -227,6 +227,10 @@ app.use((req, res, next) => {
           `)
             .then(() => log("✅ AI conversations session_id unique index ready"))
             .catch((err: Error) => console.error("AI conversations unique index:", err.message));
+          // Add contacted_note column if it doesn't exist (added in task #46)
+          await pool.query(`ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS contacted_note TEXT`)
+            .then(() => log("✅ AI conversations contacted_note column ready"))
+            .catch((err: Error) => console.error("AI conversations contacted_note migration:", err.message));
         })
         .catch((err: Error) => console.error("AI conversations migration:", err.message));
       pool.query(`
