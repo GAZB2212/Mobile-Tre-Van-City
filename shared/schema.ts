@@ -514,7 +514,7 @@ export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
 
 export const aiConversations = pgTable("ai_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  sessionId: varchar("session_id").notNull(),
+  sessionId: varchar("session_id").notNull().unique(),
   status: varchar("status").notNull().default("in_progress"),
   messages: json("messages").$type<Array<{role: string; content: string}>>().notNull().default([]),
   mappedConfig: json("mapped_config").$type<Record<string, unknown>>(),

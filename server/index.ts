@@ -205,12 +205,30 @@ app.use((req, res, next) => {
           completed_at TIMESTAMP
         );
       `)
-        .then(() => log("✅ AI conversations table ready"))
+        .then(async () => {
+          log("✅ AI conversations table ready");
+          // Remove duplicate session_id rows (keep latest by created_at) so the
+          // unique index can be created cleanly.
+          await pool.query(`
+            DELETE FROM ai_conversations
+            WHERE id IN (
+              SELECT id FROM (
+                SELECT id,
+                  ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at DESC NULLS LAST) AS rn
+                FROM ai_conversations
+              ) ranked
+              WHERE rn > 1
+            )
+          `).catch((err: Error) => console.error("AI conversations dedup:", err.message));
+          // Ensure unique constraint exists so ON CONFLICT (session_id) works
+          await pool.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS ai_conversations_session_id_unique
+            ON ai_conversations (session_id)
+          `)
+            .then(() => log("✅ AI conversations session_id unique index ready"))
+            .catch((err: Error) => console.error("AI conversations unique index:", err.message));
+        })
         .catch((err: Error) => console.error("AI conversations migration:", err.message));
-      // Add UNIQUE constraint on session_id if not already present
-      pool.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS ai_conversations_session_id_unique ON ai_conversations (session_id)
-      `).catch(() => {/* already exists or duplicate rows — silent */});
       pool.query(`
         CREATE TABLE IF NOT EXISTS blog_posts (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
