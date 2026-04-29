@@ -130,10 +130,8 @@ export default function AdminAIConversations() {
   });
   const [contactNoteDialogConv, setContactNoteDialogConv] = useState<AiConversationRow | null>(null);
   const [contactNoteText, setContactNoteText] = useState("");
-  const [contactNoteSubmitting, setContactNoteSubmitting] = useState(false);
   const [editNoteDialogConv, setEditNoteDialogConv] = useState<AiConversationRow | null>(null);
   const [editNoteText, setEditNoteText] = useState("");
-  const [editNoteSubmitting, setEditNoteSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -269,14 +267,10 @@ export default function AdminAIConversations() {
       toast({ title: "Marked as contacted" });
       setContactNoteDialogConv(null);
     },
-    onSettled: () => {
-      setContactNoteSubmitting(false);
-    },
   });
 
   const handleSubmitContacted = () => {
     if (!contactNoteDialogConv) return;
-    setContactNoteSubmitting(true);
     contactedMutation.mutate({ id: contactNoteDialogConv.id, note: contactNoteText });
   };
 
@@ -324,14 +318,10 @@ export default function AdminAIConversations() {
       toast({ title: "Note updated" });
       setEditNoteDialogConv(null);
     },
-    onSettled: () => {
-      setEditNoteSubmitting(false);
-    },
   });
 
   const handleSubmitEditNote = () => {
     if (!editNoteDialogConv) return;
-    setEditNoteSubmitting(true);
     editNoteMutation.mutate({ id: editNoteDialogConv.id, note: editNoteText });
   };
 
@@ -1007,11 +997,11 @@ export default function AdminAIConversations() {
             </Button>
             <Button
               onClick={handleSubmitContacted}
-              disabled={contactNoteSubmitting}
+              disabled={contactedMutation.isPending}
               data-testid="button-confirm-contacted"
             >
               <PhoneCall className="w-4 h-4 mr-2" />
-              {contactNoteSubmitting ? "Saving..." : "Mark contacted"}
+              {contactedMutation.isPending ? "Saving..." : "Mark contacted"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1053,11 +1043,11 @@ export default function AdminAIConversations() {
             </Button>
             <Button
               onClick={handleSubmitEditNote}
-              disabled={editNoteSubmitting}
+              disabled={editNoteMutation.isPending}
               data-testid="button-confirm-edit-note"
             >
               <Pencil className="w-4 h-4 mr-2" />
-              {editNoteSubmitting ? "Saving..." : "Save note"}
+              {editNoteMutation.isPending ? "Saving..." : "Save note"}
             </Button>
           </DialogFooter>
         </DialogContent>
