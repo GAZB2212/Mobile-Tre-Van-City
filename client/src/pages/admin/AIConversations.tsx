@@ -28,6 +28,7 @@ import {
   ExternalLink,
   Zap,
   Calendar,
+  Bell,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -191,10 +192,17 @@ export default function AdminAIConversations() {
     }
   };
 
+  const needsFollowUpCount = (aiData?.conversations ?? []).filter(
+    (conv) => !!conv.contact_phone && !conv.marked_contacted
+  ).length;
+
   const visibleConversations = (aiData?.conversations ?? []).filter((conv) => {
     const hasContact = !!(conv.contact_name || conv.contact_phone);
     if (contactFilter === "with_contact" && !hasContact) return false;
     if (contactFilter === "no_contact" && hasContact) return false;
+    if (contactFilter === "needs_followup") {
+      if (!conv.contact_phone || conv.marked_contacted) return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       const nameMatch = conv.contact_name?.toLowerCase().includes(q) ?? false;
@@ -262,7 +270,7 @@ export default function AdminAIConversations() {
 
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -310,6 +318,40 @@ export default function AdminAIConversations() {
               </div>
             </CardContent>
           </Card>
+          <Card
+            className={`cursor-pointer transition-colors hover-elevate ${
+              contactFilter === "needs_followup"
+                ? "border-amber-500/50 bg-amber-500/5"
+                : needsFollowUpCount > 0
+                ? "border-amber-500/30"
+                : ""
+            }`}
+            onClick={() =>
+              setContactFilter(
+                contactFilter === "needs_followup" ? "all" : "needs_followup"
+              )
+            }
+            data-testid="stat-card-needs-followup"
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Bell
+                className={`w-4 h-4 shrink-0 ${
+                  needsFollowUpCount > 0 ? "text-amber-400" : "text-muted-foreground"
+                }`}
+              />
+              <div>
+                <p className="text-xs text-muted-foreground">Needs follow-up</p>
+                <p
+                  className={`text-2xl font-bold ${
+                    needsFollowUpCount > 0 ? "text-amber-400" : ""
+                  }`}
+                  data-testid="stat-ai-needs-followup"
+                >
+                  {needsFollowUpCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
@@ -344,6 +386,7 @@ export default function AdminAIConversations() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All conversations</SelectItem>
+                  <SelectItem value="needs_followup">Needs follow-up</SelectItem>
                   <SelectItem value="with_contact">Has contact details</SelectItem>
                   <SelectItem value="no_contact">Anonymous only</SelectItem>
                 </SelectContent>
@@ -408,7 +451,13 @@ export default function AdminAIConversations() {
               <Card
                 key={conv.id}
                 data-testid={`card-ai-conv-${conv.id}`}
-                className={conv.contact_name || conv.contact_phone ? "border-[#8bc440]/30" : ""}
+                className={
+                  conv.contact_phone && !conv.marked_contacted
+                    ? "border-amber-500/40"
+                    : conv.contact_name || conv.contact_phone
+                    ? "border-[#8bc440]/30"
+                    : ""
+                }
               >
                 <CardContent className="p-4">
                   <div className="flex flex-wrap items-start gap-4 justify-between">
@@ -441,6 +490,16 @@ export default function AdminAIConversations() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                           <StatusBadge status={conv.status} />
+                          {conv.contact_phone && !conv.marked_contacted && (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              data-testid={`badge-needs-followup-${conv.id}`}
+                            >
+                              <Bell className="w-2.5 h-2.5 mr-1" />
+                              Needs follow-up
+                            </Badge>
+                          )}
                           {conv.includes_48v && (
                             <Badge
                               variant="secondary"
