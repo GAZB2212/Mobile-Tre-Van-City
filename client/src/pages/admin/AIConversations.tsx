@@ -241,6 +241,23 @@ export default function AdminAIConversations() {
     }
   };
 
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    contactFilter !== "all" ||
+    v48Filter !== "all" ||
+    !!dateFrom ||
+    !!dateTo ||
+    !!searchQuery.trim();
+
+  const clearAllFilters = () => {
+    setStatusFilter("all");
+    setContactFilter("all");
+    setV48Filter("all");
+    setDateFrom("");
+    setDateTo("");
+    setSearchQuery("");
+  };
+
   const needsFollowUpCount = (aiData?.conversations ?? []).filter(
     (conv) => !!conv.contact_phone && !conv.marked_contacted
   ).length;
@@ -406,7 +423,20 @@ export default function AdminAIConversations() {
         {/* Filters */}
         <Card data-testid="card-ai-filters">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Filter Conversations</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">Filter Conversations</CardTitle>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  data-testid="button-clear-all-filters"
+                >
+                  <X className="w-3.5 h-3.5 mr-1.5" />
+                  Clear all filters
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
