@@ -437,20 +437,48 @@ export default function AdminAIConversations() {
                   <SelectItem value="false">No 48V</SelectItem>
                 </SelectContent>
               </Select>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                placeholder="From date"
-                data-testid="input-ai-date-from"
-              />
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                placeholder="To date"
-                data-testid="input-ai-date-to"
-              />
+              <div className="relative">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  placeholder="From date"
+                  data-testid="input-ai-date-from"
+                  className={dateFrom ? "pr-8" : ""}
+                />
+                {dateFrom && (
+                  <button
+                    type="button"
+                    onClick={() => setDateFrom("")}
+                    data-testid="button-clear-date-from"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Clear from date"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  placeholder="To date"
+                  data-testid="input-ai-date-to"
+                  className={dateTo ? "pr-8" : ""}
+                />
+                {dateTo && (
+                  <button
+                    type="button"
+                    onClick={() => setDateTo("")}
+                    data-testid="button-clear-date-to"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Clear to date"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
             </div>
           </CardContent>
