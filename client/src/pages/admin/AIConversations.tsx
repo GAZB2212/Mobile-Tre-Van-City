@@ -29,6 +29,7 @@ import {
   Zap,
   Calendar,
   Bell,
+  X,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -361,13 +362,27 @@ export default function AdminAIConversations() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-            <Input
-              type="search"
-              placeholder="Search by name or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="input-search-ai-conversations"
-            />
+            <div className="relative">
+              <Input
+                type="search"
+                placeholder="Search by name or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                data-testid="input-search-ai-conversations"
+                className={searchQuery ? "pr-8" : ""}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  data-testid="button-clear-search-ai-conversations"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger data-testid="select-ai-status">
