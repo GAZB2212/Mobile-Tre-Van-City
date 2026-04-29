@@ -285,22 +285,54 @@ export default function AdminAIConversations() {
     setEditNoteDialogConv(conv);
   };
 
-  const handleSubmitEditNote = async () => {
-    if (!editNoteDialogConv) return;
-    setEditNoteSubmitting(true);
-    try {
-      await apiRequest("PATCH", `/api/admin/ai-conversations/${editNoteDialogConv.id}/contacted`, {
-        note: editNoteText,
+  const editNoteMutation = useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string }) =>
+      apiRequest("PATCH", `/api/admin/ai-conversations/${id}/contacted`, { note }),
+    onMutate: async ({ id, note }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/ai-conversations"] });
+
+      const previousEntries = queryClient.getQueriesData<AiConversationsResponse>({
+        queryKey: ["/api/admin/ai-conversations"],
       });
+
+      queryClient.setQueriesData<AiConversationsResponse>(
+        { queryKey: ["/api/admin/ai-conversations"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            conversations: old.conversations.map((c) =>
+              c.id === id ? { ...c, contacted_note: note } : c
+            ),
+          };
+        }
+      );
+
+      return { previousEntries };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousEntries) {
+        for (const [queryKey, data] of context.previousEntries) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      toast({ title: "Error", description: "Failed to update note.", variant: "destructive" });
+    },
+    onSuccess: () => {
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-conversations"] });
       toast({ title: "Note updated" });
       setEditNoteDialogConv(null);
-    } catch {
-      toast({ title: "Error", description: "Failed to update note.", variant: "destructive" });
-    } finally {
+    },
+    onSettled: () => {
       setEditNoteSubmitting(false);
-    }
+    },
+  });
+
+  const handleSubmitEditNote = () => {
+    if (!editNoteDialogConv) return;
+    setEditNoteSubmitting(true);
+    editNoteMutation.mutate({ id: editNoteDialogConv.id, note: editNoteText });
   };
 
   const handleExportCsv = async () => {
