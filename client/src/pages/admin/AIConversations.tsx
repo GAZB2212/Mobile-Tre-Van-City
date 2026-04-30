@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Bot,
   MessageSquare,
@@ -36,6 +37,7 @@ import {
   Bell,
   X,
   Pencil,
+  AlertCircle,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -345,15 +347,24 @@ export default function AdminAIConversations() {
       setExportDialogOpen(false);
       exportMutation.reset();
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to export CSV.", variant: "destructive" });
-    },
   });
 
   const closeExportDialog = () => {
     setExportDialogOpen(false);
     exportMutation.reset();
   };
+
+  useEffect(() => {
+    if (exportMutation.isError) {
+      exportMutation.reset();
+    }
+  }, [exportStatus, exportDateFrom, exportDateTo, exportMarkedContacted]);
+
+  useEffect(() => {
+    if (exportDialogOpen) {
+      exportMutation.reset();
+    }
+  }, [exportDialogOpen]);
 
   const handleViewTranscript = async (conv: AiConversationRow) => {
     try {
@@ -877,8 +888,13 @@ export default function AdminAIConversations() {
         )}
       </div>
 
-      {/* Export CSV filter dialog */}
-      <Dialog open={exportDialogOpen} onOpenChange={(open) => { if (!open) closeExportDialog(); }}>
+      <Dialog
+        open={exportDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeExportDialog();
+          else exportMutation.reset();
+        }}
+      >
         <DialogContent className="max-w-sm" data-testid="dialog-export-csv">
           <DialogHeader>
             <DialogTitle>Export conversations</DialogTitle>
@@ -946,6 +962,14 @@ export default function AdminAIConversations() {
               <span>{exportCountData.count} conversation{exportCountData.count !== 1 ? "s" : ""} will be exported</span>
             ) : null}
           </div>
+          {exportMutation.isError && (
+            <Alert variant="destructive" data-testid="alert-export-error">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Failed to export CSV. Please try again.
+              </AlertDescription>
+            </Alert>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
