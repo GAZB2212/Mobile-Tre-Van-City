@@ -165,7 +165,7 @@ export default function Footer() {
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               data-testid="link-gajo-creative"
             >
-              <span className="text-primary-foreground/60 text-sm">Website created by</span>
+              <span className="text-primary-foreground/60 text-sm">Website owned and managed by</span>
               <img 
                 src={gajoLogo} 
                 alt="Gajo Creative" 
