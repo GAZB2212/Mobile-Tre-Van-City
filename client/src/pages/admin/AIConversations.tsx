@@ -103,6 +103,8 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const MAX_EXPORT_RETRIES = 3;
+
 export default function AdminAIConversations() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth() as {
@@ -327,8 +329,6 @@ export default function AdminAIConversations() {
     if (!editNoteDialogConv) return;
     editNoteMutation.mutate({ id: editNoteDialogConv.id, note: editNoteText });
   };
-
-  const MAX_EXPORT_RETRIES = 3;
 
   const exportMutation = useMutation({
     mutationFn: async () => {
