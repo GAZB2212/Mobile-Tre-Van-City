@@ -120,6 +120,7 @@ export default function AdminAIConversations() {
   const [transcriptConv, setTranscriptConv] = useState<AiConversationRow | null>(null);
 
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportRetryCount, setExportRetryCount] = useState(0);
   const [exportStatus, setExportStatus] = useState("all");
   const [exportDateFrom, setExportDateFrom] = useState("");
   const [exportDateTo, setExportDateTo] = useState("");
@@ -327,6 +328,8 @@ export default function AdminAIConversations() {
     editNoteMutation.mutate({ id: editNoteDialogConv.id, note: editNoteText });
   };
 
+  const MAX_EXPORT_RETRIES = 3;
+
   const exportMutation = useMutation({
     mutationFn: async () => {
       const p = new URLSearchParams();
@@ -348,6 +351,7 @@ export default function AdminAIConversations() {
       const count = exportCountData?.count;
       setExportDialogOpen(false);
       exportMutation.reset();
+      setExportRetryCount(0);
       setExportStatus("all");
       setExportDateFrom("");
       setExportDateTo("");
@@ -362,6 +366,7 @@ export default function AdminAIConversations() {
       });
     },
     onError: () => {
+      setExportRetryCount((prev) => prev + 1);
       toast({
         title: "Export failed",
         description: "The CSV export could not be completed. Please try again.",
@@ -373,6 +378,7 @@ export default function AdminAIConversations() {
   const closeExportDialog = () => {
     setExportDialogOpen(false);
     exportMutation.reset();
+    setExportRetryCount(0);
     setExportStatus("all");
     setExportDateFrom("");
     setExportDateTo("");
@@ -383,12 +389,14 @@ export default function AdminAIConversations() {
   useEffect(() => {
     if (exportMutation.isError) {
       exportMutation.reset();
+      setExportRetryCount(0);
     }
   }, [exportStatus, exportDateFrom, exportDateTo, exportMarkedContacted]);
 
   useEffect(() => {
     if (exportDialogOpen) {
       exportMutation.reset();
+      setExportRetryCount(0);
     }
   }, [exportDialogOpen]);
 
@@ -992,12 +1000,16 @@ export default function AdminAIConversations() {
             <Alert variant="destructive" data-testid="alert-export-error">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between gap-2">
-                <span>Failed to export CSV. Please try again.</span>
+                <span>
+                  {exportRetryCount >= MAX_EXPORT_RETRIES
+                    ? "Too many failed attempts. Please close and try again later."
+                    : "Failed to export CSV. Please try again."}
+                </span>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => exportMutation.mutate()}
-                  disabled={exportMutation.isPending}
+                  disabled={exportMutation.isPending || exportRetryCount >= MAX_EXPORT_RETRIES}
                   data-testid="button-export-retry"
                 >
                   {exportMutation.isPending ? (
