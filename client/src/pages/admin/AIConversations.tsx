@@ -345,6 +345,7 @@ export default function AdminAIConversations() {
       URL.revokeObjectURL(url);
     },
     onSuccess: () => {
+      const count = exportCountData?.count;
       setExportDialogOpen(false);
       exportMutation.reset();
       setExportStatus("all");
@@ -352,6 +353,13 @@ export default function AdminAIConversations() {
       setExportDateTo("");
       setExportMarkedContacted("all");
       setDebouncedExportFilters({ status: "all", dateFrom: "", dateTo: "", markedContacted: "all" });
+      toast({
+        title: "Export complete",
+        description:
+          count !== undefined
+            ? `Exported ${count} conversation${count !== 1 ? "s" : ""}`
+            : "Your CSV download has started",
+      });
     },
   });
 
