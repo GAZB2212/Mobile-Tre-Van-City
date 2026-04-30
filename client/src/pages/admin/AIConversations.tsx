@@ -121,7 +121,6 @@ export default function AdminAIConversations() {
   const [exportDateFrom, setExportDateFrom] = useState("");
   const [exportDateTo, setExportDateTo] = useState("");
   const [exportMarkedContacted, setExportMarkedContacted] = useState("all");
-  const [exportLoading, setExportLoading] = useState(false);
   const [debouncedExportFilters, setDebouncedExportFilters] = useState({
     status: "all",
     dateFrom: "",
@@ -325,9 +324,8 @@ export default function AdminAIConversations() {
     editNoteMutation.mutate({ id: editNoteDialogConv.id, note: editNoteText });
   };
 
-  const handleExportCsv = async () => {
-    setExportLoading(true);
-    try {
+  const exportMutation = useMutation({
+    mutationFn: async () => {
       const p = new URLSearchParams();
       if (exportStatus !== "all") p.set("status", exportStatus);
       if (exportDateFrom) p.set("dateFrom", exportDateFrom);
@@ -342,13 +340,14 @@ export default function AdminAIConversations() {
       a.download = "ai-conversations.csv";
       a.click();
       URL.revokeObjectURL(url);
+    },
+    onSuccess: () => {
       setExportDialogOpen(false);
-    } catch {
+    },
+    onError: () => {
       toast({ title: "Error", description: "Failed to export CSV.", variant: "destructive" });
-    } finally {
-      setExportLoading(false);
-    }
-  };
+    },
+  });
 
   const handleViewTranscript = async (conv: AiConversationRow) => {
     try {
@@ -950,12 +949,12 @@ export default function AdminAIConversations() {
               Cancel
             </Button>
             <Button
-              onClick={handleExportCsv}
-              disabled={exportLoading}
+              onClick={() => exportMutation.mutate()}
+              disabled={exportMutation.isPending}
               data-testid="button-export-confirm"
             >
               <Download className="w-4 h-4 mr-2" />
-              {exportLoading ? "Exporting..." : "Download CSV"}
+              {exportMutation.isPending ? "Exporting..." : "Download CSV"}
             </Button>
           </DialogFooter>
         </DialogContent>
