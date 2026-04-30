@@ -28,9 +28,17 @@ import {
   type Quote
 } from "@shared/schema";
 
+const SERVER_START_TIME = Date.now().toString();
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
+
+  // Version endpoint — returns the server startup timestamp so the admin
+  // frontend can detect when the server has restarted (new deployment)
+  app.get("/api/version", (_req, res) => {
+    res.json({ version: SERVER_START_TIME });
+  });
 
   // Storage configuration endpoint - returns bucket name for frontend image URLs
   app.get("/api/storage/config", async (req, res) => {

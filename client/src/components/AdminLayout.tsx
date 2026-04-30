@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import mtvcLogoWide from "@assets/Untitled_design-36_1773155683674.png";
 import mtvcLogoRound from "@assets/Untitled design-47_1759231860895.png";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,6 +38,7 @@ import {
   BookOpen,
   Menu,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 interface NavItem {
@@ -152,6 +153,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user } = useAuth() as { user: User | undefined };
+
+  // Server version polling — detects when the backend has restarted (new deployment)
+  const initialVersion = useRef<string | null>(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  const { data: versionData } = useQuery<{ version: string }>({
+    queryKey: ["/api/version"],
+    refetchInterval: 30_000,
+    staleTime: 0,
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  useEffect(() => {
+    if (!versionData?.version) return;
+    if (initialVersion.current === null) {
+      initialVersion.current = versionData.version;
+    } else if (versionData.version !== initialVersion.current) {
+      setUpdateAvailable(true);
+    }
+  }, [versionData]);
 
   const { data: aiConversationsData } = useQuery<{
     conversations: { contact_phone?: string | null; marked_contacted?: boolean | null }[];
@@ -379,6 +400,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {user?.email}
           </span>
         </header>
+
+        {/* Update available banner */}
+        {updateAvailable && (
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/25 shrink-0"
+            data-testid="banner-update-available"
+          >
+            <p className="text-xs text-amber-400 font-medium">
+              The site has been updated. Refresh your browser to get the latest version — some actions may not save correctly until you do.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              data-testid="button-refresh-now"
+              className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors shrink-0"
+            >
+              <RefreshCw size={13} />
+              Refresh now
+            </button>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
