@@ -361,6 +361,13 @@ export default function AdminAIConversations() {
             : "Your CSV download has started",
       });
     },
+    onError: () => {
+      toast({
+        title: "Export failed",
+        description: "The CSV export could not be completed. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const closeExportDialog = () => {
