@@ -38,6 +38,7 @@ import {
   X,
   Pencil,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -981,9 +982,14 @@ export default function AdminAIConversations() {
                   size="sm"
                   variant="outline"
                   onClick={() => exportMutation.mutate()}
+                  disabled={exportMutation.isPending}
                   data-testid="button-export-retry"
                 >
-                  Retry
+                  {exportMutation.isPending ? (
+                    <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Retrying...</>
+                  ) : (
+                    "Retry"
+                  )}
                 </Button>
               </AlertDescription>
             </Alert>
