@@ -343,11 +343,17 @@ export default function AdminAIConversations() {
     },
     onSuccess: () => {
       setExportDialogOpen(false);
+      exportMutation.reset();
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to export CSV.", variant: "destructive" });
     },
   });
+
+  const closeExportDialog = () => {
+    setExportDialogOpen(false);
+    exportMutation.reset();
+  };
 
   const handleViewTranscript = async (conv: AiConversationRow) => {
     try {
@@ -872,7 +878,7 @@ export default function AdminAIConversations() {
       </div>
 
       {/* Export CSV filter dialog */}
-      <Dialog open={exportDialogOpen} onOpenChange={(open) => !open && setExportDialogOpen(false)}>
+      <Dialog open={exportDialogOpen} onOpenChange={(open) => { if (!open) closeExportDialog(); }}>
         <DialogContent className="max-w-sm" data-testid="dialog-export-csv">
           <DialogHeader>
             <DialogTitle>Export conversations</DialogTitle>
@@ -943,7 +949,7 @@ export default function AdminAIConversations() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setExportDialogOpen(false)}
+              onClick={closeExportDialog}
               data-testid="button-export-cancel"
             >
               Cancel
