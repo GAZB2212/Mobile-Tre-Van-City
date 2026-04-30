@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { getImageUrl } from "@/lib/utils";
+import { useState } from "react";
+import { useFileUpload, uploadToObjectStorage } from "@/hooks/use-file-upload";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Video, Eye, EyeOff, Upload, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { GalleryItem, InsertGalleryItem } from "@shared/schema";
 
 const categories = [
@@ -46,6 +45,23 @@ const categories = [
   "Process Videos",
   "Customer Showcases",
 ] as const;
+
+function inferMimeType(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    mov: "video/quicktime",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    ogg: "video/ogg",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+  };
+  return map[ext ?? ""] || "application/octet-stream";
+}
 
 function FileUploadField({
   label,
@@ -60,55 +76,12 @@ function FileUploadField({
   onUploaded: (url: string) => void;
   testId?: string;
 }) {
-  const { toast } = useToast();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const inferMimeType = (file: File): string => {
-    if (file.type) return file.type;
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    const map: Record<string, string> = {
-      mov: "video/quicktime",
-      mp4: "video/mp4",
-      webm: "video/webm",
-      ogg: "video/ogg",
-      png: "image/png",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      gif: "image/gif",
-      webp: "image/webp",
-    };
-    return map[ext ?? ""] || "application/octet-stream";
-  };
-
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const contentType = inferMimeType(file);
-      const res = await apiRequest("POST", "/api/objects/upload", {
-        filename: file.name,
-        contentType,
-      });
-      const { uploadURL, objectPath } = await res.json();
-
-      await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": contentType },
-      });
-
-      onUploaded(getImageUrl(objectPath));
-      toast({ title: "Uploaded", description: `${file.name} uploaded successfully` });
-    } catch {
-      toast({ title: "Upload failed", description: "Could not upload file", variant: "destructive" });
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  };
+  const { uploading, inputRef, handleChange } = useFileUpload({
+    uploadFn: (file) => uploadToObjectStorage(file, inferMimeType(file)),
+    onSuccess: onUploaded,
+    successToast: { title: "Uploaded" },
+    errorToast: { title: "Upload failed", description: "Could not upload file" },
+  });
 
   return (
     <div className="space-y-2">

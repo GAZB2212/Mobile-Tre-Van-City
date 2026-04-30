@@ -1,9 +1,8 @@
-import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useFileUpload } from "@/hooks/use-file-upload";
 import { Upload, CheckCircle, Video, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -43,11 +42,6 @@ function VideoUploadCard({
   currentUrl: string;
   onUpdated: () => void;
 }) {
-  const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
-
   const label = VIDEO_LABELS[settingKey] ?? { title: settingKey, description: "" };
 
   const updateSetting = useMutation({
@@ -59,46 +53,28 @@ function VideoUploadCard({
     },
   });
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    setProgress("Uploading to cloud storage…");
-
-    try {
+  const { uploading, progress, inputRef: fileInputRef, handleChange: handleFileChange } = useFileUpload({
+    uploadFn: async (file, setProgress) => {
+      setProgress("Uploading to cloud storage…");
       const formData = new FormData();
       formData.append("file", file);
-
       const res = await fetch("/api/admin/upload-video", {
         method: "POST",
         body: formData,
         credentials: "include",
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Upload failed" }));
         throw new Error(err.error ?? "Upload failed");
       }
-
       const { url } = await res.json();
       setProgress("Saving URL…");
       await updateSetting.mutateAsync(url);
-
-      toast({ title: "Video updated", description: `${label.title} has been saved.` });
-      setProgress(null);
-    } catch (err: any) {
-      toast({
-        title: "Upload failed",
-        description: err.message ?? "Something went wrong",
-        variant: "destructive",
-      });
-      setProgress(null);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+      return url;
+    },
+    successToast: { title: "Video updated", description: `${label.title} has been saved.` },
+    errorToast: { title: "Upload failed" },
+  });
 
   return (
     <Card data-testid={`card-video-${settingKey}`}>
@@ -168,8 +144,6 @@ function VideoUploadCard({
 }
 
 export default function AdminVideos() {
-  const { toast } = useToast();
-
   const { data: settings = {}, refetch } = useQuery<Record<string, string>>({
     queryKey: ["/api/site-settings"],
   });

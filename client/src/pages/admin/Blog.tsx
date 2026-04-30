@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import { AdminBackButton } from "@/components/AdminBackButton";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Upload, CheckCircle2, Loader2, Globe, FileText, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { getImageUrl } from "@/lib/utils";
+import { useFileUpload, uploadToObjectStorage } from "@/hooks/use-file-upload";
 import type { BlogPost } from "@shared/schema";
 
 const CATEGORIES = [
@@ -52,28 +52,12 @@ function ImageUpload({
   currentUrl: string;
   onUploaded: (url: string) => void;
 }) {
-  const { toast } = useToast();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const contentType = file.type || "image/jpeg";
-      const res = await apiRequest("POST", "/api/objects/upload", { filename: file.name, contentType });
-      const { uploadURL, objectPath } = await res.json();
-      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": contentType } });
-      onUploaded(getImageUrl(objectPath));
-      toast({ title: "Image uploaded" });
-    } catch {
-      toast({ title: "Upload failed", variant: "destructive" });
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  };
+  const { uploading, inputRef, handleChange } = useFileUpload({
+    uploadFn: (file) => uploadToObjectStorage(file, file.type || "image/jpeg"),
+    onSuccess: onUploaded,
+    successToast: { title: "Image uploaded" },
+    errorToast: { title: "Upload failed" },
+  });
 
   return (
     <div className="space-y-2">
