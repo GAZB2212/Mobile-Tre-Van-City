@@ -1014,8 +1014,10 @@ export default function AdminAIConversations() {
                 >
                   {exportMutation.isPending ? (
                     <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Retrying...</>
+                  ) : (MAX_EXPORT_RETRIES - exportRetryCount) === 1 ? (
+                    "Last attempt"
                   ) : (
-                    "Retry"
+                    `Retry (${MAX_EXPORT_RETRIES - exportRetryCount} left)`
                   )}
                 </Button>
               </AlertDescription>
