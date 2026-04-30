@@ -975,8 +975,16 @@ export default function AdminAIConversations() {
           {exportMutation.isError && (
             <Alert variant="destructive" data-testid="alert-export-error">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Failed to export CSV. Please try again.
+              <AlertDescription className="flex items-center justify-between gap-2">
+                <span>Failed to export CSV. Please try again.</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => exportMutation.mutate()}
+                  data-testid="button-export-retry"
+                >
+                  Retry
+                </Button>
               </AlertDescription>
             </Alert>
           )}
