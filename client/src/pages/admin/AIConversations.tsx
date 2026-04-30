@@ -346,12 +346,22 @@ export default function AdminAIConversations() {
     onSuccess: () => {
       setExportDialogOpen(false);
       exportMutation.reset();
+      setExportStatus("all");
+      setExportDateFrom("");
+      setExportDateTo("");
+      setExportMarkedContacted("all");
+      setDebouncedExportFilters({ status: "all", dateFrom: "", dateTo: "", markedContacted: "all" });
     },
   });
 
   const closeExportDialog = () => {
     setExportDialogOpen(false);
     exportMutation.reset();
+    setExportStatus("all");
+    setExportDateFrom("");
+    setExportDateTo("");
+    setExportMarkedContacted("all");
+    setDebouncedExportFilters({ status: "all", dateFrom: "", dateTo: "", markedContacted: "all" });
   };
 
   useEffect(() => {
