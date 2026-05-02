@@ -102,6 +102,26 @@ const ConfiguratorContext = createContext<ConfiguratorContextValue | undefined>(
 export function ConfiguratorProvider({ children }: { children: ReactNode }) {
   const [fullState, setFullState] = useState<FullState>(() => {
     if (typeof window === 'undefined') return defaultFullState;
+
+    // Share link (?cfg=...) takes priority over localStorage
+    try {
+      const cfgParam = new URLSearchParams(window.location.search).get('cfg');
+      if (cfgParam) {
+        const shared = JSON.parse(atob(cfgParam));
+        if (shared && typeof shared === 'object') {
+          // Clean the param from the URL without triggering a reload
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState(null, '', cleanUrl);
+          return {
+            ...defaultFullState,
+            slotA: { ...defaultSlotState, ...shared },
+          };
+        }
+      }
+    } catch {
+      // Malformed share param — fall through to localStorage
+    }
+
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
