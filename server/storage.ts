@@ -11,6 +11,7 @@ import {
   type BlogPost, type InsertBlogPost,
   type SiteSetting,
   type Testimonial, type InsertTestimonial,
+  type TestimonialToken,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -101,6 +102,11 @@ export interface IStorage {
   createTestimonial(item: InsertTestimonial): Promise<Testimonial>;
   updateTestimonial(id: string, item: Partial<InsertTestimonial>): Promise<Testimonial | undefined>;
   deleteTestimonial(id: string): Promise<boolean>;
+
+  // Testimonial tokens
+  createTestimonialToken(token: string, customerName: string, customerEmail: string): Promise<TestimonialToken>;
+  getTestimonialToken(token: string): Promise<TestimonialToken | undefined>;
+  markTestimonialTokenUsed(token: string): Promise<void>;
 
   // Site Settings
   getSiteSettings(): Promise<Record<string, string>>;
@@ -1717,6 +1723,9 @@ export class MemStorage implements IStorage {
   async createTestimonial(item: InsertTestimonial): Promise<Testimonial> { return { ...item, id: randomUUID(), location: item.location ?? null, createdAt: new Date() } as Testimonial; }
   async updateTestimonial(_id: string, _item: Partial<InsertTestimonial>): Promise<Testimonial | undefined> { return undefined; }
   async deleteTestimonial(_id: string): Promise<boolean> { return false; }
+  async createTestimonialToken(token: string, customerName: string, customerEmail: string): Promise<TestimonialToken> { return { id: randomUUID(), token, customerName, customerEmail, sentAt: new Date(), usedAt: null }; }
+  async getTestimonialToken(_token: string): Promise<TestimonialToken | undefined> { return undefined; }
+  async markTestimonialTokenUsed(_token: string): Promise<void> {}
 }
 
 // Database Storage Implementation
@@ -2104,6 +2113,20 @@ export class DbStorage implements IStorage {
   async deleteTestimonial(id: string): Promise<boolean> {
     const result = await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async createTestimonialToken(token: string, customerName: string, customerEmail: string): Promise<TestimonialToken> {
+    const results = await db.insert(schema.testimonialTokens).values({ token, customerName, customerEmail }).returning();
+    return results[0];
+  }
+
+  async getTestimonialToken(token: string): Promise<TestimonialToken | undefined> {
+    const results = await db.select().from(schema.testimonialTokens).where(eq(schema.testimonialTokens.token, token));
+    return results[0];
+  }
+
+  async markTestimonialTokenUsed(token: string): Promise<void> {
+    await db.update(schema.testimonialTokens).set({ usedAt: new Date() }).where(eq(schema.testimonialTokens.token, token));
   }
 }
 

@@ -409,6 +409,18 @@ export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
 export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
 export type Testimonial = typeof testimonials.$inferSelect;
 
+// Testimonial request tokens (sent to customers via email)
+export const testimonialTokens = pgTable("testimonial_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  token: text("token").notNull().unique(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  sentAt: timestamp("sent_at").defaultNow(),
+  usedAt: timestamp("used_at"),
+});
+
+export type TestimonialToken = typeof testimonialTokens.$inferSelect;
+
 // Blog posts table
 export const blogPosts = pgTable("blog_posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

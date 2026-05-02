@@ -41,6 +41,7 @@ import CookiePolicy from "@/pages/CookiePolicy";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/not-found";
+import TestimonialRequest from "@/pages/TestimonialRequest";
 import { AdminLayout } from "@/components/AdminLayout";
 import VanConversionsHub from "@/pages/seo/VanConversionsHub";
 import VanModelPage from "@/pages/seo/VanModelPage";
@@ -104,6 +105,7 @@ function Router() {
       <Route path="/cookie-policy" component={CookiePolicy} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password/:token" component={ResetPassword} />
+      <Route path="/testimonial/:token" component={TestimonialRequest} />
       <Route path="/van-conversions" component={VanConversionsHub} />
       <Route path="/van-conversions/:slug" component={VanModelPage} />
       <Route path="/mobile-tyre-vans" component={LocationsHub} />

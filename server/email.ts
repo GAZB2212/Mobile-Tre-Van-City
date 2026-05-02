@@ -1491,6 +1491,61 @@ Mobile Tyre Van City | 0151 203 8500
   });
 }
 
+export async function sendTestimonialRequestEmail({
+  to,
+  customerName,
+  reviewUrl,
+}: {
+  to: string;
+  customerName: string;
+  reviewUrl: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  await client.emails.send({
+    to,
+    from: fromEmail,
+    subject: `Would you leave us a review? – Mobile Tyre Van City`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #191919; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .header h1 { color: #8bc440; margin: 0; font-size: 24px; }
+    .content { background-color: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
+    .button { display: block; max-width: 260px; margin: 24px auto; background-color: #8bc440; color: #191919; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; box-sizing: border-box; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 13px; }
+    .stars { font-size: 28px; letter-spacing: 4px; text-align: center; margin: 16px 0; color: #8bc440; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Mobile Tyre Van City</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${customerName},</p>
+      <p>Thank you for choosing Mobile Tyre Van City. We hope you're delighted with your new mobile tyre van.</p>
+      <p>We'd be really grateful if you could spare 2 minutes to leave us a quick review. It helps other people make confident decisions and means a lot to our team.</p>
+      <div class="stars">&#9733; &#9733; &#9733; &#9733; &#9733;</div>
+      <a href="${reviewUrl}" class="button">Leave a review</a>
+      <p style="font-size: 13px; color: #6b7280; text-align: center;">Or copy this link into your browser:<br />${reviewUrl}</p>
+    </div>
+    <div class="footer">
+      <p>Mobile Tyre Van City &bull; 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+      <p>0151 203 8500 &bull; <a href="https://www.mobiletyrevancity.co.uk" style="color: #8bc440;">mobiletyrevancity.co.uk</a></p>
+      <p style="font-size: 12px; color: #9ca3af;">This link is personal to you and can only be used once.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+  });
+}
+
 export async function sendEmail({
   to,
   subject,

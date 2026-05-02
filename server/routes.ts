@@ -1754,6 +1754,70 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Send testimonial request email to a customer
+  app.post("/api/admin/testimonials/send-request", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { customerName, customerEmail } = req.body;
+      if (!customerName || !customerEmail) {
+        return res.status(400).json({ error: "customerName and customerEmail are required" });
+      }
+      const { randomBytes } = await import('crypto');
+      const token = randomBytes(32).toString('hex');
+      await storage.createTestimonialToken(token, customerName, customerEmail);
+      const SITE_URL = process.env.REPL_SLUG
+        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+        : 'https://www.mobiletyrevancity.co.uk';
+      const reviewUrl = `${SITE_URL}/testimonial/${token}`;
+      const { sendTestimonialRequestEmail } = await import('./email.js');
+      await sendTestimonialRequestEmail({ to: customerEmail, customerName, reviewUrl });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to send testimonial request:', error);
+      res.status(500).json({ error: "Failed to send testimonial request email" });
+    }
+  });
+
+  // Public: validate testimonial token
+  app.get("/api/testimonial-request/:token", async (req, res) => {
+    try {
+      const record = await storage.getTestimonialToken(req.params.token);
+      if (!record || record.usedAt) {
+        return res.status(404).json({ valid: false });
+      }
+      res.json({ valid: true, customerName: record.customerName });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate token" });
+    }
+  });
+
+  // Public: submit testimonial via token
+  app.post("/api/testimonial-request/:token", async (req, res) => {
+    try {
+      const record = await storage.getTestimonialToken(req.params.token);
+      if (!record || record.usedAt) {
+        return res.status(404).json({ error: "Invalid or already used link" });
+      }
+      const { name, company, location, content, rating } = req.body;
+      if (!name || !company || !content || !rating) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      await storage.createTestimonial({
+        name,
+        company,
+        location: location || null,
+        content,
+        rating: Number(rating),
+        sortOrder: 0,
+        published: false,
+      });
+      await storage.markTestimonialTokenUsed(req.params.token);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to submit testimonial:', error);
+      res.status(500).json({ error: "Failed to submit testimonial" });
+    }
+  });
+
   // ─── Blog Posts (public) ──────────────────────────────────────────────────
   app.get("/api/blog-posts", async (_req, res) => {
     try {

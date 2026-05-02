@@ -31,12 +31,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Eye, EyeOff, ChevronUp, ChevronDown, Star } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, ChevronUp, ChevronDown, Star, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Testimonial, InsertTestimonial } from "@shared/schema";
 
 const QUERY_KEY = "/api/admin/testimonials";
+
+type SendRequestForm = {
+  customerName: string;
+  customerEmail: string;
+};
 
 type FormData = {
   name: string;
@@ -78,6 +83,8 @@ export default function AdminTestimonials() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Testimonial | null>(null);
   const [formData, setFormData] = useState<FormData>(defaultForm);
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [sendForm, setSendForm] = useState<SendRequestForm>({ customerName: "", customerEmail: "" });
 
   const { data: items = [], isLoading } = useQuery<Testimonial[]>({
     queryKey: [QUERY_KEY],
@@ -135,6 +142,21 @@ export default function AdminTestimonials() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: ["/api/testimonials"] });
+    },
+  });
+
+  const sendRequestMutation = useMutation({
+    mutationFn: async (data: SendRequestForm) => {
+      const response = await apiRequest("POST", "/api/admin/testimonials/send-request", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsSendDialogOpen(false);
+      setSendForm({ customerName: "", customerEmail: "" });
+      toast({ title: "Request sent", description: "The customer has been emailed a review link." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to send the request email.", variant: "destructive" });
     },
   });
 
@@ -200,12 +222,18 @@ export default function AdminTestimonials() {
             </h1>
             <p className="text-muted-foreground">Manage customer testimonials shown on the homepage</p>
           </div>
-          {isFullAdmin && (
-            <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-testimonial" className="flex-shrink-0">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Testimonial
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setIsSendDialogOpen(true)} data-testid="button-send-request" className="flex-shrink-0">
+              <Mail className="w-4 h-4 mr-2" />
+              Request a Review
             </Button>
-          )}
+            {isFullAdmin && (
+              <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-testimonial" className="flex-shrink-0">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Testimonial
+              </Button>
+            )}
+          </div>
         </div>
 
         {isLoading ? (
@@ -458,6 +486,66 @@ export default function AdminTestimonials() {
                   data-testid="button-submit"
                 >
                   {editingItem ? "Update" : "Create"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Send Review Request Dialog */}
+        <Dialog open={isSendDialogOpen} onOpenChange={(open) => { if (!open) { setIsSendDialogOpen(false); setSendForm({ customerName: "", customerEmail: "" }); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Request a review</DialogTitle>
+              <DialogDescription>
+                Send the customer a personal link to leave a testimonial. They'll get an email with a one-click form — their review lands here as a draft for you to approve.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                sendRequestMutation.mutate(sendForm);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="send-name">Customer name</Label>
+                <Input
+                  id="send-name"
+                  value={sendForm.customerName}
+                  onChange={(e) => setSendForm({ ...sendForm, customerName: e.target.value })}
+                  placeholder="e.g. James Smith"
+                  required
+                  data-testid="input-send-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="send-email">Customer email</Label>
+                <Input
+                  id="send-email"
+                  type="email"
+                  value={sendForm.customerEmail}
+                  onChange={(e) => setSendForm({ ...sendForm, customerEmail: e.target.value })}
+                  placeholder="e.g. james@smithtyres.co.uk"
+                  required
+                  data-testid="input-send-email"
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setIsSendDialogOpen(false); setSendForm({ customerName: "", customerEmail: "" }); }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={sendRequestMutation.isPending}
+                  data-testid="button-send-submit"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {sendRequestMutation.isPending ? "Sending..." : "Send request"}
                 </Button>
               </DialogFooter>
             </form>
