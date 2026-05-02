@@ -180,6 +180,10 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS staff_name TEXT`)
         .then(() => log("✅ Quote staff name column ready"))
         .catch((err: Error) => console.error("Quote staff name migration:", err.message));
+      // Add quote_id column to leads for linking converted leads to their quote
+      pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quote_id VARCHAR REFERENCES quotes(id)`)
+        .then(() => log("✅ Lead quote_id column ready"))
+        .catch((err: Error) => console.error("Lead quote_id migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_conversations (

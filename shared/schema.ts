@@ -262,6 +262,7 @@ export const leads = pgTable("leads", {
   message: text("message"),
   status: text("status").notNull().default("new"), // "new" | "contacted" | "qualified" | "converted" | "closed" | "dead"
   crmNotes: json("crm_notes").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]),
+  quoteId: varchar("quote_id").references(() => quotes.id), // Linked quote ID for converted leads
   createdAt: timestamp("created_at").defaultNow(),
 });
 

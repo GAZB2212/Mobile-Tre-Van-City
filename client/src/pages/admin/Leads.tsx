@@ -483,13 +483,29 @@ export default function AdminLeads() {
                         </span>
                         {getSourceBadge(lead.source)}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <span
                           className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold border ${statusCfg.className}`}
                           data-testid={`badge-lead-status-${lead.id}`}
                         >
                           {statusCfg.label}
                         </span>
+                        {lead.quoteId && (
+                          <Link
+                            href={`/admin/quotes/${lead.quoteId}?tab=configuration&from=leads`}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs"
+                              data-testid={`button-edit-config-${lead.id}`}
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              Edit Config
+                            </Button>
+                          </Link>
+                        )}
                         {status !== 'closed' && status !== 'dead' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

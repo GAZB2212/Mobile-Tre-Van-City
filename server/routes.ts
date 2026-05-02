@@ -3439,10 +3439,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
   app.patch("/api/admin/leads/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const { status, crmNotes } = req.body;
+      const { status, crmNotes, quoteId } = req.body;
       const updateData: Record<string, any> = {};
       if (status !== undefined) updateData.status = status;
       if (crmNotes !== undefined) updateData.crmNotes = crmNotes;
+      if (quoteId !== undefined) updateData.quoteId = quoteId;
       const updated = await storage.updateLead(req.params.id, updateData);
       if (!updated) return res.status(404).json({ error: "Lead not found" });
       res.json(updated);
