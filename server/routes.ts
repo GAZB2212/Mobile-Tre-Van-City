@@ -3254,7 +3254,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       });
 
       // Notify internal team
-      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'info@gfukgroup.co.uk'];
+      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
       try {
         const { sendEmail } = await import('./email.js');
         await sendEmail({
@@ -3340,7 +3340,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       } as any);
 
       // Notify internal team
-      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'info@gfukgroup.co.uk'];
+      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
       const ref = quote.id.slice(0, 8).toUpperCase();
       try {
         const { sendEmail } = await import('./email.js');
