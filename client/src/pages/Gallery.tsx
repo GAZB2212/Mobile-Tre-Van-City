@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,25 +11,18 @@ import { Link } from "wouter";
 import type { GalleryItem } from "@shared/schema";
 import { GalleryVideoCard } from "@/components/GalleryVideoCard";
 
-interface GroupedGalleryItems {
-  [category: string]: GalleryItem[];
-}
-
 export default function Gallery() {
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
   const { data: items = [], isLoading } = useQuery<GalleryItem[]>({
     queryKey: ['/api/gallery-items'],
   });
 
-  // Group items by category
-  const groupedItems = items.reduce<GroupedGalleryItems>((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {});
+  const categories = Array.from(new Set(items.map(item => item.category))).sort();
 
-  const categories = Object.keys(groupedItems);
+  const filteredItems = activeCategory === "all"
+    ? items
+    : items.filter(item => item.category === activeCategory);
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,79 +52,124 @@ export default function Gallery() {
         </div>
       </section>
 
+      {/* Filter Bar */}
+      {!isLoading && categories.length > 1 && (
+        <section className="border-b bg-card/50 sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button
+                variant={activeCategory === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveCategory("all")}
+                className={activeCategory === "all" ? "bg-accent border-accent text-accent-foreground" : ""}
+                data-testid="filter-all"
+              >
+                All
+                <Badge className="ml-2 bg-background/20 text-current border-0 text-xs">
+                  {items.length}
+                </Badge>
+              </Button>
+              {categories.map(category => {
+                const count = items.filter(i => i.category === category).length;
+                const isActive = activeCategory === category;
+                return (
+                  <Button
+                    key={category}
+                    variant={isActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveCategory(category)}
+                    className={isActive ? "bg-accent border-accent text-accent-foreground" : ""}
+                    data-testid={`filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {category}
+                    <Badge className="ml-2 bg-background/20 text-current border-0 text-xs">
+                      {count}
+                    </Badge>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {isLoading ? (
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="text-muted-foreground">Loading gallery...</p>
         </div>
-      ) : categories.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="text-muted-foreground">No gallery items yet. Check back soon!</p>
         </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="container mx-auto px-4 py-16 text-center">
+          <p className="text-muted-foreground">No items in this category.</p>
+        </div>
       ) : (
-        <>
-          {/* Gallery Categories */}
-          {categories.map((category, categoryIndex) => (
-            <section key={category} className={categoryIndex % 2 === 0 ? "py-16 md:py-24" : "py-16 md:py-24 bg-card"}>
-              <div className="container mx-auto px-4">
-                <div className="max-w-6xl mx-auto">
-                  <h2 className="text-2xl sm:text-3xl font-bold mb-8" data-testid={`text-category-${categoryIndex}`}>
-                    {category}
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {groupedItems[category].map((item, itemIndex) => (
-                      <Card 
-                        key={item.id} 
-                        className="hover-elevate overflow-hidden cursor-pointer"
-                        data-testid={`card-gallery-${categoryIndex}-${itemIndex}`}
-                      >
-                        <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
-                          {item.type === 'video' ? (
-                            <GalleryVideoCard
-                              fileUrl={item.fileUrl}
-                              title={item.title}
-                              storedThumbnailUrl={item.thumbnailUrl}
-                            />
-                          ) : (
-                            <img 
-                              src={item.fileUrl} 
-                              alt={item.title}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `
-                                    <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                                      <span class="text-xs text-muted-foreground">Failed to load</span>
-                                    </div>
-                                  `;
-                                }
-                              }}
-                            />
-                          )}
+        <section className="py-12 md:py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {filteredItems.map((item, itemIndex) => (
+                  <Card
+                    key={item.id}
+                    className="hover-elevate overflow-hidden cursor-pointer"
+                    data-testid={`card-gallery-${itemIndex}`}
+                  >
+                    <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
+                      {item.type === 'video' ? (
+                        <GalleryVideoCard
+                          fileUrl={item.fileUrl}
+                          title={item.title}
+                          storedThumbnailUrl={item.thumbnailUrl}
+                        />
+                      ) : (
+                        <img
+                          src={item.fileUrl}
+                          alt={item.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                  <span class="text-xs text-muted-foreground">Failed to load</span>
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                      )}
+                      {/* Category badge shown when viewing "All" */}
+                      {activeCategory === "all" && (
+                        <div className="absolute top-2 left-2">
+                          <Badge className="bg-black/60 text-white border-0 text-xs backdrop-blur-sm">
+                            {item.category}
+                          </Badge>
                         </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-semibold text-sm line-clamp-2" data-testid={`text-gallery-item-${categoryIndex}-${itemIndex}`}>
-                            {item.title}
-                          </h3>
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {item.description}
-                            </p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-sm line-clamp-2" data-testid={`text-gallery-item-${itemIndex}`}>
+                        {item.title}
+                      </h3>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {item.description}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </section>
-          ))}
-        </>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* CTA Section */}

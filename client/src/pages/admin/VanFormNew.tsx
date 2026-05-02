@@ -408,6 +408,27 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           </p>
         </div>
 
+        <div>
+          <Label htmlFor="urgencyBadge">Urgency Badge (optional)</Label>
+          <Select name="urgencyBadge" defaultValue={van?.urgencyBadge || "none"}>
+            <SelectTrigger data-testid="select-van-urgency-badge">
+              <SelectValue placeholder="No badge" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No badge</SelectItem>
+              <SelectItem value="Only 1 Left">Only 1 Left</SelectItem>
+              <SelectItem value="Selling Fast">Selling Fast</SelectItem>
+              <SelectItem value="Hot Deal">Hot Deal</SelectItem>
+              <SelectItem value="Just In">Just In</SelectItem>
+              <SelectItem value="Nearly New">Nearly New</SelectItem>
+              <SelectItem value="Reduced">Reduced</SelectItem>
+              <SelectItem value="Price Drop">Price Drop</SelectItem>
+              <SelectItem value="Reserved">Reserved</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">Shown as a badge on the van card in the stock listing</p>
+        </div>
+
         <div className="flex items-center space-x-2">
           <AdminSwitch
             id="vatIncluded"

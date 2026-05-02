@@ -205,6 +205,7 @@ export default function AdminVans() {
       description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
       euroStatus: (formData.get('euroStatus') as string) || undefined,
+      urgencyBadge: (() => { const v = formData.get('urgencyBadge') as string; return (v && v !== 'none') ? v : null; })(),
     };
 
     createVanMutation.mutate(vanData);
@@ -295,6 +296,7 @@ export default function AdminVans() {
       description: (formData.get('description') as string) || undefined,
       published: formData.get('published') === 'on',
       euroStatus: (formData.get('euroStatus') as string) || undefined,
+      urgencyBadge: (() => { const v = formData.get('urgencyBadge') as string; return (v && v !== 'none') ? v : null; })(),
     };
 
     updateVanMutation.mutate({ id: editingVan.id, data: vanData });

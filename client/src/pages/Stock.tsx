@@ -6,11 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Car, Fuel, Gauge, Settings, Calendar, ArrowRight, Search, Wrench } from "lucide-react";
+import { Car, Fuel, Gauge, Settings, Calendar, ArrowRight, Search, Wrench, Flame, Zap, Tag, Clock } from "lucide-react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import SEO from "@/components/SEO";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import type { Van } from "@shared/schema";
+
+const URGENCY_STYLES: Record<string, { className: string; icon: typeof Flame }> = {
+  "Only 1 Left":    { className: "bg-red-600 text-white border-0",       icon: Flame },
+  "Selling Fast":   { className: "bg-orange-500 text-white border-0",    icon: Flame },
+  "Hot Deal":       { className: "bg-orange-500 text-white border-0",    icon: Flame },
+  "Just In":        { className: "bg-accent text-accent-foreground border-0", icon: Zap },
+  "Nearly New":     { className: "bg-accent text-accent-foreground border-0", icon: Zap },
+  "Reduced":        { className: "bg-blue-600 text-white border-0",      icon: Tag },
+  "Price Drop":     { className: "bg-blue-600 text-white border-0",      icon: Tag },
+  "Reserved":       { className: "bg-muted text-muted-foreground border-0", icon: Clock },
+};
 
 export default function Stock() {
   const [makeFilter, setMakeFilter] = useState<string>("all");
@@ -203,85 +215,99 @@ export default function Stock() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVans.map((van) => (
-                <Card key={van.id} className="overflow-hidden" data-testid={`card-van-${van.id}`}>
-                  {/* Van Image */}
-                  <div className="aspect-video bg-muted relative">
-                    {van.heroImage ? (
-                      <img
-                        src={van.heroImage}
-                        alt={van.title}
-                        className="w-full h-full object-cover"
-                        data-testid={`img-van-${van.id}`}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-20 h-20 text-muted-foreground/30" />
+              {filteredVans.map((van) => {
+                const urgencyStyle = van.urgencyBadge ? URGENCY_STYLES[van.urgencyBadge] : null;
+                const UrgencyIcon = urgencyStyle?.icon;
+                return (
+                  <Card key={van.id} className="overflow-hidden" data-testid={`card-van-${van.id}`}>
+                    {/* Van Image */}
+                    <div className="aspect-video bg-muted relative">
+                      {van.heroImage ? (
+                        <img
+                          src={van.heroImage}
+                          alt={van.title}
+                          className="w-full h-full object-cover"
+                          data-testid={`img-van-${van.id}`}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Car className="w-20 h-20 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {/* Size badge */}
+                      <div className="absolute top-3 right-3">
+                        <Badge className="bg-accent text-accent-foreground">
+                          {van.specs.size}
+                        </Badge>
                       </div>
-                    )}
-                    <div className="absolute top-4 right-4">
-                      <Badge className="bg-accent text-accent-foreground">
-                        {van.specs.size}
-                      </Badge>
+                      {/* Urgency badge */}
+                      {van.urgencyBadge && urgencyStyle && UrgencyIcon && (
+                        <div className="absolute top-3 left-3">
+                          <Badge className={`${urgencyStyle.className} flex items-center gap-1`} data-testid={`badge-urgency-${van.id}`}>
+                            <UrgencyIcon className="w-3 h-3" />
+                            {van.urgencyBadge}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
-                  </div>
 
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-xl" data-testid={`text-van-title-${van.id}`}>
-                        {van.year} {van.make} {van.model}
-                      </CardTitle>
-                    </div>
-                    <p className="text-2xl font-bold text-accent" data-testid={`text-van-price-${van.id}`}>
-                      £{(van.price / 100).toLocaleString()}
-                      {!van.vatIncluded && <span className="text-sm font-normal text-muted-foreground ml-1">+ VAT</span>}
-                    </p>
-                  </CardHeader>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-xl" data-testid={`text-van-title-${van.id}`}>
+                          {van.year} {van.make} {van.model}
+                        </CardTitle>
+                      </div>
+                      <p className="text-2xl font-bold text-accent" data-testid={`text-van-price-${van.id}`}>
+                        £{(van.price / 100).toLocaleString()}
+                        {!van.vatIncluded && <span className="text-sm font-normal text-muted-foreground ml-1">+ VAT</span>}
+                      </p>
+                    </CardHeader>
 
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2">
-                        <Gauge className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{van.mileage.toLocaleString()} miles</span>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2">
+                          <Gauge className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{van.mileage.toLocaleString()} miles</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Settings className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{van.specs.transmission}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Fuel className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{van.specs.fuel}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{van.year}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Settings className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{van.specs.transmission}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Fuel className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{van.specs.fuel}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{van.year}</span>
-                      </div>
-                    </div>
-                  </CardContent>
+                    </CardContent>
 
-                  <CardFooter className="pt-0 flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1 !border-2 !border-accent text-accent hover:bg-accent/10"
-                      onClick={() => handleConfigureVan(van.id)}
-                      data-testid={`button-configure-${van.id}`}
-                    >
-                      <Wrench className="w-4 h-4 mr-2" />
-                      Configure
-                    </Button>
-                    <Button
-                      asChild
-                      className="flex-1 bg-accent border-accent text-accent-foreground"
-                      data-testid={`button-view-van-${van.id}`}
-                    >
-                      <Link href={`/stock/${van.slug}`}>
-                        View Details
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                    <CardFooter className="pt-0 flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 !border-2 !border-accent text-accent hover:bg-accent/10"
+                        onClick={() => handleConfigureVan(van.id)}
+                        data-testid={`button-configure-${van.id}`}
+                      >
+                        <Wrench className="w-4 h-4 mr-2" />
+                        Configure
+                      </Button>
+                      <Button
+                        asChild
+                        className="flex-1 bg-accent border-accent text-accent-foreground"
+                        data-testid={`button-view-van-${van.id}`}
+                      >
+                        <Link href={`/stock/${van.slug}`}>
+                          View Details
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -349,6 +375,8 @@ export default function Stock() {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }
