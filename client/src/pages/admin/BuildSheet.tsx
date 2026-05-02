@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Printer } from "lucide-react";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
@@ -281,10 +282,21 @@ export default function BuildSheet() {
 
   if (isLoading || isLoadingQuotes) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background">
+        <AdminPageHeader
+          title="Van Build Sheet"
+          actions={
+            <Button variant="ghost" onClick={() => setLocation("/admin/quotes")} data-testid="button-back">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Quotes
+            </Button>
+          }
+        />
+        <div className="flex items-center justify-center py-24">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">Loading...</p>
+          </div>
         </div>
       </div>
     );
@@ -336,17 +348,22 @@ export default function BuildSheet() {
       `}</style>
 
       {/* Nav bar — hidden on print */}
-      <div className="no-print bg-background border-b p-4">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" onClick={() => setLocation("/admin/quotes")} data-testid="button-back">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Quotes
-          </Button>
-          <Button onClick={handlePrint} data-testid="button-print">
-            <Printer className="w-4 h-4 mr-2" />
-            Print Build Sheet
-          </Button>
-        </div>
+      <div className="no-print">
+        <AdminPageHeader
+          title="Van Build Sheet"
+          actions={
+            <>
+              <Button variant="ghost" onClick={() => setLocation("/admin/quotes")} data-testid="button-back">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Quotes
+              </Button>
+              <Button onClick={handlePrint} data-testid="button-print">
+                <Printer className="w-4 h-4 mr-2" />
+                Print Build Sheet
+              </Button>
+            </>
+          }
+        />
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl print:max-w-full print:px-0 print:py-4">

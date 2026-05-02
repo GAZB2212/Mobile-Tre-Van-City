@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import { useEffect } from "react";
@@ -149,8 +150,22 @@ export default function AdminFinanceCalculator() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto" />
+      <div className="min-h-screen bg-background">
+        <AdminPageHeader
+          title="Finance Calculator"
+          badge={<Badge variant="outline">Sales Tool</Badge>}
+          actions={
+            <Button variant="ghost" size="sm" asChild data-testid="button-back-admin">
+              <Link href="/admin">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Admin
+              </Link>
+            </Button>
+          }
+        />
+        <div className="flex items-center justify-center py-24">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto" />
+        </div>
       </div>
     );
   }
@@ -159,33 +174,29 @@ export default function AdminFinanceCalculator() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4 flex-wrap">
-          <Button variant="ghost" size="sm" asChild data-testid="button-back-admin">
-            <Link href="/admin">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Admin
-            </Link>
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-accent" />
-            <h1 className="text-lg font-semibold">Finance Calculator</h1>
-            <Badge variant="outline">Sales Tool</Badge>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReset}
-            className="ml-auto"
-            data-testid="button-reset-calculator"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reset
-          </Button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Finance Calculator"
+        badge={<Badge variant="outline">Sales Tool</Badge>}
+        actions={
+          <>
+            <Button variant="ghost" size="sm" asChild data-testid="button-back-admin">
+              <Link href="/admin">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Admin
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              data-testid="button-reset-calculator"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset
+            </Button>
+          </>
+        }
+      />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
