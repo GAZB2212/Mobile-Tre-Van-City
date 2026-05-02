@@ -1055,38 +1055,39 @@ export default function AdminQuoteDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            className="mb-4"
-            data-testid="button-back-to-quotes"
-            onClick={() => handleNavigation(fromParam === "leads" ? "/admin/leads" : "/admin/quotes")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {fromParam === "leads" ? "Back to Leads" : "Back to Quotes"}
-          </Button>
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-4xl font-bold mb-2 break-all" data-testid="text-quote-title">
+      {/* Sticky header bar for QuoteDetail */}
+      <div className="border-b border-border/60 bg-card/20 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                data-testid="button-back-to-quotes"
+                onClick={() => handleNavigation(fromParam === "leads" ? "/admin/leads" : "/admin/quotes")}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:block">{fromParam === "leads" ? "Leads" : "Quotes"}</span>
+              </button>
+              <span className="text-muted-foreground/40 text-sm">/</span>
+              <h1 className="text-sm font-semibold text-foreground truncate" data-testid="text-quote-title">
                 Quote #{quote.id.slice(0, 8).toUpperCase()}
               </h1>
-              <p className="text-base md:text-lg text-muted-foreground">
-                Manage customer quote and build progress
-              </p>
             </div>
             <Button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="w-full md:w-auto bg-accent hover:bg-accent/90"
+              size="sm"
+              className="bg-accent text-accent-foreground shrink-0"
               data-testid="button-save"
             >
-              <Save className="w-4 h-4 mr-2" />
-              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              <Save className="w-3.5 h-3.5 mr-1.5" />
+              {updateMutation.isPending ? "Saving…" : "Save Changes"}
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6">
 
         {/* Undo option choice confirmation dialog */}
         <AlertDialog open={showUndoChoiceDialog} onOpenChange={setShowUndoChoiceDialog}>
@@ -1224,13 +1225,13 @@ export default function AdminQuoteDetail() {
         </AlertDialog>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-0">
-          <div className="overflow-x-auto mb-6">
-            <TabsList className="grid w-full grid-cols-5 min-w-[480px]">
-              <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-              <TabsTrigger value="configuration" data-testid="tab-configuration">Config</TabsTrigger>
-              <TabsTrigger value="finance" data-testid="tab-finance">Finance</TabsTrigger>
-              <TabsTrigger value="build" data-testid="tab-build">Build</TabsTrigger>
-              <TabsTrigger value="notes" data-testid="tab-notes">Notes</TabsTrigger>
+          <div className="overflow-x-auto mb-6 border-b border-border/50">
+            <TabsList className="grid grid-cols-5 min-w-[480px] h-10 rounded-none bg-transparent p-0 border-0 gap-0">
+              <TabsTrigger value="overview" data-testid="tab-overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Overview</TabsTrigger>
+              <TabsTrigger value="configuration" data-testid="tab-configuration" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Config</TabsTrigger>
+              <TabsTrigger value="finance" data-testid="tab-finance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Finance</TabsTrigger>
+              <TabsTrigger value="build" data-testid="tab-build" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Build</TabsTrigger>
+              <TabsTrigger value="notes" data-testid="tab-notes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Notes</TabsTrigger>
             </TabsList>
           </div>
 

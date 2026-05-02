@@ -33,11 +33,9 @@ import {
   Layers,
   UserRound,
   ChevronLeft,
-  ChevronRight,
   LayoutDashboard,
   BookOpen,
   Menu,
-  X,
   RefreshCw,
 } from "lucide-react";
 
@@ -102,31 +100,41 @@ function NavLink({
       href={item.href}
       data-testid={`nav-admin-${item.href.split("/").pop()}`}
       className={`
-        flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium
-        transition-colors duration-150 cursor-pointer
+        relative flex items-center gap-2.5 rounded-md text-[13px] font-medium
+        transition-colors duration-150 cursor-pointer select-none
+        ${collapsed ? "h-9 w-9 justify-center px-0" : "h-9 px-2.5"}
         ${isActive
-          ? "bg-[#8bc440]/15 text-[#8bc440]"
-          : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
+          ? "bg-[hsl(86_45%_51%/0.12)] text-[hsl(86_53%_60%)]"
+          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05]"
         }
-        ${collapsed ? "justify-center" : ""}
       `}
     >
-      <div className="relative shrink-0">
-        <Icon className={`${isActive ? "text-[#8bc440]" : "text-zinc-500"}`} size={17} />
+      {/* Left accent bar for active item */}
+      {isActive && !collapsed && (
+        <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-[hsl(var(--admin-nav-active-bar))]" />
+      )}
+
+      <div className="relative shrink-0 flex items-center justify-center">
+        <Icon
+          className={`${isActive ? "text-[hsl(86_53%_60%)]" : "text-zinc-500"}`}
+          size={16}
+        />
         {collapsed && badge != null && badge > 0 && (
           <span
             data-testid={`badge-nav-${item.href.split("/").pop()}-collapsed`}
-            className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[#8bc440] text-black text-[9px] font-bold px-0.5 leading-none"
+            className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[hsl(86_53%_51%)] text-black text-[9px] font-bold px-0.5 leading-none"
           >
             {badge > 99 ? "99+" : badge}
           </span>
         )}
       </div>
+
       {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+
       {!collapsed && badge != null && badge > 0 && (
         <Badge
           data-testid={`badge-nav-${item.href.split("/").pop()}`}
-          className="ml-auto shrink-0 bg-[#8bc440] text-black text-[10px] font-bold px-1.5 py-0 h-5 no-default-active-elevate"
+          className="ml-auto shrink-0 bg-[hsl(86_53%_51%/0.15)] text-[hsl(86_53%_60%)] border-[hsl(86_53%_51%/0.25)] text-[10px] font-semibold px-1.5 py-0 h-4.5 no-default-active-elevate"
         >
           {badge > 99 ? "99+" : badge}
         </Badge>
@@ -261,19 +269,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const sidebarContent = (isMobile = false) => (
     <div
       className={`
-        flex flex-col h-full
-        bg-[#0d0d0d] border-r border-white/[0.06]
-        ${!isMobile ? (collapsed ? "w-[60px]" : "w-[220px]") : "w-[220px]"}
+        flex flex-col h-full admin-sidebar-bg
+        border-r admin-sidebar-border
+        ${!isMobile ? (collapsed ? "w-[56px]" : "w-[220px]") : "w-[220px]"}
         transition-all duration-200
       `}
     >
       {/* Brand header */}
       {collapsed && !isMobile ? (
-        /* Collapsed: round logo, clickable to expand */
-        <div className="flex items-center justify-center border-b border-white/[0.06] py-3">
+        <div className="flex items-center justify-center border-b admin-sidebar-border py-3.5">
           <button
             onClick={() => setCollapsed(false)}
-            className="w-9 h-9 rounded-full overflow-hidden hover:opacity-80 transition-opacity shrink-0"
+            className="w-8 h-8 rounded-full overflow-hidden opacity-80 hover:opacity-100 transition-opacity shrink-0"
             data-testid="button-toggle-sidebar"
             title="Expand sidebar"
           >
@@ -281,44 +288,45 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       ) : (
-        /* Expanded (desktop or mobile) */
-        <div className="flex items-center gap-2 px-3 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2 px-3 py-3.5 border-b admin-sidebar-border">
           <img
             src={mtvcLogoWide}
             alt="Mobile Tyre Van City"
-            className="h-9 w-auto object-contain shrink-0"
-            style={{ maxWidth: "120px" }}
+            className="h-8 w-auto object-contain shrink-0"
+            style={{ maxWidth: "115px" }}
           />
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest leading-tight flex-1 min-w-0">
-            Admin
-          </span>
-          {!isMobile && (
-            <button
-              onClick={() => setCollapsed(true)}
-              className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0"
-              data-testid="button-toggle-sidebar"
-            >
-              <ChevronLeft size={14} />
-            </button>
-          )}
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
+            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-[0.12em] leading-none">
+              Admin
+            </span>
+            {!isMobile && (
+              <button
+                onClick={() => setCollapsed(true)}
+                className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0 p-0.5"
+                data-testid="button-toggle-sidebar"
+              >
+                <ChevronLeft size={13} />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 space-y-5 px-2">
-        {navGroups.map((group) => {
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        {navGroups.map((group, gi) => {
           const visible = group.items.filter((i) => canSee(i.requiredRole));
           if (!visible.length) return null;
           const isGroupCollapsed = group.collapsible && collapsedGroups[group.label];
           return (
-            <div key={group.label}>
+            <div key={group.label} className={gi > 0 ? "pt-4" : ""}>
               {(!collapsed || isMobile) && (
                 <button
-                  className={`w-full flex items-center justify-between px-3 mb-1 ${group.collapsible ? "cursor-pointer hover:text-zinc-300 transition-colors" : "cursor-default"}`}
+                  className={`w-full flex items-center justify-between px-2.5 mb-1.5 ${group.collapsible ? "cursor-pointer hover:text-zinc-300 transition-colors" : "cursor-default"}`}
                   onClick={group.collapsible ? () => toggleGroup(group.label) : undefined}
                   data-testid={`nav-group-${group.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                  <p className="text-[10px] font-medium text-zinc-600 tracking-[0.08em]">
                     {group.label}
                   </p>
                   {group.collapsible && (
@@ -327,6 +335,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                       : <ChevronLeft size={11} className="text-zinc-600" />
                   )}
                 </button>
+              )}
+              {collapsed && !isMobile && gi > 0 && (
+                <div className="border-t admin-sidebar-border mx-1 mb-2" />
               )}
               {!isGroupCollapsed && (
                 <div className="space-y-0.5">
@@ -352,27 +363,27 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Footer */}
-      <div className={`border-t border-white/[0.06] p-3 space-y-1`}>
+      <div className="border-t admin-sidebar-border p-2 space-y-0.5">
         {/* User profile row */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={() => setProfileOpen(true)}
-              className={`w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/5 transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
+              className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
               data-testid="button-open-profile"
             >
-              <Avatar className="w-7 h-7 shrink-0 ring-1 ring-white/10">
+              <Avatar className="w-6 h-6 shrink-0 ring-1 ring-white/10">
                 <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || user?.username} />
-                <AvatarFallback className="text-[10px] font-semibold bg-[#8bc440]/15 text-[#8bc440]">
+                <AvatarFallback className="text-[9px] font-semibold bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)]">
                   {user?.firstName?.[0] || user?.email?.[0] || "A"}
                 </AvatarFallback>
               </Avatar>
               {(!collapsed || isMobile) && (
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-xs font-medium text-zinc-300 truncate">
+                  <p className="text-[12px] font-medium text-zinc-300 truncate leading-tight">
                     {user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.email}
                   </p>
-                  <p className="text-[10px] text-zinc-600 truncate">Edit profile</p>
+                  <p className="text-[10px] text-zinc-600 leading-tight">Edit profile</p>
                 </div>
               )}
             </button>
@@ -384,24 +395,25 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <TooltipTrigger asChild>
             <button
               onClick={() => window.open("/", "_blank")}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-zinc-100 hover:bg-white/5 transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
               data-testid="button-view-main-site"
             >
-              <Globe size={16} className="shrink-0 text-zinc-500" />
-              {(!collapsed || isMobile) && <span className="text-xs">View Main Site</span>}
+              <Globe size={14} className="shrink-0" />
+              {(!collapsed || isMobile) && <span>View Main Site</span>}
             </button>
           </TooltipTrigger>
           {(collapsed && !isMobile) && <TooltipContent side="right">View Main Site</TooltipContent>}
         </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={handleLogout}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] text-zinc-500 hover:text-red-400 hover:bg-red-500/[0.08] transition-colors ${collapsed && !isMobile ? "justify-center" : ""}`}
               data-testid="button-logout"
             >
-              <LogOut size={16} className="shrink-0" />
-              {(!collapsed || isMobile) && <span className="text-xs">Log Out</span>}
+              <LogOut size={14} className="shrink-0" />
+              {(!collapsed || isMobile) && <span>Log Out</span>}
             </button>
           </TooltipTrigger>
           {(collapsed && !isMobile) && <TooltipContent side="right">Log Out</TooltipContent>}
@@ -433,7 +445,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center h-12 px-4 border-b border-white/[0.06] bg-[#0d0d0d] shrink-0 no-print">
+        <header className="flex items-center h-11 px-4 border-b admin-topbar-bg admin-topbar-border shrink-0 no-print">
           <button
             className="md:hidden text-zinc-400 hover:text-zinc-100 mr-3"
             onClick={() => setMobileOpen(true)}
@@ -442,7 +454,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Menu size={18} />
           </button>
           <div className="flex-1" />
-          <span className="text-xs text-zinc-600 hidden sm:block">
+          <span className="text-[11px] text-zinc-600 hidden sm:block">
             {user?.email}
           </span>
         </header>
@@ -450,7 +462,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Update available banner */}
         {updateAvailable && (
           <div
-            className="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/25 shrink-0"
+            className="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-500/8 border-b border-amber-500/20 shrink-0"
             data-testid="banner-update-available"
           >
             <p className="text-xs text-amber-400 font-medium">
@@ -461,7 +473,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               data-testid="button-refresh-now"
               className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors shrink-0"
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={12} />
               Refresh now
             </button>
           </div>

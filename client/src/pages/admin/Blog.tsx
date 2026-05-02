@@ -320,15 +320,15 @@ export default function AdminBlog() {
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
             <div>
-              <CardTitle>Blog Posts</CardTitle>
+              <CardTitle className="text-xl font-semibold tracking-tight">Blog Posts</CardTitle>
               <CardDescription>Create and manage articles for the public blog</CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" onClick={() => setIsGenerateOpen(true)} data-testid="button-generate-post">
-                <Sparkles className="w-4 h-4 mr-2" />Generate with AI
+              <Button size="sm" variant="outline" onClick={() => setIsGenerateOpen(true)} data-testid="button-generate-post">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />Generate with AI
               </Button>
-              <Button onClick={() => setIsCreateOpen(true)} data-testid="button-new-post">
-                <Plus className="w-4 h-4 mr-2" />New Post
+              <Button size="sm" onClick={() => setIsCreateOpen(true)} data-testid="button-new-post">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />New Post
               </Button>
             </div>
           </CardHeader>

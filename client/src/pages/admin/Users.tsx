@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 export default function AdminUsers() {
   const { toast } = useToast();
@@ -230,16 +231,14 @@ export default function AdminUsers() {
   return (
     <>
       <AdminBackButton />
-      <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="text-page-title">User Management</h1>
-          <p className="text-muted-foreground">Manage user roles and permissions</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <AdminPageHeader
+        title="User Management"
+        description="Manage user roles and permissions"
+        actions={
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-user" className="flex-shrink-0">
-              <UserPlus className="w-4 h-4 mr-2" />
+            <Button size="sm" data-testid="button-create-user">
+              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
               Create User
             </Button>
           </DialogTrigger>
@@ -323,7 +322,9 @@ export default function AdminUsers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
+      <div className="container mx-auto p-6 max-w-7xl">
 
       {usersLoading ? (
         <div className="flex items-center justify-center py-12">

@@ -17,6 +17,7 @@ import { Plus, Edit, Trash2, GraduationCap, X, PoundSterling } from "lucide-reac
 import { useToast } from "@/hooks/use-toast";
 import type { TrainingOption } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 const trainingOptionSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -159,12 +160,9 @@ export default function AdminTrainingOptions() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Training Options</h1>
-          <p className="text-muted-foreground">Manage training programmes available in the configurator</p>
-        </div>
-        <div className="grid gap-4">
+      <div>
+        <AdminPageHeader title="Training Options" description="Manage training programmes available in the configurator" />
+        <div className="p-6 grid gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
           ))}
@@ -176,19 +174,17 @@ export default function AdminTrainingOptions() {
   return (
     <>
       <AdminBackButton />
-      <div className="p-6 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="text-title">Training Options</h1>
-          <p className="text-muted-foreground mt-1">Manage training programmes available in the configurator</p>
-        </div>
-        <Dialog open={isCreateDialogOpen || !!editingOption} onOpenChange={(open) => {
-          if (!open) handleCloseDialog();
-          else setIsCreateDialogOpen(true);
-        }}>
+      <AdminPageHeader
+        title="Training Options"
+        description="Manage training programmes available in the configurator"
+        actions={
+          <Dialog open={isCreateDialogOpen || !!editingOption} onOpenChange={(open) => {
+            if (!open) handleCloseDialog();
+            else setIsCreateDialogOpen(true);
+          }}>
             <DialogTrigger asChild>
-              <Button data-testid="button-create-training">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button size="sm" data-testid="button-create-training">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Add Training Option
               </Button>
             </DialogTrigger>
@@ -364,8 +360,10 @@ export default function AdminTrainingOptions() {
               </Form>
             </DialogContent>
           </Dialog>
-      </div>
+        }
+      />
 
+      <div className="p-6 space-y-6">
       <div className="grid gap-4">
           {options.length === 0 ? (
             <Card>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { 
   Car, 
   Package, 
@@ -152,40 +153,37 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-full">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <AdminPageHeader
+        title="Dashboard"
+        description={`Welcome back, ${user?.firstName || user?.email}`}
+        actions={
+          <div className="flex gap-1">
+            <Button
+              variant={activeTab === "overview" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("overview")}
+              data-testid="button-tab-overview"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />
+              Overview
+            </Button>
+            <Button
+              variant={activeTab === "pipeline" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("pipeline")}
+              data-testid="button-tab-pipeline"
+            >
+              <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+              Pipeline
+              {committedQuotes.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 no-default-active-elevate">{committedQuotes.length}</Badge>
+              )}
+            </Button>
+          </div>
+        }
+      />
 
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Welcome back, {user?.firstName || user?.email}
-          </p>
-        </div>
-
-        {/* Tab navigation */}
-        <div className="flex flex-wrap gap-1">
-          <Button
-            variant={activeTab === "overview" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("overview")}
-            data-testid="button-tab-overview"
-          >
-            <LayoutDashboard className="w-4 h-4 mr-2" />
-            Overview
-          </Button>
-          <Button
-            variant={activeTab === "pipeline" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("pipeline")}
-            data-testid="button-tab-pipeline"
-          >
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Pipeline &amp; Jobs
-            {committedQuotes.length > 0 && (
-              <Badge variant="secondary" className="ml-2">{committedQuotes.length}</Badge>
-            )}
-          </Button>
-        </div>
+      <div className="container mx-auto px-4 py-6 space-y-8">
 
         {/* ── OVERVIEW TAB ── */}
         {activeTab === "overview" && (

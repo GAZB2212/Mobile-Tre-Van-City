@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -237,19 +238,17 @@ export default function AdminGalleryItems() {
   return (
     <>
       <AdminBackButton />
-      <div className="p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold" data-testid="text-gallery-items-title">
-              Gallery Items
-            </h1>
-            <p className="text-muted-foreground">Manage gallery images and videos</p>
-          </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)} data-testid="button-create-item" className="flex-shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
+      <AdminPageHeader
+        title="Gallery Items"
+        description="Manage gallery images and videos"
+        actions={
+          <Button size="sm" onClick={() => setIsCreateDialogOpen(true)} data-testid="button-create-item">
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
             Add Item
           </Button>
-        </div>
+        }
+      />
+      <div className="p-6">
 
         {isLoading ? (
           <div className="text-center py-8">Loading...</div>

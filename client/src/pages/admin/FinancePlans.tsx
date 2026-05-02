@@ -18,6 +18,7 @@ import { Plus, Edit, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { FinancePlan } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 const financePlanSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -124,12 +125,9 @@ export default function AdminFinancePlans() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Finance Plans</h1>
-          <p className="text-muted-foreground">Manage financing options for customers</p>
-        </div>
-        <div className="grid gap-4">
+      <div>
+        <AdminPageHeader title="Finance Plans" description="Manage financing options for customers" />
+        <div className="p-6 grid gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
           ))}
@@ -141,16 +139,14 @@ export default function AdminFinancePlans() {
   return (
     <>
       <AdminBackButton />
-      <div className="p-6 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Finance Plans</h1>
-          <p className="text-muted-foreground">Manage financing options for customers</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <AdminPageHeader
+        title="Finance Plans"
+        description="Manage financing options for customers"
+        actions={
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-plan" className="flex-shrink-0">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button size="sm" data-testid="button-create-plan">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
               Add Finance Plan
             </Button>
           </DialogTrigger>
@@ -354,8 +350,10 @@ export default function AdminFinancePlans() {
             </Form>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
+      <div className="p-6 space-y-6">
       <div className="grid gap-4">
         {plans.map((plan) => (
           <Card key={plan.id} data-testid={`card-plan-${plan.id}`}>

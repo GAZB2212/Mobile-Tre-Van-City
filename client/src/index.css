@@ -328,6 +328,34 @@
   }
 }
 
+/* ─── Admin palette ────────────────────────────────────────────────────── */
+/* Layered dark-slate surfaces used throughout the admin shell.             */
+/* These are intentionally separate from the main app theme so the admin   */
+/* can have its own sophisticated depth without affecting the public site.  */
+:root,
+.dark {
+  /* Sidebar shell */
+  --admin-sidebar-bg:       220 18% 9%;    /* rich dark blue-slate – not pure black */
+  --admin-sidebar-surface:  220 16% 12%;   /* slightly elevated card/surface within sidebar */
+  --admin-sidebar-border:   220 14% 16%;   /* subtle border between sidebar sections */
+
+  /* Active nav item accent */
+  --admin-nav-active-bg:    86 45% 51% / 0.12;   /* green tint, low opacity */
+  --admin-nav-active-bar:   86 53% 51%;           /* solid green left bar */
+
+  /* Top-bar & content area */
+  --admin-topbar-bg:        220 18% 9%;
+  --admin-topbar-border:    220 14% 14%;
+}
+
+/* ─── Admin-specific utility classes ─────────────────────────────────── */
+@layer utilities {
+  .admin-sidebar-bg     { background-color: hsl(var(--admin-sidebar-bg)); }
+  .admin-sidebar-border { border-color: hsl(var(--admin-sidebar-border)); }
+  .admin-topbar-bg      { background-color: hsl(var(--admin-topbar-bg)); }
+  .admin-topbar-border  { border-color: hsl(var(--admin-topbar-border)); }
+}
+
 /* Print styles */
 @media print {
   .no-print {

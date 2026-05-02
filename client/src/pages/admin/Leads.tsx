@@ -8,6 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -248,35 +249,24 @@ export default function AdminLeads() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Users className="w-6 h-6" />
-                Lead Management
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-2">
-                Track and manage customer inquiries and leads
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className={`w-1.5 h-1.5 rounded-full ${leadsFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
-                  {leadsFetching ? "Refreshing…" : isActive ? `Live — updates every ${POLL_INTERVAL_MS / 1000}s` : "Paused (idle)"}
-                </span>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" onClick={handleExportLeads} data-testid="button-export-leads">
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="/admin" data-testid="link-back-to-dashboard">Back to Dashboard</a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Lead Management"
+        description="Track and manage customer inquiries and leads"
+        statusIndicator={
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={`w-1.5 h-1.5 rounded-full ${leadsFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-[hsl(86_53%_51%)]" : "bg-muted-foreground/40"}`} />
+            {leadsFetching ? "Refreshing…" : isActive ? `Live` : "Paused"}
+          </span>
+        }
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleExportLeads} data-testid="button-export-leads">
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Export CSV
+            </Button>
+          </>
+        }
+      />
 
       <div className="container mx-auto px-4 py-6">
         <AdminBackButton />

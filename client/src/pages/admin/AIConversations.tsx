@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -537,51 +538,32 @@ export default function AdminAIConversations() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Bot className="w-6 h-6" />
-                Max AI Conversations
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-2">
-                Review all AI chat sessions from the Max van builder widget
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      aiFetching
-                        ? "bg-amber-400 animate-pulse"
-                        : isActive
-                        ? "bg-green-500"
-                        : "bg-muted-foreground"
-                    }`}
-                  />
-                  {aiFetching
-                    ? "Refreshing…"
-                    : isActive
-                    ? "Live — updates every 60s"
-                    : "Paused (idle)"}
-                </span>
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setExportStatus(statusFilter);
-                setExportDateFrom(dateFrom);
-                setExportDateTo(dateTo);
-                setExportDialogOpen(true);
-              }}
-              data-testid="button-export-ai-csv"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
-          </div>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Max AI Conversations"
+        description="Review all AI chat sessions from the Max van builder widget"
+        statusIndicator={
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={`w-1.5 h-1.5 rounded-full ${aiFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-[hsl(86_53%_51%)]" : "bg-muted-foreground/40"}`} />
+            {aiFetching ? "Refreshing…" : isActive ? "Live" : "Paused"}
+          </span>
+        }
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setExportStatus(statusFilter);
+              setExportDateFrom(dateFrom);
+              setExportDateTo(dateTo);
+              setExportDialogOpen(true);
+            }}
+            data-testid="button-export-ai-csv"
+          >
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            Export CSV
+          </Button>
+        }
+      />
 
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Stats */}

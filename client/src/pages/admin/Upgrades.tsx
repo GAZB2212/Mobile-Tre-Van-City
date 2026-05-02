@@ -43,6 +43,7 @@ import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown } from "l
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import { UpgradeVideoUploader } from "@/components/UpgradeVideoUploader";
 import { useEffect } from "react";
@@ -1414,21 +1415,17 @@ export default function AdminUpgrades() {
   return (
     <>
       <AdminBackButton />
-      <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="text-upgrades-title">
-            Upgrade Management
-          </h1>
-          <p className="text-muted-foreground">
-            Manage upgrade options and add-ons for mobile tyre services
-          </p>
-        </div>
-        <Button onClick={handleCreate} data-testid="button-create-upgrade" className="flex-shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Upgrade
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Upgrade Management"
+        description="Manage upgrade options and add-ons for mobile tyre services"
+        actions={
+          <Button onClick={handleCreate} size="sm" data-testid="button-create-upgrade">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Add Upgrade
+          </Button>
+        }
+      />
+      <div className="space-y-6 p-6">
 
       {upgrades.length === 0 ? (
         <Card>

@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { Upload, CheckCircle, Video, Loader2 } from "lucide-react";
-import { Link } from "wouter";
-import { ArrowLeft } from "lucide-react";
+import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 const DEFAULT_VIDEOS = {
   hero_video_url: "/media/website_hero_1772966773377.mp4",
@@ -152,22 +152,11 @@ export default function AdminVideos() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4 flex-wrap">
-          <Link href="/admin">
-            <Button variant="ghost" size="sm" data-testid="button-back-admin">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Admin Dashboard
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-videos-title">Manage Videos</h1>
-            <p className="text-sm text-muted-foreground">
-              Upload replacement videos — changes go live immediately on the deployed site.
-            </p>
-          </div>
-        </div>
-      </div>
+      <AdminBackButton />
+      <AdminPageHeader
+        title="Manage Videos"
+        description="Upload replacement videos — changes go live immediately on the deployed site."
+      />
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -12,17 +12,17 @@ const END_OF_DAY_SECOND = 59;
 
 function getStatusBadgeClass(status: string): string {
   switch (status) {
-    case "new": return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
-    case "contacted": return "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300";
-    case "awaiting_deposit": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-800";
-    case "awaiting_finance": return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
-    case "finance_declined": return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
-    case "deposit_taken": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
-    case "finance_approved": return "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300";
-    case "in_build": return "bg-red-600 text-white dark:bg-red-600 dark:text-white";
-    case "completed": return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300";
-    case "cancelled": return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300";
-    default: return "bg-muted text-muted-foreground";
+    case "new":               return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    case "contacted":         return "bg-violet-500/10 text-violet-400 border-violet-500/20";
+    case "awaiting_deposit":  return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    case "awaiting_finance":  return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+    case "finance_declined":  return "bg-red-500/10 text-red-400 border-red-500/20";
+    case "deposit_taken":     return "bg-lime-500/10 text-lime-400 border-lime-500/20";
+    case "finance_approved":  return "bg-lime-500/10 text-lime-400 border-lime-500/20";
+    case "in_build":          return "bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)] border-[hsl(86_53%_51%/0.25)]";
+    case "completed":         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+    case "cancelled":         return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+    default:                  return "bg-muted/60 text-muted-foreground border-border/60";
   }
 }
 
@@ -79,6 +79,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -451,40 +452,27 @@ export default function AdminQuotes() {
   return (
     <div className="min-h-screen bg-background">
       <AdminBackButton />
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <FileText className="w-6 h-6" />
-                Configurator Management
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-2">
-                Review and manage customer configurators
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className={`w-1.5 h-1.5 rounded-full ${quotesFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
-                  {quotesFetching ? "Refreshing…" : isActive ? `Live — updates every ${POLL_INTERVAL_MS / 1000}s` : "Paused (idle)"}
-                </span>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={handleExportQuotes}
-                data-testid="button-export-quotes"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="/admin" data-testid="link-admin-dashboard">
-                  Back to Dashboard
-                </a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Configurator Management"
+        description="Review and manage customer configurators"
+        statusIndicator={
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={`w-1.5 h-1.5 rounded-full ${quotesFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-[hsl(86_53%_51%)]" : "bg-muted-foreground/40"}`} />
+            {quotesFetching ? "Refreshing…" : isActive ? `Live` : "Paused"}
+          </span>
+        }
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportQuotes}
+            data-testid="button-export-quotes"
+          >
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            Export CSV
+          </Button>
+        }
+      />
 
       <div className="container mx-auto px-4 py-6">
 

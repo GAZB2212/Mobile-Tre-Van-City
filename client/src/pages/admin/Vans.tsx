@@ -12,12 +12,13 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, Car, Search } from "lucide-react";
-import { Link } from "wouter";
+import { Plus, Edit, Trash2, Car } from "lucide-react";
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
 import { VanWizard } from "@/components/VanWizard";
 import type { Van, InsertVan } from "@shared/schema";
+import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 export default function AdminVans() {
   const { toast } = useToast();
@@ -315,47 +316,35 @@ export default function AdminVans() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin" data-testid="link-back-to-dashboard">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Admin
-                </Link>
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold">Van Management</h1>
-                <p className="text-muted-foreground">
-                  Manage your van inventory and listings
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline"
-                onClick={() => fixAclsMutation.mutate()}
-                disabled={fixAclsMutation.isPending}
-                data-testid="button-fix-acls"
-              >
-                {fixAclsMutation.isPending ? "Fixing..." : "Fix Image Permissions"}
-              </Button>
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button data-testid="button-create-van">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Van
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <VanWizard onComplete={handleCreateVan} isLoading={createVanMutation.isPending} />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminBackButton />
+      <AdminPageHeader
+        title="Van Management"
+        description="Manage your van inventory and listings"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fixAclsMutation.mutate()}
+              disabled={fixAclsMutation.isPending}
+              data-testid="button-fix-acls"
+            >
+              {fixAclsMutation.isPending ? "Fixing..." : "Fix Image Permissions"}
+            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="button-create-van">
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Add Van
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <VanWizard onComplete={handleCreateVan} isLoading={createVanMutation.isPending} />
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
 
       <div className="container mx-auto px-4 py-8">
         {vans.length === 0 ? (

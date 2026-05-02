@@ -195,7 +195,7 @@ export default function AdminAnalytics() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b sticky top-0 bg-background z-50">
+      <div className="border-b border-border/60 sticky top-0 bg-background/95 backdrop-blur-sm z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
@@ -206,12 +206,12 @@ export default function AdminAnalytics() {
                 </Link>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Analytics</h1>
+                <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
                 <p className="text-muted-foreground text-sm">Visitor behaviour, traffic sources & business metrics</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="text-xs">
                 <Activity className="w-3 h-3 mr-1" />
                 Live Data
               </Badge>

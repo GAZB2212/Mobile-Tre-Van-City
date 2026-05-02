@@ -20,6 +20,7 @@ import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
 import { kitServiceTypes } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 // Form validation schema
 const kitSchema = z.object({
@@ -235,12 +236,9 @@ export default function AdminKits() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Equipment Kits</h1>
-          <p className="text-muted-foreground">Manage equipment packages for the configurator</p>
-        </div>
-        <div className="grid gap-4">
+      <div>
+        <AdminPageHeader title="Equipment Kits" description="Manage equipment packages for the configurator" />
+        <div className="p-6 grid gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
           ))}
@@ -252,13 +250,11 @@ export default function AdminKits() {
   return (
     <>
       <AdminBackButton />
-      <div className="p-6 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Equipment Kits</h1>
-          <p className="text-muted-foreground">Manage equipment packages for the configurator</p>
-        </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <AdminPageHeader
+        title="Equipment Kits"
+        description="Manage equipment packages for the configurator"
+        actions={
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-kit" className="flex-shrink-0">
               <Plus className="w-4 h-4 mr-2" />
@@ -584,7 +580,10 @@ export default function AdminKits() {
             </Form>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
+
+      <div className="p-6 space-y-6">
 
       {/* Edit Dialog */}
       <Dialog open={!!editingKit} onOpenChange={() => setEditingKit(null)}>
