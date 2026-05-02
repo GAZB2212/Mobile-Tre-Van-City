@@ -108,6 +108,7 @@ import {
   Minus,
   Clock,
   Bell,
+  Bot,
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -774,7 +775,15 @@ export default function AdminQuotes() {
                             <Link key={quote.id} href={`/admin/quotes/${quote.id}`}>
                               <Card className={`hover-elevate cursor-pointer ${isOverdue(quote) ? "border-amber-400/50" : ""}`} data-testid={`kanban-card-${quote.id}`}>
                                 <CardContent className="p-3 space-y-1.5">
-                                  <p className="font-semibold text-sm truncate">{quote.userName}</p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="font-semibold text-sm truncate">{quote.userName}</p>
+                                    {(quote as any).aiSessionId && (
+                                      <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1 text-[10px] px-1.5 py-0" data-testid={`badge-max-ai-kanban-${quote.id}`}>
+                                        <Bot className="w-2.5 h-2.5" />
+                                        Max
+                                      </Badge>
+                                    )}
+                                  </div>
                                   {quote.company && (
                                     <p className="text-xs text-muted-foreground truncate">{quote.company}</p>
                                   )}
@@ -840,6 +849,12 @@ export default function AdminQuotes() {
                         <span className="font-semibold text-sm truncate" data-testid={`text-name-${quote.id}`}>{quote.userName}</span>
                         {quote.company && (
                           <Badge variant="secondary" className="shrink-0" data-testid={`text-company-${quote.id}`}>{quote.company}</Badge>
+                        )}
+                        {(quote as any).aiSessionId && (
+                          <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1" data-testid={`badge-max-ai-${quote.id}`}>
+                            <Bot className="w-3 h-3" />
+                            Via Max
+                          </Badge>
                         )}
                         {/* Quick status dropdown */}
                         <div
