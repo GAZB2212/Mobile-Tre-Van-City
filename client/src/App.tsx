@@ -68,6 +68,7 @@ const AdminBlog = lazy(() => import("@/pages/admin/Blog"));
 const AdminAIPackages = lazy(() => import("@/pages/admin/AIPackages"));
 const AdminFinanceCalculator = lazy(() => import("@/pages/admin/FinanceCalculator"));
 const AdminAIConversations = lazy(() => import("@/pages/admin/AIConversations"));
+const AdminTestimonials = lazy(() => import("@/pages/admin/Testimonials"));
 
 function Router() {
   return (
@@ -128,6 +129,7 @@ function Router() {
       <Route path="/admin/finance-calculator">{() => <AdminLayout><AdminFinanceCalculator /></AdminLayout>}</Route>
       <Route path="/admin/ai-packages">{() => <AdminLayout><AdminAIPackages /></AdminLayout>}</Route>
       <Route path="/admin/ai-conversations">{() => <AdminLayout><AdminAIConversations /></AdminLayout>}</Route>
+      <Route path="/admin/testimonials">{() => <AdminLayout><AdminTestimonials /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
   );

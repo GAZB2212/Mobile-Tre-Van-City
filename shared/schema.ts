@@ -385,6 +385,29 @@ export const insertGalleryItemSchema = createInsertSchema(galleryItems).omit({
   updatedAt: true,
 });
 
+// Testimonials table
+export const testimonials = pgTable("testimonials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  company: text("company").notNull(),
+  location: text("location"),
+  content: text("content").notNull(),
+  rating: integer("rating").notNull().default(5),
+  sortOrder: integer("sort_order").notNull().default(0),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  rating: z.number().int().min(1).max(5),
+});
+
+export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+export type Testimonial = typeof testimonials.$inferSelect;
+
 // Blog posts table
 export const blogPosts = pgTable("blog_posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -444,6 +467,7 @@ export type TrainingOption = typeof trainingOptions.$inferSelect;
 
 export type InsertGalleryItem = z.infer<typeof insertGalleryItemSchema>;
 export type GalleryItem = typeof galleryItems.$inferSelect;
+
 
 // Site settings table for storing configurable values like video URLs
 export const siteSettings = pgTable("site_settings", {

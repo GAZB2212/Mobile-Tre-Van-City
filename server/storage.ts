@@ -9,7 +9,8 @@ import {
   type TrainingOption, type InsertTrainingOption,
   type GalleryItem, type InsertGalleryItem,
   type BlogPost, type InsertBlogPost,
-  type SiteSetting
+  type SiteSetting,
+  type Testimonial, type InsertTestimonial,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -92,6 +93,14 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
   deleteBlogPost(id: string): Promise<boolean>;
+
+  // Testimonials
+  getTestimonials(): Promise<Testimonial[]>;
+  getTestimonialsAdmin(): Promise<Testimonial[]>;
+  getTestimonial(id: string): Promise<Testimonial | undefined>;
+  createTestimonial(item: InsertTestimonial): Promise<Testimonial>;
+  updateTestimonial(id: string, item: Partial<InsertTestimonial>): Promise<Testimonial | undefined>;
+  deleteTestimonial(id: string): Promise<boolean>;
 
   // Site Settings
   getSiteSettings(): Promise<Record<string, string>>;
@@ -1701,6 +1710,13 @@ export class MemStorage implements IStorage {
   async createBlogPost(post: InsertBlogPost): Promise<BlogPost> { return { ...post, id: randomUUID(), createdAt: new Date(), updatedAt: new Date(), featuredImage: null, category: null, publishedAt: null, seoTitle: null, seoDescription: null, authorName: null } as BlogPost; }
   async updateBlogPost(_id: string, _post: Partial<InsertBlogPost>): Promise<BlogPost | undefined> { return undefined; }
   async deleteBlogPost(_id: string): Promise<boolean> { return false; }
+
+  async getTestimonials(): Promise<Testimonial[]> { return []; }
+  async getTestimonialsAdmin(): Promise<Testimonial[]> { return []; }
+  async getTestimonial(_id: string): Promise<Testimonial | undefined> { return undefined; }
+  async createTestimonial(item: InsertTestimonial): Promise<Testimonial> { return { ...item, id: randomUUID(), location: item.location ?? null, createdAt: new Date() } as Testimonial; }
+  async updateTestimonial(_id: string, _item: Partial<InsertTestimonial>): Promise<Testimonial | undefined> { return undefined; }
+  async deleteTestimonial(_id: string): Promise<boolean> { return false; }
 }
 
 // Database Storage Implementation
@@ -2055,6 +2071,38 @@ export class DbStorage implements IStorage {
 
   async deleteBlogPost(id: string): Promise<boolean> {
     const result = await db.delete(schema.blogPosts).where(eq(schema.blogPosts.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Testimonials
+  async getTestimonials(): Promise<Testimonial[]> {
+    return db.select().from(schema.testimonials).where(eq(schema.testimonials.published, true)).orderBy(schema.testimonials.sortOrder);
+  }
+
+  async getTestimonialsAdmin(): Promise<Testimonial[]> {
+    return db.select().from(schema.testimonials).orderBy(schema.testimonials.sortOrder);
+  }
+
+  async getTestimonial(id: string): Promise<Testimonial | undefined> {
+    const results = await db.select().from(schema.testimonials).where(eq(schema.testimonials.id, id));
+    return results[0];
+  }
+
+  async createTestimonial(item: InsertTestimonial): Promise<Testimonial> {
+    const results = await db.insert(schema.testimonials).values(item).returning();
+    return results[0];
+  }
+
+  async updateTestimonial(id: string, item: Partial<InsertTestimonial>): Promise<Testimonial | undefined> {
+    const results = await db.update(schema.testimonials)
+      .set(item)
+      .where(eq(schema.testimonials.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteTestimonial(id: string): Promise<boolean> {
+    const result = await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 }

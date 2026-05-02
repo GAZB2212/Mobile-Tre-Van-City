@@ -1,35 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Star } from "lucide-react";
+import type { Testimonial } from "@shared/schema";
 
 export default function Testimonials() {
-  // todo: remove mock functionality
-  const testimonials = [
-    {
-      id: 1,
-      name: "James Mitchell",
-      company: "Mobile Tyre Solutions Ltd",
-      content: "Outstanding service and quality. The van conversion exceeded our expectations and we were earning from day one.",
-      rating: 5,
-      initials: "JM"
-    },
-    {
-      id: 2,
-      name: "Sarah Williams", 
-      company: "TyreFix Mobile",
-      content: "Professional setup, great finance options, and excellent ongoing support. Highly recommend for anyone starting out.",
-      rating: 5,
-      initials: "SW"
-    },
-    {
-      id: 3,
-      name: "David Thompson",
-      company: "Thompson Tyres",
-      content: "Quality equipment and van conversion. The team guided us through every step of the process.",
-      rating: 5,
-      initials: "DT"
-    }
-  ];
+  const { data: testimonials = [] } = useQuery<Testimonial[]>({
+    queryKey: ["/api/testimonials"],
+  });
+
+  if (testimonials.length === 0) return null;
 
   return (
     <section className="py-20 bg-background">
@@ -44,37 +24,45 @@ export default function Testimonials() {
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.map((testimonial) => (
-            <Card key={testimonial.id} className="hover-elevate bg-card" data-testid={`card-testimonial-${testimonial.id}`}>
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-accent text-accent" />
-                  ))}
-                </div>
-                
-                <blockquote className="text-muted-foreground mb-6 italic">
-                  "{testimonial.content}"
-                </blockquote>
-                
-                <div className="flex items-center">
-                  <Avatar className="w-10 h-10 mr-3">
-                    <AvatarFallback className="bg-accent text-primary font-semibold">
-                      {testimonial.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold text-sm" data-testid={`text-customer-name-${testimonial.id}`}>
-                      {testimonial.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {testimonial.company}
+          {testimonials.map((testimonial) => {
+            const initials = testimonial.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            return (
+              <Card key={testimonial.id} className="hover-elevate bg-card" data-testid={`card-testimonial-${testimonial.id}`}>
+                <CardContent className="p-6">
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                    ))}
+                  </div>
+                  
+                  <blockquote className="text-muted-foreground mb-6 italic">
+                    "{testimonial.content}"
+                  </blockquote>
+                  
+                  <div className="flex items-center">
+                    <Avatar className="w-10 h-10 mr-3">
+                      <AvatarFallback className="bg-accent text-primary font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-semibold text-sm" data-testid={`text-customer-name-${testimonial.id}`}>
+                        {testimonial.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {testimonial.company}{testimonial.location ? `, ${testimonial.location}` : ""}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>

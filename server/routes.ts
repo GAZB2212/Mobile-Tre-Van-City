@@ -19,6 +19,7 @@ import {
   insertFinancePlanSchema,
   insertTrainingOptionSchema,
   insertGalleryItemSchema,
+  insertTestimonialSchema,
   createUserSchema,
   updateUserRoleSchema,
   quoteStatuses,
@@ -1697,6 +1698,59 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       res.json(normalized);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch gallery items" });
+    }
+  });
+
+  // Testimonials - Public endpoint (published only)
+  app.get("/api/testimonials", async (_req, res) => {
+    try {
+      const items = await storage.getTestimonials();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch testimonials" });
+    }
+  });
+
+  // Testimonials - Admin endpoints (full admin only)
+  app.get("/api/admin/testimonials", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const items = await storage.getTestimonialsAdmin();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch testimonials" });
+    }
+  });
+
+  app.post("/api/admin/testimonials", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const data = insertTestimonialSchema.parse(req.body);
+      const item = await storage.createTestimonial(data);
+      res.status(201).json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(400).json({ error: "Failed to create testimonial" });
+    }
+  });
+
+  app.patch("/api/admin/testimonials/:id", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const data = insertTestimonialSchema.partial().parse(req.body);
+      const item = await storage.updateTestimonial(req.params.id, data);
+      if (!item) return res.status(404).json({ error: "Testimonial not found" });
+      res.json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(400).json({ error: "Failed to update testimonial" });
+    }
+  });
+
+  app.delete("/api/admin/testimonials/:id", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteTestimonial(req.params.id);
+      if (!success) return res.status(404).json({ error: "Testimonial not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete testimonial" });
     }
   });
 

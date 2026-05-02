@@ -282,6 +282,27 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ AI packages table ready"))
         .catch((err: Error) => console.error("AI packages migration:", err.message));
+      // Create testimonials table and seed initial records
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS testimonials (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          company TEXT NOT NULL,
+          location TEXT,
+          content TEXT NOT NULL,
+          rating INTEGER NOT NULL DEFAULT 5,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          published BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        INSERT INTO testimonials (id, name, company, location, content, rating, sort_order, published) VALUES
+          ('seed-testimonial-001', 'James Mitchell', 'Mobile Tyre Solutions Ltd', NULL, 'Outstanding service and quality. The van conversion exceeded our expectations and we were earning from day one.', 5, 0, TRUE),
+          ('seed-testimonial-002', 'Sarah Williams', 'TyreFix Mobile', NULL, 'Professional setup, great finance options, and excellent ongoing support. Highly recommend for anyone starting out.', 5, 1, TRUE),
+          ('seed-testimonial-003', 'David Thompson', 'Thompson Tyres', NULL, 'Quality equipment and van conversion. The team guided us through every step of the process.', 5, 2, TRUE)
+        ON CONFLICT (id) DO NOTHING;
+      `)
+        .then(() => log("✅ Testimonials table ready"))
+        .catch((err: Error) => console.error("Testimonials migration:", err.message));
     });
   });
 })();
