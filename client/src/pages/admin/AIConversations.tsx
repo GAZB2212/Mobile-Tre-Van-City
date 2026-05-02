@@ -105,6 +105,13 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const MAX_EXPORT_RETRIES = 3;
+const EXPORT_DEBOUNCE_MS = 400;
+const END_OF_DAY_SUFFIX = "T23:59:59";
+const EXPORT_CSV_FILENAME = "ai-conversations.csv";
+const QP_STATUS = "status";
+const QP_DATE_FROM = "dateFrom";
+const QP_DATE_TO = "dateTo";
+const QP_MARKED_CONTACTED = "markedContacted";
 
 type KitBasic = { id: string; name: string; price: number };
 type UpgradeBasic = { id: string; name: string; price: number; category?: string };
@@ -177,15 +184,15 @@ export default function AdminAIConversations() {
         dateTo: exportDateTo,
         markedContacted: exportMarkedContacted,
       });
-    }, 400);
+    }, EXPORT_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [exportStatus, exportDateFrom, exportDateTo, exportMarkedContacted]);
 
   const exportCountParams = new URLSearchParams();
-  if (debouncedExportFilters.status !== "all") exportCountParams.set("status", debouncedExportFilters.status);
-  if (debouncedExportFilters.dateFrom) exportCountParams.set("dateFrom", debouncedExportFilters.dateFrom);
-  if (debouncedExportFilters.dateTo) exportCountParams.set("dateTo", `${debouncedExportFilters.dateTo}T23:59:59`);
-  if (debouncedExportFilters.markedContacted !== "all") exportCountParams.set("markedContacted", debouncedExportFilters.markedContacted);
+  if (debouncedExportFilters.status !== "all") exportCountParams.set(QP_STATUS, debouncedExportFilters.status);
+  if (debouncedExportFilters.dateFrom) exportCountParams.set(QP_DATE_FROM, debouncedExportFilters.dateFrom);
+  if (debouncedExportFilters.dateTo) exportCountParams.set(QP_DATE_TO, `${debouncedExportFilters.dateTo}${END_OF_DAY_SUFFIX}`);
+  if (debouncedExportFilters.markedContacted !== "all") exportCountParams.set(QP_MARKED_CONTACTED, debouncedExportFilters.markedContacted);
 
   const { data: exportCountData, isFetching: exportCountFetching, isError: exportCountError } = useQuery<{ count: number }>({
     queryKey: ["/api/admin/ai-conversations/export/count", debouncedExportFilters],
@@ -204,7 +211,7 @@ export default function AdminAIConversations() {
     status: statusFilter !== "all" ? statusFilter : undefined,
     includes48v: v48Filter !== "all" ? v48Filter : undefined,
     dateFrom: dateFrom || undefined,
-    dateTo: dateTo ? `${dateTo}T23:59:59` : undefined,
+    dateTo: dateTo ? `${dateTo}${END_OF_DAY_SUFFIX}` : undefined,
   };
 
   const {
@@ -216,10 +223,10 @@ export default function AdminAIConversations() {
     queryKey: ["/api/admin/ai-conversations", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters.status) params.set("status", filters.status);
+      if (filters.status) params.set(QP_STATUS, filters.status);
       if (filters.includes48v) params.set("includes48v", filters.includes48v);
-      if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
-      if (filters.dateTo) params.set("dateTo", filters.dateTo);
+      if (filters.dateFrom) params.set(QP_DATE_FROM, filters.dateFrom);
+      if (filters.dateTo) params.set(QP_DATE_TO, filters.dateTo);
       const url = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
       const sessionId = localStorage.getItem("sessionId");
       const headers: Record<string, string> = {};
@@ -401,17 +408,17 @@ export default function AdminAIConversations() {
   const exportMutation = useMutation({
     mutationFn: async () => {
       const p = new URLSearchParams();
-      if (exportStatus !== "all") p.set("status", exportStatus);
-      if (exportDateFrom) p.set("dateFrom", exportDateFrom);
-      if (exportDateTo) p.set("dateTo", `${exportDateTo}T23:59:59`);
-      if (exportMarkedContacted !== "all") p.set("markedContacted", exportMarkedContacted);
+      if (exportStatus !== "all") p.set(QP_STATUS, exportStatus);
+      if (exportDateFrom) p.set(QP_DATE_FROM, exportDateFrom);
+      if (exportDateTo) p.set(QP_DATE_TO, `${exportDateTo}${END_OF_DAY_SUFFIX}`);
+      if (exportMarkedContacted !== "all") p.set(QP_MARKED_CONTACTED, exportMarkedContacted);
       const qs = p.toString() ? `?${p.toString()}` : "";
       const r = await apiRequest("GET", `/api/admin/ai-conversations/export/csv${qs}`);
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "ai-conversations.csv";
+      a.download = EXPORT_CSV_FILENAME;
       a.click();
       URL.revokeObjectURL(url);
     },
