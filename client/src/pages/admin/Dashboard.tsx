@@ -123,7 +123,7 @@ export default function AdminDashboard() {
     { title: "Manage Blog", description: "Write and publish blog posts and articles", icon: Globe, href: "/admin/blog", badge: "Blog", requiredRole: "full" as const },
     { title: "Manage Site Videos", description: "Upload hero video and 360° render videos — changes go live instantly", icon: Video, href: "/admin/videos", badge: "Videos", requiredRole: "full" as const },
     { title: "AI Packages", description: "Configure Bronze, Silver and Gold package tiers for the AI assistant to recommend", icon: Layers, href: "/admin/ai-packages", badge: "AI", requiredRole: "full" as const },
-    { title: "Manage Testimonials", description: "Add, edit, and manage customer testimonials on the homepage", icon: QuoteIcon, href: "/admin/testimonials", badge: "Content", requiredRole: "full" as const },
+    { title: "Manage Testimonials", description: "Add, edit, and manage customer testimonials on the homepage", icon: QuoteIcon, href: "/admin/testimonials", badge: "Content", requiredRole: "basic" as const },
     { title: "Manage Users", description: "Assign roles and manage admin access", icon: Shield, href: "/admin/users", badge: "Security", requiredRole: "full" as const },
   ];
 

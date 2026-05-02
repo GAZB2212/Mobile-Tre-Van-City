@@ -1711,8 +1711,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  // Testimonials - Admin endpoints (full admin only)
-  app.get("/api/admin/testimonials", isAuthenticated, isFullAdmin, async (_req, res) => {
+  // Testimonials - Admin endpoints (GET is basic admin, write ops are full admin only)
+  app.get("/api/admin/testimonials", isAuthenticated, isBasicAdmin, async (_req, res) => {
     try {
       const items = await storage.getTestimonialsAdmin();
       res.json(items);

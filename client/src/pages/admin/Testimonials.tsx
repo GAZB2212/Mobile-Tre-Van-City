@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AdminBackButton } from "@/components/AdminBackButton";
@@ -72,6 +73,8 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function AdminTestimonials() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isFullAdmin = user?.adminRole === "full";
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Testimonial | null>(null);
   const [formData, setFormData] = useState<FormData>(defaultForm);
@@ -197,10 +200,12 @@ export default function AdminTestimonials() {
             </h1>
             <p className="text-muted-foreground">Manage customer testimonials shown on the homepage</p>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-testimonial" className="flex-shrink-0">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Testimonial
-          </Button>
+          {isFullAdmin && (
+            <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-testimonial" className="flex-shrink-0">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Testimonial
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
@@ -209,7 +214,11 @@ export default function AdminTestimonials() {
           <Card>
             <CardHeader>
               <CardTitle>No testimonials yet</CardTitle>
-              <CardDescription>Add your first testimonial to display it on the homepage</CardDescription>
+              <CardDescription>
+                {isFullAdmin
+                  ? "Add your first testimonial to display it on the homepage"
+                  : "No testimonials have been added yet"}
+              </CardDescription>
             </CardHeader>
           </Card>
         ) : (
@@ -218,41 +227,43 @@ export default function AdminTestimonials() {
               <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order</TableHead>
+                    {isFullAdmin && <TableHead>Order</TableHead>}
                     <TableHead>Name</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {isFullAdmin && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((item, index) => (
                     <TableRow key={item.id} data-testid={`row-testimonial-${item.id}`}>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={index === 0 || reorderMutation.isPending}
-                            onClick={() => handleMoveUp(item, index)}
-                            data-testid={`button-move-up-${item.id}`}
-                          >
-                            <ChevronUp className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={index === items.length - 1 || reorderMutation.isPending}
-                            onClick={() => handleMoveDown(item, index)}
-                            data-testid={`button-move-down-${item.id}`}
-                          >
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {isFullAdmin && (
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={index === 0 || reorderMutation.isPending}
+                              onClick={() => handleMoveUp(item, index)}
+                              data-testid={`button-move-up-${item.id}`}
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={index === items.length - 1 || reorderMutation.isPending}
+                              onClick={() => handleMoveDown(item, index)}
+                              data-testid={`button-move-down-${item.id}`}
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>
                         <span>{item.company}</span>
@@ -264,51 +275,69 @@ export default function AdminTestimonials() {
                         <StarRating rating={item.rating} />
                       </TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleTogglePublished(item)}
-                          data-testid={`button-toggle-published-${item.id}`}
-                        >
-                          {item.published ? (
-                            <Badge variant="default" className="cursor-pointer">
-                              <Eye className="w-3 h-3 mr-1" />
-                              Published
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="cursor-pointer">
-                              <EyeOff className="w-3 h-3 mr-1" />
-                              Draft
-                            </Badge>
-                          )}
-                        </Button>
+                        {isFullAdmin ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTogglePublished(item)}
+                            data-testid={`button-toggle-published-${item.id}`}
+                          >
+                            {item.published ? (
+                              <Badge variant="default" className="cursor-pointer">
+                                <Eye className="w-3 h-3 mr-1" />
+                                Published
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="cursor-pointer">
+                                <EyeOff className="w-3 h-3 mr-1" />
+                                Draft
+                              </Badge>
+                            )}
+                          </Button>
+                        ) : (
+                          <div data-testid={`status-published-${item.id}`}>
+                            {item.published ? (
+                              <Badge variant="default">
+                                <Eye className="w-3 h-3 mr-1" />
+                                Published
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                <EyeOff className="w-3 h-3 mr-1" />
+                                Draft
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(item)}
-                          data-testid={`button-edit-${item.id}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={deleteMutation.isPending}
-                          onClick={() => {
-                            if (confirm("Delete this testimonial?")) {
-                              deleteMutation.mutate(item.id);
-                            }
-                          }}
-                          data-testid={`button-delete-${item.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
+                      {isFullAdmin && (
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(item)}
+                            data-testid={`button-edit-${item.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => {
+                              if (confirm("Delete this testimonial?")) {
+                                deleteMutation.mutate(item.id);
+                              }
+                            }}
+                            data-testid={`button-delete-${item.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
