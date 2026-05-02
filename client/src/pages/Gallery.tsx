@@ -31,6 +31,17 @@ export default function Gallery() {
         description="Explore our portfolio of completed mobile tyre van conversions. See real build photos, custom branding, and professional equipment installations from Mobile Tyre Van City."
         canonical="/gallery"
         keywords="mobile tyre van gallery, tyre van conversion photos, van conversion portfolio, mobile tyre van branding, custom van conversion UK"
+        structuredData={[{
+          "@context": "https://schema.org",
+          "@type": "ImageGallery",
+          "name": "Mobile Tyre Van City — Van Conversion Gallery",
+          "description": "Portfolio of completed mobile tyre van conversions, custom vehicle branding, and professional equipment installation work by Mobile Tyre Van City.",
+          "url": "https://www.mobiletyrevancity.co.uk/gallery",
+          "author": {
+            "@type": "Organization",
+            "name": "Mobile Tyre Van City"
+          }
+        }]}
       />
       <Header />
 

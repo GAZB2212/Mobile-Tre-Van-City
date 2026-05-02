@@ -1,6 +1,7 @@
 import { useParams, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +57,7 @@ export default function LocationPage() {
     name: "Mobile Tyre Van City",
     url: SITE_URL,
     telephone: "+441512038500",
-    image: `${SITE_URL}/og-image.jpg`,
+    image: `${SITE_URL}/favicon.png`,
     address: {
       "@type": "PostalAddress",
       streetAddress: "5-7 Bassendale Road",
@@ -84,17 +85,12 @@ export default function LocationPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(areaServedSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      <SEO
+        title={`Mobile Tyre Van Conversions ${location.name} | UK Delivery & Build`}
+        description={`Professional mobile tyre van conversions delivered to ${location.name}, ${location.county}. Custom L3H3 builds with full tyre equipment installed. Nationwide delivery from Wirral. Call 0151 203 8500.`}
+        canonical={`/mobile-tyre-vans/${location.slug}`}
+        keywords={`mobile tyre van ${location.name}, tyre van conversion ${location.county}, mobile tyre van delivery ${location.name}, mobile tyre business ${location.name}`}
+        structuredData={[areaServedSchema, localBusinessSchema, breadcrumbSchema]}
       />
 
       <Header />

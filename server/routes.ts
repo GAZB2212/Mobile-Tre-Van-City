@@ -4656,7 +4656,7 @@ Sitemap: https://www.mobiletyrevancity.co.uk/sitemap.xml
   app.get('/sitemap.xml', async (_req, res) => {
     try {
       const SITE_URL = 'https://www.mobiletyrevancity.co.uk';
-      const BUILD_DATE = '2026-03-15';
+      const BUILD_DATE = new Date().toISOString().split('T')[0];
 
       const vanModelSlugs = [
         'ford-transit',

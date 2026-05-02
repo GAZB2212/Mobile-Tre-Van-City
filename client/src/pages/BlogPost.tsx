@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SEO, { createBreadcrumbStructuredData } from "@/components/SEO";
+import SEO, { createBreadcrumbStructuredData, createArticleStructuredData } from "@/components/SEO";
 import type { BlogPost } from "@shared/schema";
 
 function formatContent(raw: string): string {
@@ -47,6 +47,18 @@ export default function BlogPostPage() {
       ])
     : null;
 
+  const articleData = post
+    ? createArticleStructuredData({
+        title: post.seoTitle || post.title,
+        description: post.seoDescription || post.summary,
+        slug: post.slug,
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+        authorName: post.authorName,
+        featuredImage: post.featuredImage,
+      })
+    : null;
+
   if (isError) {
     return (
       <div className="min-h-screen bg-background">
@@ -71,7 +83,7 @@ export default function BlogPostPage() {
           description={post.seoDescription || post.summary}
           canonical={`/blog/${post.slug}`}
           ogType="article"
-          structuredData={breadcrumb ? [breadcrumb] : []}
+          structuredData={[...(breadcrumb ? [breadcrumb] : []), ...(articleData ? [articleData] : [])]}
         />
       )}
       <Header />

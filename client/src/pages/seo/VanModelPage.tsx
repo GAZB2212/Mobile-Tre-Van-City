@@ -1,6 +1,7 @@
 import { useParams, Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,15 +65,39 @@ export default function VanModelPage() {
     ],
   };
 
+  const serviceSchema = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": `${van.displayName} Mobile Tyre Van Conversion`,
+    "description": `Professional mobile tyre van conversion service for the ${van.displayName}. ${van.tagline} Full L3H3 build with tyre equipment, racking, compressor, and nationwide delivery included.`,
+    "url": `https://www.mobiletyrevancity.co.uk/van-conversions/${van.slug}`,
+    "provider": {
+      "@type": "AutomotiveBusiness",
+      "name": "Mobile Tyre Van City",
+      "url": "https://www.mobiletyrevancity.co.uk",
+      "telephone": "+441512038500",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "5-7 Bassendale Road",
+        "addressLocality": "Bromborough",
+        "addressRegion": "Wirral",
+        "postalCode": "CH62 3QL",
+        "addressCountry": "GB",
+      },
+    },
+    "areaServed": { "@type": "Country", "name": "United Kingdom" },
+    "serviceType": "Van Conversion",
+    "termsOfService": "https://www.mobiletyrevancity.co.uk/contact",
+  };
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      <SEO
+        title={`${van.displayName} Mobile Tyre Van Conversion | Specs & Pricing`}
+        description={`${van.tagline} Professional ${van.displayName} mobile tyre van conversion — ${van.loadVolumeCubicM}m³ load volume, ${van.payloadKg.toLocaleString()}kg payload. Built and delivered by Mobile Tyre Van City. Call 0151 203 8500.`}
+        canonical={`/van-conversions/${van.slug}`}
+        keywords={`${van.displayName} mobile tyre van, ${van.make} ${van.model} tyre van conversion, ${van.displayName} van conversion UK, mobile tyre van ${van.make}`}
+        structuredData={[faqSchema, breadcrumbSchema, serviceSchema]}
       />
 
       <Header />

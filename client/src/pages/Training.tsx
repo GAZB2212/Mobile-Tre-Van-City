@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import SEO from "@/components/SEO";
+import SEO, { createTrainingStructuredData } from "@/components/SEO";
 import Header from "@/components/Header";
 import { 
   GraduationCap, 
@@ -105,11 +105,60 @@ export default function Training() {
     <div className="min-h-screen">
       <Header />
       <SEO 
-        title="Mobile Tyre Fitting Training | Coming Soon"
-        description="Professional REACT motorway certification and tyre fitting training is coming soon. Register your interest today. Based in Wirral, serving customers UK-wide."
+        title="Mobile Tyre Fitting Training | REACT Certification | Coming Soon"
+        description="Professional REACT motorway certification and tyre fitting training is coming soon from Mobile Tyre Van City. Register your interest today. Based in Wirral, serving the UK."
         canonical="/training"
         keywords="mobile tyre fitting training, REACT motorway certification, tyre fitting course UK, mobile tyre technician training, tyre fitting qualification"
         noindex={true}
+        structuredData={[
+          ...createTrainingStructuredData(),
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is REACT certification?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "REACT stands for Recovery Equipment And Carriageway Training. It is the industry-standard legal certification required to operate on UK motorways and high-speed roads, covering vehicle positioning, risk assessment, and emergency procedures."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is REACT certification required by law?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. REACT certification is a legal requirement for anyone performing mobile tyre fitting or roadside recovery work on UK motorways. Insurance providers also typically require REACT certification."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How long does the training programme take?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The REACT motorway certification programme takes approximately 13.5 hours to complete. The professional tyre fitting training takes approximately 13 hours. Both programmes can be combined."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "When will training be available?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Mobile Tyre Van City is developing an in-house training programme for REACT certification and professional tyre fitting. It is not yet available, but you can register your interest by contacting us on 0151 203 8500."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are the requirements to attend?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Attendees need a valid UK driving licence, no medical conditions affecting roadside work, a basic understanding of vehicle operations, and commitment to full training attendance."
+                }
+              }
+            ]
+          }
+        ]}
       />
 
       {/* Coming Soon Hero */}

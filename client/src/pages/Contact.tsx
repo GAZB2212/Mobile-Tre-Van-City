@@ -3,7 +3,7 @@ import { trackEvent } from "@/lib/analytics";
 import { useMutation } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SEO from "@/components/SEO";
+import SEO, { contactPageStructuredData } from "@/components/SEO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,10 +70,11 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="Contact Mobile Tyre Van City | 0151 203 8500 | Wirral, UK"
+        title="Contact Us | 0151 203 8500 | Wirral, UK"
         description="Contact Mobile Tyre Van City for a quote on your mobile tyre van conversion. Call us on 0151 203 8500 or visit our workshop at 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL."
         canonical="/contact"
         keywords="contact mobile tyre van city, tyre van city phone number, mobile tyre van quote, Wirral van conversion contact"
+        structuredData={[contactPageStructuredData]}
       />
       <Header />
 

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 const SITE_URL = "https://www.mobiletyrevancity.co.uk";
 const SITE_NAME = "Mobile Tyre Van City";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
+const DEFAULT_OG_IMAGE = `${SITE_URL}/favicon.png`;
 
 interface SEOProps {
   title: string;
@@ -45,6 +45,7 @@ export default function SEO({
       { property: 'og:site_name', content: SITE_NAME },
       { property: 'og:locale', content: 'en_GB' },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:site', content: '@mobiletyrevancity' },
       { name: 'twitter:title', content: fullTitle },
       { name: 'twitter:description', content: description },
       { name: 'twitter:image', content: ogImage },
@@ -85,7 +86,7 @@ export default function SEO({
     }
     linkHreflang.setAttribute('href', canonicalUrl);
 
-    document.querySelectorAll('script[type="application/ld+json"]').forEach(s => s.remove());
+    document.head.querySelectorAll('script[type="application/ld+json"]').forEach(s => s.remove());
     
     if (structuredData) {
       const items = Array.isArray(structuredData) ? structuredData : [structuredData];
@@ -106,10 +107,10 @@ export const organizationStructuredData = {
   "@type": "AutomotiveBusiness",
   "name": SITE_NAME,
   "alternateName": "MTVC",
-  "description": "The UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped and ready to earn from day one. Nationwide delivery across the UK.",
+  "description": "UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped with professional tyre fitting equipment. Nationwide delivery. Finance available. Call 0151 203 8500.",
   "url": SITE_URL,
   "logo": `${SITE_URL}/favicon.png`,
-  "image": `${SITE_URL}/og-image.jpg`,
+  "image": `${SITE_URL}/favicon.png`,
   "telephone": "+44-151-203-8500",
   "priceRange": "££",
   "openingHoursSpecification": [
@@ -174,7 +175,125 @@ export const organizationStructuredData = {
       }
     ]
   },
-  "sameAs": []
+  "sameAs": [
+    "https://www.facebook.com/mobiletyrevancity",
+    "https://www.instagram.com/mobiletyrevancity",
+    "https://www.linkedin.com/company/mobile-tyre-van-city"
+  ],
+  "foundingDate": "2020",
+  "foundingLocation": {
+    "@type": "Place",
+    "name": "Wirral, Merseyside, United Kingdom"
+  }
+};
+
+export const aboutPageStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  "name": "About Mobile Tyre Van City",
+  "description": "Mobile Tyre Van City is the UK's leading specialist in custom mobile tyre van conversions, based in Bromborough, Wirral. Founded to empower entrepreneurs to start professional mobile tyre fitting businesses.",
+  "url": `${SITE_URL}/about`,
+  "mainEntity": {
+    "@context": "https://schema.org",
+    "@type": "AutomotiveBusiness",
+    "name": SITE_NAME,
+    "alternateName": "MTVC",
+    "description": "The UK's leading mobile tyre van conversion specialists. Founded to empower entrepreneurs and small businesses with fully-equipped, custom-built mobile tyre vans. Based in Bromborough, Wirral with nationwide delivery across the UK.",
+    "url": SITE_URL,
+    "logo": `${SITE_URL}/favicon.png`,
+    "telephone": "+44-151-203-8500",
+    "email": "sales@mobiletyrevancity.co.uk",
+    "foundingDate": "2020",
+    "foundingLocation": {
+      "@type": "Place",
+      "name": "Wirral, Merseyside, United Kingdom"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "5-7 Bassendale Road",
+      "addressLocality": "Bromborough",
+      "addressRegion": "Wirral",
+      "postalCode": "CH62 3QL",
+      "addressCountry": "GB"
+    },
+    "areaServed": {
+      "@type": "Country",
+      "name": "United Kingdom"
+    },
+    "knowsAbout": [
+      "Mobile tyre van conversions",
+      "Commercial vehicle fitting",
+      "Tyre fitting equipment",
+      "Vehicle livery and branding",
+      "REACT motorway certification",
+      "Mobile business setup"
+    ],
+    "sameAs": [
+      "https://www.facebook.com/mobiletyrevancity",
+      "https://www.instagram.com/mobiletyrevancity",
+      "https://www.linkedin.com/company/mobile-tyre-van-city"
+    ]
+  }
+};
+
+export const contactPageStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  "name": "Contact Mobile Tyre Van City",
+  "description": "Get in touch with Mobile Tyre Van City. Call 0151 203 8500 or visit our workshop at 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL.",
+  "url": `${SITE_URL}/contact`,
+  "mainEntity": {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": SITE_NAME,
+    "alternateName": "MTVC",
+    "description": "The UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped and ready to earn from day one.",
+    "url": SITE_URL,
+    "logo": `${SITE_URL}/favicon.png`,
+    "image": `${SITE_URL}/favicon.png`,
+    "telephone": "+44-151-203-8500",
+    "email": "sales@mobiletyrevancity.co.uk",
+    "priceRange": "££",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "09:00",
+        "closes": "17:30"
+      }
+    ],
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "5-7 Bassendale Road",
+      "addressLocality": "Bromborough",
+      "addressRegion": "Wirral",
+      "postalCode": "CH62 3QL",
+      "addressCountry": "GB"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "53.3328",
+      "longitude": "-2.9888"
+    },
+    "areaServed": {
+      "@type": "Country",
+      "name": "United Kingdom"
+    },
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+44-151-203-8500",
+      "contactType": "Sales",
+      "email": "sales@mobiletyrevancity.co.uk",
+      "areaServed": "GB",
+      "availableLanguage": "English",
+      "hoursAvailable": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "09:00",
+        "closes": "17:30"
+      }
+    }
+  }
 };
 
 export const homeFaqStructuredData = {
@@ -246,7 +365,7 @@ export function createVehicleStructuredData(van: {
 }) {
   const vanName = `${van.year} ${van.make} ${van.model}`;
   const metaDescription = `For sale: ${vanName} mobile tyre van conversion. Fully equipped and ready to earn${van.mileage ? ` — ${van.mileage.toLocaleString()} miles` : ''}. ${van.specs?.transmission || ''} ${van.specs?.fuel || ''}. Finance available. UK delivery.`;
-  const image = van.heroImage || (van.images && van.images[0]) || `${SITE_URL}/og-image.jpg`;
+  const image = van.heroImage || (van.images && van.images[0]) || `${SITE_URL}/favicon.png`;
   const pageUrl = `${SITE_URL}/stock/${van.slug}`;
 
   return {
@@ -312,7 +431,7 @@ export function createProductStructuredData(van: {
     "@type": "Product",
     "name": `${van.year} ${van.make} ${van.model} - Mobile Tyre Van Conversion`,
     "description": van.description || `Professional mobile tyre van conversion based on ${van.year} ${van.make} ${van.model}. Fully equipped and ready for work.`,
-    "image": van.image || `${SITE_URL}/og-image.jpg`,
+    "image": van.image || `${SITE_URL}/favicon.png`,
     "brand": {
       "@type": "Brand",
       "name": van.make
@@ -370,4 +489,133 @@ export function createServiceStructuredData(service: {
       "name": "United Kingdom"
     }
   };
+}
+
+export function createArticleStructuredData(post: {
+  title: string;
+  description: string;
+  slug: string;
+  publishedAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+  authorName?: string | null;
+  featuredImage?: string | null;
+}) {
+  const publishedIso = post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString();
+  const modifiedIso = post.updatedAt ? new Date(post.updatedAt).toISOString() : publishedIso;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.description,
+    "url": `${SITE_URL}/blog/${post.slug}`,
+    "datePublished": publishedIso,
+    "dateModified": modifiedIso,
+    "image": post.featuredImage || `${SITE_URL}/favicon.png`,
+    "author": {
+      "@type": "Person",
+      "name": post.authorName || SITE_NAME
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": SITE_NAME,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${SITE_URL}/favicon.png`
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/blog/${post.slug}`
+    }
+  };
+}
+
+export function createTrainingStructuredData() {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOccupationalProgram",
+      "name": "REACT Motorway Certification Training",
+      "description": "Recovery Equipment And Carriageway Training (REACT) — the industry-standard legal requirement and certification for operating on UK motorways and high-speed roads. Covers highway code compliance, vehicle positioning, risk assessment, emergency procedures, equipment safety, and practical assessment.",
+      "url": `${SITE_URL}/training`,
+      "provider": {
+        "@type": "AutomotiveBusiness",
+        "name": SITE_NAME,
+        "telephone": "+44-151-203-8500",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "5-7 Bassendale Road",
+          "addressLocality": "Bromborough",
+          "addressRegion": "Wirral",
+          "postalCode": "CH62 3QL",
+          "addressCountry": "GB"
+        }
+      },
+      "occupationalCredentialAwarded": "REACT Motorway Safety Certificate",
+      "timeToComplete": "PT13H30M",
+      "offers": {
+        "@type": "Offer",
+        "availability": "https://schema.org/PreSale",
+        "priceCurrency": "GBP",
+        "url": `${SITE_URL}/contact`
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOccupationalProgram",
+      "name": "Professional Mobile Tyre Fitting Training",
+      "description": "Comprehensive tyre fitting training for mobile environments covering tyre technology, mobile fitting techniques, wheel balancing, puncture repair, TPMS systems, and customer service excellence.",
+      "url": `${SITE_URL}/training`,
+      "provider": {
+        "@type": "AutomotiveBusiness",
+        "name": SITE_NAME,
+        "telephone": "+44-151-203-8500",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "5-7 Bassendale Road",
+          "addressLocality": "Bromborough",
+          "addressRegion": "Wirral",
+          "postalCode": "CH62 3QL",
+          "addressCountry": "GB"
+        }
+      },
+      "occupationalCredentialAwarded": "Professional Tyre Fitting Certificate",
+      "timeToComplete": "PT13H",
+      "offers": {
+        "@type": "Offer",
+        "availability": "https://schema.org/PreSale",
+        "priceCurrency": "GBP",
+        "url": `${SITE_URL}/contact`
+      }
+    }
+  ];
+}
+
+export function createReviewStructuredData(reviews: Array<{
+  id: string | number;
+  name: string;
+  content: string;
+  rating: number;
+  company?: string | null;
+  location?: string | null;
+}>) {
+  return reviews.map(r => ({
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": {
+      "@type": "AutomotiveBusiness",
+      "name": SITE_NAME
+    },
+    "reviewRating": {
+      "@type": "Rating",
+      "ratingValue": r.rating,
+      "bestRating": 5
+    },
+    "author": {
+      "@type": "Person",
+      "name": r.name
+    },
+    "reviewBody": r.content,
+    ...(r.location && { "locationCreated": { "@type": "Place", "name": r.location } })
+  }));
 }

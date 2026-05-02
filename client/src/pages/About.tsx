@@ -1,10 +1,10 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import SEO from "@/components/SEO";
+import SEO, { aboutPageStructuredData } from "@/components/SEO";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Award, Users, Wrench, ArrowRight } from "lucide-react";
+import { CheckCircle, Award, Users, Wrench, ArrowRight, MapPin, Phone, Mail } from "lucide-react";
 import { Link } from "wouter";
 import logoImg from "@assets/Untitled_design-36_1773155683674.webp";
 
@@ -35,10 +35,11 @@ export default function About() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="About Mobile Tyre Van City | UK Van Conversion Specialists"
+        title="About Us | UK Van Conversion Specialists | Wirral"
         description="Meet the team behind Mobile Tyre Van City — the UK's leading specialists in mobile tyre van conversions. Based in Wirral, we build fully-equipped tyre vans with nationwide delivery."
         canonical="/about"
         keywords="about mobile tyre van city, tyre van conversion specialists UK, van conversion company Wirral, MTVC"
+        structuredData={[aboutPageStructuredData]}
       />
       <Header />
 
@@ -83,6 +84,82 @@ export default function About() {
                   alt="Mobile Tyre Van City logo"
                   className="w-full h-full object-contain"
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* E-E-A-T: Expertise, Founding & Credentials */}
+      <section className="py-16 md:py-24 bg-card/50 border-y">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4">Our Background</h2>
+                <p className="text-muted-foreground mb-4">
+                  Mobile Tyre Van City was founded in Wirral to serve a gap in the UK market: mobile tyre fitting entrepreneurs who needed professionally built, business-ready vans without the guesswork. Since launching, we have built and delivered conversions across England, Scotland, and Wales.
+                </p>
+                <p className="text-muted-foreground mb-4">
+                  Our workshop team has a combined background spanning automotive engineering, vehicle customisation, and mobile tyre business operations — giving us a unique understanding of both the build requirements and the day-to-day demands of running a mobile tyre service.
+                </p>
+                <p className="text-muted-foreground">
+                  Every conversion leaves our facility after a full pre-delivery inspection, ensuring the van is roadworthy, legally compliant, and ready to earn from day one.
+                </p>
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Our Team</h3>
+                  <div className="space-y-3 mb-6">
+                    {[
+                      { role: "Van Conversion Lead", detail: "10+ years automotive fabrication and commercial vehicle fit-out" },
+                      { role: "Tyre Equipment Specialist", detail: "Former mobile tyre technician with in-depth product knowledge" },
+                      { role: "Finance & Sales", detail: "FCA-authorised credit broker, dedicated customer support" },
+                    ].map((member) => (
+                      <div key={member.role} className="text-sm">
+                        <span className="font-medium">{member.role}</span>
+                        <span className="text-muted-foreground"> — {member.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <h3 className="font-semibold text-lg mb-3">Expertise & Credentials</h3>
+                  <ul className="space-y-2">
+                    {[
+                      "Specialist mobile tyre van conversion workshop",
+                      "Experienced in L3H3 Sprinter, Transit & Crafter builds",
+                      "REACT-aware builds designed for motorway compliance",
+                      "Finance-approved supplier — HP and lease available",
+                      "UK-wide delivery on all completed conversions",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <CheckCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <Card data-testid="card-address">
+                  <CardContent className="p-5 space-y-3">
+                    <h3 className="font-semibold">Visit Our Workshop</h3>
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                      <address className="not-italic">
+                        5–7 Bassendale Road, Bromborough,<br />Wirral, CH62 3QL
+                      </address>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="w-4 h-4 text-accent shrink-0" />
+                      <a href="tel:01512038500" className="hover:text-foreground transition-colors">0151 203 8500</a>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="w-4 h-4 text-accent shrink-0" />
+                      <a href="mailto:sales@mobiletyrevancity.co.uk" className="hover:text-foreground transition-colors">sales@mobiletyrevancity.co.uk</a>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Mon–Fri: 9:00 am – 5:30 pm
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
