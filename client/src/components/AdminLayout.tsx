@@ -67,8 +67,6 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
   },
   {
     label: "Content",
-    collapsible: true,
-    defaultCollapsed: true,
     items: [
       { title: "Vans", href: "/admin/vans", icon: Car, requiredRole: "basic" },
       { title: "Packs", href: "/admin/kits", icon: Package, requiredRole: "full" },
@@ -179,7 +177,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     if (isContentRoute) return false;
     const saved = localStorage.getItem(CONTENT_GROUP_KEY);
     if (saved !== null) return saved === "true";
-    return true;
+    return false;
   };
 
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
