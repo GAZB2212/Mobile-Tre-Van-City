@@ -27,7 +27,7 @@ import {
   CheckCircle2,
   PoundSterling,
   LayoutDashboard,
-  Quote as QuoteIcon,
+  Star as QuoteIcon,
 } from "lucide-react";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
