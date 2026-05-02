@@ -152,7 +152,12 @@ export default function AdminQuoteDetail() {
   const { toast } = useToast();
   const { user } = useAuth();
   const canEdit = user?.adminRole === "full";
-  
+
+  // Parse URL query params for deep-linking and back-navigation context
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get("tab");
+  const fromParam = urlParams.get("from"); // "leads" | "quotes"
+
   const [status, setStatus] = useState("");
   const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);
   const [stageInitials, setStageInitials] = useState<Record<string, string>>({});
@@ -193,8 +198,14 @@ export default function AdminQuoteDetail() {
   const [editCustomerPhone, setEditCustomerPhone] = useState("");
   const [editCustomerCompany, setEditCustomerCompany] = useState("");
 
-  // Active detail tab
-  const [activeTab, setActiveTab] = useState<"overview" | "configuration" | "finance" | "build" | "notes">("overview");
+  // Active detail tab — initialised from ?tab= URL param for deep-linking
+  const validTabs = ["overview", "configuration", "finance", "build", "notes"] as const;
+  type TabValue = typeof validTabs[number];
+  const initialTab: TabValue =
+    tabParam && (validTabs as readonly string[]).includes(tabParam)
+      ? (tabParam as TabValue)
+      : "overview";
+  const [activeTab, setActiveTab] = useState<TabValue>(initialTab);
   // Compare mode: which option is the admin currently viewing
   const [viewingSlot, setViewingSlot] = useState<'A' | 'B'>('A');
 
@@ -1050,10 +1061,10 @@ export default function AdminQuoteDetail() {
             variant="ghost"
             className="mb-4"
             data-testid="button-back-to-quotes"
-            onClick={() => handleNavigation("/admin/quotes")}
+            onClick={() => handleNavigation(fromParam === "leads" ? "/admin/leads" : "/admin/quotes")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Quotes
+            {fromParam === "leads" ? "Back to Leads" : "Back to Quotes"}
           </Button>
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

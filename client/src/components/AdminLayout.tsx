@@ -48,7 +48,7 @@ interface NavItem {
   requiredRole: "basic" | "full";
 }
 
-const navGroups: { label: string; items: NavItem[] }[] = [
+const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defaultCollapsed?: boolean }[] = [
   {
     label: "Sales Tools",
     items: [
@@ -58,7 +58,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "Leads",
+    label: "Leads & CRM",
     items: [
       { title: "Configurators", href: "/admin/quotes", icon: FileText, requiredRole: "basic" },
       { title: "Leads", href: "/admin/leads", icon: Users, requiredRole: "basic" },
@@ -68,6 +68,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "Content",
+    collapsible: true,
+    defaultCollapsed: true,
     items: [
       { title: "Vans", href: "/admin/vans", icon: Car, requiredRole: "basic" },
       { title: "Packs", href: "/admin/kits", icon: Package, requiredRole: "full" },
@@ -153,6 +155,19 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user } = useAuth() as { user: User | undefined };
+
+  // Track which collapsible nav groups are open (keyed by label)
+  // Content group starts collapsed; auto-expand if current route is inside it
+  const isContentRoute = location.startsWith("/admin/vans") || location.startsWith("/admin/kits") ||
+    location.startsWith("/admin/upgrades") || location.startsWith("/admin/finance-plans") ||
+    location.startsWith("/admin/training-options") || location.startsWith("/admin/gallery-items") ||
+    location.startsWith("/admin/videos") || location.startsWith("/admin/blog") ||
+    location.startsWith("/admin/ai-packages") || location.startsWith("/admin/users");
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    Content: !isContentRoute,
+  });
+  const toggleGroup = (label: string) =>
+    setCollapsedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
 
   // Server version polling — detects when the backend has restarted (new deployment)
   const initialVersion = useRef<string | null>(null);
@@ -277,29 +292,43 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {navGroups.map((group) => {
           const visible = group.items.filter((i) => canSee(i.requiredRole));
           if (!visible.length) return null;
+          const isGroupCollapsed = group.collapsible && collapsedGroups[group.label];
           return (
             <div key={group.label}>
               {(!collapsed || isMobile) && (
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 px-3 mb-1">
-                  {group.label}
-                </p>
+                <button
+                  className={`w-full flex items-center justify-between px-3 mb-1 ${group.collapsible ? "cursor-pointer hover:text-zinc-300 transition-colors" : "cursor-default"}`}
+                  onClick={group.collapsible ? () => toggleGroup(group.label) : undefined}
+                  data-testid={`nav-group-${group.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                    {group.label}
+                  </p>
+                  {group.collapsible && (
+                    isGroupCollapsed
+                      ? <ChevronRight size={11} className="text-zinc-600" />
+                      : <ChevronLeft size={11} className="text-zinc-600" />
+                  )}
+                </button>
               )}
-              <div className="space-y-0.5">
-                {visible.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    item={item}
-                    collapsed={collapsed && !isMobile}
-                    isActive={isActive(item.href)}
-                    badge={
-                      item.href === "/admin/ai-conversations" ? uncontactedCount :
-                      item.href === "/admin/quotes" ? newQuotesCount :
-                      item.href === "/admin/leads" ? newLeadsCount :
-                      undefined
-                    }
-                  />
-                ))}
-              </div>
+              {!isGroupCollapsed && (
+                <div className="space-y-0.5">
+                  {visible.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      collapsed={collapsed && !isMobile}
+                      isActive={isActive(item.href)}
+                      badge={
+                        item.href === "/admin/ai-conversations" ? uncontactedCount :
+                        item.href === "/admin/quotes" ? newQuotesCount :
+                        item.href === "/admin/leads" ? newLeadsCount :
+                        undefined
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

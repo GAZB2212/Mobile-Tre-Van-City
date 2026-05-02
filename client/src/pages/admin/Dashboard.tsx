@@ -28,6 +28,7 @@ import {
   PoundSterling,
   LayoutDashboard,
   Star as QuoteIcon,
+  ExternalLink,
 } from "lucide-react";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
@@ -379,27 +380,39 @@ export default function AdminDashboard() {
                   <CardContent className="p-0">
                     <div className="divide-y">
                       {committedQuotes.map((q) => (
-                        <Link
+                        <div
                           key={q.id}
-                          href={`/admin/quotes/${q.id}`}
-                          className="flex items-center gap-3 px-6 py-3 hover-elevate transition-colors cursor-pointer"
-                          data-testid={`link-pipeline-quote-${q.id}`}
+                          className="flex items-center gap-3 px-4 py-3"
+                          data-testid={`row-pipeline-quote-${q.id}`}
                         >
                           <span className={`shrink-0 inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${COMMITTED_BADGE[q.status] ?? "bg-muted text-muted-foreground"}`}>
                             {COMMITTED_LABEL[q.status] ?? q.status}
                           </span>
-                          <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/admin/quotes/${q.id}?from=quotes`}
+                            className="flex-1 min-w-0 hover:underline underline-offset-2 cursor-pointer"
+                            data-testid={`link-pipeline-quote-${q.id}`}
+                          >
                             <p className="text-sm font-medium truncate">{customerName(q)}</p>
                             {q.vanTitle && (
                               <p className="text-xs text-muted-foreground truncate">{q.vanTitle}</p>
                             )}
-                          </div>
+                          </Link>
                           {q.estTotal != null && q.estTotal > 0 && (
                             <span className="shrink-0 text-sm font-semibold tabular-nums">
                               {fmtGBP(q.estTotal)}
                             </span>
                           )}
-                        </Link>
+                          <Link
+                            href={`/admin/quotes/${q.id}?tab=configuration&from=quotes`}
+                            className="shrink-0 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover-elevate"
+                            data-testid={`link-pipeline-edit-config-${q.id}`}
+                            title="Edit configuration"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Edit Config
+                          </Link>
+                        </div>
                       ))}
                     </div>
                   </CardContent>
