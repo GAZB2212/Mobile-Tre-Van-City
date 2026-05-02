@@ -189,31 +189,6 @@ export default function AdminDashboard() {
         {activeTab === "overview" && (
           <div className="space-y-10">
 
-            {/* Quick stats */}
-            {user?.adminRole === "full" && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-accent" />
-                  Quick Stats
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Link href="/admin/testimonials" data-testid="link-stat-testimonials">
-                    <Card className="hover-elevate cursor-pointer transition-all">
-                      <CardContent className="flex items-center gap-4 py-5">
-                        <div className="rounded-md bg-accent/10 p-2.5">
-                          <QuoteIcon className="w-5 h-5 text-accent" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Testimonials Published</p>
-                          <p className="text-2xl font-bold" data-testid="text-testimonials-published-count">{publishedTestimonialsCount}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </div>
-              </div>
-            )}
-
             {/* Sales Tools */}
             {user?.adminRole && (
               <div>
