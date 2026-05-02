@@ -8,7 +8,7 @@
  */
 
 export const AI_CHAT_STORAGE_KEY = "ai-chat:v1";
-export const CONFIGURATOR_STORAGE_KEY = "configurator:v5";
+export const CONFIGURATOR_STORAGE_KEY = "configurator:v6";
 
 export type ServiceType = "car" | "commercial" | "hybrid";
 export type VanSize = "MWB" | "LWB";
@@ -88,7 +88,7 @@ export const defaultTrackers: AITrackers = {
 };
 
 /**
- * Converts an AI-generated config into the configurator's localStorage format (configurator:v5).
+ * Converts an AI-generated config into the configurator's localStorage format (configurator:v6).
  * Call this when the customer clicks "View your configuration →".
  */
 export function buildConfiguratorState(config: AIConfig) {
@@ -100,6 +100,7 @@ export function buildConfiguratorState(config: AIConfig) {
     serviceType: null,
     kitId: null,
     upgradeIds: [],
+    upgradeQuantities: {},
     trainingOptionIds: [],
     financePlanId: null,
     financeInputs: null,
