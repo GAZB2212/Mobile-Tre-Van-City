@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { User, Van, Kit, Upgrade } from "@shared/schema";
 import type { KitServiceType } from "@shared/schema";
 
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -573,19 +574,15 @@ export default function AdminConfigurator() {
   return (
     <div className="min-h-screen bg-background">
       {/* Admin header */}
-      <div className="border-b sticky top-0 z-50 bg-background">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-50">
+        <AdminPageHeader
+          title="Admin Configurator"
+          description="Build and price a conversion for a customer"
+          actions={
+            <>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/admin"><ArrowLeft className="w-4 h-4 mr-1" />Admin</Link>
               </Button>
-              <div className="flex items-center gap-2">
-                <UserRound className="w-4 h-4 text-accent" />
-                <span className="font-semibold">Admin Configurator</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => {
                 clearAll();
                 setFilterMake("all"); setFilterModel("all"); setFilterYear("all"); setFilterFuel("all");
@@ -603,9 +600,9 @@ export default function AdminConfigurator() {
               >
                 Save as Quote<ArrowRight className="w-4 h-4 ml-1" />
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
       </div>
       <div className="container mx-auto px-4 py-8 max-w-[1600px]">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 md:gap-8">
@@ -615,7 +612,7 @@ export default function AdminConfigurator() {
             {/* ── STEP 1: VAN SELECTION ─────────────────────────── */}
             <section>
               <div className="flex items-start justify-between gap-4 mb-2">
-                <h2 className="text-2xl font-bold">
+                <h2 className="text-lg font-semibold tracking-tight">
                   {compareMode ? `1. Select Van — Option ${activeSlot}` : '1. Select Your Van'}
                 </h2>
                 {!compareMode && (
@@ -773,7 +770,7 @@ export default function AdminConfigurator() {
 
             {/* ── STEP 2: SERVICE TYPE ──────────────────────────── */}
             <section>
-              <h2 className="text-2xl font-bold mb-2">2. What Will You Be Fitting?</h2>
+              <h2 className="text-lg font-semibold tracking-tight mb-2">2. What Will You Be Fitting?</h2>
               <p className="text-muted-foreground mb-5">Tell us what type of vehicles the mobile tyre service will cover.</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {SERVICE_OPTIONS.map(({ value, label, description, detail, Icon }) => {
@@ -812,7 +809,7 @@ export default function AdminConfigurator() {
             {/* ── STEP 3: EQUIPMENT KIT ─────────────────────────── */}
             {!skippedKit && (
               <section>
-                <h2 className="text-2xl font-bold mb-2">3. Choose Your Equipment Kit</h2>
+                <h2 className="text-lg font-semibold tracking-tight mb-2">3. Choose Your Equipment Kit</h2>
                 <p className="text-muted-foreground mb-5">Select the perfect equipment package.</p>
 
                 {configLoading ? (
@@ -910,7 +907,7 @@ export default function AdminConfigurator() {
 
             {/* ── STEP 4: UPGRADES ──────────────────────────────── */}
             <section>
-                <h2 className="text-2xl font-bold mb-2">
+                <h2 className="text-lg font-semibold tracking-tight mb-2">
                   {skippedKit ? "3." : "4."}{" "}
                   {state.serviceType === "hybrid" ? "Add Commercial & Extra Equipment"
                     : state.serviceType === "commercial" ? "Configure Your Commercial Setup"
