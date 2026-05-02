@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ import {
   Pencil,
   AlertCircle,
   Loader2,
+  Settings,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -105,8 +106,12 @@ function StatusBadge({ status }: { status: string }) {
 
 const MAX_EXPORT_RETRIES = 3;
 
+type KitBasic = { id: string; name: string; price: number };
+type UpgradeBasic = { id: string; name: string; price: number; category?: string };
+
 export default function AdminAIConversations() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth() as {
     user: User | undefined;
     isAuthenticated: boolean;
@@ -227,6 +232,69 @@ export default function AdminAIConversations() {
     refetchInterval: isActive ? 60_000 : false,
     refetchIntervalInBackground: false,
   });
+
+  // Fetch kits and upgrades for the spec panel in the transcript dialog
+  const { data: kitsData = [] } = useQuery<KitBasic[]>({
+    queryKey: ["/api/kits"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: upgradesData = [] } = useQuery<UpgradeBasic[]>({
+    queryKey: ["/api/upgrades"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Open the admin configurator pre-loaded with the AI conversation's config
+  const handleOpenInConfigurator = () => {
+    if (!transcriptConv?.mapped_config) return;
+    const cfg =
+      typeof transcriptConv.mapped_config === "string"
+        ? JSON.parse(transcriptConv.mapped_config)
+        : transcriptConv.mapped_config;
+
+    const defaultSlot = {
+      vanId: null,
+      customVanDescription: null,
+      customVanValue: null,
+      vanReg: null,
+      serviceType: null,
+      kitId: null,
+      upgradeIds: [],
+      upgradeQuantities: {},
+      trainingOptionIds: [],
+      financePlanId: null,
+      financeInputs: null,
+      pricingSnapshot: null,
+    };
+
+    let customVanDescription: string | null = null;
+    if (cfg.ownVan === false && cfg.vanSize) {
+      customVanDescription = `${cfg.vanSize} van supplied by Mobile Tyre Van City`;
+    } else if (cfg.ownVan === true) {
+      customVanDescription = "Customer's own van";
+    }
+
+    const configState = {
+      slotA: {
+        ...defaultSlot,
+        customVanDescription,
+        serviceType: cfg.serviceType ?? null,
+        kitId: cfg.kitId ?? null,
+        upgradeIds: Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [],
+        financePlanId: cfg.financePlanId ?? null,
+      },
+      slotB: defaultSlot,
+      compareMode: false,
+      activeSlot: "A",
+    };
+
+    try {
+      localStorage.setItem("configurator:v6", JSON.stringify(configState));
+    } catch { /* ignore */ }
+
+    setTranscriptConv(null);
+    setLocation("/admin/configurator");
+  };
 
   const openContactNoteDialog = (conv: AiConversationRow) => {
     setContactNoteText("");
@@ -1193,7 +1261,7 @@ export default function AdminAIConversations() {
             </div>
           )}
 
-          {/* Config summary in dialog */}
+          {/* Config spec panel */}
           {transcriptConv?.mapped_config &&
             (() => {
               const cfg =
@@ -1208,65 +1276,113 @@ export default function AdminAIConversations() {
                 cfg.packageId ||
                 cfg.financePreference;
               if (!hasSummary) return null;
+
+              const kit = kitsData.find((k) => k.id === cfg.kitId);
+              const selectedUpgrades = upgradesData.filter(
+                (u) => Array.isArray(cfg.upgradeIds) && cfg.upgradeIds.includes(u.id)
+              );
+              const serviceTypeLabel =
+                cfg.serviceType === "hybrid"
+                  ? "Cars + Commercials"
+                  : cfg.serviceType === "commercial"
+                  ? "Commercial only"
+                  : "Cars & vans";
+              const packageColour =
+                cfg.packageId === "gold"
+                  ? "text-amber-400 font-semibold"
+                  : cfg.packageId === "silver"
+                  ? "text-zinc-300 font-semibold"
+                  : cfg.packageId === "bronze"
+                  ? "text-amber-700 font-semibold"
+                  : "font-medium";
+
               return (
-                <div className="px-5 py-3 bg-muted/40 border-b shrink-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    Captured configuration
-                  </p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="px-5 py-3 bg-muted/30 border-b shrink-0">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Captured configuration
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleOpenInConfigurator}
+                      data-testid="button-open-in-configurator"
+                      className="h-7 text-xs px-2.5"
+                    >
+                      <Settings className="w-3 h-3 mr-1.5" />
+                      Edit in configurator
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-xs mb-3">
                     {cfg.packageId && (
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {cfg.packageId} package
-                      </Badge>
+                      <>
+                        <span className="text-muted-foreground">Package</span>
+                        <span className={`capitalize ${packageColour}`}>{cfg.packageId}</span>
+                      </>
                     )}
                     {cfg.serviceType && (
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {cfg.serviceType === "hybrid"
-                          ? "Cars + Commercials"
-                          : cfg.serviceType === "commercial"
-                          ? "Commercials"
-                          : "Cars & vans"}
-                      </Badge>
+                      <>
+                        <span className="text-muted-foreground">Service type</span>
+                        <span className="font-medium">{serviceTypeLabel}</span>
+                      </>
                     )}
                     {cfg.vanSize && (
-                      <Badge variant="outline" className="text-xs">
-                        {cfg.vanSize}
-                      </Badge>
+                      <>
+                        <span className="text-muted-foreground">Van size</span>
+                        <span className="font-medium">{cfg.vanSize}</span>
+                      </>
                     )}
                     {cfg.machineType && (
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {cfg.machineType.replace("-", " ")}
-                      </Badge>
+                      <>
+                        <span className="text-muted-foreground">Machine type</span>
+                        <span className="font-medium capitalize">
+                          {cfg.machineType.replace("-", " ")}
+                        </span>
+                      </>
                     )}
-                    {cfg.kitId && (
-                      <Badge variant="outline" className="text-xs">
-                        Kit: {cfg.kitId}
-                      </Badge>
-                    )}
-                    {cfg.financePreference && (
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {cfg.financePreference}
-                      </Badge>
+                    {(cfg.kitId || kit) && (
+                      <>
+                        <span className="text-muted-foreground">Kit</span>
+                        <span className="font-medium">{kit ? kit.name : cfg.kitId}</span>
+                      </>
                     )}
                     {cfg.includes48v && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs text-[#8bc440] border-[#8bc440]/30"
-                      >
-                        48V system
-                      </Badge>
+                      <>
+                        <span className="text-muted-foreground">48V system</span>
+                        <span className="font-medium text-[#8bc440]">Yes</span>
+                      </>
                     )}
-                    {cfg.ownVan === false && (
-                      <Badge variant="outline" className="text-xs">
-                        Needs van supplied
-                      </Badge>
+                    {cfg.ownVan !== null && cfg.ownVan !== undefined && (
+                      <>
+                        <span className="text-muted-foreground">Van supply</span>
+                        <span className="font-medium">
+                          {cfg.ownVan
+                            ? "Customer's own van"
+                            : `${cfg.vanSize ?? ""} van from MTVC`.trim()}
+                        </span>
+                      </>
                     )}
-                    {cfg.ownVan === true && (
-                      <Badge variant="outline" className="text-xs">
-                        Own van
-                      </Badge>
+                    {cfg.financePreference && (
+                      <>
+                        <span className="text-muted-foreground">Finance</span>
+                        <span className="font-medium capitalize">{cfg.financePreference}</span>
+                      </>
                     )}
                   </div>
+                  {selectedUpgrades.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                        Upgrades
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedUpgrades.map((u) => (
+                          <Badge key={u.id} variant="outline" className="text-xs font-normal">
+                            {u.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

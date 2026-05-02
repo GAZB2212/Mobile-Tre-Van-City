@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -82,6 +82,20 @@ export default function RequestQuote() {
       notes: "",
     },
   });
+
+  // Pre-fill name and phone from AI chat session if available
+  useEffect(() => {
+    try {
+      const aiRaw = localStorage.getItem("ai-chat:v1");
+      if (aiRaw) {
+        const aiSession = JSON.parse(aiRaw);
+        const name = aiSession?.config?.contactName;
+        const phone = aiSession?.config?.contactPhone;
+        if (name) form.setValue("userName", name);
+        if (phone) form.setValue("phone", phone);
+      }
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (formData: QuoteFormData) => {
