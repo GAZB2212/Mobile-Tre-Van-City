@@ -163,11 +163,28 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     location.startsWith("/admin/training-options") || location.startsWith("/admin/gallery-items") ||
     location.startsWith("/admin/videos") || location.startsWith("/admin/blog") ||
     location.startsWith("/admin/ai-packages") || location.startsWith("/admin/users");
+
+  const CONTENT_GROUP_KEY = "adminSidebar_Content_collapsed";
+
+  const getInitialCollapsedState = (): boolean => {
+    if (isContentRoute) return false;
+    const saved = localStorage.getItem(CONTENT_GROUP_KEY);
+    if (saved !== null) return saved === "true";
+    return true;
+  };
+
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
-    Content: !isContentRoute,
+    Content: getInitialCollapsedState(),
   });
-  const toggleGroup = (label: string) =>
-    setCollapsedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      if (label === "Content") {
+        localStorage.setItem(CONTENT_GROUP_KEY, String(next[label]));
+      }
+      return next;
+    });
+  };
 
   // Server version polling — detects when the backend has restarted (new deployment)
   const initialVersion = useRef<string | null>(null);
