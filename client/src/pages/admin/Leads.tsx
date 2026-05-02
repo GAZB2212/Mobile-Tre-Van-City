@@ -41,6 +41,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+const REDIRECT_DELAY_MS = 500;
+const ACCESS_DENIED_REDIRECT_MS = 1000;
+const POLL_INTERVAL_MS = 60_000;
+const WEEK_DAYS = 7;
+
 type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "closed" | "dead";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; className: string }> = {
@@ -110,14 +115,14 @@ export default function AdminLeads() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({ title: "Unauthorized", description: "You are logged out. Logging in again...", variant: "destructive" });
-      setTimeout(() => { window.location.href = "/login"; }, 500);
+      setTimeout(() => { window.location.href = "/login"; }, REDIRECT_DELAY_MS);
     }
   }, [isAuthenticated, isLoading, toast]);
 
   useEffect(() => {
     if (user && (!user.adminRole || user.adminRole === "none")) {
       toast({ title: "Access Denied", description: "Admin access required.", variant: "destructive" });
-      setTimeout(() => { window.location.href = "/"; }, 1000);
+      setTimeout(() => { window.location.href = "/"; }, ACCESS_DENIED_REDIRECT_MS);
     }
   }, [user, toast]);
 
@@ -126,7 +131,7 @@ export default function AdminLeads() {
   const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching } = useQuery<Lead[]>({
     queryKey: ["/api/admin/leads"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
-    refetchInterval: isActive ? 60_000 : false,
+    refetchInterval: isActive ? POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
 
@@ -178,7 +183,7 @@ export default function AdminLeads() {
         if (dateFilter === "today") {
           if (d.toDateString() !== now.toDateString()) return false;
         } else if (dateFilter === "week") {
-          const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+          const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - WEEK_DAYS);
           if (d < weekAgo) return false;
         } else if (dateFilter === "month") {
           if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
@@ -256,7 +261,7 @@ export default function AdminLeads() {
                 Track and manage customer inquiries and leads
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <span className={`w-1.5 h-1.5 rounded-full ${leadsFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
-                  {leadsFetching ? "Refreshing…" : isActive ? "Live — updates every 60s" : "Paused (idle)"}
+                  {leadsFetching ? "Refreshing…" : isActive ? `Live — updates every ${POLL_INTERVAL_MS / 1000}s` : "Paused (idle)"}
                 </span>
               </p>
             </div>
@@ -374,7 +379,7 @@ export default function AdminLeads() {
                   {leads.filter((l) => {
                     if (!l.createdAt) return false;
                     const d = new Date(l.createdAt);
-                    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+                    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - WEEK_DAYS);
                     return d >= weekAgo;
                   }).length}
                 </p>

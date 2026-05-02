@@ -1,3 +1,15 @@
+const REDIRECT_DELAY_MS = 500;
+const ACCESS_DENIED_REDIRECT_MS = 1000;
+const POLL_INTERVAL_MS = 60_000;
+const MS_PER_DAY = 86_400_000;
+const PENCE_PER_POUND = 100;
+const DATE_FILTER_WEEK_DAYS = 7;
+const DATE_FILTER_MONTH_DAYS = 30;
+const SHORT_ID_LENGTH = 8;
+const END_OF_DAY_HOUR = 23;
+const END_OF_DAY_MINUTE = 59;
+const END_OF_DAY_SECOND = 59;
+
 function getStatusBadgeClass(status: string): string {
   switch (status) {
     case "new": return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
@@ -49,7 +61,7 @@ const STALE_THRESHOLDS: Partial<Record<string, number>> = {
 function daysInStatus(quote: { status: string; statusChangedAt?: string | Date | null; createdAt?: string | Date | null }): number {
   const since = (quote as any).statusChangedAt ?? quote.createdAt;
   if (!since) return 0;
-  return Math.floor((Date.now() - new Date(since).getTime()) / 86_400_000);
+  return Math.floor((Date.now() - new Date(since).getTime()) / MS_PER_DAY);
 }
 
 function isOverdue(quote: { status: string; statusChangedAt?: string | Date | null; createdAt?: string | Date | null }): boolean {
@@ -165,7 +177,7 @@ export default function AdminQuotes() {
       });
       setTimeout(() => {
         window.location.href = "/login";
-      }, 500);
+      }, REDIRECT_DELAY_MS);
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
@@ -180,7 +192,7 @@ export default function AdminQuotes() {
       });
       setTimeout(() => {
         window.location.href = "/";
-      }, 1000);
+      }, ACCESS_DENIED_REDIRECT_MS);
       return;
     }
   }, [user, toast]);
@@ -191,7 +203,7 @@ export default function AdminQuotes() {
   const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
-    refetchInterval: isActive ? 60_000 : false,
+    refetchInterval: isActive ? POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
 
@@ -257,7 +269,7 @@ export default function AdminQuotes() {
 
   // Helper functions
   const formatPrice = (pence: number): string => {
-    return `£${(pence / 100).toFixed(2)}`;
+    return `£${(pence / PENCE_PER_POUND).toFixed(2)}`;
   };
 
   const formatDate = (dateString: string | Date | null): string => {
@@ -299,7 +311,7 @@ export default function AdminQuotes() {
     .filter((quote) => {
       const normalizedSearch = searchTerm.toLowerCase().replace(/^#/, '');
       const normalizedPhone = normalizedSearch.replace(/[\s\-().+]/g, '');
-      const shortId = quote.id.slice(0, 8).toUpperCase();
+      const shortId = quote.id.slice(0, SHORT_ID_LENGTH).toUpperCase();
       const vanName = quote.vanId ? (vans.find(v => v.id === quote.vanId)?.title ?? '') : '';
       const kitName = quote.kitId ? (kits.find(k => k.id === quote.kitId)?.name ?? '') : '';
       const quotePhone = (quote.phone ?? '').replace(/[\s\-().+]/g, '');
@@ -320,12 +332,12 @@ export default function AdminQuotes() {
       if (!quote.createdAt) return matchesSearch;
       const quoteDate = new Date(quote.createdAt);
       const now = new Date();
-      const daysDiff = Math.floor((now.getTime() - quoteDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.floor((now.getTime() - quoteDate.getTime()) / MS_PER_DAY);
 
       let matchesDate = true;
       if (dateFilter === "today") matchesDate = daysDiff === 0;
-      else if (dateFilter === "week") matchesDate = daysDiff <= 7;
-      else if (dateFilter === "month") matchesDate = daysDiff <= 30;
+      else if (dateFilter === "week") matchesDate = daysDiff <= DATE_FILTER_WEEK_DAYS;
+      else if (dateFilter === "month") matchesDate = daysDiff <= DATE_FILTER_MONTH_DAYS;
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -356,11 +368,11 @@ export default function AdminQuotes() {
 
   // Trend calculation helpers
   const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * MS_PER_DAY);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * MS_PER_DAY);
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, END_OF_DAY_HOUR, END_OF_DAY_MINUTE, END_OF_DAY_SECOND);
 
   const thisWeekQuotes = quotes.filter(q => q.createdAt && new Date(q.createdAt) >= sevenDaysAgo);
   const lastWeekQuotes = quotes.filter(q => q.createdAt && new Date(q.createdAt) >= fourteenDaysAgo && new Date(q.createdAt) < sevenDaysAgo);
@@ -408,9 +420,9 @@ export default function AdminQuotes() {
         `"${getKitName(quote.kitId)}"`,
         `"${getUpgradeNames(quote.selectedUpgradeIds)}"`,
         `"${quote.notes || ""}"`,
-        (quote.estSubtotal / 100).toFixed(2),
-        (quote.estVAT / 100).toFixed(2),
-        (quote.estTotal / 100).toFixed(2)
+        (quote.estSubtotal / PENCE_PER_POUND).toFixed(2),
+        (quote.estVAT / PENCE_PER_POUND).toFixed(2),
+        (quote.estTotal / PENCE_PER_POUND).toFixed(2)
       ].join(","))
     ];
 
@@ -448,7 +460,7 @@ export default function AdminQuotes() {
                 Review and manage customer configurators
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <span className={`w-1.5 h-1.5 rounded-full ${quotesFetching ? "bg-amber-400 animate-pulse" : isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
-                  {quotesFetching ? "Refreshing…" : isActive ? "Live — updates every 60s" : "Paused (idle)"}
+                  {quotesFetching ? "Refreshing…" : isActive ? `Live — updates every ${POLL_INTERVAL_MS / 1000}s` : "Paused (idle)"}
                 </span>
               </p>
             </div>
@@ -954,7 +966,7 @@ export default function AdminQuotes() {
                                 <p className="text-sm text-muted-foreground">{quote.customVanDescription}</p>
                               )}
                               {quote.customVanValue && (
-                                <p className="text-sm text-muted-foreground">£{(quote.customVanValue / 100).toLocaleString()}</p>
+                                <p className="text-sm text-muted-foreground">£{(quote.customVanValue / PENCE_PER_POUND).toLocaleString()}</p>
                               )}
                             </div>
                           ) : (
