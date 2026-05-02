@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import type { User, Quote } from "@shared/schema";
+import type { User, Quote, Testimonial } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -27,7 +27,7 @@ import {
   CheckCircle2,
   PoundSterling,
   LayoutDashboard,
-  Quote,
+  Quote as QuoteIcon,
 } from "lucide-react";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
@@ -63,6 +63,13 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
+
+  const { data: testimonials = [] } = useQuery<Testimonial[]>({
+    queryKey: ["/api/admin/testimonials"],
+    enabled: !!(user?.adminRole && user.adminRole === "full"),
+  });
+
+  const publishedTestimonialsCount = testimonials.filter(t => t.published).length;
 
   const committedQuotes = quotes.filter(q => COMMITTED_STATUSES.has(q.status));
   const committedTotal = committedQuotes.reduce((sum, q) => sum + (q.estTotal ?? 0), 0);
@@ -116,7 +123,7 @@ export default function AdminDashboard() {
     { title: "Manage Blog", description: "Write and publish blog posts and articles", icon: Globe, href: "/admin/blog", badge: "Blog", requiredRole: "full" as const },
     { title: "Manage Site Videos", description: "Upload hero video and 360° render videos — changes go live instantly", icon: Video, href: "/admin/videos", badge: "Videos", requiredRole: "full" as const },
     { title: "AI Packages", description: "Configure Bronze, Silver and Gold package tiers for the AI assistant to recommend", icon: Layers, href: "/admin/ai-packages", badge: "AI", requiredRole: "full" as const },
-    { title: "Manage Testimonials", description: "Add, edit, and manage customer testimonials on the homepage", icon: Quote, href: "/admin/testimonials", badge: "Content", requiredRole: "full" as const },
+    { title: "Manage Testimonials", description: "Add, edit, and manage customer testimonials on the homepage", icon: QuoteIcon, href: "/admin/testimonials", badge: "Content", requiredRole: "full" as const },
     { title: "Manage Users", description: "Assign roles and manage admin access", icon: Shield, href: "/admin/users", badge: "Security", requiredRole: "full" as const },
   ];
 
@@ -182,6 +189,32 @@ export default function AdminDashboard() {
         {/* ── OVERVIEW TAB ── */}
         {activeTab === "overview" && (
           <div className="space-y-10">
+
+            {/* Quick stats */}
+            {user?.adminRole === "full" && (
+              <div>
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-accent" />
+                  Quick Stats
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Link href="/admin/testimonials" data-testid="link-stat-testimonials">
+                    <Card className="hover-elevate cursor-pointer transition-all">
+                      <CardContent className="flex items-center gap-4 py-5">
+                        <div className="rounded-md bg-accent/10 p-2.5">
+                          <QuoteIcon className="w-5 h-5 text-accent" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Testimonials Published</p>
+                          <p className="text-2xl font-bold" data-testid="text-testimonials-published-count">{publishedTestimonialsCount}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Sales Tools */}
             {user?.adminRole && (
               <div>
