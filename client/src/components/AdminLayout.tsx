@@ -33,6 +33,7 @@ import {
   Layers,
   UserRound,
   ChevronLeft,
+  ChevronRight,
   LayoutDashboard,
   BookOpen,
   Menu,
