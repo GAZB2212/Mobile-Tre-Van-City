@@ -77,7 +77,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,6 +113,7 @@ import {
 } from "lucide-react";
 
 export default function AdminQuotes() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth() as {
     user: User | undefined;
@@ -773,37 +774,51 @@ export default function AdminQuotes() {
                         </div>
                         <div className="space-y-2 min-h-16">
                           {colQuotes.map(quote => (
-                            <Link key={quote.id} href={`/admin/quotes/${quote.id}`}>
-                              <Card className={`hover-elevate cursor-pointer ${isOverdue(quote) ? "border-amber-400/50" : ""}`} data-testid={`kanban-card-${quote.id}`}>
-                                <CardContent className="p-3 space-y-1.5">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <p className="font-semibold text-sm truncate">{quote.userName}</p>
-                                    {(quote as any).aiSessionId && (
-                                      <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1 text-[10px] px-1.5 py-0" data-testid={`badge-max-ai-kanban-${quote.id}`}>
-                                        <Bot className="w-2.5 h-2.5" />
-                                        Max
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  {quote.company && (
-                                    <p className="text-xs text-muted-foreground truncate">{quote.company}</p>
+                            <Card
+                              key={quote.id}
+                              className={`hover-elevate cursor-pointer ${isOverdue(quote) ? "border-amber-400/50" : ""}`}
+                              data-testid={`kanban-card-${quote.id}`}
+                              onClick={() => setLocation(`/admin/quotes/${quote.id}`)}
+                            >
+                              <CardContent className="p-3 space-y-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-semibold text-sm truncate">{quote.userName}</p>
+                                  {(quote as any).aiSessionId && (
+                                    <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1 text-[10px] px-1.5 py-0" data-testid={`badge-max-ai-kanban-${quote.id}`}>
+                                      <Bot className="w-2.5 h-2.5" />
+                                      Max
+                                    </Badge>
                                   )}
-                                  <p className="text-xs text-muted-foreground">
-                                    {getVanName(quote.vanId)} {quote.kitId ? `· ${getKitName(quote.kitId)}` : ""}
-                                  </p>
-                                  <div className="flex items-center justify-between pt-0.5">
-                                    <span className="text-xs font-bold text-accent">{formatPrice(quote.estTotal)}</span>
-                                    <span className="text-xs text-muted-foreground">{quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : ""}</span>
+                                </div>
+                                {quote.company && (
+                                  <p className="text-xs text-muted-foreground truncate">{quote.company}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  {getVanName(quote.vanId)} {quote.kitId ? `· ${getKitName(quote.kitId)}` : ""}
+                                </p>
+                                <div className="flex items-center justify-between pt-0.5">
+                                  <span className="text-xs font-bold text-accent">{formatPrice(quote.estTotal)}</span>
+                                  <span className="text-xs text-muted-foreground">{quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : ""}</span>
+                                </div>
+                                {isOverdue(quote) && (
+                                  <div className="flex items-center gap-1 pt-0.5" data-testid={`badge-overdue-kanban-${quote.id}`}>
+                                    <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{daysInStatus(quote)}d — action needed</span>
                                   </div>
-                                  {isOverdue(quote) && (
-                                    <div className="flex items-center gap-1 pt-0.5" data-testid={`badge-overdue-kanban-${quote.id}`}>
-                                      <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{daysInStatus(quote)}d — action needed</span>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            </Link>
+                                )}
+                                <div className="pt-1 border-t border-border/50">
+                                  <Link
+                                    href={`/admin/quotes/${quote.id}?tab=configuration&from=quotes`}
+                                    onClick={e => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                                    data-testid={`link-edit-config-kanban-${quote.id}`}
+                                  >
+                                    <Settings className="w-3 h-3" />
+                                    Edit Config
+                                  </Link>
+                                </div>
+                              </CardContent>
+                            </Card>
                           ))}
                           {colQuotes.length === 0 && (
                             <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-md">
