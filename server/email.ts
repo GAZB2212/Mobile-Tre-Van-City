@@ -56,8 +56,10 @@ export async function getUncachableResendClient() {
 const BRAND_GREEN = '#8bc440';
 const BRAND_DARK = '#191919';
 const SITE_DOMAIN = 'www.mobiletyrevancity.co.uk';
-// Logo asset is at client/public/LOGO_1762356342150.png — Vite serves client/public/
-// at the site root in both dev and production, so this URL is stable.
+// Logo file is committed at client/public/LOGO_1762356342150.png.
+// Vite serves client/public/ at the site root, so the file is accessible
+// at https://www.mobiletyrevancity.co.uk/LOGO_1762356342150.png in production.
+// Email clients require an absolute HTTPS URL, hence the hardcoded production domain.
 const LOGO_URL = `https://${SITE_DOMAIN}/LOGO_1762356342150.png`;
 const ADDRESS = '5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL';
 const PHONE = '0151 203 8500';
