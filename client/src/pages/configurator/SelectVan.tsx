@@ -10,7 +10,6 @@ import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Select,
   SelectContent,
@@ -34,6 +33,7 @@ import {
 } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowDown, Car, Fuel, Gauge, Settings, Info, SlidersHorizontal, X, Truck } from "lucide-react";
 import type { Van } from "@shared/schema";
 
@@ -157,8 +157,24 @@ export default function SelectVan() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
             <div className="xl:col-span-2">
               {isLoading ? (
-                <div className="flex justify-center py-20">
-                  <LoadingSpinner size="lg" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" data-testid="skeleton-vans">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex flex-col rounded-md border bg-card overflow-hidden">
+                      <Skeleton className="w-full h-36 rounded-none" />
+                      <div className="p-4 space-y-2 flex-1">
+                        <Skeleton className="h-4 w-16 rounded" />
+                        <Skeleton className="h-5 w-3/4 rounded" />
+                        <Skeleton className="h-5 w-1/2 rounded" />
+                        <Skeleton className="h-3 w-full rounded mt-2" />
+                        <Skeleton className="h-3 w-full rounded" />
+                        <Skeleton className="h-3 w-2/3 rounded" />
+                      </div>
+                      <div className="p-4 pt-0 space-y-2">
+                        <Skeleton className="h-8 w-full rounded" />
+                        <Skeleton className="h-8 w-full rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>
@@ -270,11 +286,12 @@ export default function SelectVan() {
                     ) : (
                       vans.map((van) => {
                       const firstImage = van.heroImage || van.images?.[0];
+                      const isSelected = state.vanId === van.id;
                       
                       return (
                         <Card 
                           key={van.id} 
-                          className={`hover-elevate cursor-pointer overflow-visible flex flex-col ${state.vanId === van.id ? 'ring-2 ring-accent' : ''}`}
+                          className={`hover-elevate cursor-pointer overflow-visible flex flex-col group ${isSelected ? 'ring-2 ring-accent shadow-[0_0_12px_2px_hsl(var(--accent)/0.35)]' : ''}`}
                           onClick={() => setLocation(`/stock/${van.slug}`)}
                           data-testid={`card-van-${van.id}`}
                         >
@@ -288,6 +305,20 @@ export default function SelectVan() {
                                 loading="lazy"
                                 data-testid={`img-van-${van.id}`}
                               />
+                              {/* Spec hover overlay */}
+                              <div className="absolute bottom-0 left-0 right-0 invisible group-hover:visible bg-black/70 backdrop-blur-sm px-2 py-1.5 flex gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-white text-[10px] font-medium bg-white/15 rounded px-1.5 py-0.5">
+                                  <Gauge className="w-3 h-3" />
+                                  {van.mileage.toLocaleString()}mi
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-white text-[10px] font-medium bg-white/15 rounded px-1.5 py-0.5">
+                                  <Fuel className="w-3 h-3" />
+                                  {van.specs.fuel}
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-white text-[10px] font-medium bg-white/15 rounded px-1.5 py-0.5">
+                                  {van.year}
+                                </span>
+                              </div>
                             </div>
                           )}
 

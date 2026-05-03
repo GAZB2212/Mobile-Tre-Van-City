@@ -10,9 +10,9 @@ import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ArrowLeft, Zap, Package, Info, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import type { Kit, Van } from "@shared/schema";
 
@@ -125,8 +125,27 @@ export default function SelectKit() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
             <div className="xl:col-span-2">
               {isLoading ? (
-                <div className="flex justify-center py-20">
-                  <LoadingSpinner size="lg" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="skeleton-kits">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex flex-col rounded-md border bg-card overflow-hidden">
+                      <div className="p-6 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Skeleton className="h-5 w-16 rounded" />
+                          <Skeleton className="h-7 w-20 rounded" />
+                        </div>
+                        <Skeleton className="h-6 w-2/3 rounded" />
+                        <Skeleton className="h-4 w-full rounded" />
+                        <Skeleton className="h-4 w-3/4 rounded" />
+                      </div>
+                      <div className="p-6 pt-0 space-y-2">
+                        <Skeleton className="h-3 w-full rounded" />
+                        <Skeleton className="h-3 w-full rounded" />
+                        <Skeleton className="h-3 w-2/3 rounded" />
+                        <Skeleton className="h-9 w-full rounded mt-4" />
+                        <Skeleton className="h-9 w-full rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>

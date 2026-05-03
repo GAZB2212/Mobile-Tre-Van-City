@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import { buildShareUrl, hasAnythingSelected } from "@/lib/configuratorShare";
 import { Button } from "@/components/ui/button";
-import { Share2, Check } from "lucide-react";
+import { Link } from "wouter";
+import { Share2, Check, CheckCircle } from "lucide-react";
 
 interface Step {
   title: string;
@@ -106,7 +107,7 @@ export default function ConfiguratorStepper({ currentPath }: ConfiguratorStepper
       </div>
       <div className="w-full bg-muted rounded-full h-1.5">
         <div
-          className="bg-accent h-1.5 rounded-full transition-all duration-300"
+          className="bg-accent h-1.5 rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
           data-testid="progress-bar"
           role="progressbar"
@@ -114,6 +115,37 @@ export default function ConfiguratorStepper({ currentPath }: ConfiguratorStepper
           aria-valuemin={1}
           aria-valuemax={totalSteps}
         />
+      </div>
+      {/* Step indicators */}
+      <div className="flex items-center gap-1 mt-2 flex-wrap">
+        {steps.map((step, idx) => {
+          const isCompleted = idx < currentIndex;
+          const isCurrent = idx === currentIndex;
+          return (
+            <div key={step.path} className="flex items-center gap-1">
+              {isCompleted ? (
+                <Link
+                  href={step.path}
+                  className="flex items-center gap-1 text-[10px] text-accent font-medium hover:underline"
+                  data-testid={`step-link-${idx}`}
+                >
+                  <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                  {step.title}
+                </Link>
+              ) : (
+                <span
+                  className={`text-[10px] font-medium ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}
+                  data-testid={`step-label-${idx}`}
+                >
+                  {step.title}
+                </span>
+              )}
+              {idx < steps.length - 1 && (
+                <span className="text-muted-foreground/40 text-[10px] mx-0.5">›</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

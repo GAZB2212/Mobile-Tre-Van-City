@@ -120,14 +120,14 @@ export default function Gallery() {
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="columns-1 sm:columns-2 lg:columns-4 gap-6">
                 {filteredItems.map((item, itemIndex) => (
                   <Card
                     key={item.id}
-                    className="hover-elevate overflow-hidden cursor-pointer"
+                    className="hover-elevate overflow-hidden cursor-pointer break-inside-avoid mb-6"
                     data-testid={`card-gallery-${itemIndex}`}
                   >
-                    <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
+                    <div className="bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
                       {item.type === 'video' ? (
                         <GalleryVideoCard
                           fileUrl={item.fileUrl}
@@ -140,14 +140,14 @@ export default function Gallery() {
                           alt={item.title}
                           loading="lazy"
                           decoding="async"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
                             if (parent) {
                               parent.innerHTML = `
-                                <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                                <div class="flex flex-col items-center justify-center gap-3 py-12">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground/50"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                                   <span class="text-xs text-muted-foreground">Failed to load</span>
                                 </div>

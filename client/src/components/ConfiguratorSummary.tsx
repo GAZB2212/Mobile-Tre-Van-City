@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import type { ConfiguratorSlotState } from "@/lib/ConfiguratorContext";
@@ -378,6 +378,8 @@ export function ConfiguratorSummary({
   discountValue?: string;
 } = {}) {
   const { state, setCustomVanValue, setVanReg, compareMode } = useConfigurator();
+  const [priceAnimKey, setPriceAnimKey] = useState(0);
+  const prevTotalRef = useRef<number | null>(null);
 
   // Local input state for own van price and reg (synced to context)
   const [vanPriceStr, setVanPriceStr] = useState(
@@ -442,6 +444,15 @@ export function ConfiguratorSummary({
   const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
   const vat = Math.round(subtotal * 0.2);
   const total = subtotal + vat;
+
+  const displayTotal = discountedTotal ?? total;
+
+  useEffect(() => {
+    if (prevTotalRef.current !== null && prevTotalRef.current !== displayTotal && displayTotal > 0) {
+      setPriceAnimKey(k => k + 1);
+    }
+    prevTotalRef.current = displayTotal;
+  }, [displayTotal]);
 
   const showPricing = true;
   const hasItems = van ? true : (kitPrice > 0 || upgradesTotal > 0 || trainingTotal > 0);
@@ -596,10 +607,14 @@ export function ConfiguratorSummary({
                         </>
                       ) : null}
                       <Separator />
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="font-bold">Total</span>
-                        <span className="font-bold text-lg text-accent" data-testid="text-summary-total">
-                          {formatPrice(discountedTotal ?? total)}
+                        <span
+                          key={priceAnimKey}
+                          className={`font-extrabold text-2xl text-accent ${priceAnimKey > 0 ? 'price-updated' : ''}`}
+                          data-testid="text-summary-total"
+                        >
+                          {formatPrice(displayTotal)}
                         </span>
                       </div>
                     </div>
