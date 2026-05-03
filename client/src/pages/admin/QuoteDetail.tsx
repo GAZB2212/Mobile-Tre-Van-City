@@ -1275,25 +1275,34 @@ export default function AdminQuoteDetail() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg" data-testid="text-customer-name">
-                      {editingCustomer ? "Edit Customer Details" : quote.userName}
-                    </CardTitle>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                      {editingCustomer ? "Edit Customer Details" : "Customer Details"}
+                    </p>
                     {!editingCustomer && (
-                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                        <span className="text-sm text-muted-foreground" data-testid="text-customer-email">{quote.email}</span>
-                        <span className="text-sm text-muted-foreground" data-testid="text-customer-phone">{quote.phone}</span>
-                        {quote.company && <span className="text-sm text-muted-foreground" data-testid="text-customer-company">{quote.company}</span>}
-                        {quote.createdAt && (
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(quote.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </span>
+                      <>
+                        <p className="text-2xl font-bold text-foreground leading-tight" data-testid="text-customer-name">
+                          {quote.userName}
+                        </p>
+                        {quote.phone && (
+                          <p className="text-xl font-semibold text-foreground mt-1" data-testid="text-customer-phone">
+                            {quote.phone}
+                          </p>
                         )}
-                        {(quote as any).staffName && (
-                          <span className="text-sm text-muted-foreground" data-testid="text-quote-staff-name">
-                            Quoted by {(quote as any).staffName}
-                          </span>
-                        )}
-                      </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-2">
+                          {quote.email && <span className="text-sm text-muted-foreground" data-testid="text-customer-email">{quote.email}</span>}
+                          {quote.company && <span className="text-sm text-muted-foreground" data-testid="text-customer-company">{quote.company}</span>}
+                          {quote.createdAt && (
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(quote.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          )}
+                          {(quote as any).staffName && (
+                            <span className="text-sm text-muted-foreground" data-testid="text-quote-staff-name">
+                              Quoted by {(quote as any).staffName}
+                            </span>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                   {canEdit && !editingCustomer && (
