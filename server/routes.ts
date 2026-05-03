@@ -5349,6 +5349,63 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         ]
       );
 
+      // When a Max conversation completes, auto-create a draft quote so it appears in
+      // the Configurators list immediately — even if the customer never submits the form.
+      if (status === "completed" && sessionId) {
+        try {
+          const existing = await pool.query(
+            `SELECT id FROM quotes WHERE ai_session_id = $1 LIMIT 1`,
+            [sessionId]
+          );
+
+          if (existing.rows.length === 0) {
+            let customVanDescription: string | null = null;
+            if (cfg.ownVan === false && cfg.vanSize) {
+              customVanDescription = `${cfg.vanSize} van supplied by Mobile Tyre Van City`;
+            } else if (cfg.ownVan === true) {
+              customVanDescription = "Customer's own van";
+            }
+
+            const autoName = (contactName ?? cfg.contactName ?? "").trim() || "Via Max (name pending)";
+            const autoPhone = (contactPhone ?? cfg.contactPhone ?? "").trim();
+            const upgradeIds = Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [];
+
+            await pool.query(
+              `INSERT INTO quotes (
+                user_name, email, phone, service_type, kit_id,
+                selected_upgrade_ids, selected_upgrades, training_option_ids,
+                finance_plan_id, custom_van_description,
+                est_subtotal, est_vat, est_total, est_discount,
+                ai_session_id, status, admin_notes_history
+              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+              [
+                autoName,
+                "",
+                autoPhone,
+                cfg.serviceType ?? null,
+                cfg.kitId ?? null,
+                JSON.stringify(upgradeIds),
+                JSON.stringify({}),
+                JSON.stringify([]),
+                cfg.financePlanId ?? null,
+                customVanDescription,
+                0, 0, 0, 0,
+                sessionId,
+                "new",
+                JSON.stringify([{
+                  text: "Auto-created from Max AI chat — customer completed the configuration but may not have submitted the quote form. Phone number captured from Max chat.",
+                  timestamp: new Date().toISOString(),
+                  author: "System",
+                }]),
+              ]
+            );
+          }
+        } catch (autoErr: any) {
+          // Non-fatal — log but don't fail the save response
+          console.error("Auto-quote creation error:", autoErr.message);
+        }
+      }
+
       res.json({ ok: true });
     } catch (error) {
       console.error("AI chat save error:", error);

@@ -307,6 +307,50 @@ app.use((req, res, next) => {
       `)
         .then(() => log("✅ Testimonials table ready"))
         .catch((err: Error) => console.error("Testimonials migration:", err.message));
+
+      // Backfill: create draft quotes for any completed AI conversations that don't already
+      // have a linked quote — covers cases where the customer finished Max but never submitted the form.
+      pool.query(`
+        INSERT INTO quotes (
+          user_name, email, phone, service_type, kit_id,
+          selected_upgrade_ids, selected_upgrades, training_option_ids,
+          finance_plan_id, custom_van_description,
+          est_subtotal, est_vat, est_total, est_discount,
+          ai_session_id, status, admin_notes_history
+        )
+        SELECT
+          COALESCE(NULLIF(TRIM(ac.contact_name), ''), 'Via Max (name pending)'),
+          '',
+          COALESCE(TRIM(ac.contact_phone), ''),
+          ac.van_type,
+          ac.spec_level,
+          COALESCE((ac.mapped_config->>'upgradeIds')::jsonb, '[]'::jsonb),
+          '{}'::jsonb,
+          '[]'::jsonb,
+          (ac.mapped_config->>'financePlanId'),
+          CASE
+            WHEN (ac.mapped_config->>'ownVan')::boolean = false AND ac.van_size IS NOT NULL
+              THEN ac.van_size || ' van supplied by Mobile Tyre Van City'
+            WHEN (ac.mapped_config->>'ownVan')::boolean = true
+              THEN 'Customer''s own van'
+            ELSE NULL
+          END,
+          0, 0, 0, 0,
+          ac.session_id,
+          'new',
+          jsonb_build_array(jsonb_build_object(
+            'text', 'Auto-created from Max AI chat — customer completed the configuration but may not have submitted the quote form. Phone number captured from Max chat.',
+            'timestamp', to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+            'author', 'System'
+          ))
+        FROM ai_conversations ac
+        WHERE ac.config_completed = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM quotes q WHERE q.ai_session_id = ac.session_id
+          )
+      `)
+        .then((r) => { if ((r.rowCount ?? 0) > 0) log(`✅ Backfilled ${r.rowCount} draft quote(s) from completed Max conversations`); })
+        .catch((err: Error) => console.error("Max backfill migration:", err.message));
     });
   });
 })();
