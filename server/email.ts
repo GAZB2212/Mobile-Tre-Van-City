@@ -56,6 +56,8 @@ export async function getUncachableResendClient() {
 const BRAND_GREEN = '#8bc440';
 const BRAND_DARK = '#191919';
 const SITE_DOMAIN = 'www.mobiletyrevancity.co.uk';
+// Logo asset is at client/public/LOGO_1762356342150.png — Vite serves client/public/
+// at the site root in both dev and production, so this URL is stable.
 const LOGO_URL = `https://${SITE_DOMAIN}/LOGO_1762356342150.png`;
 const ADDRESS = '5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL';
 const PHONE = '0151 203 8500';
@@ -423,7 +425,7 @@ export async function sendQuoteSpecSummaryEmail({
       extraCss: specTableCss,
       footerNote: 'If you did not request this summary, please disregard this email.',
     }),
-    text: `Hi ${customerName},\n\nThank you for speaking with us. Please find below a summary of your configured mobile tyre van conversion.\n\nReference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}Total (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}${approvalToken ? `\nSpec approval: ${siteBase}/spec-approval/${approvalToken}\n` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
+    text: `Hi ${customerName},\n\nThank you for speaking with us today. As discussed, please find below a summary of your configured mobile tyre van conversion.\n\nReference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\n${discount && discount > 0 ? `Discount: -${fmt(discount)}\n` : ''}Total (inc. VAT): ${fmt(totalAfterDiscount)}\n${financeText}${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}${approvalToken ? `\nSpec approval: ${siteBase}/spec-approval/${approvalToken}\n` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
   });
 }
 
@@ -740,6 +742,21 @@ export async function sendQuoteReceivedEmails({
   });
 
   // 2. Admin notification
+  const adminFinanceRowsA = financeInfoA ? `
+    <tr><td colspan="2" style="padding-top:10px;padding-bottom:4px;font-weight:bold;font-size:13px;color:${BRAND_DARK};border-top:2px solid #e5e7eb;">Finance Illustration (HP — 10.9% APR)</td></tr>
+    <tr><td>Deposit</td><td>£${(financeInfoA.depositAmount/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>
+    <tr><td>Term</td><td>${financeInfoA.termMonths} months${financeInfoA.termMonths%12===0?` (${financeInfoA.termMonths/12} yr${financeInfoA.termMonths/12!==1?'s':''})`:''}  </td></tr>
+    <tr><td>Est. Monthly</td><td style="font-weight:bold;color:${BRAND_GREEN};">£${(financeInfoA.monthlyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/month</td></tr>
+    <tr><td>Est. Weekly</td><td>£${(financeInfoA.weeklyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/week (approx.)</td></tr>
+  ` : '';
+  const adminFinanceRowsB = financeInfoB ? `
+    <tr><td colspan="2" style="padding-top:10px;padding-bottom:4px;font-weight:bold;font-size:13px;color:${BRAND_DARK};border-top:2px solid #e5e7eb;">Finance Illustration (HP — 10.9% APR)</td></tr>
+    <tr><td>Deposit</td><td>£${(financeInfoB.depositAmount/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>
+    <tr><td>Term</td><td>${financeInfoB.termMonths} months${financeInfoB.termMonths%12===0?` (${financeInfoB.termMonths/12} yr${financeInfoB.termMonths/12!==1?'s':''})`:''}  </td></tr>
+    <tr><td>Est. Monthly</td><td style="font-weight:bold;color:${BRAND_GREEN};">£${(financeInfoB.monthlyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/month</td></tr>
+    <tr><td>Est. Weekly</td><td>£${(financeInfoB.weeklyPayment/100).toLocaleString('en-GB',{minimumFractionDigits:2})}/week (approx.)</td></tr>
+  ` : '';
+
   const adminBodyHtml = `
     <h2 style="color:${BRAND_DARK}; border-bottom: 3px solid ${BRAND_GREEN}; padding-bottom: 8px;">New Configurator Submission</h2>
     <h3>Customer Details</h3>
@@ -757,26 +774,33 @@ export async function sendQuoteReceivedEmails({
       ${upgradeNames && upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
       ${qrExtrasHtmlRow}
     </table>
-    <h3>Pricing</h3>
+    <h3>${comparisonSlotB ? 'Option A — ' : ''}Pricing</h3>
     <table>
       <tr><td>Subtotal (ex. VAT)</td><td>${subtotal}</td></tr>
       <tr><td>VAT (20%)</td><td>${vat}</td></tr>
       ${discountFmt ? `<tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${discountFmt}</td></tr>` : ''}
       <tr class="total"><td>Total (inc. VAT)</td><td>${total}</td></tr>
+      ${adminFinanceRowsA}
     </table>
     ${comparisonSlotB ? `
-    <h3>Option B</h3>
+    <h3>Option B — Configuration</h3>
     <table>
       ${comparisonSlotB.vanTitle ? `<tr><td>Van</td><td>${comparisonSlotB.vanTitle}</td></tr>` : ''}
       ${comparisonSlotB.kitName ? `<tr><td>Pack</td><td>${comparisonSlotB.kitName}</td></tr>` : ''}
       ${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `<tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${comparisonSlotB.upgradeNames.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('')}</ul></td></tr>` : ''}
       ${qrExtrasHtmlRow}
-      ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal</td><td>£${(comparisonSlotB.estSubtotal/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
-      ${comparisonSlotB.estVAT != null ? `<tr><td>VAT</td><td>£${(comparisonSlotB.estVAT/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
+    </table>
+    <h3>Option B — Pricing</h3>
+    <table>
+      ${comparisonSlotB.estSubtotal != null ? `<tr><td>Subtotal (ex. VAT)</td><td>£${(comparisonSlotB.estSubtotal/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
+      ${comparisonSlotB.estVAT != null ? `<tr><td>VAT (20%)</td><td>£${(comparisonSlotB.estVAT/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
       ${comparisonSlotB.estTotal != null ? `<tr class="total"><td>Total (inc. VAT)</td><td>£${(comparisonSlotB.estTotal/100).toLocaleString('en-GB',{minimumFractionDigits:2})}</td></tr>` : ''}
+      ${adminFinanceRowsB}
     </table>
     ` : ''}
   `;
+
+  const adminText = `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n\n${comparisonSlotB ? 'OPTION A\n' : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Discount: -${discountFmt}\n` : ''}Total: ${total}${financeInfoA ? `\nFinance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)` : ''}${comparisonSlotB ? `\n\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `Upgrades:\n${comparisonSlotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}` : ''}${financeInfoB ? `\nFinance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)` : ''}` : ''}`;
 
   await client.emails.send({
     to: INTERNAL_NOTIFY_EMAILS,
@@ -794,7 +818,7 @@ export async function sendQuoteReceivedEmails({
         }
       `,
     }),
-    text: `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}\nSubtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Discount: -${discountFmt}\n` : ''}Total: ${total}`,
+    text: adminText,
   });
 }
 
