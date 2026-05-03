@@ -5385,6 +5385,24 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
             const autoPhone = (contactPhone ?? cfg.contactPhone ?? "").trim();
             const upgradeIds = Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [];
 
+            // Calculate pricing from kit + upgrades so the list shows real values
+            let kitPricePence = 0;
+            if (cfg.kitId) {
+              const kitRow = await pool.query(`SELECT price FROM kits WHERE id = $1 LIMIT 1`, [cfg.kitId]);
+              if (kitRow.rows.length > 0) kitPricePence = kitRow.rows[0].price ?? 0;
+            }
+            let upgradesPricePence = 0;
+            if (upgradeIds.length > 0) {
+              const upRow = await pool.query(
+                `SELECT COALESCE(SUM(price), 0) AS total FROM upgrades WHERE id = ANY($1::text[])`,
+                [upgradeIds]
+              );
+              upgradesPricePence = parseInt(upRow.rows[0]?.total ?? "0", 10);
+            }
+            const estSubtotal = kitPricePence + upgradesPricePence;
+            const estVat = Math.round(estSubtotal * 0.2);
+            const estTotal = estSubtotal + estVat;
+
             await pool.query(
               `INSERT INTO quotes (
                 user_name, email, phone, service_type, kit_id,
@@ -5404,7 +5422,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
                 JSON.stringify([]),
                 cfg.financePlanId ?? null,
                 customVanDescription,
-                0, 0, 0, 0,
+                estSubtotal, estVat, estTotal, 0,
                 sessionId,
                 "new",
                 JSON.stringify([{
