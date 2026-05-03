@@ -16,6 +16,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   BarChart3,
   Bot,
   Car,
@@ -458,25 +466,35 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </span>
         </header>
 
-        {/* Update available banner */}
-        {updateAvailable && (
-          <div
-            className="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-500/8 border-b border-amber-500/20 shrink-0"
-            data-testid="banner-update-available"
+        {/* Update available modal */}
+        <Dialog open={updateAvailable} onOpenChange={() => {}}>
+          <DialogContent
+            className="max-w-sm"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            data-testid="modal-update-available"
           >
-            <p className="text-xs text-amber-400 font-medium">
-              The site has been updated. Refresh your browser to get the latest version — some actions may not save correctly until you do.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              data-testid="button-refresh-now"
-              className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors shrink-0"
-            >
-              <RefreshCw size={12} />
-              Refresh now
-            </button>
-          </div>
-        )}
+            <DialogHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <RefreshCw className="w-4 h-4 text-amber-400" />
+                <DialogTitle>Update available</DialogTitle>
+              </div>
+              <DialogDescription>
+                The software has been updated. Refresh your browser now to get the latest version — some actions may not save correctly until you do.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                onClick={() => window.location.reload()}
+                data-testid="button-refresh-now"
+                className="w-full"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh now
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
