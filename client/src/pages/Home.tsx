@@ -30,37 +30,37 @@ function DeliveryAreasSection() {
   return (
     <section className="py-14 bg-muted/30 border-y border-border">
       <div className="container mx-auto px-4">
-        <div className="flex flex-wrap items-start justify-between gap-6 mb-8">
-          <div className="max-w-xl">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-delivery-heading">
-              Nationwide Delivery — Anywhere in the UK
-            </h2>
-            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-              We deliver every completed conversion using professional, fully insured drivers — anywhere in the UK. Delivery is not included in the build price; the cost is calculated based on your location once we have your postcode.
-            </p>
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div className="inline-flex items-center gap-2 text-sm text-foreground">
-                <Truck className="w-4 h-4 text-accent shrink-0" />
-                Professional insured drivers
-              </div>
-              <div className="inline-flex items-center gap-2 text-sm text-foreground">
-                <Calculator className="w-4 h-4 text-accent shrink-0" />
-                Quoted by postcode
-              </div>
-              <div className="inline-flex items-center gap-2 text-sm text-foreground">
-                <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
-                Fully insured door-to-door
-              </div>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-delivery-heading">
+            Nationwide Delivery — Anywhere in the UK
+          </h2>
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base max-w-2xl mx-auto">
+            We deliver every completed conversion using professional, fully insured drivers — anywhere in the UK. Delivery is not included in the build price; the cost is calculated based on your location once we have your postcode.
+          </p>
+          <div className="flex flex-wrap justify-center gap-6 mt-5">
+            <div className="inline-flex items-center gap-2 text-sm text-foreground">
+              <Truck className="w-4 h-4 text-accent shrink-0" />
+              Professional insured drivers
+            </div>
+            <div className="inline-flex items-center gap-2 text-sm text-foreground">
+              <Calculator className="w-4 h-4 text-accent shrink-0" />
+              Quoted by postcode
+            </div>
+            <div className="inline-flex items-center gap-2 text-sm text-foreground">
+              <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+              Fully insured door-to-door
             </div>
           </div>
-          <Link href="/contact" className="shrink-0 self-start">
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline" data-testid="link-get-delivery-quote">
-              Get a delivery quote <ArrowRight className="w-4 h-4" />
-            </span>
-          </Link>
+          <div className="mt-5">
+            <Link href="/contact">
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline" data-testid="link-get-delivery-quote">
+                Get a delivery quote <ArrowRight className="w-4 h-4" />
+              </span>
+            </Link>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-medium">Popular areas we deliver to — and everywhere in between</p>
-        <div className="flex flex-wrap gap-2">
+        <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-medium text-center">Popular areas we deliver to — and everywhere in between</p>
+        <div className="flex flex-wrap justify-center gap-2">
           {KEY_CITIES.map((city) => (
             <Link
               key={city}
