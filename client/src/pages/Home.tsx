@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, MapPin, Truck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -30,21 +30,32 @@ function DeliveryAreasSection() {
   return (
     <section className="py-14 bg-muted/30 border-y border-border">
       <div className="container mx-auto px-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-6 mb-8">
+          <div className="max-w-xl">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground" data-testid="text-delivery-heading">
-              We Deliver Across the UK
+              Nationwide Delivery — Anywhere in the UK
             </h2>
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-              Van conversions delivered to 76 areas — from the Wirral to your door
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+              Wherever you are in the UK, we'll get your van to you. We use professional, fully insured drivers to deliver every conversion safely to your door — no matter the distance.
             </p>
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div className="inline-flex items-center gap-2 text-sm text-foreground">
+                <Truck className="w-4 h-4 text-accent shrink-0" />
+                Professional drivers
+              </div>
+              <div className="inline-flex items-center gap-2 text-sm text-foreground">
+                <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+                Fully insured delivery
+              </div>
+            </div>
           </div>
-          <Link href="/mobile-tyre-vans" className="shrink-0">
+          <Link href="/mobile-tyre-vans" className="shrink-0 self-start">
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline" data-testid="link-view-all-areas">
-              View all delivery areas <ArrowRight className="w-4 h-4" />
+              Learn more <ArrowRight className="w-4 h-4" />
             </span>
           </Link>
         </div>
+        <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-medium">Popular areas we serve — including yours</p>
         <div className="flex flex-wrap gap-2">
           {KEY_CITIES.map((city) => (
             <Link
@@ -58,6 +69,9 @@ function DeliveryAreasSection() {
               </span>
             </Link>
           ))}
+          <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-accent/10 border border-accent/20 text-sm text-accent font-medium">
+            + everywhere else
+          </span>
         </div>
       </div>
     </section>
