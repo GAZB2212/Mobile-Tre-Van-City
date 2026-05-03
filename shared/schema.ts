@@ -303,6 +303,7 @@ export const galleryItems = pgTable("gallery_items", {
   description: text("description"),
   sortOrder: integer("sort_order").notNull().default(0),
   published: boolean("published").notNull().default(true),
+  featured: boolean("featured").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

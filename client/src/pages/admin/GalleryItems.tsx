@@ -32,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Video, Eye, EyeOff, Upload, CheckCircle2, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Plus, Video, Eye, EyeOff, Upload, CheckCircle2, Loader2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { GalleryItem, InsertGalleryItem } from "@shared/schema";
@@ -134,6 +134,7 @@ export default function AdminGalleryItems() {
     description: "",
     sortOrder: 0,
     published: true,
+    featured: false,
   });
 
   const { data: items = [], isLoading } = useQuery<GalleryItem[]>({
@@ -195,6 +196,7 @@ export default function AdminGalleryItems() {
       description: "",
       sortOrder: 0,
       published: true,
+      featured: false,
     });
   };
 
@@ -209,9 +211,23 @@ export default function AdminGalleryItems() {
       description: item.description || "",
       sortOrder: item.sortOrder,
       published: item.published,
+      featured: item.featured ?? false,
     });
     setIsEditDialogOpen(true);
   };
+
+  const toggleFeaturedMutation = useMutation({
+    mutationFn: async ({ id, featured }: { id: string; featured: boolean }) => {
+      await apiRequest("PUT", `/api/admin/gallery-items/${id}`, { featured });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gallery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery-items"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update featured status.", variant: "destructive" });
+    },
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,6 +287,7 @@ export default function AdminGalleryItems() {
                   <TableHead>Type</TableHead>
                   <TableHead>Order</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Homepage</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -313,6 +330,19 @@ export default function AdminGalleryItems() {
                           Draft
                         </Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleFeaturedMutation.mutate({ id: item.id, featured: !item.featured })}
+                        disabled={toggleFeaturedMutation.isPending}
+                        title={item.featured ? "Remove from homepage" : "Feature on homepage"}
+                        data-testid={`button-feature-${item.id}`}
+                      >
+                        <Star className={`w-4 h-4 ${item.featured ? "fill-accent text-accent" : "text-muted-foreground"}`} />
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -472,6 +502,25 @@ export default function AdminGalleryItems() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="featured">Homepage Feature</Label>
+                <Select
+                  value={formData.featured ? "featured" : "not-featured"}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, featured: value === "featured" })
+                  }
+                >
+                  <SelectTrigger id="featured" data-testid="select-featured">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="featured">Featured on homepage</SelectItem>
+                    <SelectItem value="not-featured">Gallery only</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Featured items appear in the "Featured Builds" section on the homepage</p>
               </div>
 
               <DialogFooter>

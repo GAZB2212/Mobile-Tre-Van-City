@@ -17,26 +17,27 @@ export default function GalleryPreview() {
     return null;
   }
 
-  const preview = items.slice(0, 6);
+  const featured = items.filter(i => i.featured);
+  const preview = featured.length > 0 ? featured : items.slice(0, 6);
 
   return (
     <section className="py-16 md:py-24 bg-card">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
-            Gallery
+            Portfolio
           </Badge>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-gallery-preview-title">
-            Our Work
+            Featured Builds
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Explore completed van conversions, custom branding, and professional equipment installations
+            A selection of our best completed van conversions — custom branding, professional equipment, and fully kitted builds ready to earn from day one
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {preview.map((item, index) => (
-            <Card key={item.id} className="hover-elevate overflow-hidden" data-testid={`card-gallery-preview-${index}`}>
+            <Card key={item.id} className="overflow-hidden" data-testid={`card-gallery-preview-${index}`}>
               <div className="aspect-video bg-muted relative overflow-hidden group">
                 {item.type === 'video' ? (
                   <GalleryVideoCard
