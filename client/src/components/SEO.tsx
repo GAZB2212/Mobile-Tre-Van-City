@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 const SITE_URL = "https://www.mobiletyrevancity.co.uk";
 const SITE_NAME = "Mobile Tyre Van City";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/favicon.png`;
+const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 interface SEOProps {
   title: string;
@@ -127,7 +127,7 @@ export const organizationStructuredData = {
   "description": "UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped with professional tyre fitting equipment. Nationwide delivery. Finance available. Call 0151 203 8500.",
   "url": SITE_URL,
   "logo": `${SITE_URL}/favicon.png`,
-  "image": `${SITE_URL}/favicon.png`,
+  "image": `${SITE_URL}/og-image.jpg`,
   "telephone": "+44-151-203-8500",
   "priceRange": "££",
   "openingHoursSpecification": [
@@ -267,7 +267,7 @@ export const contactPageStructuredData = {
     "description": "The UK's leading mobile tyre van conversion specialists. Custom-built mobile tyre vans, fully equipped and ready to earn from day one.",
     "url": SITE_URL,
     "logo": `${SITE_URL}/favicon.png`,
-    "image": `${SITE_URL}/favicon.png`,
+    "image": `${SITE_URL}/og-image.jpg`,
     "telephone": "+44-151-203-8500",
     "email": "sales@mobiletyrevancity.co.uk",
     "priceRange": "££",

@@ -6,3 +6,9 @@ id = "kraJz1atjotW1A-WGLDnA"
 uri = "file://client/src/assets/max-avatar.png"
 type = "image"
 title = "Max AI assistant avatar"
+
+[[generated]]
+id = "RUXcEv4Jyj96OeXM38lNP"
+uri = "file://public/og-image.jpg"
+type = "image"
+title = "Mobile Tyre Van City OG image"
