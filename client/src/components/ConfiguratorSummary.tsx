@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Car, Package, Wrench, GraduationCap, ChevronRight } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function OwnVanDetails({
   vanPriceStr,
@@ -115,25 +116,27 @@ function SlotSummary({
   discountAmount?: number;
   externalTotal?: number;
 }) {
-  const { data: van } = useQuery<Van>({
+  const { data: van, isLoading: vanLoading } = useQuery<Van>({
     queryKey: ['/api/vans', slot.vanId],
     enabled: !!slot.vanId,
   });
 
-  const { data: kit } = useQuery<Kit>({
+  const { data: kit, isLoading: kitLoading } = useQuery<Kit>({
     queryKey: ['/api/kits', slot.kitId],
     enabled: !!slot.kitId,
   });
 
-  const { data: allUpgradesForSlot = [] } = useQuery<Upgrade[]>({
+  const { data: allUpgradesForSlot = [], isLoading: upgradesLoading } = useQuery<Upgrade[]>({
     queryKey: ['/api/upgrades'],
   });
   const upgrades = allUpgradesForSlot.filter(u => slot.upgradeIds.includes(u.id));
 
-  const { data: allTrainingForSlot = [] } = useQuery<TrainingOption[]>({
+  const { data: allTrainingForSlot = [], isLoading: trainingLoading } = useQuery<TrainingOption[]>({
     queryKey: ['/api/training-options'],
   });
   const trainingOptions = allTrainingForSlot.filter(t => slot.trainingOptionIds.includes(t.id));
+
+  const isLoadingAny = (!!slot.vanId && vanLoading) || (!!slot.kitId && kitLoading) || (slot.upgradeIds.length > 0 && upgradesLoading) || (slot.trainingOptionIds.length > 0 && trainingLoading);
 
   const isOwnVan = !slot.vanId;
   const vanPrice = van?.price || slot.customVanValue || 0;
@@ -151,7 +154,7 @@ function SlotSummary({
 
   const clickableClass = onClick ? 'cursor-pointer hover-elevate' : '';
 
-  if (!hasItems) {
+  if (!hasItems && !isLoadingAny) {
     return (
       <div
         className={`rounded-md p-3 border ${isActive ? 'border-accent/40 bg-accent/5' : 'border-border bg-muted/30'} ${clickableClass}`}
@@ -186,7 +189,15 @@ function SlotSummary({
         </div>
       )}
 
-      {van && (
+      {slot.vanId && vanLoading ? (
+        <div className="flex items-start gap-1.5">
+          <Car className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-3 w-3/4" />
+            <Skeleton className="h-3 w-1/3" />
+          </div>
+        </div>
+      ) : van ? (
         <div className="flex items-start gap-1.5">
           <Car className="w-3.5 h-3.5 text-accent mt-0.5" />
           <div className="flex-1 min-w-0">
@@ -194,7 +205,7 @@ function SlotSummary({
             <p className="text-xs text-muted-foreground">{formatPrice(van.price)}</p>
           </div>
         </div>
-      )}
+      ) : null}
 
       {isOwnVan && slot.customVanValue && slot.customVanValue > 0 && (
         <div className="flex items-start gap-1.5">
@@ -206,7 +217,15 @@ function SlotSummary({
         </div>
       )}
 
-      {kit && (
+      {slot.kitId && kitLoading ? (
+        <div className="flex items-start gap-1.5">
+          <Package className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-3 w-2/3" />
+            <Skeleton className="h-3 w-1/4" />
+          </div>
+        </div>
+      ) : kit ? (
         <div className="flex items-start gap-1.5">
           <Package className="w-3.5 h-3.5 text-accent mt-0.5" />
           <div className="flex-1 min-w-0">
@@ -214,24 +233,39 @@ function SlotSummary({
             <p className="text-xs text-muted-foreground">{formatPrice(kit.price)}</p>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {upgrades.length > 0 && (
+      {slot.upgradeIds.length > 0 && upgradesLoading ? (
+        <div className="flex items-center gap-1.5">
+          <Wrench className="w-3.5 h-3.5 text-accent shrink-0" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ) : upgrades.length > 0 ? (
         <div className="flex items-center gap-1.5">
           <Wrench className="w-3.5 h-3.5 text-accent" />
           <p className="text-xs text-muted-foreground">{upgrades.length} upgrade{upgrades.length !== 1 ? 's' : ''}</p>
         </div>
-      )}
+      ) : null}
 
-      {trainingOptions.length > 0 && (
+      {slot.trainingOptionIds.length > 0 && trainingLoading ? (
+        <div className="flex items-center gap-1.5">
+          <GraduationCap className="w-3.5 h-3.5 text-accent shrink-0" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ) : trainingOptions.length > 0 ? (
         <div className="flex items-center gap-1.5">
           <GraduationCap className="w-3.5 h-3.5 text-accent" />
           <p className="text-xs text-muted-foreground">{trainingOptions.length} training option{trainingOptions.length !== 1 ? 's' : ''}</p>
         </div>
-      )}
+      ) : null}
 
       <Separator />
-      {discountAmount && discountAmount > 0 ? (
+      {isLoadingAny ? (
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-bold">Total</span>
+          <Skeleton className="h-4 w-16" />
+        </div>
+      ) : discountAmount && discountAmount > 0 ? (
         <div className="space-y-0.5">
           <div className="flex justify-between items-center text-xs text-muted-foreground">
             <span>Before discount</span>
@@ -414,25 +448,27 @@ export function ConfiguratorSummary({
     setVanReg(val.trim() || null);
   };
 
-  const { data: van } = useQuery<Van>({
+  const { data: van, isLoading: vanLoading } = useQuery<Van>({
     queryKey: ['/api/vans', state.vanId],
     enabled: !!state.vanId,
   });
 
-  const { data: kit } = useQuery<Kit>({
+  const { data: kit, isLoading: kitLoading } = useQuery<Kit>({
     queryKey: ['/api/kits', state.kitId],
     enabled: !!state.kitId,
   });
 
-  const { data: allUpgradesMain = [] } = useQuery<Upgrade[]>({
+  const { data: allUpgradesMain = [], isLoading: upgradesLoading } = useQuery<Upgrade[]>({
     queryKey: ['/api/upgrades'],
   });
   const upgrades = allUpgradesMain.filter(u => state.upgradeIds.includes(u.id));
 
-  const { data: allTrainingMain = [] } = useQuery<TrainingOption[]>({
+  const { data: allTrainingMain = [], isLoading: trainingLoading } = useQuery<TrainingOption[]>({
     queryKey: ['/api/training-options'],
   });
   const trainingOptions = allTrainingMain.filter(t => state.trainingOptionIds.includes(t.id));
+
+  const isLoadingAny = (!!state.vanId && vanLoading) || (!!state.kitId && kitLoading) || (state.upgradeIds.length > 0 && upgradesLoading) || (state.trainingOptionIds.length > 0 && trainingLoading);
 
   const isOwnVan = !state.vanId;
   const ownVanPrice = (vanDetailsOpen && state.customVanValue) ? state.customVanValue : 0;
@@ -473,15 +509,23 @@ export function ConfiguratorSummary({
           </>
         ) : (
           <>
-            {!hasItems && !!state.vanId && (
+            {!hasItems && !isLoadingAny && !!state.vanId && (
               <p className="text-sm text-muted-foreground text-center py-2" data-testid="text-no-selections">
                 Start configuring to see your total
               </p>
             )}
 
-            {hasItems && (
+            {(hasItems || isLoadingAny) && (
               <>
-                {van && (
+                {state.vanId && vanLoading ? (
+                  <div className="flex items-start gap-2">
+                    <Car className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-3/4" data-testid="skeleton-van-name" />
+                      <Skeleton className="h-3.5 w-1/3" data-testid="skeleton-van-price" />
+                    </div>
+                  </div>
+                ) : van ? (
                   <div className="flex items-start gap-2">
                     <Car className="w-4 h-4 text-accent mt-0.5" />
                     <div className="flex-1 min-w-0">
@@ -493,7 +537,7 @@ export function ConfiguratorSummary({
                       </p>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {isOwnVan && vanDetailsOpen && state.customVanValue && state.customVanValue > 0 && (
                   <div className="flex items-start gap-2">
@@ -509,7 +553,15 @@ export function ConfiguratorSummary({
                   </div>
                 )}
 
-                {kit && (
+                {state.kitId && kitLoading ? (
+                  <div className="flex items-start gap-2">
+                    <Package className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-2/3" data-testid="skeleton-kit-name" />
+                      <Skeleton className="h-3.5 w-1/4" data-testid="skeleton-kit-price" />
+                    </div>
+                  </div>
+                ) : kit ? (
                   <div className="flex items-start gap-2">
                     <Package className="w-4 h-4 text-accent mt-0.5" />
                     <div className="flex-1 min-w-0">
@@ -523,9 +575,14 @@ export function ConfiguratorSummary({
                       )}
                     </div>
                   </div>
-                )}
+                ) : null}
 
-                {upgrades.length > 0 && (
+                {state.upgradeIds.length > 0 && upgradesLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-accent shrink-0" />
+                    <Skeleton className="h-4 w-1/2" data-testid="skeleton-upgrades" />
+                  </div>
+                ) : upgrades.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Wrench className="w-4 h-4 text-accent" />
@@ -548,9 +605,14 @@ export function ConfiguratorSummary({
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
-                {trainingOptions.length > 0 && (
+                {state.trainingOptionIds.length > 0 && trainingLoading ? (
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-accent shrink-0" />
+                    <Skeleton className="h-4 w-1/2" data-testid="skeleton-training" />
+                  </div>
+                ) : trainingOptions.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-accent" />
@@ -573,50 +635,70 @@ export function ConfiguratorSummary({
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {showPricing && (
                   <>
                     <Separator />
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium" data-testid="text-summary-subtotal">
-                          {formatPrice(subtotal)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">VAT (20%)</span>
-                        <span className="font-medium" data-testid="text-summary-vat">
-                          {formatPrice(vat)}
-                        </span>
-                      </div>
-                      {discountSection && (
-                        <div className="pt-1">{discountSection}</div>
-                      )}
-                      {discountAmount && discountAmount > 0 ? (
+                      {isLoadingAny ? (
                         <>
-                          <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>Before discount</span>
-                            <span className="line-through">{formatPrice(total)}</span>
+                          <div className="flex justify-between text-sm items-center">
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <Skeleton className="h-4 w-16" data-testid="skeleton-subtotal" />
                           </div>
-                          <div className="flex justify-between text-sm text-destructive font-medium">
-                            <span>Discount</span>
-                            <span>-{formatPrice(discountAmount)}</span>
+                          <div className="flex justify-between text-sm items-center">
+                            <span className="text-muted-foreground">VAT (20%)</span>
+                            <Skeleton className="h-4 w-12" data-testid="skeleton-vat" />
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold">Total</span>
+                            <Skeleton className="h-7 w-24" data-testid="skeleton-total" />
                           </div>
                         </>
-                      ) : null}
-                      <Separator />
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold">Total</span>
-                        <span
-                          key={priceAnimKey}
-                          className={`font-extrabold text-2xl text-accent ${priceAnimKey > 0 ? 'price-updated' : ''}`}
-                          data-testid="text-summary-total"
-                        >
-                          {formatPrice(displayTotal)}
-                        </span>
-                      </div>
+                      ) : (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <span className="font-medium" data-testid="text-summary-subtotal">
+                              {formatPrice(subtotal)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">VAT (20%)</span>
+                            <span className="font-medium" data-testid="text-summary-vat">
+                              {formatPrice(vat)}
+                            </span>
+                          </div>
+                          {discountSection && (
+                            <div className="pt-1">{discountSection}</div>
+                          )}
+                          {discountAmount && discountAmount > 0 ? (
+                            <>
+                              <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>Before discount</span>
+                                <span className="line-through">{formatPrice(total)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm text-destructive font-medium">
+                                <span>Discount</span>
+                                <span>-{formatPrice(discountAmount)}</span>
+                              </div>
+                            </>
+                          ) : null}
+                          <Separator />
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold">Total</span>
+                            <span
+                              key={priceAnimKey}
+                              className={`font-extrabold text-2xl text-accent ${priceAnimKey > 0 ? 'price-updated' : ''}`}
+                              data-testid="text-summary-total"
+                            >
+                              {formatPrice(displayTotal)}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
