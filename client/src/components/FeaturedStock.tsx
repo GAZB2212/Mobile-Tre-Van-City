@@ -5,10 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Loader2 } from "lucide-react";
 import type { Van } from "@shared/schema";
 import stockImage from "@assets/generated_images/Mobile_tyre_van_conversion_372a2d42.webp";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function FeaturedStock() {
-  const ref = useScrollReveal();
 
   const { data: allVans = [], isLoading } = useQuery<Van[]>({
     queryKey: ['/api/vans'],
@@ -48,7 +46,7 @@ export default function FeaturedStock() {
   }
 
   return (
-    <section ref={ref} className="scroll-reveal py-20 bg-background">
+    <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-12">
           <div>

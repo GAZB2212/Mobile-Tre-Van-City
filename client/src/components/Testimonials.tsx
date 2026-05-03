@@ -4,10 +4,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Star } from "lucide-react";
 import type { Testimonial } from "@shared/schema";
 import { createReviewStructuredData } from "@/components/SEO";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function Testimonials() {
-  const ref = useScrollReveal();
 
   const { data: testimonials = [] } = useQuery<Testimonial[]>({
     queryKey: ["/api/testimonials"],
@@ -27,7 +25,7 @@ export default function Testimonials() {
   );
 
   return (
-    <section ref={ref} className="scroll-reveal py-20 bg-background">
+    <section className="py-20 bg-background">
       {reviewSchemas.map((schema, i) => (
         <script
           key={i}

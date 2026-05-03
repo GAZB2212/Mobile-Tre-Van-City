@@ -7,9 +7,7 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>() {
     const el = ref.current;
     if (!el) return;
 
-    const reveal = () => {
-      el.classList.add("revealed");
-    };
+    const reveal = () => el.classList.add("revealed");
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -25,7 +23,7 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>() {
 
     observer.observe(el);
 
-    // Safety fallback: reveal after 2s regardless, in case observer never fires
+    // Safety fallback: reveal after 2s in case observer never fires
     const fallback = setTimeout(reveal, 2000);
 
     return () => {
