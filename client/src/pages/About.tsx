@@ -35,10 +35,10 @@ export default function About() {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="About Us | UK Van Conversion Specialists | Wirral"
-        description="Meet the team behind Mobile Tyre Van City — the UK's leading specialists in mobile tyre van conversions. Based in Wirral, we build fully-equipped tyre vans with nationwide delivery."
+        title="About Mobile Tyre Van City | Founded 2020 | UK Tyre Van Conversion Specialists"
+        description="Founded in 2020 in Wirral, Mobile Tyre Van City is the UK's specialist in mobile tyre van conversions. Our experienced team builds fully-equipped, REACT-compliant tyre vans with nationwide delivery and FCA-authorised finance."
         canonical="/about"
-        keywords="about mobile tyre van city, tyre van conversion specialists UK, van conversion company Wirral, MTVC"
+        keywords="about mobile tyre van city, tyre van conversion specialists UK, van conversion company Wirral, MTVC, founded 2020, mobile tyre business"
         structuredData={[aboutPageStructuredData]}
       />
       <Header />
@@ -98,7 +98,7 @@ export default function About() {
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold mb-4">Our Background</h2>
                 <p className="text-muted-foreground mb-4">
-                  Mobile Tyre Van City was founded in Wirral to serve a gap in the UK market: mobile tyre fitting entrepreneurs who needed professionally built, business-ready vans without the guesswork. Since launching, we have built and delivered conversions across England, Scotland, and Wales.
+                  Mobile Tyre Van City was founded in 2020 in Bromborough, Wirral, to serve a clear gap in the UK market: mobile tyre fitting entrepreneurs who needed professionally built, business-ready vans without the guesswork. Since launching, we have built and delivered conversions to customers across England, Scotland, and Wales.
                 </p>
                 <p className="text-muted-foreground mb-4">
                   Our workshop team has a combined background spanning automotive engineering, vehicle customisation, and mobile tyre business operations — giving us a unique understanding of both the build requirements and the day-to-day demands of running a mobile tyre service.
