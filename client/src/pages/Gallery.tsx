@@ -124,8 +124,7 @@ export default function Gallery() {
                 {filteredItems.map((item, itemIndex) => (
                   <Card
                     key={item.id}
-                    className="gallery-card-animate hover-elevate overflow-hidden cursor-pointer break-inside-avoid mb-6"
-                    style={{ '--stagger-index': Math.min(itemIndex, 14) } as React.CSSProperties}
+                    className="overflow-hidden cursor-pointer break-inside-avoid mb-6"
                     data-testid={`card-gallery-${itemIndex}`}
                   >
                     <div className="bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group min-h-[180px] flex items-stretch">
