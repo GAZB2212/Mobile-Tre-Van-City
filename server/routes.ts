@@ -5369,11 +5369,33 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (status === "completed" && sessionId) {
         try {
           const existing = await pool.query(
-            `SELECT id FROM quotes WHERE ai_session_id = $1 LIMIT 1`,
+            `SELECT id, est_total, kit_id FROM quotes WHERE ai_session_id = $1 LIMIT 1`,
             [sessionId]
           );
 
+          const upgradeIds = Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [];
+
+          // Always recalculate pricing from the latest cfg so we pick up kitId/upgradeIds
+          // that may have been captured after the quote was first auto-created at £0.
+          let kitPricePence = 0;
+          if (cfg.kitId) {
+            const kitRow = await pool.query(`SELECT price FROM kits WHERE id = $1 LIMIT 1`, [cfg.kitId]);
+            if (kitRow.rows.length > 0) kitPricePence = kitRow.rows[0].price ?? 0;
+          }
+          let upgradesPricePence = 0;
+          if (upgradeIds.length > 0) {
+            const upRow = await pool.query(
+              `SELECT COALESCE(SUM(price), 0) AS total FROM upgrades WHERE id = ANY($1::text[])`,
+              [upgradeIds]
+            );
+            upgradesPricePence = parseInt(upRow.rows[0]?.total ?? "0", 10);
+          }
+          const estSubtotal = kitPricePence + upgradesPricePence;
+          const estVat = Math.round(estSubtotal * 0.2);
+          const estTotal = estSubtotal + estVat;
+
           if (existing.rows.length === 0) {
+            // No quote yet — create one
             let customVanDescription: string | null = null;
             if (cfg.ownVan === false && cfg.vanSize) {
               customVanDescription = `${cfg.vanSize} van supplied by Mobile Tyre Van City`;
@@ -5383,25 +5405,6 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
             const autoName = (contactName ?? cfg.contactName ?? "").trim() || "Via Max (name pending)";
             const autoPhone = (contactPhone ?? cfg.contactPhone ?? "").trim();
-            const upgradeIds = Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [];
-
-            // Calculate pricing from kit + upgrades so the list shows real values
-            let kitPricePence = 0;
-            if (cfg.kitId) {
-              const kitRow = await pool.query(`SELECT price FROM kits WHERE id = $1 LIMIT 1`, [cfg.kitId]);
-              if (kitRow.rows.length > 0) kitPricePence = kitRow.rows[0].price ?? 0;
-            }
-            let upgradesPricePence = 0;
-            if (upgradeIds.length > 0) {
-              const upRow = await pool.query(
-                `SELECT COALESCE(SUM(price), 0) AS total FROM upgrades WHERE id = ANY($1::text[])`,
-                [upgradeIds]
-              );
-              upgradesPricePence = parseInt(upRow.rows[0]?.total ?? "0", 10);
-            }
-            const estSubtotal = kitPricePence + upgradesPricePence;
-            const estVat = Math.round(estSubtotal * 0.2);
-            const estTotal = estSubtotal + estVat;
 
             await pool.query(
               `INSERT INTO quotes (
@@ -5430,6 +5433,23 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
                   timestamp: new Date().toISOString(),
                   author: "System",
                 }]),
+              ]
+            );
+          } else if (existing.rows[0].est_total === 0 && estTotal > 0) {
+            // Quote already exists but was created before kitId was known — update its pricing and config
+            await pool.query(
+              `UPDATE quotes SET
+                kit_id = $1,
+                selected_upgrade_ids = $2,
+                est_subtotal = $3,
+                est_vat = $4,
+                est_total = $5
+              WHERE id = $6`,
+              [
+                cfg.kitId ?? null,
+                JSON.stringify(upgradeIds),
+                estSubtotal, estVat, estTotal,
+                existing.rows[0].id,
               ]
             );
           }
