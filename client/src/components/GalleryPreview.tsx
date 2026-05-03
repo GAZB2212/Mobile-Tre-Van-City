@@ -6,10 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight } from "lucide-react";
 import type { GalleryItem } from "@shared/schema";
 import { GalleryVideoCard } from "@/components/GalleryVideoCard";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function GalleryPreview() {
-  const ref = useScrollReveal();
 
   const { data: items = [] } = useQuery<GalleryItem[]>({
     queryKey: ['/api/gallery-items'],
@@ -22,7 +20,7 @@ export default function GalleryPreview() {
   const preview = items.slice(0, 6);
 
   return (
-    <section ref={ref} className="scroll-reveal py-16 md:py-24 bg-card">
+    <section className="py-16 md:py-24 bg-card">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
