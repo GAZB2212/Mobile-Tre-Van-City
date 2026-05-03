@@ -36,23 +36,21 @@ function useCountUp(target: number, duration = 1500) {
 }
 
 const stats = [
-  { prefix: "", value: 200, suffix: "+", label: "Vans Built" },
-  { prefix: "", value: 10, suffix: "+", label: "Years Experience" },
-  { prefix: "UK's", value: 1, suffix: "#", label: "Rated No.1", format: "ordinal" },
+  { value: 150, suffix: "+", label: "Vans Built" },
+  { value: 25, suffix: "+", label: "Years Experience" },
+  { value: 1, suffix: "", label: "Rated No.1", format: "ordinal" },
 ];
 
-function StatCounter({ prefix, value, suffix, label, format }: typeof stats[0] & { format?: string }) {
+function StatCounter({ value, suffix, label, format }: typeof stats[0] & { format?: string }) {
   const count = useCountUp(value);
-  const display = format === "ordinal"
-    ? `${prefix} #${count}`
-    : `${count}${suffix}`;
+  const display = format === "ordinal" ? `#${count}` : `${count}${suffix}`;
 
   return (
-    <div className="text-center" data-testid={`stat-${label.toLowerCase().replace(/\s+/g, '-')}`}>
-      <div className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+    <div className="flex-1 text-center px-4 py-5" data-testid={`stat-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight tabular-nums">
         {display}
       </div>
-      <div className="text-xs sm:text-sm text-white/70 mt-1 font-medium tracking-wide uppercase">
+      <div className="text-xs sm:text-sm text-white/60 mt-1.5 font-medium tracking-widest uppercase">
         {label}
       </div>
     </div>
@@ -91,7 +89,7 @@ export default function Hero() {
   }, [videoSrc]);
 
   return (
-    <section className="relative bg-[#1a1a1a] min-h-[40vh] sm:min-h-[80vh] py-14 sm:py-32 md:py-40 lg:py-48 overflow-hidden">
+    <section className="relative bg-[#1a1a1a] overflow-hidden flex flex-col" style={{ minHeight: "80vh" }}>
       <video
         key={videoSrc}
         ref={videoRef}
@@ -107,13 +105,14 @@ export default function Hero() {
 
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20 pointer-events-none" />
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-7xl mx-auto">
+      {/* Hero text + CTAs */}
+      <div className="flex-1 flex items-center relative z-10">
+        <div className="container mx-auto px-4 py-14 sm:py-24">
           <div className="max-w-2xl">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-6 sm:mb-8 leading-tight text-white" data-testid="text-hero-headline">
               Building Your Dream Mobile Tyre Business
             </h1>
-            <div className="flex flex-col sm:flex-row gap-4 mb-10 sm:mb-14">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/configurator/van">
                 <Button
                   size="lg"
@@ -135,13 +134,16 @@ export default function Hero() {
                 </Button>
               </Link>
             </div>
-
-            <div className="flex gap-8 sm:gap-12 py-5 px-6 bg-black/30 backdrop-blur-sm rounded-md border border-white/10 w-fit" data-testid="hero-stat-counters">
-              {stats.map((stat) => (
-                <StatCounter key={stat.label} {...stat} />
-              ))}
-            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Full-width stat strip at the bottom of the hero */}
+      <div className="relative z-10 w-full bg-black/50 backdrop-blur-sm border-t border-white/10" data-testid="hero-stat-counters">
+        <div className="flex divide-x divide-white/10">
+          {stats.map((stat) => (
+            <StatCounter key={stat.label} {...stat} />
+          ))}
         </div>
       </div>
     </section>
