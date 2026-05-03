@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, MapPin, Truck, ShieldCheck } from "lucide-react";
+import { ArrowRight, MapPin, Truck, ShieldCheck, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -36,26 +36,30 @@ function DeliveryAreasSection() {
               Nationwide Delivery — Anywhere in the UK
             </h2>
             <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-              Wherever you are in the UK, we'll get your van to you. We use professional, fully insured drivers to deliver every conversion safely to your door — no matter the distance.
+              We deliver every completed conversion using professional, fully insured drivers — anywhere in the UK. Delivery is not included in the build price; the cost is calculated based on your location once we have your postcode.
             </p>
             <div className="flex flex-wrap gap-4 mt-4">
               <div className="inline-flex items-center gap-2 text-sm text-foreground">
                 <Truck className="w-4 h-4 text-accent shrink-0" />
-                Professional drivers
+                Professional insured drivers
+              </div>
+              <div className="inline-flex items-center gap-2 text-sm text-foreground">
+                <Calculator className="w-4 h-4 text-accent shrink-0" />
+                Quoted by postcode
               </div>
               <div className="inline-flex items-center gap-2 text-sm text-foreground">
                 <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
-                Fully insured delivery
+                Fully insured door-to-door
               </div>
             </div>
           </div>
-          <Link href="/mobile-tyre-vans" className="shrink-0 self-start">
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline" data-testid="link-view-all-areas">
-              Learn more <ArrowRight className="w-4 h-4" />
+          <Link href="/contact" className="shrink-0 self-start">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline" data-testid="link-get-delivery-quote">
+              Get a delivery quote <ArrowRight className="w-4 h-4" />
             </span>
           </Link>
         </div>
-        <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-medium">Popular areas we serve — including yours</p>
+        <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-medium">Popular areas we deliver to — and everywhere in between</p>
         <div className="flex flex-wrap gap-2">
           {KEY_CITIES.map((city) => (
             <Link
