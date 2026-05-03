@@ -632,7 +632,7 @@ export default function AdminQuoteDetail() {
       ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
       : "";
     if (discountValue !== origDiscountValue) return true;
-    if (vanRegistration !== (quote.vanRegistration ?? "")) return true;
+    if (vanRegistration !== (quote.vanRegistration ?? quote.customVanDescription ?? "")) return true;
     if (vanMileage !== (quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "")) return true;
     if (customerConfirmed !== (quote.customerConfirmed ?? false)) return true;
     const serverStageIds = (quote.completedBuildStages || []).map((s: any) => typeof s === "string" ? s : s.id).sort();
