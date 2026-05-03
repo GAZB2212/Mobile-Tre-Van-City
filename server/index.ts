@@ -308,49 +308,133 @@ app.use((req, res, next) => {
         .then(() => log("✅ Testimonials table ready"))
         .catch((err: Error) => console.error("Testimonials migration:", err.message));
 
-      // Backfill: create draft quotes for any completed AI conversations that don't already
-      // have a linked quote — covers cases where the customer finished Max but never submitted the form.
-      pool.query(`
-        INSERT INTO quotes (
-          user_name, email, phone, service_type, kit_id,
-          selected_upgrade_ids, selected_upgrades, training_option_ids,
-          finance_plan_id, custom_van_description,
-          est_subtotal, est_vat, est_total, est_discount,
-          ai_session_id, status, admin_notes_history
-        )
-        SELECT
-          COALESCE(NULLIF(TRIM(ac.contact_name), ''), 'Via Max (name pending)'),
-          '',
-          COALESCE(TRIM(ac.contact_phone), ''),
-          ac.van_type,
-          ac.spec_level,
-          COALESCE((ac.mapped_config->>'upgradeIds')::jsonb, '[]'::jsonb),
-          '{}'::jsonb,
-          '[]'::jsonb,
-          (ac.mapped_config->>'financePlanId'),
-          CASE
-            WHEN (ac.mapped_config->>'ownVan')::boolean = false AND ac.van_size IS NOT NULL
-              THEN ac.van_size || ' van supplied by Mobile Tyre Van City'
-            WHEN (ac.mapped_config->>'ownVan')::boolean = true
-              THEN 'Customer''s own van'
-            ELSE NULL
-          END,
-          0, 0, 0, 0,
-          ac.session_id,
-          'new',
-          jsonb_build_array(jsonb_build_object(
-            'text', 'Auto-created from Max AI chat — customer completed the configuration but may not have submitted the quote form. Phone number captured from Max chat.',
-            'timestamp', to_char(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-            'author', 'System'
-          ))
-        FROM ai_conversations ac
-        WHERE ac.config_completed = TRUE
-          AND NOT EXISTS (
-            SELECT 1 FROM quotes q WHERE q.ai_session_id = ac.session_id
-          )
-      `)
-        .then((r) => { if ((r.rowCount ?? 0) > 0) log(`✅ Backfilled ${r.rowCount} draft quote(s) from completed Max conversations`); })
-        .catch((err: Error) => console.error("Max backfill migration:", err.message));
+      // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
+      // for any completed conversations. Runs as a proper async function so we can do
+      // JS-side price calculations with kit+upgrade DB lookups.
+      (async () => {
+        try {
+          // ── Step 1: Reprice quotes that already exist but have est_total = 0 ──
+          // These were auto-created before the kitId was captured in the conversation.
+          const zeroPriced = await pool.query(`
+            SELECT q.id, ac.mapped_config
+            FROM quotes q
+            JOIN ai_conversations ac ON ac.session_id = q.ai_session_id
+            WHERE q.est_total = 0
+              AND q.ai_session_id IS NOT NULL
+              AND ac.mapped_config IS NOT NULL
+          `);
+
+          let repriced = 0;
+          for (const row of zeroPriced.rows) {
+            const cfg = typeof row.mapped_config === 'string'
+              ? JSON.parse(row.mapped_config)
+              : (row.mapped_config ?? {});
+            const kitId: string | null = cfg.kitId ?? null;
+            const upgradeIds: string[] = Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [];
+
+            let kitPrice = 0;
+            if (kitId) {
+              const kr = await pool.query(`SELECT price FROM kits WHERE id = $1 LIMIT 1`, [kitId]);
+              kitPrice = kr.rows[0]?.price ?? 0;
+            }
+            let upgradesPrice = 0;
+            if (upgradeIds.length > 0) {
+              const ur = await pool.query(
+                `SELECT COALESCE(SUM(price),0) AS total FROM upgrades WHERE id = ANY($1::text[])`,
+                [upgradeIds]
+              );
+              upgradesPrice = parseInt(ur.rows[0]?.total ?? '0', 10);
+            }
+
+            const subtotal = kitPrice + upgradesPrice;
+            if (subtotal === 0) continue; // still no pricing data — skip
+
+            const vat = Math.round(subtotal * 0.2);
+            const total = subtotal + vat;
+            await pool.query(
+              `UPDATE quotes SET kit_id=$1, selected_upgrade_ids=$2, est_subtotal=$3, est_vat=$4, est_total=$5 WHERE id=$6`,
+              [kitId, JSON.stringify(upgradeIds), subtotal, vat, total, row.id]
+            );
+            repriced++;
+          }
+          if (repriced > 0) log(`✅ Repriced ${repriced} Max AI quote(s) from £0 to correct values`);
+
+          // ── Step 2: Create draft quotes for completed conversations with no quote yet ──
+          const missing = await pool.query(`
+            SELECT ac.session_id, ac.contact_name, ac.contact_phone, ac.van_type, ac.van_size, ac.mapped_config
+            FROM ai_conversations ac
+            WHERE ac.config_completed = TRUE
+              AND NOT EXISTS (SELECT 1 FROM quotes q WHERE q.ai_session_id = ac.session_id)
+          `);
+
+          let created = 0;
+          for (const ac of missing.rows) {
+            const cfg = typeof ac.mapped_config === 'string'
+              ? JSON.parse(ac.mapped_config)
+              : (ac.mapped_config ?? {});
+            const kitId: string | null = cfg.kitId ?? null;
+            const upgradeIds: string[] = Array.isArray(cfg.upgradeIds) ? cfg.upgradeIds : [];
+
+            let kitPrice = 0;
+            if (kitId) {
+              const kr = await pool.query(`SELECT price FROM kits WHERE id = $1 LIMIT 1`, [kitId]);
+              kitPrice = kr.rows[0]?.price ?? 0;
+            }
+            let upgradesPrice = 0;
+            if (upgradeIds.length > 0) {
+              const ur = await pool.query(
+                `SELECT COALESCE(SUM(price),0) AS total FROM upgrades WHERE id = ANY($1::text[])`,
+                [upgradeIds]
+              );
+              upgradesPrice = parseInt(ur.rows[0]?.total ?? '0', 10);
+            }
+            const subtotal = kitPrice + upgradesPrice;
+            const vat = Math.round(subtotal * 0.2);
+            const total = subtotal + vat;
+
+            const autoName = (ac.contact_name ?? '').trim() || 'Via Max (name pending)';
+            const autoPhone = (ac.contact_phone ?? '').trim();
+            const customVanDescription =
+              cfg.ownVan === false && ac.van_size
+                ? `${ac.van_size} van supplied by Mobile Tyre Van City`
+                : cfg.ownVan === true
+                ? "Customer's own van"
+                : null;
+
+            await pool.query(
+              `INSERT INTO quotes (
+                user_name, email, phone, service_type, kit_id,
+                selected_upgrade_ids, selected_upgrades, training_option_ids,
+                finance_plan_id, custom_van_description,
+                est_subtotal, est_vat, est_total, est_discount,
+                ai_session_id, status, admin_notes_history
+              ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+              [
+                autoName, '', autoPhone,
+                cfg.serviceType ?? null,
+                kitId,
+                JSON.stringify(upgradeIds),
+                JSON.stringify({}),
+                JSON.stringify([]),
+                cfg.financePlanId ?? null,
+                customVanDescription,
+                subtotal, vat, total, 0,
+                ac.session_id,
+                'new',
+                JSON.stringify([{
+                  text: 'Auto-created from Max AI chat — customer completed the configuration but may not have submitted the quote form. Phone number captured from Max chat.',
+                  timestamp: new Date().toISOString(),
+                  author: 'System',
+                }]),
+              ]
+            );
+            created++;
+          }
+          if (created > 0) log(`✅ Backfilled ${created} draft quote(s) from completed Max conversations`);
+        } catch (err: any) {
+          console.error('Max AI backfill error:', err.message);
+        }
+      })();
     });
   });
 })();
