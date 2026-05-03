@@ -1779,9 +1779,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       const { randomBytes } = await import('crypto');
       const token = randomBytes(32).toString('hex');
       await storage.createTestimonialToken(token, customerName, customerEmail);
-      const SITE_URL = process.env.REPL_SLUG
-        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-        : 'https://www.mobiletyrevancity.co.uk';
+      const SITE_URL = process.env.SITE_URL || 'https://www.mobiletyrevancity.co.uk';
       const reviewUrl = `${SITE_URL}/testimonial/${token}`;
       const { sendTestimonialRequestEmail } = await import('./email.js');
       await sendTestimonialRequestEmail({ to: customerEmail, customerName, reviewUrl });
