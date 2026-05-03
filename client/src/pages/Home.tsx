@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPin } from "lucide-react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -16,7 +17,7 @@ import CTASection from "@/components/CTASection";
 import FAQ from "@/components/FAQ";
 import HomeEnquiryForm from "@/components/HomeEnquiryForm";
 import Footer from "@/components/Footer";
-import SEO, { organizationStructuredData, homeFaqStructuredData } from "@/components/SEO";
+import SEO, { buildOrganizationStructuredData, homeFaqStructuredData } from "@/components/SEO";
 
 const KEY_CITIES = [
   "Liverpool", "Manchester", "Birmingham", "London", "Leeds",
@@ -63,6 +64,12 @@ function DeliveryAreasSection() {
 }
 
 export default function Home() {
+  const { data: ratingSummary } = useQuery<{ count: number; averageRating: number }>({
+    queryKey: ["/api/testimonials/rating-summary"],
+  });
+
+  const orgSchema = buildOrganizationStructuredData(ratingSummary);
+
   return (
     <div className="min-h-screen bg-background">
       <SEO 
@@ -70,7 +77,7 @@ export default function Home() {
         description="UK specialists in custom mobile tyre van conversions. Fully equipped builds, nationwide delivery, finance available. Based in Wirral. Call 0151 203 8500."
         canonical="/"
         keywords="mobile tyre van, tyre van conversion, mobile tyre fitting van, mobile tyre van for sale, tyre van city, mobile tyre business, van conversion UK"
-        structuredData={[organizationStructuredData, homeFaqStructuredData]}
+        structuredData={[orgSchema, homeFaqStructuredData]}
       />
       <Header />
       <main>

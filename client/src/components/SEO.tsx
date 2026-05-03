@@ -102,6 +102,23 @@ export default function SEO({
   return null;
 }
 
+export function buildOrganizationStructuredData(rating?: { count: number; averageRating: number }) {
+  const base = { ...organizationStructuredData };
+  if (rating && rating.count >= 5) {
+    return {
+      ...base,
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": rating.averageRating,
+        "reviewCount": rating.count,
+        "bestRating": 5,
+        "worstRating": 1
+      }
+    };
+  }
+  return base;
+}
+
 export const organizationStructuredData = {
   "@context": "https://schema.org",
   "@type": "AutomotiveBusiness",

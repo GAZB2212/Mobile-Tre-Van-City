@@ -1711,6 +1711,21 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Aggregate rating summary for published testimonials
+  app.get("/api/testimonials/rating-summary", async (_req, res) => {
+    try {
+      const items = await storage.getTestimonials();
+      const rated = items.filter(t => t.rating > 0);
+      const count = rated.length;
+      const averageRating = count > 0
+        ? Math.round((rated.reduce((sum, t) => sum + t.rating, 0) / count) * 10) / 10
+        : 0;
+      res.json({ count, averageRating });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rating summary" });
+    }
+  });
+
   // Testimonials - Admin endpoints (GET is basic admin, write ops are full admin only)
   app.get("/api/admin/testimonials", isAuthenticated, isBasicAdmin, async (_req, res) => {
     try {

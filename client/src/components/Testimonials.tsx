@@ -23,27 +23,6 @@ export default function Testimonials() {
     }))
   );
 
-  const totalRatings = testimonials.filter(t => t.rating > 0).length;
-  const averageRating = totalRatings > 0
-    ? Math.round((testimonials.reduce((sum, t) => sum + (t.rating || 0), 0) / totalRatings) * 10) / 10
-    : 0;
-
-  const aggregateRatingSchema = totalRatings >= 3
-    ? {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Mobile Tyre Van City",
-        "url": "https://www.mobiletyrevancity.co.uk",
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": averageRating,
-          "reviewCount": totalRatings,
-          "bestRating": 5,
-          "worstRating": 1,
-        },
-      }
-    : null;
-
   return (
     <section className="py-20 bg-background">
       {reviewSchemas.map((schema, i) => (
@@ -53,12 +32,6 @@ export default function Testimonials() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      {aggregateRatingSchema && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(aggregateRatingSchema) }}
-        />
-      )}
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white" data-testid="text-testimonials-title">
