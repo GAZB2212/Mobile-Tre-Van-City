@@ -126,6 +126,7 @@ export default function AdminQuotes() {
   const [dateFilter, setDateFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [hideIncomplete, setHideIncomplete] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   // Local pending status overrides — updated instantly on selection, cleared after server confirms
   const [pendingStatuses, setPendingStatuses] = useState<Record<string, string>>({});
@@ -310,9 +311,14 @@ export default function AdminQuotes() {
     return upgrades.filter((u) => upgradeIds.includes(u.id)).map((u) => u.name);
   };
 
+  const INCOMPLETE_PLACEHOLDER = "Via Max (name pending)";
+
   // Filter and sort quotes
   const filteredQuotes = quotes
     .filter((quote) => {
+      // Hide Max AI entries where we never captured the customer's name
+      if (hideIncomplete && quote.userName === INCOMPLETE_PLACEHOLDER) return false;
+
       const normalizedSearch = searchTerm.toLowerCase().replace(/^#/, '');
       const normalizedPhone = normalizedSearch.replace(/[\s\-().+]/g, '');
       const shortId = quote.id.slice(0, SHORT_ID_LENGTH).toUpperCase();
@@ -596,6 +602,26 @@ export default function AdminQuotes() {
                   <SelectItem value="lowest">Lowest value</SelectItem>
                 </SelectContent>
               </Select>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hideIncomplete}
+                  onClick={() => setHideIncomplete(v => !v)}
+                  data-testid="toggle-hide-incomplete"
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${hideIncomplete ? "bg-accent" : "bg-input"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${hideIncomplete ? "translate-x-4" : "translate-x-0"}`} />
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  Hide incomplete Max AI entries (no name captured)
+                  {hideIncomplete && (
+                    <span className="ml-2 text-xs text-muted-foreground/60">
+                      — {quotes.filter(q => q.userName === INCOMPLETE_PLACEHOLDER).length} hidden
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
           </CardContent>
