@@ -201,8 +201,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Server version polling — detects when the backend has restarted (new deployment)
-  const initialVersion = useRef<string | null>(null);
+  // Server version polling — detects when the backend has restarted (new deployment).
+  // Uses sessionStorage so the baseline survives Vite-triggered page reloads in dev
+  // and still works in production where the page doesn't auto-reload.
+  const ADMIN_VERSION_KEY = "admin-initial-version";
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const { data: versionData } = useQuery<{ version: string }>({
@@ -214,9 +216,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!versionData?.version) return;
-    if (initialVersion.current === null) {
-      initialVersion.current = versionData.version;
-    } else if (versionData.version !== initialVersion.current) {
+    const stored = sessionStorage.getItem(ADMIN_VERSION_KEY);
+    if (!stored) {
+      // First load — record this as the baseline
+      sessionStorage.setItem(ADMIN_VERSION_KEY, versionData.version);
+    } else if (versionData.version !== stored) {
+      // Server has restarted with a new version since we loaded
       setUpdateAvailable(true);
     }
   }, [versionData]);
@@ -485,7 +490,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </DialogHeader>
             <DialogFooter>
               <Button
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  sessionStorage.removeItem(ADMIN_VERSION_KEY);
+                  window.location.reload();
+                }}
                 data-testid="button-refresh-now"
                 className="w-full"
               >
