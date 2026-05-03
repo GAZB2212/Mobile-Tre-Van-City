@@ -4,8 +4,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Star } from "lucide-react";
 import type { Testimonial } from "@shared/schema";
 import { createReviewStructuredData } from "@/components/SEO";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function Testimonials() {
+  const ref = useScrollReveal();
+
   const { data: testimonials = [] } = useQuery<Testimonial[]>({
     queryKey: ["/api/testimonials"],
   });
@@ -24,7 +27,7 @@ export default function Testimonials() {
   );
 
   return (
-    <section className="py-20 bg-background">
+    <section ref={ref} className="scroll-reveal py-20 bg-background">
       {reviewSchemas.map((schema, i) => (
         <script
           key={i}
@@ -41,7 +44,7 @@ export default function Testimonials() {
             Join hundreds of successful mobile tyre businesses across the UK
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map((testimonial) => {
             const initials = testimonial.name
@@ -58,11 +61,11 @@ export default function Testimonials() {
                       <Star key={i} className="w-4 h-4 fill-accent text-accent" />
                     ))}
                   </div>
-                  
+
                   <blockquote className="text-muted-foreground mb-6 italic">
                     "{testimonial.content}"
                   </blockquote>
-                  
+
                   <div className="flex items-center">
                     <Avatar className="w-10 h-10 mr-3">
                       <AvatarFallback className="bg-accent text-primary font-semibold">

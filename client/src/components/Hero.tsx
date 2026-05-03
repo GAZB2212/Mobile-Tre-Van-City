@@ -14,17 +14,59 @@ function getCachedVideoUrl(): string {
   }
 }
 
+function useCountUp(target: number, duration = 1500) {
+  const [value, setValue] = useState(0);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(eased * target));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+
+  return value;
+}
+
+const stats = [
+  { prefix: "", value: 200, suffix: "+", label: "Vans Built" },
+  { prefix: "", value: 10, suffix: "+", label: "Years Experience" },
+  { prefix: "UK's", value: 1, suffix: "#", label: "Rated No.1", format: "ordinal" },
+];
+
+function StatCounter({ prefix, value, suffix, label, format }: typeof stats[0] & { format?: string }) {
+  const count = useCountUp(value);
+  const display = format === "ordinal"
+    ? `${prefix} #${count}`
+    : `${count}${suffix}`;
+
+  return (
+    <div className="text-center" data-testid={`stat-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+      <div className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+        {display}
+      </div>
+      <div className="text-xs sm:text-sm text-white/70 mt-1 font-medium tracking-wide uppercase">
+        {label}
+      </div>
+    </div>
+  );
+}
+
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Use cached URL immediately — video starts before the query resolves
   const [videoSrc, setVideoSrc] = useState<string>(getCachedVideoUrl);
 
   const { data: settings } = useQuery<Record<string, string>>({
     queryKey: ["/api/site-settings"],
   });
 
-  // Update video src when query resolves (and cache it for next load)
   useEffect(() => {
     const url = settings?.hero_video_url;
     if (!url) return;
@@ -63,7 +105,6 @@ export default function Hero() {
         style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
       />
 
-      {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20 pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-10">
@@ -72,7 +113,7 @@ export default function Hero() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-6 sm:mb-8 leading-tight text-white" data-testid="text-hero-headline">
               Building Your Dream Mobile Tyre Business
             </h1>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 mb-10 sm:mb-14">
               <Link href="/configurator/van">
                 <Button
                   size="lg"
@@ -93,6 +134,12 @@ export default function Hero() {
                   Learn More
                 </Button>
               </Link>
+            </div>
+
+            <div className="flex gap-8 sm:gap-12 py-5 px-6 bg-black/30 backdrop-blur-sm rounded-md border border-white/10 w-fit" data-testid="hero-stat-counters">
+              {stats.map((stat) => (
+                <StatCounter key={stat.label} {...stat} />
+              ))}
             </div>
           </div>
         </div>

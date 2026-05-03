@@ -356,6 +356,20 @@
   .admin-topbar-border  { border-color: hsl(var(--admin-topbar-border)); }
 }
 
+/* ─── Scroll-reveal entrance animations ──────────────────────────────── */
+@layer utilities {
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ─── Gallery card fade-up animation ──────────────────────────────────── */
 @keyframes gallery-fade-up {
   from {
@@ -392,6 +406,7 @@
 .price-updated {
   animation: price-pulse 0.45s ease-out;
 }
+
 
 /* Print styles */
 @media print {

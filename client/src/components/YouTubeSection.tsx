@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Play, Youtube } from "lucide-react";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const videos = [
   { id: "WvzIc724GFk", title: "Mobile Tyre Van Build" },
@@ -48,8 +49,10 @@ function YoutubeLiteEmbed({ id, title }: { id: string; title: string }) {
 }
 
 export default function YouTubeSection() {
+  const ref = useScrollReveal();
+
   return (
-    <section className="py-16 md:py-24 bg-muted/30">
+    <section ref={ref} className="scroll-reveal py-16 md:py-24 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">

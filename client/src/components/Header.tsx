@@ -1,9 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut, Shield, Phone, Clock, Package } from "lucide-react";
+import { Menu, X, LogOut, Shield, Phone, Clock } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Badge } from "@/components/ui/badge";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +44,8 @@ export default function Header() {
     logoutMutation.mutate();
   };
 
+  const closeMenu = () => setIsMenuOpen(false);
+
   return (
     <header className="sticky top-0 z-50 bg-background/70 backdrop-blur-md border-b border-white/10">
       {/* Top Utility Bar */}
@@ -78,9 +79,9 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-3 md:py-4 gap-3 md:gap-4">
           <Link href="/" className="flex items-center flex-shrink-0" data-testid="link-home">
-            <img 
-              src={logoImage} 
-              alt="Mobile Tyre Van City" 
+            <img
+              src={logoImage}
+              alt="Mobile Tyre Van City"
               className="h-20 sm:h-24 md:h-16 lg:h-24 xl:h-32 w-auto"
             />
           </Link>
@@ -100,7 +101,7 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
-            <Button 
+            <Button
               variant="default"
               size="lg"
               className="hidden lg:flex bg-accent hover:bg-accent/90 text-accent-foreground font-semibold whitespace-nowrap text-sm xl:text-base px-4 xl:px-6"
@@ -110,9 +111,8 @@ export default function Header() {
               <Link href="/configurator/van">Configure Your Van</Link>
             </Button>
 
-            {/* Admin Authentication Section */}
             {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
-              <Button 
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
@@ -124,73 +124,110 @@ export default function Header() {
                 {logoutMutation.isPending ? "Logging out..." : "Logout"}
               </Button>
             )}
-            
+
             {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="icon"
               className="lg:hidden flex-shrink-0"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={() => setIsMenuOpen(true)}
               data-testid="button-menu-toggle"
             >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <Menu className="w-5 h-5" />
             </Button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="lg:hidden py-4 border-t">
-            <nav className="flex flex-col space-y-3">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="text-foreground hover:text-accent transition-colors py-2 font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                  data-testid={`mobile-link-${item.name.toLowerCase()}`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              <Button 
-                size="lg"
-                className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold w-full mt-2"
-                data-testid="mobile-button-configure"
-                asChild
-                onClick={() => setIsMenuOpen(false)}
+      {/* Mobile Slide-in Drawer */}
+      {/* Backdrop */}
+      <div
+        className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+        style={{
+          opacity: isMenuOpen ? 1 : 0,
+          pointerEvents: isMenuOpen ? "auto" : "none",
+        }}
+        onClick={closeMenu}
+        aria-hidden="true"
+      />
+
+      {/* Drawer Panel */}
+      <div
+        className="lg:hidden fixed top-0 right-0 z-50 h-full w-80 max-w-[90vw] bg-background border-l border-border shadow-2xl flex flex-col transition-transform duration-300"
+        style={{ transform: isMenuOpen ? "translateX(0)" : "translateX(100%)" }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+      >
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <Link href="/" onClick={closeMenu} data-testid="mobile-nav-logo">
+            <img
+              src={logoImage}
+              alt="Mobile Tyre Van City"
+              className="h-14 w-auto"
+            />
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={closeMenu}
+            data-testid="button-mobile-close"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Nav Links */}
+        <nav className="flex-1 overflow-y-auto px-5 py-6 space-y-1">
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className="block px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base"
+              onClick={closeMenu}
+              data-testid={`mobile-link-${item.name.toLowerCase()}`}
+            >
+              {item.name}
+            </Link>
+          ))}
+
+          {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
+            <div className="pt-4 mt-4 border-t border-border space-y-1">
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base"
+                onClick={closeMenu}
+                data-testid="mobile-link-admin"
               >
-                <Link href="/configurator/van">Configure Your Van</Link>
-              </Button>
+                <Shield className="w-4 h-4" />
+                {user.adminRole === "full" ? "Admin Panel" : "Basic Admin Panel"}
+              </Link>
+              <button
+                className="flex items-center gap-2 px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base w-full text-left"
+                onClick={() => { handleLogout(); closeMenu(); }}
+                disabled={logoutMutation.isPending}
+                data-testid="mobile-button-logout"
+              >
+                <LogOut className="w-4 h-4" />
+                {logoutMutation.isPending ? "Logging out..." : "Logout"}
+              </button>
+            </div>
+          )}
+        </nav>
 
-              {/* Mobile Admin Authentication */}
-              {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
-                <div className="pt-4 border-t space-y-2">
-                  <Button variant="ghost" size="sm" className="w-full justify-start" asChild onClick={() => setIsMenuOpen(false)}>
-                    <Link href="/admin" data-testid="mobile-link-admin">
-                      <Shield className="w-4 h-4 mr-2" />
-                      {user.adminRole === "full" ? "Admin Panel" : "Basic Admin Panel"}
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      handleLogout();
-                      setIsMenuOpen(false);
-                    }}
-                    disabled={logoutMutation.isPending}
-                    data-testid="mobile-button-logout"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    {logoutMutation.isPending ? "Logging out..." : "Logout"}
-                  </Button>
-                </div>
-              )}
-            </nav>
-          </div>
-        )}
+        {/* CTA at bottom */}
+        <div className="px-5 py-5 border-t border-border">
+          <Button
+            size="lg"
+            className="bg-accent text-accent-foreground font-semibold w-full"
+            data-testid="mobile-button-configure"
+            asChild
+            onClick={closeMenu}
+          >
+            <Link href="/configurator/van">Configure Your Van</Link>
+          </Button>
+        </div>
       </div>
     </header>
   );

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Car, Package, Sparkles, CreditCard } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const services = [
   {
@@ -27,15 +28,17 @@ const services = [
 ];
 
 export default function ProcessSteps() {
+  const ref = useScrollReveal();
+
   return (
-    <section className="py-24 bg-background">
+    <section ref={ref} className="scroll-reveal py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-6 text-foreground" data-testid="text-process-title">
             Build Your Van
           </h2>
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-12 max-w-7xl mx-auto">
           {services.map((service, index) => (
             <div key={index} className="text-center space-y-4 sm:space-y-6" data-testid={`card-service-${index}`}>

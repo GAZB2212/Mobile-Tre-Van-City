@@ -4,9 +4,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function FAQ() {
-  // todo: remove mock functionality
+  const ref = useScrollReveal();
+
   const faqs = [
     {
       question: "How long does a van conversion take?",
@@ -35,7 +37,7 @@ export default function FAQ() {
   ];
 
   return (
-    <section className="py-20 bg-background">
+    <section ref={ref} className="scroll-reveal py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
@@ -46,12 +48,12 @@ export default function FAQ() {
               Common questions about our mobile tyre van conversions
             </p>
           </div>
-          
+
           <Accordion type="single" collapsible className="space-y-4">
             {faqs.map((faq, index) => (
-              <AccordionItem 
-                key={index} 
-                value={`item-${index}`} 
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
                 className="border border-accent/20 rounded-2xl px-6 hover-elevate"
                 data-testid={`faq-item-${index}`}
               >

@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import UKManufacturing from "@/components/UKManufacturing";
@@ -63,6 +64,29 @@ function DeliveryAreasSection() {
   );
 }
 
+function PreFooterCTA() {
+  return (
+    <section className="py-16 bg-accent" data-testid="section-prefooter-cta">
+      <div className="container mx-auto px-4 text-center">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-accent-foreground mb-3" data-testid="text-prefooter-headline">
+          Ready to get started?
+        </h2>
+        <p className="text-accent-foreground/80 text-base sm:text-lg mb-8 max-w-xl mx-auto">
+          Build your fully-equipped mobile tyre van today and start earning from day one.
+        </p>
+        <Button
+          size="lg"
+          className="bg-accent-foreground text-accent font-bold hover:bg-accent-foreground/90"
+          asChild
+          data-testid="button-prefooter-configure"
+        >
+          <Link href="/configurator/van">Configure Your Van</Link>
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { data: ratingSummary } = useQuery<{ count: number; averageRating: number }>({
     queryKey: ["/api/testimonials/rating-summary"],
@@ -72,7 +96,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO 
+      <SEO
         title="Mobile Tyre Van Conversions UK | Mobile Tyre Van City"
         description="UK specialists in custom mobile tyre van conversions. Fully equipped builds, nationwide delivery, finance available. Based in Wirral. Call 0151 203 8500."
         canonical="/"
@@ -96,6 +120,7 @@ export default function Home() {
         <FAQ />
         <HomeEnquiryForm />
         <CTASection />
+        <PreFooterCTA />
       </main>
       <Footer />
     </div>

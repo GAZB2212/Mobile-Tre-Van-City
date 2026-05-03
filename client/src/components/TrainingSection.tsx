@@ -3,8 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ShieldCheck, Award, Wrench } from "lucide-react";
 import { Link } from "wouter";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export default function TrainingSection() {
+  const ref = useScrollReveal();
+
   const trainingFeatures = [
     {
       icon: ShieldCheck,
@@ -24,7 +27,7 @@ export default function TrainingSection() {
   ];
 
   return (
-    <section className="py-16 px-4 bg-muted/30">
+    <section ref={ref} className="scroll-reveal py-16 px-4 bg-muted/30">
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-12">
           <Badge variant="outline" className="mb-4" data-testid="badge-training">

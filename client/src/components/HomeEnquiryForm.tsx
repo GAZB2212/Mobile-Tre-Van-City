@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { CheckCircle, Phone, Mail, MessageSquare, User } from "lucide-react";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const enquirySchema = z.object({
   name: z.string().min(2, "Please enter your full name"),
@@ -26,6 +27,7 @@ type EnquiryData = z.infer<typeof enquirySchema>;
 export default function HomeEnquiryForm() {
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
+  const ref = useScrollReveal();
 
   const form = useForm<EnquiryData>({
     resolver: zodResolver(enquirySchema),
@@ -54,12 +56,11 @@ export default function HomeEnquiryForm() {
   const onSubmit = (data: EnquiryData) => mutation.mutate(data);
 
   return (
-    <section className="py-16 md:py-24 bg-background border-t">
+    <section ref={ref} className="scroll-reveal py-16 md:py-24 bg-background border-t">
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
 
-            {/* Left column — copy */}
             <div>
               <Badge className="mb-4 bg-accent/10 text-accent border-accent/20">
                 Get in Touch
@@ -110,7 +111,6 @@ export default function HomeEnquiryForm() {
               </div>
             </div>
 
-            {/* Right column — form */}
             <div>
               {submitted ? (
                 <Card>
