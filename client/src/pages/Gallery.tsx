@@ -120,11 +120,12 @@ export default function Gallery() {
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
-              <div className="columns-1 sm:columns-2 lg:columns-4 gap-6">
+              <div key={activeCategory} className="columns-1 sm:columns-2 lg:columns-4 gap-6">
                 {filteredItems.map((item, itemIndex) => (
                   <Card
                     key={item.id}
-                    className="hover-elevate overflow-hidden cursor-pointer break-inside-avoid mb-6"
+                    className="gallery-card-animate hover-elevate overflow-hidden cursor-pointer break-inside-avoid mb-6"
+                    style={{ '--stagger-index': Math.min(itemIndex, 14) } as React.CSSProperties}
                     data-testid={`card-gallery-${itemIndex}`}
                   >
                     <div className="bg-gradient-to-br from-muted to-muted/50 relative overflow-hidden group">
