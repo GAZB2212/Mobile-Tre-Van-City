@@ -5796,13 +5796,13 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   });
 
   // ── Email preview routes ──────────────────────────────────────────────────
-  app.get("/api/admin/email-preview/templates", isAuthenticated, isBasicAdmin, (_req, res) => {
-    const { EMAIL_TEMPLATES } = require('./email-previews.js');
+  app.get("/api/admin/email-preview/templates", isAuthenticated, isBasicAdmin, async (_req, res) => {
+    const { EMAIL_TEMPLATES } = await import('./email-previews.js');
     res.json(EMAIL_TEMPLATES);
   });
 
-  app.get("/api/admin/email-preview/html/:template", isAuthenticated, isBasicAdmin, (req, res) => {
-    const { generatePreviewHtml } = require('./email-previews.js');
+  app.get("/api/admin/email-preview/html/:template", isAuthenticated, isBasicAdmin, async (req, res) => {
+    const { generatePreviewHtml } = await import('./email-previews.js');
     const html = generatePreviewHtml(req.params.template);
     if (!html) return res.status(404).json({ error: "Template not found" });
     res.setHeader("Content-Type", "text/html; charset=utf-8");
