@@ -5825,8 +5825,12 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   app.get("/api/admin/email-preview/html/:template", isAuthenticated, isBasicAdmin, async (req, res) => {
     const { generatePreviewHtml } = await import('./email-previews.js');
-    const html = generatePreviewHtml(req.params.template);
+    let html = generatePreviewHtml(req.params.template);
     if (!html) return res.status(404).json({ error: "Template not found" });
+    // Replace the production logo URL with one served from this server so the
+    // logo renders correctly in development and staging environments.
+    const localBase = `${req.protocol}://${req.get('host')}`;
+    html = html.replace(/https?:\/\/[^"]*LOGO_1762356342150\.png/g, `${localBase}/LOGO_1762356342150.png`);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(html);
   });
