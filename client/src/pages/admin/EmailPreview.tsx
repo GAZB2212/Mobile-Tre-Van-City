@@ -302,12 +302,14 @@ export default function EmailPreview() {
           {selected && DUAL_RECIPIENT_TEMPLATE_IDS.has(selected.id) && (
             <div
               data-testid="notice-dual-recipient"
-              className="flex items-start gap-2.5 px-4 py-2.5 border-b bg-muted/40 text-muted-foreground shrink-0"
+              className="flex items-center gap-2.5 px-4 py-2 border-b bg-muted/40 text-muted-foreground shrink-0"
             >
-              <Info className="w-4 h-4 mt-0.5 shrink-0" />
-              <p className="text-xs leading-relaxed">
-                <span className="font-semibold">Dual-recipient template.</span>{" "}
-                Only the selected variant is sent. The admin notification goes to your test address — not to real staff inboxes.
+              <Info className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-xs">
+                Sends:{" "}
+                <span className="font-medium text-foreground">
+                  {selected.recipient === "customer" ? "customer confirmation only" : "admin notification only"}
+                </span>
               </p>
             </div>
           )}
