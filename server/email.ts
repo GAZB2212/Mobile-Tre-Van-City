@@ -3,11 +3,17 @@ import { Resend } from 'resend';
 const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
 
 let connectionSettings: any;
+let fromEmailLogged = false;
 
 const DEFAULT_FROM_EMAIL = 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>';
 
 async function getCredentials() {
   const fromEmail = process.env.MAIL_FROM || DEFAULT_FROM_EMAIL;
+
+  if (!fromEmailLogged) {
+    fromEmailLogged = true;
+    console.info(`[EMAIL] Sender address resolved: ${fromEmail}`);
+  }
 
   if (process.env.RESEND_API_KEY) {
     return {
