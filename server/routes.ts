@@ -5848,11 +5848,24 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
     const { to, templateId } = parsed.data;
     try {
-      // Spec Summary templates: call the real send function with the canonical
-      // preview fixture data so the test email is identical to what a real customer receives.
+      const {
+        SPEC_SUMMARY_TEST_ARGS,
+        QUOTE_SPEC_SUMMARY_TEST_ARGS,
+        QUOTE_CONFIRMATION_TEST_ARGS,
+        FINANCE_SUBMISSION_TEST_ARGS,
+        OPTION_CHOSEN_ADMIN_TEST_ARGS,
+        DEPOT_INVOICE_TEST_ARGS,
+        TESTIMONIAL_REQUEST_TEST_ARGS,
+        ENQUIRY_RECEIVED_TEST_ARGS,
+        LEAD_RECEIVED_TEST_ARGS,
+        WELCOME_EMAIL_TEST_ARGS,
+        SET_PASSWORD_TEST_ARGS,
+        PASSWORD_RESET_TEST_ARGS,
+      } = await import('./email-previews.js');
+
+      // ── Spec Summary (older flow) ──────────────────────────────────────────
       if (templateId === 'spec-summary-single' || templateId === 'spec-summary-comparison') {
         const { sendQuoteSpecSummaryEmail } = await import('./email.js');
-        const { SPEC_SUMMARY_TEST_ARGS } = await import('./email-previews.js');
         const fixture = templateId === 'spec-summary-comparison'
           ? SPEC_SUMMARY_TEST_ARGS.comparison
           : SPEC_SUMMARY_TEST_ARGS.single;
@@ -5861,16 +5874,97 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         return;
       }
 
-      // Live-send templates (quote spec summary): call the real send function with canonical
-      // preview fixture data so the test email is identical to what a real customer receives.
-      const { LIVE_SEND_TEMPLATE_IDS } = await import('./email-previews.js');
-      if (LIVE_SEND_TEMPLATE_IDS.has(templateId)) {
+      // ── Quote Spec Summary ─────────────────────────────────────────────────
+      if (templateId === 'quote-spec-summary-single' || templateId === 'quote-spec-summary-comparison') {
         const { sendQuoteSpecSummaryEmail } = await import('./email.js');
-        const { QUOTE_SPEC_SUMMARY_TEST_ARGS } = await import('./email-previews.js');
         const fixture = templateId === 'quote-spec-summary-comparison'
           ? QUOTE_SPEC_SUMMARY_TEST_ARGS.comparison
           : QUOTE_SPEC_SUMMARY_TEST_ARGS.single;
         await sendQuoteSpecSummaryEmail({ to, ...fixture });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Quote Confirmation ─────────────────────────────────────────────────
+      if (templateId === 'quote-confirmation') {
+        const { sendQuoteConfirmationEmail } = await import('./email.js');
+        await sendQuoteConfirmationEmail({ to, ...QUOTE_CONFIRMATION_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Finance Submission ─────────────────────────────────────────────────
+      if (templateId === 'finance-submission') {
+        const { sendFinanceSubmissionEmail } = await import('./email.js');
+        await sendFinanceSubmissionEmail({ financeCompanyEmail: to, ...FINANCE_SUBMISSION_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Option Chosen (Admin) ──────────────────────────────────────────────
+      if (templateId === 'option-chosen-admin') {
+        const { sendOptionChosenAdminNotification } = await import('./email.js');
+        await sendOptionChosenAdminNotification({ toOverride: to, ...OPTION_CHOSEN_ADMIN_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Depot Invoice ──────────────────────────────────────────────────────
+      if (templateId === 'depot-invoice') {
+        const { sendDepotInvoiceEmail } = await import('./email.js');
+        await sendDepotInvoiceEmail({ toOverride: to, ...DEPOT_INVOICE_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Testimonial / Review Request ───────────────────────────────────────
+      if (templateId === 'testimonial-request') {
+        const { sendTestimonialRequestEmail } = await import('./email.js');
+        await sendTestimonialRequestEmail({ to, ...TESTIMONIAL_REQUEST_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Enquiry Received (Customer) ────────────────────────────────────────
+      // Calls the real send function with quote.email = to so the customer
+      // version goes to the test address. The admin notification fires as a
+      // side-effect to the internal addresses (acceptable for test fidelity).
+      if (templateId === 'enquiry-received-customer' || templateId === 'enquiry-received-admin') {
+        const { sendQuoteReceivedEmails } = await import('./email.js');
+        const fixture = { ...ENQUIRY_RECEIVED_TEST_ARGS, quote: { ...ENQUIRY_RECEIVED_TEST_ARGS.quote, email: to } };
+        await sendQuoteReceivedEmails(fixture);
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Lead Received (Customer / Admin) ──────────────────────────────────
+      if (templateId === 'lead-received-customer' || templateId === 'lead-received-admin') {
+        const { sendLeadReceivedEmails } = await import('./email.js');
+        await sendLeadReceivedEmails({ ...LEAD_RECEIVED_TEST_ARGS, email: to });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── New User Welcome ───────────────────────────────────────────────────
+      if (templateId === 'welcome-email') {
+        const { sendNewUserWelcomeEmail } = await import('./email.js');
+        await sendNewUserWelcomeEmail({ toEmail: to, ...WELCOME_EMAIL_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Set Password (New User) ────────────────────────────────────────────
+      if (templateId === 'set-password') {
+        const { sendNewUserSetPasswordEmail } = await import('./email.js');
+        await sendNewUserSetPasswordEmail({ toEmail: to, ...SET_PASSWORD_TEST_ARGS });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Password Reset ─────────────────────────────────────────────────────
+      if (templateId === 'password-reset') {
+        const { sendPasswordResetEmail } = await import('./email.js');
+        await sendPasswordResetEmail({ toEmail: to, ...PASSWORD_RESET_TEST_ARGS });
         res.json({ ok: true, message: `Test email sent to ${to}` });
         return;
       }

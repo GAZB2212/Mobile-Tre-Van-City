@@ -800,6 +800,131 @@ export const QUOTE_SPEC_SUMMARY_TEST_ARGS = {
   },
 };
 
+export const QUOTE_CONFIRMATION_TEST_ARGS = {
+  customerName: CUSTOMER_NAME,
+  quoteId: QUOTE_ID,
+  confirmationUrl: `${SITE_BASE}/quote/confirm/sample-token`,
+  totalPrice: TOTAL - 50000,
+  discount: 50000,
+  customerNotes: "We've applied your loyalty discount and have matched the finance rate you enquired about. Looking forward to getting you on the road!",
+};
+
+export const FINANCE_SUBMISSION_TEST_ARGS = {
+  customerName: CUSTOMER_NAME,
+  customerPhone: CUSTOMER_PHONE,
+  customerEmail: CUSTOMER_EMAIL,
+  quoteId: QUOTE_ID,
+  vanTitle: VAN_TITLE,
+  vanRegistration: 'AB23 CDE',
+  vanMileage: 14500,
+  kitName: KIT_NAME,
+  upgradeNames: [...UPGRADES],
+  subtotal: SUBTOTAL,
+  vat: VAT,
+  total: TOTAL,
+  discount: 50000,
+  customExtras: [
+    { id: 'e1', description: 'Custom livery wrap', pricePence: 85000 },
+  ],
+  financeDetails: {
+    planType: 'HP',
+    apr: 10.9,
+    depositAmount: DEPOSIT,
+    termMonths: TERM,
+    monthlyPayment: MONTHLY,
+    weeklyPayment: WEEKLY,
+  },
+};
+
+export const OPTION_CHOSEN_ADMIN_TEST_ARGS = {
+  quoteId: QUOTE_ID,
+  customerName: CUSTOMER_NAME,
+  customerEmail: CUSTOMER_EMAIL,
+  customerPhone: CUSTOMER_PHONE,
+  chosenOption: 'B' as const,
+  optionDetails: {
+    vanTitle: 'Mercedes-Benz Sprinter 316 CDi 2023',
+    kitName: 'Gold Pack – 10 Wheel Tyre Changer',
+    upgradeNames: [...UPGRADES],
+    estTotal: 1560000,
+  },
+};
+
+export const DEPOT_INVOICE_TEST_ARGS = {
+  quoteId: QUOTE_ID,
+  customerName: CUSTOMER_NAME,
+  customerPhone: CUSTOMER_PHONE,
+  customerEmail: CUSTOMER_EMAIL,
+  vanDetails: {
+    title: VAN_TITLE,
+    registration: 'AB23 CDE',
+    mileage: 14500,
+    transmission: 'Manual',
+    fuelType: 'Diesel',
+  },
+  kitName: KIT_NAME,
+  upgradeNames: [...UPGRADES],
+  customExtras: [
+    { id: 'e1', description: 'Custom livery wrap', pricePence: 85000 },
+  ],
+  subtotal: SUBTOTAL,
+  vat: VAT,
+  discount: 50000,
+  total: TOTAL,
+  financeInfo: { depositAmount: DEPOSIT, termMonths: TERM, monthlyPayment: MONTHLY, weeklyPayment: WEEKLY },
+};
+
+export const TESTIMONIAL_REQUEST_TEST_ARGS = {
+  customerName: CUSTOMER_NAME,
+  reviewUrl: 'https://g.page/r/sample-review-link',
+};
+
+export const ENQUIRY_RECEIVED_TEST_ARGS = {
+  quote: {
+    id: QUOTE_ID,
+    userName: CUSTOMER_NAME,
+    email: CUSTOMER_EMAIL,
+    phone: CUSTOMER_PHONE,
+    company: 'Smith Tyres Ltd',
+    estTotal: TOTAL,
+    estSubtotal: SUBTOTAL,
+    estVAT: VAT,
+    estDiscount: null,
+  },
+  vanTitle: VAN_TITLE,
+  kitName: KIT_NAME,
+  upgradeNames: [...UPGRADES],
+  financeInfoA: { depositAmount: DEPOSIT, termMonths: TERM, monthlyPayment: MONTHLY, weeklyPayment: WEEKLY },
+  baseUrl: SITE_BASE,
+};
+
+export const LEAD_RECEIVED_TEST_ARGS = {
+  id: QUOTE_ID,
+  name: CUSTOMER_NAME,
+  email: CUSTOMER_EMAIL,
+  phone: CUSTOMER_PHONE,
+  message: "I'm interested in a mobile tyre van for my business. Could you please provide more information about your conversion packages and pricing?",
+};
+
+export const WELCOME_EMAIL_TEST_ARGS = {
+  firstName: 'John',
+  username: 'john.smith',
+  password: 'Temp@Password1',
+  loginUrl: `${SITE_BASE}/admin/login`,
+};
+
+export const SET_PASSWORD_TEST_ARGS = {
+  firstName: 'John',
+  username: 'john.smith',
+  setPasswordUrl: `${SITE_BASE}/admin/set-password/sample-token`,
+};
+
+export const PASSWORD_RESET_TEST_ARGS = {
+  firstName: 'John',
+  username: 'john.smith',
+  resetUrl: `${SITE_BASE}/admin/reset-password/sample-token`,
+};
+
 export function generatePreviewHtml(templateId: string): string | null {
   switch (templateId) {
     case 'enquiry-received-customer': return generateEnquiryReceivedCustomer();

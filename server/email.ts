@@ -881,6 +881,7 @@ export async function sendOptionChosenAdminNotification({
   customerPhone,
   chosenOption,
   optionDetails,
+  toOverride,
 }: {
   quoteId: string;
   customerName: string;
@@ -893,6 +894,7 @@ export async function sendOptionChosenAdminNotification({
     upgradeNames?: string[];
     estTotal?: number;
   };
+  toOverride?: string | string[];
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
 
@@ -921,7 +923,7 @@ export async function sendOptionChosenAdminNotification({
   `;
 
   await client.emails.send({
-    to: INTERNAL_NOTIFY_EMAILS,
+    to: toOverride ?? INTERNAL_NOTIFY_EMAILS,
     from: fromEmail,
     subject: `Customer chose Option ${chosenOption} – ${customerName} – Ref #${ref}`,
     html: emailLayout(bodyHtml, {
@@ -1166,6 +1168,7 @@ export async function sendDepotInvoiceEmail({
   discount,
   total,
   financeInfo,
+  toOverride,
 }: {
   quoteId: string;
   customerName: string;
@@ -1196,6 +1199,7 @@ export async function sendDepotInvoiceEmail({
     monthlyPayment: number;
     weeklyPayment: number;
   } | null;
+  toOverride?: string;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
@@ -1296,7 +1300,7 @@ Mobile Tyre Van City | ${PHONE}
 ${ADDRESS}`;
 
   await client.emails.send({
-    to: 'sharon@geg.co',
+    to: toOverride ?? 'sharon@geg.co',
     from: fromEmail,
     subject: `Invoice Request – Quote #${ref} – ${customerName}`,
     html: emailLayout(depotBodyHtml, {
