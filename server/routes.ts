@@ -5925,28 +5925,51 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         return;
       }
 
-      // ── Enquiry Received (Customer / Admin) ───────────────────────────────
-      if (templateId === 'enquiry-received-customer' || templateId === 'enquiry-received-admin') {
+      // ── Enquiry Received (Customer) ────────────────────────────────────────
+      if (templateId === 'enquiry-received-customer') {
         const { sendQuoteReceivedEmails } = await import('./email.js');
-        const variant = templateId === 'enquiry-received-admin' ? 'admin' : 'customer';
         const fixture = {
           ...ENQUIRY_RECEIVED_TEST_ARGS,
           quote: { ...ENQUIRY_RECEIVED_TEST_ARGS.quote, email: to },
-          testMode: { variant, testAddress: to } as const,
+          testMode: { variant: 'customer' as const, testAddress: to },
         };
         await sendQuoteReceivedEmails(fixture);
         res.json({ ok: true, message: `Test email sent to ${to}` });
         return;
       }
 
-      // ── Lead Received (Customer / Admin) ──────────────────────────────────
-      if (templateId === 'lead-received-customer' || templateId === 'lead-received-admin') {
+      // ── Enquiry Received (Admin) ───────────────────────────────────────────
+      if (templateId === 'enquiry-received-admin') {
+        const { sendQuoteReceivedEmails } = await import('./email.js');
+        const fixture = {
+          ...ENQUIRY_RECEIVED_TEST_ARGS,
+          quote: { ...ENQUIRY_RECEIVED_TEST_ARGS.quote, email: to },
+          testMode: { variant: 'admin' as const, testAddress: to },
+        };
+        await sendQuoteReceivedEmails(fixture);
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Lead Received (Customer) ───────────────────────────────────────────
+      if (templateId === 'lead-received-customer') {
         const { sendLeadReceivedEmails } = await import('./email.js');
-        const variant = templateId === 'lead-received-admin' ? 'admin' : 'customer';
         await sendLeadReceivedEmails({
           ...LEAD_RECEIVED_TEST_ARGS,
           email: to,
-          testMode: { variant, testAddress: to },
+          testMode: { variant: 'customer' as const, testAddress: to },
+        });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
+      // ── Lead Received (Admin) ──────────────────────────────────────────────
+      if (templateId === 'lead-received-admin') {
+        const { sendLeadReceivedEmails } = await import('./email.js');
+        await sendLeadReceivedEmails({
+          ...LEAD_RECEIVED_TEST_ARGS,
+          email: to,
+          testMode: { variant: 'admin' as const, testAddress: to },
         });
         res.json({ ok: true, message: `Test email sent to ${to}` });
         return;
