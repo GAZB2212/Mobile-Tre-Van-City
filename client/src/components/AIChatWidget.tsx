@@ -543,35 +543,48 @@ export default function AIChatWidget() {
 
   return (
     <>
-      {/* Floating trigger button — sits above the contact chat bubble (which is at bottom-5) */}
+      {/* Trigger — sticky bottom bar on mobile, floating pill on md+ */}
       {!open && (
-        <button
-          onClick={handleOpen}
-          data-testid="button-ai-chat-open"
-          className="fixed bottom-24 right-5 z-[10000] flex items-center bg-[#8bc440] text-[#191919] shadow-lg hover:bg-[#8bc440]/90 transition-colors
-            rounded-full p-0 w-[52px] h-[52px]
-            md:rounded-xl md:w-auto md:h-auto md:gap-3 md:pl-3 md:pr-4 md:py-2.5"
-        >
-          {/* Avatar — larger on mobile (fills the circle), standard on md+ */}
-          <div className="w-full h-full rounded-full overflow-hidden shrink-0 ring-2 ring-[#191919]/15
-            md:w-8 md:h-8 md:rounded-full relative">
-            <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
-            {/* Resume dot — shown on mobile inside the circle */}
-            {hasResume && (
-              <span className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-[#191919]/50 ring-1 ring-[#8bc440] md:hidden" />
-            )}
-          </div>
-          {/* Text — hidden on mobile, visible md+ */}
-          <div className="hidden md:flex flex-col items-start">
-            <span className="text-[10px] font-medium opacity-60 leading-none mb-0.5">Not sure where to start?</span>
-            <span className="text-sm font-bold leading-none flex items-center gap-1.5">
-              Build your van with Max
+        <>
+          {/* Mobile: full-width sticky bar at the bottom */}
+          <button
+            onClick={handleOpen}
+            data-testid="button-ai-chat-open"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-[10000] flex items-center gap-3 px-5 py-3.5 bg-[#8bc440] text-[#191919] shadow-[0_-4px_24px_rgba(0,0,0,0.3)] rounded-t-2xl active:bg-[#8bc440]/90 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-[#191919]/15 relative">
+              <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
               {hasResume && (
-                <span className="w-2 h-2 rounded-full bg-[#191919]/40" />
+                <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#191919]/50 ring-1 ring-[#8bc440]" />
               )}
-            </span>
-          </div>
-        </button>
+            </div>
+            <div className="flex flex-col items-start flex-1">
+              <span className="text-[10px] font-medium opacity-60 leading-none mb-0.5">Not sure where to start?</span>
+              <span className="text-sm font-bold leading-none">Build your van with Max</span>
+            </div>
+            <ArrowRight className="w-5 h-5 opacity-60 shrink-0" />
+          </button>
+
+          {/* md+: original floating pill */}
+          <button
+            onClick={handleOpen}
+            data-testid="button-ai-chat-open-desktop"
+            className="hidden md:flex fixed bottom-24 right-5 z-[10000] items-center gap-3 pl-3 pr-4 py-2.5 rounded-xl bg-[#8bc440] text-[#191919] shadow-lg hover:bg-[#8bc440]/90 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-[#191919]/15">
+              <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="text-[10px] font-medium opacity-60 leading-none mb-0.5">Not sure where to start?</span>
+              <span className="text-sm font-bold leading-none flex items-center gap-1.5">
+                Build your van with Max
+                {hasResume && (
+                  <span className="w-2 h-2 rounded-full bg-[#191919]/40" />
+                )}
+              </span>
+            </div>
+          </button>
+        </>
       )}
 
       {/* Chat panel — z-[10000] ensures it covers the contact chat bubble when open */}
