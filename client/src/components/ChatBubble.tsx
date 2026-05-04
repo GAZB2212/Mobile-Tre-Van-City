@@ -65,7 +65,7 @@ export default function ChatBubble() {
   };
 
   return (
-    <div className="fixed bottom-20 right-5 z-[9999] md:bottom-5">
+    <div className="hidden md:block fixed bottom-5 right-5 z-[9999]">
       {/* Chat panel — absolutely positioned above the button, never occupies page space */}
       <div
         className={`absolute bottom-16 right-0 transition-all duration-300 origin-bottom-right ${

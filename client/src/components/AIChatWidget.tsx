@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { X, Send, RotateCcw, ArrowRight, Check, Plus, AlertCircle, Zap } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { X, Send, RotateCcw, ArrowRight, Check, Plus, AlertCircle, Zap, MessageCircle, CheckCircle, Phone } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AI_CHAT_STORAGE_KEY,
   CONFIGURATOR_STORAGE_KEY,
@@ -164,6 +165,7 @@ export default function AIChatWidget() {
   const { toast } = useToast();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<"choice" | "max" | "contact">("choice");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -172,6 +174,21 @@ export default function AIChatWidget() {
   const [showContactCapture, setShowContactCapture] = useState(false);
   const [captureNameInput, setCaptureNameInput] = useState("");
   const [capturePhoneInput, setCapturePhoneInput] = useState("");
+
+  // Contact form state (used when view === 'contact')
+  const [ctName, setCtName] = useState("");
+  const [ctEmail, setCtEmail] = useState("");
+  const [ctPhone, setCtPhone] = useState("");
+  const [ctMessage, setCtMessage] = useState("");
+  const [ctSubmitted, setCtSubmitted] = useState(false);
+
+  const contactMutation = useMutation({
+    mutationFn: (data: { name: string; email: string; phone: string; message: string }) =>
+      apiRequest("POST", "/api/leads", { ...data, phone: data.phone || null, source: "live_chat" }),
+    onSuccess: () => setCtSubmitted(true),
+    onError: () =>
+      toast({ variant: "destructive", title: "Something went wrong", description: "Please call us on 0151 203 8500." }),
+  });
 
   const [sessionId, setSessionId] = useState<string>(() => generateSessionId());
   const [messages, setMessages] = useState<AIMessage[]>([]);
@@ -236,6 +253,7 @@ export default function AIChatWidget() {
   useEffect(() => {
     const handler = () => {
       setOpen(true);
+      setView("max");
       // If there's no conversation yet, have Max introduce himself automatically
       if (messagesRef.current.length === 0) {
         triggerGreeting();
@@ -426,11 +444,25 @@ export default function AIChatWidget() {
 
   const handleOpen = () => {
     setOpen(true);
+    setView("choice");
+  };
+
+  const handleChooseMax = () => {
+    setView("max");
     if (hasResume && messages.length === 0) {
       setShowResumePrompt(true);
     } else if (messages.length === 0) {
       setShowContactCapture(true);
     }
+  };
+
+  const handleChooseContact = () => {
+    setView("contact");
+    setCtName("");
+    setCtEmail("");
+    setCtPhone("");
+    setCtMessage("");
+    setCtSubmitted(false);
   };
 
   const handleResume = () => {
@@ -527,6 +559,7 @@ export default function AIChatWidget() {
 
   const handleClose = () => {
     setOpen(false);
+    setView("choice");
     if (stage === "complete") return;
     if (messages.length > 0) {
       // Mid-conversation abandon
@@ -587,7 +620,7 @@ export default function AIChatWidget() {
         </>
       )}
 
-      {/* Chat panel — z-[10000] ensures it covers the contact chat bubble when open */}
+      {/* Chat panel */}
       {open && (
         <div
           data-testid="panel-ai-chat"
@@ -595,217 +628,334 @@ export default function AIChatWidget() {
             bottom-0 right-0 w-full h-full
             md:bottom-5 md:right-5 md:w-[400px] md:h-[620px] md:rounded-2xl"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#8bc440]/40 shrink-0">
-                <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
-              </div>
-              <div>
-                <div className="text-white font-semibold text-sm leading-none">Max</div>
-                <div className="text-white/40 text-xs mt-0.5">AI Van Builder · Mobile Tyre Van City</div>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              data-testid="button-ai-chat-close"
-              className="text-white/40 hover:text-white/80 transition-colors p-1"
-            >
-              <X size={18} />
-            </button>
-          </div>
 
-          {/* Persistent save-error banner */}
-          {saveError && (
-            <div
-              data-testid="banner-save-error"
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/15 border-b border-red-500/20 shrink-0"
-            >
-              <AlertCircle size={13} className="text-red-400 shrink-0" />
-              <p className="text-red-300 text-xs leading-snug flex-1">
-                Your session is not being saved — check your connection.
-              </p>
-              <button
-                data-testid="button-save-error-retry"
-                onClick={() => {
-                  lastSaveErrorTimeRef.current = 0;
-                  saveToDb(messages, config, trackers, "in_progress");
-                }}
-                className="text-red-300 text-xs underline underline-offset-2 shrink-0 hover:text-red-100 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          )}
-
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-
-            {/* Contact capture — shown before Max's first message on a fresh start */}
-            {showContactCapture && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
-                <div>
-                  <p className="text-white font-semibold text-sm leading-snug mb-1">Quick one before we get going</p>
-                  <p className="text-white/50 text-xs leading-relaxed">
-                    Leave your name and number — if you need to step away, one of the team can ring you back and pick up right where you left off.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <input
-                    data-testid="input-capture-name"
-                    type="text"
-                    placeholder="Your name"
-                    value={captureNameInput}
-                    onChange={e => setCaptureNameInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleContactStart(captureNameInput, capturePhoneInput); }}
-                    className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
-                    autoFocus
-                  />
-                  <input
-                    data-testid="input-capture-phone"
-                    type="tel"
-                    placeholder="Mobile number"
-                    value={capturePhoneInput}
-                    onChange={e => setCapturePhoneInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") handleContactStart(captureNameInput, capturePhoneInput); }}
-                    className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
-                  />
-                </div>
-                <Button
-                  onClick={() => handleContactStart(captureNameInput, capturePhoneInput)}
-                  disabled={!captureNameInput.trim() && !capturePhoneInput.trim()}
-                  data-testid="button-contact-capture-submit"
-                  className="w-full bg-[#8bc440] text-[#191919] font-semibold"
-                >
-                  Get started <ArrowRight size={15} className="ml-1" />
-                </Button>
-                <button
-                  onClick={() => handleContactStart("", "")}
-                  data-testid="button-contact-capture-skip"
-                  className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors pt-1"
-                >
-                  Skip for now
-                </button>
-              </div>
-            )}
-
-            {/* Resume prompt */}
-            {showResumePrompt && (
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
-                <p className="text-white text-sm">Welcome back — you have a saved configuration. Would you like to pick up where you left off?</p>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleResume} data-testid="button-resume-conversation" className="bg-[#8bc440] text-[#191919] font-semibold flex-1">
-                    <RotateCcw size={14} className="mr-1" /> Resume
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleFreshStart} data-testid="button-start-fresh" className="flex-1 border-white/20 text-white/70">
-                    Start fresh
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Messages */}
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  data-testid={`msg-${m.role}-${i}`}
-                  className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                    m.role === "user"
-                      ? "bg-[#8bc440] text-[#191919] font-medium rounded-br-sm"
-                      : "bg-white/10 text-white rounded-bl-sm"
-                  }`}
-                >
-                  {m.content}
-                </div>
-              </div>
-            ))}
-
-            {/* Typing indicator */}
-            {loading && <TypingIndicator />}
-
-            {/* Error state */}
-            {errorMsg && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3.5 py-3 flex gap-2">
-                <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="text-red-300 text-sm">{errorMsg}</p>
-                  <div className="flex items-center gap-3">
-                    {messages.length === 0 && (
-                      <button
-                        onClick={() => triggerGreeting()}
-                        className="text-[#8bc440] text-xs hover:underline"
-                      >
-                        Try again →
-                      </button>
-                    )}
-                    <a href="/configurator/ai-review" className="text-white/40 text-xs hover:underline">
-                      Go to configurator directly
-                    </a>
+          {/* ── CHOICE VIEW ── */}
+          {view === "choice" && (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#8bc440]/40 shrink-0">
+                    <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold text-sm leading-none">Mobile Tyre Van City</div>
+                    <div className="text-white/40 text-xs mt-0.5">How can we help?</div>
                   </div>
                 </div>
+                <button onClick={handleClose} data-testid="button-ai-chat-close" className="text-white/40 hover:text-white/80 transition-colors p-1">
+                  <X size={18} />
+                </button>
               </div>
-            )}
 
-            {/* Summary card */}
-            {stage === "summary" && !loading && (
-              <SummaryCard
-                config={config}
-                trackers={trackers}
-                kits={kits}
-                upgrades={upgrades}
-                onAddUpgrade={handleAddUpgrade}
-                onViewConfig={handleViewConfig}
-                onStartAgain={handleStartAgain}
-              />
-            )}
+              {/* Tiles */}
+              <div className="flex-1 flex flex-col justify-center gap-4 px-5 py-8">
+                <button
+                  onClick={handleChooseMax}
+                  data-testid="button-choice-max"
+                  className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-4 text-left hover:bg-white/10 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-[#8bc440]/40 shrink-0">
+                    <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold text-sm leading-none mb-1">Build my van with Max</div>
+                    <div className="text-white/50 text-xs leading-relaxed">AI-guided configurator — Max walks you through everything step by step</div>
+                  </div>
+                  <ArrowRight size={16} className="text-[#8bc440] shrink-0" />
+                </button>
 
-            {/* Complete state */}
-            {stage === "complete" && (
-              <div className="bg-[#8bc440]/10 border border-[#8bc440]/20 rounded-xl px-3.5 py-3 flex items-center gap-2">
-                <Check size={14} className="text-[#8bc440]" />
-                <p className="text-[#8bc440] text-sm">Taking you to your review page...</p>
+                <button
+                  onClick={handleChooseContact}
+                  data-testid="button-choice-contact"
+                  className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-4 text-left hover:bg-white/10 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <MessageCircle size={22} className="text-[#8bc440]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold text-sm leading-none mb-1">Send us a message</div>
+                    <div className="text-white/50 text-xs leading-relaxed">Quick question or enquiry — we'll get back to you as soon as we can</div>
+                  </div>
+                  <ArrowRight size={16} className="text-white/30 shrink-0" />
+                </button>
+
+                <p className="text-center text-white/25 text-xs pt-2">
+                  Or call us: <a href="tel:01512038500" className="underline text-white/40 hover:text-white/60 transition-colors">0151 203 8500</a>
+                </p>
               </div>
-            )}
-
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input area */}
-          {stage === "chat" && !showResumePrompt && !showContactCapture && (
-            <div className="px-3 py-3 border-t border-white/10 flex items-center gap-2 shrink-0">
-              <input
-                ref={inputRef}
-                data-testid="input-ai-chat"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your reply..."
-                disabled={loading}
-                className="flex-1 bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors disabled:opacity-50"
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || loading}
-                data-testid="button-ai-chat-send"
-                className="w-9 h-9 rounded-xl bg-[#8bc440] flex items-center justify-center text-[#191919] disabled:opacity-40 hover:bg-[#8bc440]/90 transition-colors shrink-0"
-              >
-                <Send size={15} />
-              </button>
-            </div>
+            </>
           )}
 
-          {/* Summary stage — no input, just the card above */}
-          {stage === "summary" && (
-            <div className="px-4 pb-4 shrink-0">
-              <button
-                onClick={handleStartAgain}
-                data-testid="button-ai-chat-restart"
-                className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors py-2"
-              >
-                Start again
-              </button>
-            </div>
+          {/* ── MAX CHAT VIEW ── */}
+          {view === "max" && (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setView("choice")} data-testid="button-back-to-choice" className="text-white/40 hover:text-white/80 transition-colors p-1 -ml-1">
+                    <ArrowRight size={16} className="rotate-180" />
+                  </button>
+                  <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#8bc440]/40 shrink-0">
+                    <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold text-sm leading-none">Max</div>
+                    <div className="text-white/40 text-xs mt-0.5">AI Van Builder · Mobile Tyre Van City</div>
+                  </div>
+                </div>
+                <button onClick={handleClose} data-testid="button-ai-chat-close" className="text-white/40 hover:text-white/80 transition-colors p-1">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Persistent save-error banner */}
+              {saveError && (
+                <div data-testid="banner-save-error" className="flex items-center gap-2 px-4 py-2 bg-red-500/15 border-b border-red-500/20 shrink-0">
+                  <AlertCircle size={13} className="text-red-400 shrink-0" />
+                  <p className="text-red-300 text-xs leading-snug flex-1">Your session is not being saved — check your connection.</p>
+                  <button
+                    data-testid="button-save-error-retry"
+                    onClick={() => { lastSaveErrorTimeRef.current = 0; saveToDb(messages, config, trackers, "in_progress"); }}
+                    className="text-red-300 text-xs underline underline-offset-2 shrink-0 hover:text-red-100 transition-colors"
+                  >Retry</button>
+                </div>
+              )}
+
+              {/* Messages area */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                {showContactCapture && (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+                    <div>
+                      <p className="text-white font-semibold text-sm leading-snug mb-1">Quick one before we get going</p>
+                      <p className="text-white/50 text-xs leading-relaxed">
+                        Leave your name and number — if you need to step away, one of the team can ring you back and pick up right where you left off.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        data-testid="input-capture-name"
+                        type="text"
+                        placeholder="Your name"
+                        value={captureNameInput}
+                        onChange={e => setCaptureNameInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleContactStart(captureNameInput, capturePhoneInput); }}
+                        className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                        autoFocus
+                      />
+                      <input
+                        data-testid="input-capture-phone"
+                        type="tel"
+                        placeholder="Mobile number"
+                        value={capturePhoneInput}
+                        onChange={e => setCapturePhoneInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleContactStart(captureNameInput, capturePhoneInput); }}
+                        className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                      />
+                    </div>
+                    <Button onClick={() => handleContactStart(captureNameInput, capturePhoneInput)} disabled={!captureNameInput.trim() && !capturePhoneInput.trim()} data-testid="button-contact-capture-submit" className="w-full bg-[#8bc440] text-[#191919] font-semibold">
+                      Get started <ArrowRight size={15} className="ml-1" />
+                    </Button>
+                    <button onClick={() => handleContactStart("", "")} data-testid="button-contact-capture-skip" className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors pt-1">
+                      Skip for now
+                    </button>
+                  </div>
+                )}
+
+                {showResumePrompt && (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                    <p className="text-white text-sm">Welcome back — you have a saved configuration. Would you like to pick up where you left off?</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleResume} data-testid="button-resume-conversation" className="bg-[#8bc440] text-[#191919] font-semibold flex-1">
+                        <RotateCcw size={14} className="mr-1" /> Resume
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={handleFreshStart} data-testid="button-start-fresh" className="flex-1 border-white/20 text-white/70">
+                        Start fresh
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {messages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      data-testid={`msg-${m.role}-${i}`}
+                      className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                        m.role === "user" ? "bg-[#8bc440] text-[#191919] font-medium rounded-br-sm" : "bg-white/10 text-white rounded-bl-sm"
+                      }`}
+                    >{m.content}</div>
+                  </div>
+                ))}
+
+                {loading && <TypingIndicator />}
+
+                {errorMsg && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3.5 py-3 flex gap-2">
+                    <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                    <div className="space-y-2">
+                      <p className="text-red-300 text-sm">{errorMsg}</p>
+                      <div className="flex items-center gap-3">
+                        {messages.length === 0 && (
+                          <button onClick={() => triggerGreeting()} className="text-[#8bc440] text-xs hover:underline">Try again →</button>
+                        )}
+                        <a href="/configurator/ai-review" className="text-white/40 text-xs hover:underline">Go to configurator directly</a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {stage === "summary" && !loading && (
+                  <SummaryCard config={config} trackers={trackers} kits={kits} upgrades={upgrades} onAddUpgrade={handleAddUpgrade} onViewConfig={handleViewConfig} onStartAgain={handleStartAgain} />
+                )}
+
+                {stage === "complete" && (
+                  <div className="bg-[#8bc440]/10 border border-[#8bc440]/20 rounded-xl px-3.5 py-3 flex items-center gap-2">
+                    <Check size={14} className="text-[#8bc440]" />
+                    <p className="text-[#8bc440] text-sm">Taking you to your review page...</p>
+                  </div>
+                )}
+
+                <div ref={bottomRef} />
+              </div>
+
+              {stage === "chat" && !showResumePrompt && !showContactCapture && (
+                <div className="px-3 py-3 border-t border-white/10 flex items-center gap-2 shrink-0">
+                  <input
+                    ref={inputRef}
+                    data-testid="input-ai-chat"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your reply..."
+                    disabled={loading}
+                    className="flex-1 bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors disabled:opacity-50"
+                  />
+                  <button onClick={handleSend} disabled={!input.trim() || loading} data-testid="button-ai-chat-send" className="w-9 h-9 rounded-xl bg-[#8bc440] flex items-center justify-center text-[#191919] disabled:opacity-40 hover:bg-[#8bc440]/90 transition-colors shrink-0">
+                    <Send size={15} />
+                  </button>
+                </div>
+              )}
+
+              {stage === "summary" && (
+                <div className="px-4 pb-4 shrink-0">
+                  <button onClick={handleStartAgain} data-testid="button-ai-chat-restart" className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors py-2">
+                    Start again
+                  </button>
+                </div>
+              )}
+            </>
           )}
+
+          {/* ── CONTACT FORM VIEW ── */}
+          {view === "contact" && (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setView("choice")} data-testid="button-back-to-choice-contact" className="text-white/40 hover:text-white/80 transition-colors p-1 -ml-1">
+                    <ArrowRight size={16} className="rotate-180" />
+                  </button>
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <MessageCircle size={18} className="text-[#8bc440]" />
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold text-sm leading-none">Send a message</div>
+                    <div className="text-white/40 text-xs mt-0.5">Mobile Tyre Van City</div>
+                  </div>
+                </div>
+                <button onClick={handleClose} data-testid="button-contact-close" className="text-white/40 hover:text-white/80 transition-colors p-1">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 py-5">
+                {ctSubmitted ? (
+                  <div className="flex flex-col items-center text-center gap-4 pt-8">
+                    <div className="w-14 h-14 rounded-full bg-[#8bc440]/15 flex items-center justify-center">
+                      <CheckCircle size={28} className="text-[#8bc440]" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold mb-1">Message received</p>
+                      <p className="text-white/50 text-sm leading-relaxed">We'll get back to you as soon as possible — usually within a few hours during business hours.</p>
+                    </div>
+                    <p className="text-white/30 text-xs flex items-center gap-1.5 pt-1">
+                      <Phone size={11} /> Or call us: <a href="tel:01512038500" className="underline hover:text-white/60 transition-colors">0151 203 8500</a>
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => setView("choice")} data-testid="button-contact-done" className="mt-2 border-white/20 text-white/60">
+                      Back
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-white/50 text-sm mb-4">Send us a message and we'll get back to you as soon as we can.</p>
+                    <div>
+                      <label className="text-white/60 text-xs mb-1 block">Name *</label>
+                      <input
+                        data-testid="input-contact-name"
+                        type="text"
+                        placeholder="Your name"
+                        value={ctName}
+                        onChange={e => setCtName(e.target.value)}
+                        className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/60 text-xs mb-1 block">Email *</label>
+                      <input
+                        data-testid="input-contact-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={ctEmail}
+                        onChange={e => setCtEmail(e.target.value)}
+                        className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/60 text-xs mb-1 block">Phone (optional)</label>
+                      <input
+                        data-testid="input-contact-phone"
+                        type="tel"
+                        placeholder="07700 000000"
+                        value={ctPhone}
+                        onChange={e => setCtPhone(e.target.value)}
+                        className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/60 text-xs mb-1 block">Message *</label>
+                      <textarea
+                        data-testid="input-contact-message"
+                        placeholder="How can we help?"
+                        value={ctMessage}
+                        onChange={e => setCtMessage(e.target.value)}
+                        rows={4}
+                        className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors resize-none"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => {
+                        if (!ctName.trim() || !ctEmail.trim() || !ctMessage.trim()) {
+                          toast({ variant: "destructive", title: "Please fill in all required fields." });
+                          return;
+                        }
+                        contactMutation.mutate({ name: ctName.trim(), email: ctEmail.trim(), phone: ctPhone.trim(), message: ctMessage.trim() });
+                      }}
+                      disabled={contactMutation.isPending}
+                      data-testid="button-contact-send"
+                      className="w-full bg-[#8bc440] text-[#191919] font-semibold"
+                    >
+                      <Send size={14} className="mr-2" />
+                      {contactMutation.isPending ? "Sending..." : "Send Message"}
+                    </Button>
+                    <p className="text-center text-white/25 text-xs pt-1">
+                      Or call us: <a href="tel:01512038500" className="underline hover:text-white/40 transition-colors">0151 203 8500</a>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
         </div>
       )}
     </>
