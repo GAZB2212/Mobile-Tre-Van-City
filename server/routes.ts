@@ -5926,6 +5926,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
 
       // ── Enquiry Received (Customer) ────────────────────────────────────────
+      // Routes customer email to tester; admin notification goes to internal inboxes.
       if (templateId === 'enquiry-received-customer') {
         const { sendQuoteReceivedEmails } = await import('./email.js');
         const fixture = {
@@ -5939,6 +5940,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
 
       // ── Enquiry Received (Admin) ───────────────────────────────────────────
+      // Routes admin notification to tester; customer email suppressed.
       if (templateId === 'enquiry-received-admin') {
         const { sendQuoteReceivedEmails } = await import('./email.js');
         const fixture = {
@@ -5952,6 +5954,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
 
       // ── Lead Received (Customer) ───────────────────────────────────────────
+      // Routes customer email to tester; admin notification goes to internal inboxes.
       if (templateId === 'lead-received-customer') {
         const { sendLeadReceivedEmails } = await import('./email.js');
         await sendLeadReceivedEmails({
@@ -5964,6 +5967,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
 
       // ── Lead Received (Admin) ──────────────────────────────────────────────
+      // Routes admin notification to tester; customer email suppressed.
       if (templateId === 'lead-received-admin') {
         const { sendLeadReceivedEmails } = await import('./email.js');
         await sendLeadReceivedEmails({
