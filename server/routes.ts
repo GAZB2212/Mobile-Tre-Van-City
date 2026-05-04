@@ -5845,6 +5845,19 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
     const { to, templateId } = parsed.data;
     try {
+      // Spec Summary templates (older): call the real send function with the canonical
+      // preview fixture data so the test email is identical to what a real customer receives.
+      if (templateId === 'spec-summary-single' || templateId === 'spec-summary-comparison') {
+        const { sendQuoteSpecSummaryEmail } = await import('./email.js');
+        const { SPEC_SUMMARY_TEST_ARGS } = await import('./email-previews.js');
+        const fixture = templateId === 'spec-summary-comparison'
+          ? SPEC_SUMMARY_TEST_ARGS.comparison
+          : SPEC_SUMMARY_TEST_ARGS.single;
+        await sendQuoteSpecSummaryEmail({ to, ...fixture });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
+        return;
+      }
+
       // Quote Spec Summary templates: call the real send function with the canonical
       // preview fixture data so the test email is identical to what a real customer receives.
       if (templateId === 'quote-spec-summary-single' || templateId === 'quote-spec-summary-comparison') {

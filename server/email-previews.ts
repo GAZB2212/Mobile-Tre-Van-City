@@ -705,6 +705,46 @@ function generateQuoteSpecSummaryComparison(): string {
   });
 }
 
+export const SPEC_SUMMARY_TEST_ARGS = {
+  single: {
+    customerName: CUSTOMER_NAME,
+    quoteId: QUOTE_ID,
+    vanTitle: VAN_TITLE,
+    kitName: KIT_NAME,
+    upgradeNames: [...UPGRADES],
+    subtotal: SUBTOTAL,
+    vat: VAT,
+    total: TOTAL,
+    customerNote: "We've taken into account your preference for a manual racking system. This has been reflected in the specification above.",
+    approvalToken: 'sample-token',
+    financeInfo: { depositAmount: DEPOSIT, termMonths: TERM, monthlyPayment: MONTHLY, weeklyPayment: WEEKLY },
+    customExtras: [
+      { id: 'e1', description: 'Custom livery wrap', pricePence: 85000 },
+    ],
+  },
+  comparison: {
+    customerName: CUSTOMER_NAME,
+    quoteId: QUOTE_ID,
+    vanTitle: VAN_TITLE,
+    kitName: KIT_NAME,
+    upgradeNames: [...UPGRADES],
+    subtotal: SUBTOTAL,
+    vat: VAT,
+    total: TOTAL,
+    customerNote: 'Option B includes our premium racking system which gives you more storage capacity for a busy mobile operation.',
+    financeInfo: { depositAmount: DEPOSIT, termMonths: TERM, monthlyPayment: MONTHLY, weeklyPayment: WEEKLY },
+    comparisonSlotB: {
+      vanTitle: 'Mercedes-Benz Sprinter 316 CDi 2023',
+      kitName: 'Gold Pack – 10 Wheel Tyre Changer',
+      upgradeNames: [...UPGRADES],
+      estSubtotal: 1300000,
+      estVAT: 260000,
+      estTotal: 1560000,
+      financeInfo: { depositAmount: DEPOSIT, termMonths: TERM, monthlyPayment: 27800, weeklyPayment: 6420 },
+    },
+  },
+};
+
 export const QUOTE_SPEC_SUMMARY_TEST_ARGS = {
   single: {
     customerName: CUSTOMER_NAME,
