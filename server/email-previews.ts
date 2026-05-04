@@ -13,25 +13,26 @@ export interface EmailTemplate {
   description: string;
   subject: string;
   recipient: 'customer' | 'admin' | 'finance' | 'depot';
+  group: 'Enquiry' | 'Spec' | 'Quote' | 'Finance' | 'Post-Sale' | 'Account';
 }
 
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
-  { id: 'enquiry-received-customer', label: 'Enquiry Received (Customer)', description: 'Sent to the customer when they complete the configurator', subject: "We've received your enquiry – Ref #ABC12345", recipient: 'customer' },
-  { id: 'enquiry-received-admin', label: 'Enquiry Received (Internal)', description: 'Admin notification of a new configurator submission', subject: 'New configurator submission – John Smith – £18,000.00 – Ref #ABC12345', recipient: 'admin' },
-  { id: 'spec-summary-single', label: 'Spec Summary (Single Van)', description: 'Sent to customer after admin discusses their specification', subject: 'Your Van Conversion Summary – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer' },
-  { id: 'spec-summary-comparison', label: 'Spec Summary (Comparison)', description: 'Spec summary with two options for the customer to choose between', subject: 'Your Van Conversion Options – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer' },
-  { id: 'quote-confirmation', label: 'Quote Confirmation', description: 'Sent to customer with a formal quote and confirmation link', subject: 'Your Van Conversion Quote #ABC12345 is Ready', recipient: 'customer' },
-  { id: 'finance-submission', label: 'Finance Submission', description: 'Sent to the finance company with customer and vehicle details', subject: 'Finance Application – John Smith – £18,000.00 – Ref #ABC12345', recipient: 'finance' },
-  { id: 'option-chosen-admin', label: 'Option Chosen (Internal)', description: 'Admin notification when a customer selects their preferred option', subject: 'Customer chose Option A – John Smith – Ref #ABC12345', recipient: 'admin' },
-  { id: 'lead-received-customer', label: 'Lead Received (Customer)', description: 'Sent to customer when they submit a general enquiry form', subject: "We've received your enquiry – Mobile Tyre Van City", recipient: 'customer' },
-  { id: 'lead-received-admin', label: 'Lead Received (Internal)', description: 'Admin notification of a new general enquiry', subject: 'New enquiry – John Smith – 07712 345678 – Ref #XYZ98765', recipient: 'admin' },
-  { id: 'welcome-email', label: 'New User Welcome', description: 'Sent to a new admin user with their login credentials', subject: 'Your Mobile Tyre Van City account has been created', recipient: 'admin' },
-  { id: 'set-password', label: 'Set Password (New User)', description: 'Sent to a new admin user with a link to set their password', subject: "You've been set up on Mobile Tyre Van City — set your password", recipient: 'admin' },
-  { id: 'password-reset', label: 'Password Reset', description: 'Sent when an admin user requests a password reset', subject: 'Reset your Mobile Tyre Van City password', recipient: 'admin' },
-  { id: 'depot-invoice', label: 'Depot Invoice Request', description: 'Sent to the depot with full build spec for invoicing', subject: 'Invoice Request – Quote #ABC12345 – John Smith', recipient: 'depot' },
-  { id: 'testimonial-request', label: 'Review Request', description: 'Sent to customer after their conversion is complete', subject: 'Would you leave us a review? – Mobile Tyre Van City', recipient: 'customer' },
-  { id: 'quote-spec-summary-single', label: 'Quote Spec Summary (Single Van)', description: 'Full spec summary sent after admin call — with discount, bespoke extras, and approval buttons', subject: 'Your Van Conversion Summary – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer' },
-  { id: 'quote-spec-summary-comparison', label: 'Quote Spec Summary (Comparison)', description: 'Two-option A/B spec summary — shows Option B with a CHOSEN badge after the customer selects', subject: 'Your Van Conversion Options – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer' },
+  { id: 'enquiry-received-customer', label: 'Enquiry Received (Customer)', description: 'Sent to the customer when they complete the configurator', subject: "We've received your enquiry – Ref #ABC12345", recipient: 'customer', group: 'Enquiry' },
+  { id: 'enquiry-received-admin', label: 'Enquiry Received (Internal)', description: 'Admin notification of a new configurator submission', subject: 'New configurator submission – John Smith – £18,000.00 – Ref #ABC12345', recipient: 'admin', group: 'Enquiry' },
+  { id: 'lead-received-customer', label: 'Lead Received (Customer)', description: 'Sent to customer when they submit a general enquiry form', subject: "We've received your enquiry – Mobile Tyre Van City", recipient: 'customer', group: 'Enquiry' },
+  { id: 'lead-received-admin', label: 'Lead Received (Internal)', description: 'Admin notification of a new general enquiry', subject: 'New enquiry – John Smith – 07712 345678 – Ref #XYZ98765', recipient: 'admin', group: 'Enquiry' },
+  { id: 'spec-summary-single', label: 'Spec Summary (Single Van)', description: 'Sent to customer after admin discusses their specification', subject: 'Your Van Conversion Summary – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer', group: 'Spec' },
+  { id: 'spec-summary-comparison', label: 'Spec Summary (Comparison)', description: 'Spec summary with two options for the customer to choose between', subject: 'Your Van Conversion Options – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer', group: 'Spec' },
+  { id: 'option-chosen-admin', label: 'Option Chosen (Internal)', description: 'Admin notification when a customer selects their preferred option', subject: 'Customer chose Option A – John Smith – Ref #ABC12345', recipient: 'admin', group: 'Spec' },
+  { id: 'quote-confirmation', label: 'Quote Confirmation', description: 'Sent to customer with a formal quote and confirmation link', subject: 'Your Van Conversion Quote #ABC12345 is Ready', recipient: 'customer', group: 'Quote' },
+  { id: 'quote-spec-summary-single', label: 'Quote Spec Summary (Single Van)', description: 'Full spec summary sent after admin call — with discount, bespoke extras, and approval buttons', subject: 'Your Van Conversion Summary – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer', group: 'Quote' },
+  { id: 'quote-spec-summary-comparison', label: 'Quote Spec Summary (Comparison)', description: 'Two-option A/B spec summary — shows Option B with a CHOSEN badge after the customer selects', subject: 'Your Van Conversion Options – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer', group: 'Quote' },
+  { id: 'finance-submission', label: 'Finance Submission', description: 'Sent to the finance company with customer and vehicle details', subject: 'Finance Application – John Smith – £18,000.00 – Ref #ABC12345', recipient: 'finance', group: 'Finance' },
+  { id: 'depot-invoice', label: 'Depot Invoice Request', description: 'Sent to the depot with full build spec for invoicing', subject: 'Invoice Request – Quote #ABC12345 – John Smith', recipient: 'depot', group: 'Post-Sale' },
+  { id: 'testimonial-request', label: 'Review Request', description: 'Sent to customer after their conversion is complete', subject: 'Would you leave us a review? – Mobile Tyre Van City', recipient: 'customer', group: 'Post-Sale' },
+  { id: 'welcome-email', label: 'New User Welcome', description: 'Sent to a new admin user with their login credentials', subject: 'Your Mobile Tyre Van City account has been created', recipient: 'admin', group: 'Account' },
+  { id: 'set-password', label: 'Set Password (New User)', description: 'Sent to a new admin user with a link to set their password', subject: "You've been set up on Mobile Tyre Van City — set your password", recipient: 'admin', group: 'Account' },
+  { id: 'password-reset', label: 'Password Reset', description: 'Sent when an admin user requests a password reset', subject: 'Reset your Mobile Tyre Van City password', recipient: 'admin', group: 'Account' },
 ];
 
 const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;

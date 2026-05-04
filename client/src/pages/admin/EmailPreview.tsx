@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Monitor, Users, Building2, Warehouse, ChevronRight } from "lucide-react";
+import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown } from "lucide-react";
 
 interface EmailTemplate {
   id: string;
@@ -14,7 +14,17 @@ interface EmailTemplate {
   description: string;
   subject: string;
   recipient: "customer" | "admin" | "finance" | "depot";
+  group: "Enquiry" | "Spec" | "Quote" | "Finance" | "Post-Sale" | "Account";
 }
+
+const GROUP_ORDER: EmailTemplate["group"][] = [
+  "Enquiry",
+  "Spec",
+  "Quote",
+  "Finance",
+  "Post-Sale",
+  "Account",
+];
 
 const recipientConfig: Record<
   EmailTemplate["recipient"],
@@ -33,6 +43,7 @@ export default function EmailPreview() {
   const [iframeSrc, setIframeSrc] = useState<string>(
     "/api/admin/email-preview/html/enquiry-received-customer"
   );
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/admin/email-preview/templates"],
@@ -65,7 +76,25 @@ export default function EmailPreview() {
     sendMutation.mutate({ to: testEmail.trim(), templateId: selectedId });
   };
 
+  const toggleGroup = (group: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) {
+        next.delete(group);
+      } else {
+        next.add(group);
+      }
+      return next;
+    });
+  };
+
   const selected = templates.find((t) => t.id === selectedId);
+
+  const grouped = GROUP_ORDER.reduce<Record<string, EmailTemplate[]>>((acc, g) => {
+    const items = templates.filter((t) => t.group === g);
+    if (items.length > 0) acc[g] = items;
+    return acc;
+  }, {});
 
   return (
     <div className="flex flex-col h-full">
@@ -82,40 +111,69 @@ export default function EmailPreview() {
               {templates.length} Templates
             </p>
           </div>
-          <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
+          <nav className="flex-1 overflow-y-auto py-2">
             {templatesLoading
               ? Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="h-14 rounded-md bg-muted/50 animate-pulse mx-1 mb-1" />
+                  <div key={i} className="h-14 rounded-md bg-muted/50 animate-pulse mx-2 mb-1" />
                 ))
-              : templates.map((t) => {
-                  const rc = recipientConfig[t.recipient];
-                  const isActive = t.id === selectedId;
+              : GROUP_ORDER.filter((g) => grouped[g]).map((group) => {
+                  const isCollapsed = collapsedGroups.has(group);
+                  const items = grouped[group];
                   return (
-                    <button
-                      key={t.id}
-                      data-testid={`template-${t.id}`}
-                      onClick={() => handleSelect(t.id)}
-                      className={`w-full flex items-start gap-2 px-2.5 py-2.5 rounded-md text-left transition-colors ${
-                        isActive
-                          ? "bg-primary/10 text-foreground"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      <ChevronRight
-                        className={`w-3.5 h-3.5 mt-0.5 shrink-0 transition-opacity ${isActive ? "opacity-100 text-primary" : "opacity-0"}`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-[12px] font-medium leading-snug truncate ${isActive ? "text-foreground" : ""}`}>
-                          {t.label}
-                        </p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-1 text-[10px] px-1.5 py-0 h-4 font-medium border ${rc.className}`}
-                        >
-                          {rc.label}
-                        </Badge>
-                      </div>
-                    </button>
+                    <div key={group} className="mb-1">
+                      <button
+                        data-testid={`group-toggle-${group.toLowerCase()}`}
+                        onClick={() => toggleGroup(group)}
+                        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover-elevate"
+                      >
+                        {isCollapsed
+                          ? <ChevronRight className="w-3 h-3 shrink-0 text-muted-foreground" />
+                          : <ChevronDown className="w-3 h-3 shrink-0 text-muted-foreground" />
+                        }
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                          {group}
+                        </span>
+                        <span className="ml-auto text-[10px] text-muted-foreground/60 font-medium tabular-nums">
+                          {items.length}
+                        </span>
+                      </button>
+
+                      {!isCollapsed && (
+                        <div className="px-2 space-y-0.5">
+                          {items.map((t) => {
+                            const rc = recipientConfig[t.recipient];
+                            const isActive = t.id === selectedId;
+                            return (
+                              <button
+                                key={t.id}
+                                data-testid={`template-${t.id}`}
+                                onClick={() => handleSelect(t.id)}
+                                className={`w-full flex items-start gap-2 px-2.5 py-2.5 rounded-md text-left transition-colors ${
+                                  isActive
+                                    ? "bg-primary/10 text-foreground"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                                }`}
+                              >
+                                <ChevronRight
+                                  className={`w-3.5 h-3.5 mt-0.5 shrink-0 transition-opacity ${isActive ? "opacity-100 text-primary" : "opacity-0"}`}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-[12px] font-medium leading-snug truncate ${isActive ? "text-foreground" : ""}`}>
+                                    {t.label}
+                                  </p>
+                                  <Badge
+                                    variant="outline"
+                                    className={`mt-1 text-[10px] px-1.5 py-0 h-4 font-medium border ${rc.className}`}
+                                  >
+                                    {rc.label}
+                                  </Badge>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
           </nav>
