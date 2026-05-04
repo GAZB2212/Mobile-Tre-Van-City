@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode, Info } from "lucide-react";
+import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode, Info, Link2 } from "lucide-react";
 
 const SEND_TYPE_TOOLTIPS = {
   live: "Live send uses the real email function — the test email is identical to what the customer receives.",
@@ -30,6 +30,13 @@ const DUAL_RECIPIENT_TEMPLATE_IDS = new Set([
   "lead-received-customer",
   "lead-received-admin",
 ]);
+
+const PAIRED_TEMPLATES: Record<string, string> = {
+  "enquiry-received-customer": "enquiry-received-admin",
+  "enquiry-received-admin": "enquiry-received-customer",
+  "lead-received-customer": "lead-received-admin",
+  "lead-received-admin": "lead-received-customer",
+};
 
 const GROUP_ORDER: EmailTemplate["group"][] = [
   "Enquiry",
@@ -214,6 +221,24 @@ export default function EmailPreview() {
                                       </TooltipContent>
                                     </Tooltip>
                                   </div>
+                                  {PAIRED_TEMPLATES[t.id] && (() => {
+                                    const pairedId = PAIRED_TEMPLATES[t.id];
+                                    const paired = templates.find((p) => p.id === pairedId);
+                                    if (!paired) return null;
+                                    return (
+                                      <div
+                                        role="button"
+                                        tabIndex={0}
+                                        data-testid={`link-paired-${t.id}`}
+                                        onClick={(e) => { e.stopPropagation(); handleSelect(pairedId); }}
+                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); handleSelect(pairedId); } }}
+                                        className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground/70 hover:text-primary transition-colors group/pair cursor-pointer"
+                                      >
+                                        <Link2 className="w-2.5 h-2.5 shrink-0 group-hover/pair:text-primary" />
+                                        <span className="truncate">Paired with <span className="font-medium">{paired.label}</span></span>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </button>
                             );
