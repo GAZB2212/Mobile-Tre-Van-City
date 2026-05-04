@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, Shield, Phone, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -10,6 +10,30 @@ import logoImage from "@assets/Untitled design-51_1759240381746.webp";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+        if (currentScrollY < 80) {
+          setHeaderVisible(true);
+        } else if (currentScrollY > lastScrollY.current + 4) {
+          setHeaderVisible(false);
+        } else if (currentScrollY < lastScrollY.current - 4) {
+          setHeaderVisible(true);
+        }
+        lastScrollY.current = currentScrollY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   const { user, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -48,7 +72,10 @@ export default function Header() {
 
   return (
     <>
-    <header className="sticky top-0 z-50 bg-background/70 backdrop-blur-md border-b border-white/10">
+    <header
+      className="sticky top-0 z-50 bg-background/70 backdrop-blur-md border-b border-white/10 transition-transform duration-300 will-change-transform"
+      style={{ transform: (headerVisible || isMenuOpen) ? "translateY(0)" : "translateY(-100%)" }}
+    >
       {/* Top Utility Bar */}
       <div className="border-b border-white/10">
         <div className="container mx-auto px-4">
