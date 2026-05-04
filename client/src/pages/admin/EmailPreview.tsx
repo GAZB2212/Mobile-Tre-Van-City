@@ -4,9 +4,15 @@ import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode } from "lucide-react";
+
+const SEND_TYPE_TOOLTIPS = {
+  live: "Live send uses the real email function — the test email is identical to what the customer receives.",
+  html: "HTML preview generates a static snapshot — minor formatting differences may exist.",
+};
 
 interface EmailTemplate {
   id: string;
@@ -169,21 +175,28 @@ export default function EmailPreview() {
                                     >
                                       {rc.label}
                                     </Badge>
-                                    <Badge
-                                      data-testid={`badge-send-type-${t.id}`}
-                                      variant="outline"
-                                      className={`text-[10px] px-1.5 py-0 h-4 font-medium border ${
-                                        t.liveSend
-                                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                          : "bg-muted/60 text-muted-foreground border-border"
-                                      }`}
-                                    >
-                                      {t.liveSend ? (
-                                        <><Zap className="w-2.5 h-2.5 mr-0.5 inline-block" />Live</>
-                                      ) : (
-                                        <><FileCode className="w-2.5 h-2.5 mr-0.5 inline-block" />HTML</>
-                                      )}
-                                    </Badge>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge
+                                          data-testid={`badge-send-type-${t.id}`}
+                                          variant="outline"
+                                          className={`text-[10px] px-1.5 py-0 h-4 font-medium border cursor-default ${
+                                            t.liveSend
+                                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                              : "bg-muted/60 text-muted-foreground border-border"
+                                          }`}
+                                        >
+                                          {t.liveSend ? (
+                                            <><Zap className="w-2.5 h-2.5 mr-0.5 inline-block" />Live</>
+                                          ) : (
+                                            <><FileCode className="w-2.5 h-2.5 mr-0.5 inline-block" />HTML</>
+                                          )}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right" className="max-w-xs">
+                                        {t.liveSend ? SEND_TYPE_TOOLTIPS.live : SEND_TYPE_TOOLTIPS.html}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
                                 </div>
                               </button>
@@ -205,21 +218,28 @@ export default function EmailPreview() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold truncate">{selected.label}</p>
-                  <Badge
-                    data-testid="badge-selected-send-type"
-                    variant="outline"
-                    className={`text-[10px] px-1.5 py-0 h-4 font-medium border shrink-0 ${
-                      selected.liveSend
-                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                        : "bg-muted/60 text-muted-foreground border-border"
-                    }`}
-                  >
-                    {selected.liveSend ? (
-                      <><Zap className="w-2.5 h-2.5 mr-0.5 inline-block" />Live send</>
-                    ) : (
-                      <><FileCode className="w-2.5 h-2.5 mr-0.5 inline-block" />HTML preview</>
-                    )}
-                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        data-testid="badge-selected-send-type"
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 h-4 font-medium border shrink-0 cursor-default ${
+                          selected.liveSend
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : "bg-muted/60 text-muted-foreground border-border"
+                        }`}
+                      >
+                        {selected.liveSend ? (
+                          <><Zap className="w-2.5 h-2.5 mr-0.5 inline-block" />Live send</>
+                        ) : (
+                          <><FileCode className="w-2.5 h-2.5 mr-0.5 inline-block" />HTML preview</>
+                        )}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      {selected.liveSend ? SEND_TYPE_TOOLTIPS.live : SEND_TYPE_TOOLTIPS.html}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{selected.description}</p>
               </div>
