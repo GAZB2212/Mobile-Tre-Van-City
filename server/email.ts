@@ -66,7 +66,7 @@ const ADDRESS = '5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL';
 const PHONE = '0151 203 8500';
 
 // ── Shared email layout ───────────────────────────────────────────────────────
-function emailLayout(
+export function emailLayout(
   bodyHtml: string,
   options?: {
     extraCss?: string;

@@ -46,6 +46,7 @@ import {
   BookOpen,
   Menu,
   RefreshCw,
+  Mail,
 } from "lucide-react";
 
 interface NavItem {
@@ -86,6 +87,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
       { title: "Blog", href: "/admin/blog", icon: BookOpen, requiredRole: "full" },
       { title: "AI Packages", href: "/admin/ai-packages", icon: Layers, requiredRole: "full" },
       { title: "Users", href: "/admin/users", icon: Shield, requiredRole: "full" },
+      { title: "Email Templates", href: "/admin/email-preview", icon: Mail, requiredRole: "full" },
     ],
   },
 ];
@@ -177,7 +179,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     location.startsWith("/admin/upgrades") || location.startsWith("/admin/finance-plans") ||
     location.startsWith("/admin/training-options") || location.startsWith("/admin/gallery-items") ||
     location.startsWith("/admin/videos") || location.startsWith("/admin/blog") ||
-    location.startsWith("/admin/ai-packages") || location.startsWith("/admin/users");
+    location.startsWith("/admin/ai-packages") || location.startsWith("/admin/users") ||
+    location.startsWith("/admin/email-preview");
 
   const CONTENT_GROUP_KEY = "adminSidebar_Content_collapsed";
 

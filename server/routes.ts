@@ -5795,6 +5795,46 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── Email preview routes ──────────────────────────────────────────────────
+  app.get("/api/admin/email-preview/templates", isAuthenticated, isBasicAdmin, (_req, res) => {
+    const { EMAIL_TEMPLATES } = require('./email-previews.js');
+    res.json(EMAIL_TEMPLATES);
+  });
+
+  app.get("/api/admin/email-preview/html/:template", isAuthenticated, isBasicAdmin, (req, res) => {
+    const { generatePreviewHtml } = require('./email-previews.js');
+    const html = generatePreviewHtml(req.params.template);
+    if (!html) return res.status(404).json({ error: "Template not found" });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  });
+
+  app.post("/api/admin/email-preview/send-test", isAuthenticated, isBasicAdmin, async (req, res) => {
+    const schema = z.object({
+      to: z.string().email(),
+      templateId: z.string(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+
+    const { to, templateId } = parsed.data;
+    try {
+      const { generatePreviewHtml, EMAIL_TEMPLATES } = await import('./email-previews.js');
+      const html = generatePreviewHtml(templateId);
+      if (!html) return res.status(404).json({ error: "Template not found" });
+
+      const template = EMAIL_TEMPLATES.find((t: { id: string }) => t.id === templateId);
+      const subject = template ? `[TEST] ${template.subject}` : `[TEST] Email Preview – ${templateId}`;
+
+      const { sendEmail } = await import('./email.js');
+      await sendEmail({ to, subject, html });
+      res.json({ ok: true, message: `Test email sent to ${to}` });
+    } catch (err: any) {
+      console.error("[email-preview] send-test error:", err);
+      res.status(500).json({ error: err?.message || "Failed to send test email" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -1,0 +1,171 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Send, Monitor, Users, Building2, Warehouse, ChevronRight } from "lucide-react";
+
+interface EmailTemplate {
+  id: string;
+  label: string;
+  description: string;
+  subject: string;
+  recipient: "customer" | "admin" | "finance" | "depot";
+}
+
+const recipientConfig: Record<
+  EmailTemplate["recipient"],
+  { label: string; icon: React.ElementType; className: string }
+> = {
+  customer: { label: "Customer", icon: Users, className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  admin: { label: "Internal", icon: Monitor, className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  finance: { label: "Finance Co.", icon: Building2, className: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+  depot: { label: "Depot", icon: Warehouse, className: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+};
+
+export default function EmailPreview() {
+  const { toast } = useToast();
+  const [selectedId, setSelectedId] = useState<string>("enquiry-received-customer");
+  const [testEmail, setTestEmail] = useState("");
+  const [iframeSrc, setIframeSrc] = useState<string>(
+    "/api/admin/email-preview/html/enquiry-received-customer"
+  );
+
+  const { data: templates = [], isLoading: templatesLoading } = useQuery<EmailTemplate[]>({
+    queryKey: ["/api/admin/email-preview/templates"],
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: ({ to, templateId }: { to: string; templateId: string }) =>
+      apiRequest("POST", "/api/admin/email-preview/send-test", { to, templateId }),
+    onSuccess: async (res) => {
+      const data = await res.json();
+      toast({ title: "Test email sent", description: data.message });
+    },
+    onError: async (err: any) => {
+      let msg = "Failed to send test email";
+      try { msg = (await err.response?.json())?.error ?? msg; } catch {}
+      toast({ title: "Failed to send", description: msg, variant: "destructive" });
+    },
+  });
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    setIframeSrc(`/api/admin/email-preview/html/${id}`);
+  };
+
+  const handleSend = () => {
+    if (!testEmail.trim()) {
+      toast({ title: "Email address required", description: "Enter an address to send the test to.", variant: "destructive" });
+      return;
+    }
+    sendMutation.mutate({ to: testEmail.trim(), templateId: selectedId });
+  };
+
+  const selected = templates.find((t) => t.id === selectedId);
+
+  return (
+    <div className="flex flex-col h-full">
+      <AdminPageHeader
+        title="Email Templates"
+        description="Preview every outbound email and send test copies to any address"
+      />
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Sidebar — template list */}
+        <aside className="w-64 shrink-0 border-r flex flex-col overflow-hidden bg-muted/30">
+          <div className="p-3 border-b">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {templates.length} Templates
+            </p>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {templatesLoading
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-14 rounded-md bg-muted/50 animate-pulse mx-1 mb-1" />
+                ))
+              : templates.map((t) => {
+                  const rc = recipientConfig[t.recipient];
+                  const isActive = t.id === selectedId;
+                  return (
+                    <button
+                      key={t.id}
+                      data-testid={`template-${t.id}`}
+                      onClick={() => handleSelect(t.id)}
+                      className={`w-full flex items-start gap-2 px-2.5 py-2.5 rounded-md text-left transition-colors ${
+                        isActive
+                          ? "bg-primary/10 text-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      }`}
+                    >
+                      <ChevronRight
+                        className={`w-3.5 h-3.5 mt-0.5 shrink-0 transition-opacity ${isActive ? "opacity-100 text-primary" : "opacity-0"}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[12px] font-medium leading-snug truncate ${isActive ? "text-foreground" : ""}`}>
+                          {t.label}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={`mt-1 text-[10px] px-1.5 py-0 h-4 font-medium border ${rc.className}`}
+                        >
+                          {rc.label}
+                        </Badge>
+                      </div>
+                    </button>
+                  );
+                })}
+          </nav>
+        </aside>
+
+        {/* Main — preview + send bar */}
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          {/* Info bar */}
+          {selected && (
+            <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b bg-background shrink-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{selected.label}</p>
+                <p className="text-xs text-muted-foreground truncate">{selected.description}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Input
+                  data-testid="input-test-email"
+                  type="email"
+                  placeholder="test@example.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  className="w-52 h-8 text-sm"
+                />
+                <Button
+                  data-testid="button-send-test"
+                  size="sm"
+                  onClick={handleSend}
+                  disabled={sendMutation.isPending}
+                >
+                  <Send className="w-3.5 h-3.5 mr-1.5" />
+                  {sendMutation.isPending ? "Sending…" : "Send test"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* iFrame preview */}
+          <div className="flex-1 min-h-0 bg-muted/20 overflow-hidden">
+            <iframe
+              key={iframeSrc}
+              src={iframeSrc}
+              data-testid="iframe-email-preview"
+              title="Email preview"
+              className="w-full h-full border-0"
+              sandbox="allow-same-origin"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
