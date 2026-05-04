@@ -5925,23 +5925,30 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         return;
       }
 
-      // ── Enquiry Received (Customer) ────────────────────────────────────────
-      // Calls the real send function with quote.email = to so the customer
-      // version goes to the test address. The admin notification fires as a
-      // side-effect to the internal addresses (acceptable for test fidelity).
+      // ── Enquiry Received (Customer / Admin) ───────────────────────────────
       if (templateId === 'enquiry-received-customer' || templateId === 'enquiry-received-admin') {
         const { sendQuoteReceivedEmails } = await import('./email.js');
-        const fixture = { ...ENQUIRY_RECEIVED_TEST_ARGS, quote: { ...ENQUIRY_RECEIVED_TEST_ARGS.quote, email: to } };
+        const variant = templateId === 'enquiry-received-admin' ? 'admin' : 'customer';
+        const fixture = {
+          ...ENQUIRY_RECEIVED_TEST_ARGS,
+          quote: { ...ENQUIRY_RECEIVED_TEST_ARGS.quote, email: to },
+          testMode: { variant, testAddress: to } as const,
+        };
         await sendQuoteReceivedEmails(fixture);
-        res.json({ ok: true, message: `Customer email sent to ${to} — admin notification also sent to internal staff inboxes` });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
         return;
       }
 
       // ── Lead Received (Customer / Admin) ──────────────────────────────────
       if (templateId === 'lead-received-customer' || templateId === 'lead-received-admin') {
         const { sendLeadReceivedEmails } = await import('./email.js');
-        await sendLeadReceivedEmails({ ...LEAD_RECEIVED_TEST_ARGS, email: to });
-        res.json({ ok: true, message: `Customer email sent to ${to} — admin notification also sent to internal staff inboxes` });
+        const variant = templateId === 'lead-received-admin' ? 'admin' : 'customer';
+        await sendLeadReceivedEmails({
+          ...LEAD_RECEIVED_TEST_ARGS,
+          email: to,
+          testMode: { variant, testAddress: to },
+        });
+        res.json({ ok: true, message: `Test email sent to ${to}` });
         return;
       }
 

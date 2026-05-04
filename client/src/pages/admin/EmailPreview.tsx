@@ -298,16 +298,16 @@ export default function EmailPreview() {
             </div>
           )}
 
-          {/* Dual-recipient warning */}
+          {/* Dual-recipient info */}
           {selected && DUAL_RECIPIENT_TEMPLATE_IDS.has(selected.id) && (
             <div
               data-testid="notice-dual-recipient"
-              className="flex items-start gap-2.5 px-4 py-2.5 border-b bg-amber-500/5 text-amber-600 dark:text-amber-400 shrink-0"
+              className="flex items-start gap-2.5 px-4 py-2.5 border-b bg-muted/40 text-muted-foreground shrink-0"
             >
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
               <p className="text-xs leading-relaxed">
                 <span className="font-semibold">Dual-recipient template.</span>{" "}
-                Sending a test fires two emails: the customer version goes to your test address, and the internal staff notification goes to the real staff inboxes as a side effect.
+                Only the selected variant is sent. The admin notification goes to your test address — not to real staff inboxes.
               </p>
             </div>
           )}

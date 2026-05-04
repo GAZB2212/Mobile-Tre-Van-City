@@ -649,6 +649,7 @@ export async function sendQuoteReceivedEmails({
   financeInfoB,
   chosenOption,
   baseUrl,
+  testMode,
 }: {
   quote: {
     id: string;
@@ -687,6 +688,7 @@ export async function sendQuoteReceivedEmails({
   };
   chosenOption?: 'A' | 'B' | null;
   baseUrl?: string;
+  testMode?: { variant: 'customer' | 'admin'; testAddress: string };
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
 
@@ -781,16 +783,18 @@ export async function sendQuoteReceivedEmails({
     <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
   `;
 
-  await client.emails.send({
-    to: quote.email,
-    from: fromEmail,
-    subject: `We've received your enquiry – Ref #${ref}`,
-    html: emailLayout(custBodyHtml, {
-      extraCss: summaryTableCss,
-      footerNote: 'If you did not submit this enquiry, please disregard this email.',
-    }),
-    text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${comparisonSlotB ? `\nOPTION A\n` : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n${financeInfoA ? `Finance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)\n` : ''}${comparisonSlotB ? `\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${qrExtrasTextBlock}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}\n` : ''}${financeInfoB ? `Finance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)\n` : ''}` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
-  });
+  if (!testMode || testMode.variant === 'customer') {
+    await client.emails.send({
+      to: quote.email,
+      from: fromEmail,
+      subject: `We've received your enquiry – Ref #${ref}`,
+      html: emailLayout(custBodyHtml, {
+        extraCss: summaryTableCss,
+        footerNote: 'If you did not submit this enquiry, please disregard this email.',
+      }),
+      text: `Hi ${quote.userName},\n\nThank you for completing our van configurator. We've received your enquiry and will be in touch within 24 hours.\n\nReference: #${ref}\n${comparisonSlotB ? `\nOPTION A\n` : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Before discount: ${originalTotal}\nDiscount: -${discountFmt}\n` : ''}Total${discountAmountPence > 0 ? ' (after discount)' : ''}: ${total}\n${financeInfoA ? `Finance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)\n` : ''}${comparisonSlotB ? `\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${qrExtrasTextBlock}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}\n` : ''}${financeInfoB ? `Finance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)\n` : ''}` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
+    });
+  }
 
   // 2. Admin notification
   const adminFinanceRowsA = financeInfoA ? `
@@ -853,24 +857,26 @@ export async function sendQuoteReceivedEmails({
 
   const adminText = `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n\n${comparisonSlotB ? 'OPTION A\n' : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Discount: -${discountFmt}\n` : ''}Total: ${total}${financeInfoA ? `\nFinance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)` : ''}${comparisonSlotB ? `\n\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `Upgrades:\n${comparisonSlotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}` : ''}${financeInfoB ? `\nFinance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)` : ''}` : ''}`;
 
-  await client.emails.send({
-    to: INTERNAL_NOTIFY_EMAILS,
-    from: fromEmail,
-    subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
-    html: emailLayout(adminBodyHtml, {
-      extraCss: `
-        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
-        td:first-child { font-weight: bold; color: #6b7280; width: 35%; }
-        .total td { font-weight: bold; font-size: 16px; border-top: 2px solid ${BRAND_GREEN}; }
-        @media screen and (max-width: 600px) {
-          td { padding: 8px 6px !important; }
-          td:first-child { width: 40% !important; }
-        }
-      `,
-    }),
-    text: adminText,
-  });
+  if (!testMode || testMode.variant === 'admin') {
+    await client.emails.send({
+      to: testMode ? testMode.testAddress : INTERNAL_NOTIFY_EMAILS,
+      from: fromEmail,
+      subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
+      html: emailLayout(adminBodyHtml, {
+        extraCss: `
+          table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+          td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
+          td:first-child { font-weight: bold; color: #6b7280; width: 35%; }
+          .total td { font-weight: bold; font-size: 16px; border-top: 2px solid ${BRAND_GREEN}; }
+          @media screen and (max-width: 600px) {
+            td { padding: 8px 6px !important; }
+            td:first-child { width: 40% !important; }
+          }
+        `,
+      }),
+      text: adminText,
+    });
+  }
 }
 
 // ── Option chosen admin notification ─────────────────────────────────────────
@@ -945,6 +951,7 @@ export async function sendLeadReceivedEmails(lead: {
   email: string;
   phone?: string | null;
   message?: string | null;
+  testMode?: { variant: 'customer' | 'admin'; testAddress: string };
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
 
@@ -963,19 +970,21 @@ export async function sendLeadReceivedEmails(lead: {
     <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
   `;
 
-  await client.emails.send({
-    to: lead.email,
-    from: fromEmail,
-    subject: `We've received your enquiry – Mobile Tyre Van City`,
-    html: emailLayout(custBodyHtml, {
-      extraCss: `
-        .ref-box { background: #f3f4f6; border-left: 4px solid ${BRAND_GREEN}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
-        .ref-box p { margin: 0; }
-      `,
-      footerNote: 'If you did not submit this enquiry, please disregard this email.',
-    }),
-    text: `Hi ${lead.name},\n\nThank you for getting in touch. We've received your enquiry and will be in touch shortly.\n\nReference: #${ref}\n${lead.message ? `Your message: "${lead.message}"\n` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
-  });
+  if (!lead.testMode || lead.testMode.variant === 'customer') {
+    await client.emails.send({
+      to: lead.email,
+      from: fromEmail,
+      subject: `We've received your enquiry – Mobile Tyre Van City`,
+      html: emailLayout(custBodyHtml, {
+        extraCss: `
+          .ref-box { background: #f3f4f6; border-left: 4px solid ${BRAND_GREEN}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
+          .ref-box p { margin: 0; }
+        `,
+        footerNote: 'If you did not submit this enquiry, please disregard this email.',
+      }),
+      text: `Hi ${lead.name},\n\nThank you for getting in touch. We've received your enquiry and will be in touch shortly.\n\nReference: #${ref}\n${lead.message ? `Your message: "${lead.message}"\n` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
+    });
+  }
 
   // 2. Admin notification
   const adminBodyHtml = `
@@ -989,20 +998,22 @@ export async function sendLeadReceivedEmails(lead: {
     ${lead.message ? `<p><strong>Message:</strong></p><div class="message-box">${lead.message}</div>` : '<p><em>No message provided.</em></p>'}
   `;
 
-  await client.emails.send({
-    to: INTERNAL_NOTIFY_EMAILS,
-    from: fromEmail,
-    subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
-    html: emailLayout(adminBodyHtml, {
-      extraCss: `
-        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-        td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
-        td:first-child { font-weight: bold; color: #6b7280; width: 35%; }
-        .message-box { background: #f9fafb; padding: 15px; border-radius: 4px; border-left: 4px solid ${BRAND_GREEN}; margin-top: 16px; white-space: pre-wrap; font-size: 14px; }
-      `,
-    }),
-    text: `New enquiry\n\nName: ${lead.name}\nEmail: ${lead.email}\n${lead.phone ? `Phone: ${lead.phone}\n` : ''}Reference: #${ref}\n${lead.message ? `\nMessage:\n${lead.message}` : ''}`,
-  });
+  if (!lead.testMode || lead.testMode.variant === 'admin') {
+    await client.emails.send({
+      to: lead.testMode ? lead.testMode.testAddress : INTERNAL_NOTIFY_EMAILS,
+      from: fromEmail,
+      subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
+      html: emailLayout(adminBodyHtml, {
+        extraCss: `
+          table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+          td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+          td:first-child { font-weight: bold; color: #6b7280; width: 35%; }
+          .message-box { background: #f9fafb; padding: 15px; border-radius: 4px; border-left: 4px solid ${BRAND_GREEN}; margin-top: 16px; white-space: pre-wrap; font-size: 14px; }
+        `,
+      }),
+      text: `New enquiry\n\nName: ${lead.name}\nEmail: ${lead.email}\n${lead.phone ? `Phone: ${lead.phone}\n` : ''}Reference: #${ref}\n${lead.message ? `\nMessage:\n${lead.message}` : ''}`,
+    });
+  }
 }
 
 // ── New user welcome email (credentials provided) ─────────────────────────────
