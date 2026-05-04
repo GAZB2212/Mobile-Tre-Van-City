@@ -15,6 +15,18 @@ export interface EmailTemplate {
   group: 'Enquiry' | 'Spec' | 'Quote' | 'Finance' | 'Post-Sale' | 'Account';
 }
 
+/**
+ * Template IDs that call the real send function when "Send Test" is clicked.
+ * All other templates use the generic HTML generator (static snapshot).
+ * Add new IDs here whenever a new live-send route is wired up.
+ */
+export const LIVE_SEND_TEMPLATE_IDS = new Set([
+  'spec-summary-single',
+  'spec-summary-comparison',
+  'quote-spec-summary-single',
+  'quote-spec-summary-comparison',
+]);
+
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
   { id: 'enquiry-received-customer', label: 'Enquiry Received (Customer)', description: 'Sent to the customer when they complete the configurator', subject: "We've received your enquiry – Ref #ABC12345", recipient: 'customer', group: 'Enquiry' },
   { id: 'enquiry-received-admin', label: 'Enquiry Received (Internal)', description: 'Admin notification of a new configurator submission', subject: 'New configurator submission – John Smith – £18,000.00 – Ref #ABC12345', recipient: 'admin', group: 'Enquiry' },

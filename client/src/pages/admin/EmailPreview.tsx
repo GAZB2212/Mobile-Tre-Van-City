@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown } from "lucide-react";
+import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode } from "lucide-react";
 
 interface EmailTemplate {
   id: string;
@@ -15,6 +15,7 @@ interface EmailTemplate {
   subject: string;
   recipient: "customer" | "admin" | "finance" | "depot";
   group: "Enquiry" | "Spec" | "Quote" | "Finance" | "Post-Sale" | "Account";
+  liveSend: boolean;
 }
 
 const GROUP_ORDER: EmailTemplate["group"][] = [
@@ -161,12 +162,29 @@ export default function EmailPreview() {
                                   <p className={`text-[12px] font-medium leading-snug truncate ${isActive ? "text-foreground" : ""}`}>
                                     {t.label}
                                   </p>
-                                  <Badge
-                                    variant="outline"
-                                    className={`mt-1 text-[10px] px-1.5 py-0 h-4 font-medium border ${rc.className}`}
-                                  >
-                                    {rc.label}
-                                  </Badge>
+                                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[10px] px-1.5 py-0 h-4 font-medium border ${rc.className}`}
+                                    >
+                                      {rc.label}
+                                    </Badge>
+                                    <Badge
+                                      data-testid={`badge-send-type-${t.id}`}
+                                      variant="outline"
+                                      className={`text-[10px] px-1.5 py-0 h-4 font-medium border ${
+                                        t.liveSend
+                                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                          : "bg-muted/60 text-muted-foreground border-border"
+                                      }`}
+                                    >
+                                      {t.liveSend ? (
+                                        <><Zap className="w-2.5 h-2.5 mr-0.5 inline-block" />Live</>
+                                      ) : (
+                                        <><FileCode className="w-2.5 h-2.5 mr-0.5 inline-block" />HTML</>
+                                      )}
+                                    </Badge>
+                                  </div>
                                 </div>
                               </button>
                             );
@@ -185,7 +203,24 @@ export default function EmailPreview() {
           {selected && (
             <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b bg-background shrink-0">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{selected.label}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold truncate">{selected.label}</p>
+                  <Badge
+                    data-testid="badge-selected-send-type"
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 h-4 font-medium border shrink-0 ${
+                      selected.liveSend
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        : "bg-muted/60 text-muted-foreground border-border"
+                    }`}
+                  >
+                    {selected.liveSend ? (
+                      <><Zap className="w-2.5 h-2.5 mr-0.5 inline-block" />Live send</>
+                    ) : (
+                      <><FileCode className="w-2.5 h-2.5 mr-0.5 inline-block" />HTML preview</>
+                    )}
+                  </Badge>
+                </div>
                 <p className="text-xs text-muted-foreground truncate">{selected.description}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

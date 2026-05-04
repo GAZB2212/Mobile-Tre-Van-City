@@ -5819,8 +5819,11 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // ── Email preview routes ──────────────────────────────────────────────────
   app.get("/api/admin/email-preview/templates", isAuthenticated, isBasicAdmin, async (_req, res) => {
-    const { EMAIL_TEMPLATES } = await import('./email-previews.js');
-    res.json(EMAIL_TEMPLATES);
+    const { EMAIL_TEMPLATES, LIVE_SEND_TEMPLATE_IDS } = await import('./email-previews.js');
+    res.json(EMAIL_TEMPLATES.map((t: { id: string }) => ({
+      ...t,
+      liveSend: LIVE_SEND_TEMPLATE_IDS.has(t.id),
+    })));
   });
 
   app.get("/api/admin/email-preview/html/:template", isAuthenticated, isBasicAdmin, async (req, res) => {
@@ -5845,7 +5848,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
     const { to, templateId } = parsed.data;
     try {
-      // Spec Summary templates (older): call the real send function with the canonical
+      // Spec Summary templates: call the real send function with the canonical
       // preview fixture data so the test email is identical to what a real customer receives.
       if (templateId === 'spec-summary-single' || templateId === 'spec-summary-comparison') {
         const { sendQuoteSpecSummaryEmail } = await import('./email.js');
@@ -5858,9 +5861,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         return;
       }
 
-      // Quote Spec Summary templates: call the real send function with the canonical
+      // Live-send templates (quote spec summary): call the real send function with canonical
       // preview fixture data so the test email is identical to what a real customer receives.
-      if (templateId === 'quote-spec-summary-single' || templateId === 'quote-spec-summary-comparison') {
+      const { LIVE_SEND_TEMPLATE_IDS } = await import('./email-previews.js');
+      if (LIVE_SEND_TEMPLATE_IDS.has(templateId)) {
         const { sendQuoteSpecSummaryEmail } = await import('./email.js');
         const { QUOTE_SPEC_SUMMARY_TEST_ARGS } = await import('./email-previews.js');
         const fixture = templateId === 'quote-spec-summary-comparison'
