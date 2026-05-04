@@ -548,12 +548,21 @@ export default function AIChatWidget() {
         <button
           onClick={handleOpen}
           data-testid="button-ai-chat-open"
-          className="fixed bottom-24 right-5 z-[10000] flex items-center gap-3 pl-3 pr-4 py-2.5 rounded-xl bg-[#8bc440] text-[#191919] shadow-lg hover:bg-[#8bc440]/90 transition-colors"
+          className="fixed bottom-24 right-5 z-[10000] flex items-center bg-[#8bc440] text-[#191919] shadow-lg hover:bg-[#8bc440]/90 transition-colors
+            rounded-full p-0 w-[52px] h-[52px]
+            md:rounded-xl md:w-auto md:h-auto md:gap-3 md:pl-3 md:pr-4 md:py-2.5"
         >
-          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-2 ring-[#191919]/15">
+          {/* Avatar — larger on mobile (fills the circle), standard on md+ */}
+          <div className="w-full h-full rounded-full overflow-hidden shrink-0 ring-2 ring-[#191919]/15
+            md:w-8 md:h-8 md:rounded-full relative">
             <img src={maxAvatarSrc} alt="Max" className="w-full h-full object-cover object-top" />
+            {/* Resume dot — shown on mobile inside the circle */}
+            {hasResume && (
+              <span className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-[#191919]/50 ring-1 ring-[#8bc440] md:hidden" />
+            )}
           </div>
-          <div className="flex flex-col items-start">
+          {/* Text — hidden on mobile, visible md+ */}
+          <div className="hidden md:flex flex-col items-start">
             <span className="text-[10px] font-medium opacity-60 leading-none mb-0.5">Not sure where to start?</span>
             <span className="text-sm font-bold leading-none flex items-center gap-1.5">
               Build your van with Max
