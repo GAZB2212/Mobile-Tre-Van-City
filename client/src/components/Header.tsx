@@ -47,6 +47,7 @@ export default function Header() {
   const closeMenu = () => setIsMenuOpen(false);
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-background/70 backdrop-blur-md border-b border-white/10">
       {/* Top Utility Bar */}
       <div className="border-b border-white/10">
@@ -139,96 +140,98 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Slide-in Drawer */}
-      {/* Backdrop */}
-      <div
-        className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-        style={{
-          opacity: isMenuOpen ? 1 : 0,
-          pointerEvents: isMenuOpen ? "auto" : "none",
-        }}
-        onClick={closeMenu}
-        aria-hidden="true"
-      />
-
-      {/* Drawer Panel */}
-      <div
-        className="lg:hidden fixed top-0 right-0 z-50 h-full w-80 max-w-[90vw] bg-background border-l border-border shadow-2xl flex flex-col transition-transform duration-300"
-        style={{ transform: isMenuOpen ? "translateX(0)" : "translateX(100%)" }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
-      >
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <Link href="/" onClick={closeMenu} data-testid="mobile-nav-logo">
-            <img
-              src={logoImage}
-              alt="Mobile Tyre Van City"
-              className="h-14 w-auto"
-            />
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={closeMenu}
-            data-testid="button-mobile-close"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        {/* Nav Links */}
-        <nav className="flex-1 overflow-y-auto px-5 py-6 space-y-1">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="block px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base"
-              onClick={closeMenu}
-              data-testid={`mobile-link-${item.name.toLowerCase()}`}
-            >
-              {item.name}
-            </Link>
-          ))}
-
-          {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
-            <div className="pt-4 mt-4 border-t border-border space-y-1">
-              <Link
-                href="/admin"
-                className="flex items-center gap-2 px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base"
-                onClick={closeMenu}
-                data-testid="mobile-link-admin"
-              >
-                <Shield className="w-4 h-4" />
-                {user.adminRole === "full" ? "Admin Panel" : "Basic Admin Panel"}
-              </Link>
-              <button
-                className="flex items-center gap-2 px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base w-full text-left"
-                onClick={() => { handleLogout(); closeMenu(); }}
-                disabled={logoutMutation.isPending}
-                data-testid="mobile-button-logout"
-              >
-                <LogOut className="w-4 h-4" />
-                {logoutMutation.isPending ? "Logging out..." : "Logout"}
-              </button>
-            </div>
-          )}
-        </nav>
-
-        {/* CTA at bottom */}
-        <div className="px-5 py-5 border-t border-border">
-          <Button
-            size="lg"
-            className="bg-accent text-accent-foreground font-semibold w-full"
-            data-testid="mobile-button-configure"
-            asChild
-            onClick={closeMenu}
-          >
-            <Link href="/configurator/van">Configure Your Van</Link>
-          </Button>
-        </div>
-      </div>
     </header>
+
+    {/* Mobile Slide-in Drawer — rendered outside <header> so backdrop-blur doesn't trap the fixed stacking context */}
+    {/* Backdrop */}
+    <div
+      className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+      style={{
+        opacity: isMenuOpen ? 1 : 0,
+        pointerEvents: isMenuOpen ? "auto" : "none",
+      }}
+      onClick={closeMenu}
+      aria-hidden="true"
+    />
+
+    {/* Drawer Panel */}
+    <div
+      className="lg:hidden fixed top-0 right-0 z-50 h-full w-80 max-w-[90vw] bg-background border-l border-border shadow-2xl flex flex-col transition-transform duration-300"
+      style={{ transform: isMenuOpen ? "translateX(0)" : "translateX(100%)" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Navigation menu"
+    >
+      {/* Drawer Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <Link href="/" onClick={closeMenu} data-testid="mobile-nav-logo">
+          <img
+            src={logoImage}
+            alt="Mobile Tyre Van City"
+            className="h-14 w-auto"
+          />
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={closeMenu}
+          data-testid="button-mobile-close"
+        >
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Nav Links */}
+      <nav className="flex-1 overflow-y-auto px-5 py-6 space-y-1">
+        {navigation.map((item) => (
+          <Link
+            key={item.name}
+            href={item.href}
+            className="block px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base"
+            onClick={closeMenu}
+            data-testid={`mobile-link-${item.name.toLowerCase()}`}
+          >
+            {item.name}
+          </Link>
+        ))}
+
+        {!isLoading && isAuthenticated && user?.adminRole && user.adminRole !== "none" && (
+          <div className="pt-4 mt-4 border-t border-border space-y-1">
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base"
+              onClick={closeMenu}
+              data-testid="mobile-link-admin"
+            >
+              <Shield className="w-4 h-4" />
+              {user.adminRole === "full" ? "Admin Panel" : "Basic Admin Panel"}
+            </Link>
+            <button
+              className="flex items-center gap-2 px-3 py-3 rounded-md text-foreground hover:text-accent font-medium transition-colors text-base w-full text-left"
+              onClick={() => { handleLogout(); closeMenu(); }}
+              disabled={logoutMutation.isPending}
+              data-testid="mobile-button-logout"
+            >
+              <LogOut className="w-4 h-4" />
+              {logoutMutation.isPending ? "Logging out..." : "Logout"}
+            </button>
+          </div>
+        )}
+      </nav>
+
+      {/* CTA at bottom */}
+      <div className="px-5 py-5 border-t border-border">
+        <Button
+          size="lg"
+          className="bg-accent text-accent-foreground font-semibold w-full"
+          data-testid="mobile-button-configure"
+          asChild
+          onClick={closeMenu}
+        >
+          <Link href="/configurator/van">Configure Your Van</Link>
+        </Button>
+      </div>
+    </div>
+    </>
   );
 }
