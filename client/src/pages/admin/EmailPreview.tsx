@@ -42,12 +42,12 @@ const GROUP_ORDER: EmailTemplate["group"][] = [
 
 const recipientConfig: Record<
   EmailTemplate["recipient"],
-  { label: string; icon: React.ElementType; className: string }
+  { label: string; icon: React.ElementType; className: string; tooltip: string }
 > = {
-  customer: { label: "Customer", icon: Users, className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  admin: { label: "Internal", icon: Monitor, className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  finance: { label: "Finance Co.", icon: Building2, className: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
-  depot: { label: "Depot", icon: Warehouse, className: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  customer: { label: "Customer", icon: Users, className: "bg-blue-500/10 text-blue-400 border-blue-500/20", tooltip: "Sent to the customer who submitted the enquiry." },
+  admin: { label: "Internal", icon: Monitor, className: "bg-amber-500/10 text-amber-400 border-amber-500/20", tooltip: "Sent to internal staff only — not visible to the customer." },
+  finance: { label: "Finance Co.", icon: Building2, className: "bg-purple-500/10 text-purple-400 border-purple-500/20", tooltip: "Sent to the finance company handling the agreement." },
+  depot: { label: "Depot", icon: Warehouse, className: "bg-orange-500/10 text-orange-400 border-orange-500/20", tooltip: "Sent to the supplying depot or dealer." },
 };
 
 export default function EmailPreview() {
@@ -103,6 +103,7 @@ export default function EmailPreview() {
   };
 
   const selected = templates.find((t) => t.id === selectedId);
+  const selectedRc = selected ? recipientConfig[selected.recipient] : null;
 
   const grouped = GROUP_ORDER.reduce<Record<string, EmailTemplate[]>>((acc, g) => {
     const items = templates.filter((t) => t.group === g);
@@ -176,12 +177,20 @@ export default function EmailPreview() {
                                     {t.label}
                                   </p>
                                   <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-[10px] px-1.5 py-0 h-4 font-medium border ${rc.className}`}
-                                    >
-                                      {rc.label}
-                                    </Badge>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge
+                                          data-testid={`badge-recipient-${t.id}`}
+                                          variant="outline"
+                                          className={`text-[10px] px-1.5 py-0 h-4 font-medium border cursor-default ${rc.className}`}
+                                        >
+                                          {rc.label}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="right" className="max-w-xs">
+                                        {rc.tooltip}
+                                      </TooltipContent>
+                                    </Tooltip>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Badge
@@ -225,6 +234,22 @@ export default function EmailPreview() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-semibold truncate">{selected.label}</p>
+                  {selectedRc && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        data-testid="badge-selected-recipient"
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 h-4 font-medium border shrink-0 cursor-default ${selectedRc.className}`}
+                      >
+                        {selectedRc.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      {selectedRc.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                  )}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Badge
