@@ -12,7 +12,11 @@ async function getCredentials() {
 
   if (!fromEmailLogged) {
     fromEmailLogged = true;
-    console.info(`[EMAIL] Sender address resolved: ${fromEmail}`);
+    if (!process.env.MAIL_FROM) {
+      console.warn(`[EMAIL] WARN: MAIL_FROM not set, falling back to default sender: ${fromEmail}`);
+    } else {
+      console.info(`[EMAIL] Sender address resolved: ${fromEmail}`);
+    }
   }
 
   if (process.env.RESEND_API_KEY) {
