@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode } from "lucide-react";
+import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode, Info } from "lucide-react";
 
 const SEND_TYPE_TOOLTIPS = {
   live: "Live send uses the real email function — the test email is identical to what the customer receives.",
@@ -23,6 +23,13 @@ interface EmailTemplate {
   group: "Enquiry" | "Spec" | "Quote" | "Finance" | "Post-Sale" | "Account";
   liveSend: boolean;
 }
+
+const DUAL_RECIPIENT_TEMPLATE_IDS = new Set([
+  "enquiry-received-customer",
+  "enquiry-received-admin",
+  "lead-received-customer",
+  "lead-received-admin",
+]);
 
 const GROUP_ORDER: EmailTemplate["group"][] = [
   "Enquiry",
@@ -263,6 +270,20 @@ export default function EmailPreview() {
                   {sendMutation.isPending ? "Sending…" : "Send test"}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Dual-recipient warning */}
+          {selected && DUAL_RECIPIENT_TEMPLATE_IDS.has(selected.id) && (
+            <div
+              data-testid="notice-dual-recipient"
+              className="flex items-start gap-2.5 px-4 py-2.5 border-b bg-amber-500/5 text-amber-600 dark:text-amber-400 shrink-0"
+            >
+              <Info className="w-4 h-4 mt-0.5 shrink-0" />
+              <p className="text-xs leading-relaxed">
+                <span className="font-semibold">Dual-recipient template.</span>{" "}
+                Sending a test fires two emails: the customer version goes to your test address, and the internal staff notification goes to the real staff inboxes as a side effect.
+              </p>
             </div>
           )}
 

@@ -5933,7 +5933,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         const { sendQuoteReceivedEmails } = await import('./email.js');
         const fixture = { ...ENQUIRY_RECEIVED_TEST_ARGS, quote: { ...ENQUIRY_RECEIVED_TEST_ARGS.quote, email: to } };
         await sendQuoteReceivedEmails(fixture);
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Customer email sent to ${to} — admin notification also sent to internal staff inboxes` });
         return;
       }
 
@@ -5941,7 +5941,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'lead-received-customer' || templateId === 'lead-received-admin') {
         const { sendLeadReceivedEmails } = await import('./email.js');
         await sendLeadReceivedEmails({ ...LEAD_RECEIVED_TEST_ARGS, email: to });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Customer email sent to ${to} — admin notification also sent to internal staff inboxes` });
         return;
       }
 
