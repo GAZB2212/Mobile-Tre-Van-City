@@ -30,6 +30,8 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
   { id: 'password-reset', label: 'Password Reset', description: 'Sent when an admin user requests a password reset', subject: 'Reset your Mobile Tyre Van City password', recipient: 'admin' },
   { id: 'depot-invoice', label: 'Depot Invoice Request', description: 'Sent to the depot with full build spec for invoicing', subject: 'Invoice Request – Quote #ABC12345 – John Smith', recipient: 'depot' },
   { id: 'testimonial-request', label: 'Review Request', description: 'Sent to customer after their conversion is complete', subject: 'Would you leave us a review? – Mobile Tyre Van City', recipient: 'customer' },
+  { id: 'quote-spec-summary-single', label: 'Quote Spec Summary (Single Van)', description: 'Full spec summary sent after admin call — with discount, bespoke extras, and approval buttons', subject: 'Your Van Conversion Summary – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer' },
+  { id: 'quote-spec-summary-comparison', label: 'Quote Spec Summary (Comparison)', description: 'Two-option A/B spec summary — shows Option B with a CHOSEN badge after the customer selects', subject: 'Your Van Conversion Options – Ref #ABC12345 – Mobile Tyre Van City', recipient: 'customer' },
 ];
 
 const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
@@ -569,6 +571,140 @@ function generateTestimonialRequest(): string {
   });
 }
 
+function generateQuoteSpecSummarySingle(): string {
+  const upgradesList = UPGRADES.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('');
+  const DISCOUNT = 50000;
+  const TOTAL_AFTER_DISCOUNT = TOTAL - DISCOUNT;
+  const body = `
+    <p>Hi ${CUSTOMER_NAME},</p>
+    <p>Thank you for speaking with us today. As discussed, please find below a summary of your configured mobile tyre van conversion.</p>
+    <div class="ref-box">
+      <p><strong>Reference:</strong> #${REF}</p>
+      <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
+    </div>
+    <h3 style="margin-bottom:8px;">Your Configuration</h3>
+    <table>
+      <tr><td>Van</td><td>${VAN_TITLE}</td></tr>
+      <tr><td>Pack</td><td>${KIT_NAME}</td></tr>
+      <tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradesList}</ul></td></tr>
+      <tr><td>Bespoke Extras</td><td><ul style="margin:2px 0;padding-left:18px;"><li style="margin-bottom:2px;">Custom livery wrap — £850.00</li><li style="margin-bottom:2px;">Roof rack system — £420.00</li></ul></td></tr>
+    </table>
+    <h3 style="margin-bottom:8px;">Pricing</h3>
+    <table>
+      <tr><td>Original Price (inc. VAT)</td><td>${fmt(TOTAL)}</td></tr>
+      <tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(DISCOUNT)}</td></tr>
+      <tr><td>Subtotal (ex. VAT)</td><td>${fmt(SUBTOTAL)}</td></tr>
+      <tr><td>VAT (20%)</td><td>${fmt(VAT)}</td></tr>
+      <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(TOTAL_AFTER_DISCOUNT)}</td></tr>
+    </table>
+    <h3 style="margin-bottom:8px; margin-top:24px;">Finance Option (HP — 10.9% APR)</h3>
+    <table>
+      <tr><td>Deposit</td><td>${fmt(DEPOSIT)}</td></tr>
+      <tr><td>Finance Term</td><td>${TERM} months (5 years)</td></tr>
+      <tr><td>Estimated Monthly Payment</td><td style="font-weight:bold; color:${BRAND_GREEN};">${fmt(MONTHLY)}/month</td></tr>
+      <tr><td>Estimated Weekly Payment</td><td>${fmt(WEEKLY)}/week (approx.)</td></tr>
+    </table>
+    <p style="font-size:12px; color:#6b7280; margin-top:-8px;">Finance figures are estimates based on Hire Purchase at 10.9% APR. Subject to status and final agreement.</p>
+    <div class="note-box"><strong>Note from our team:</strong><br>We've applied a loyalty discount and factored in your preference for a manual racking system. This is reflected in the specification above.</div>
+    <div style="margin: 28px 0; padding: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; text-align: center;">
+      <p style="font-size: 15px; font-weight: bold; margin: 0 0 6px;">Does this look correct?</p>
+      <p style="font-size: 13px; color: #6b7280; margin: 0 0 20px;">Please let us know whether the spec above is right, or if anything needs changing.</p>
+      <a href="${SITE_BASE}/spec-approval/sample-token?status=approved"
+         style="display:block; max-width:280px; margin:0 auto 12px; background:${BRAND_GREEN}; color:${BRAND_DARK}; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; text-align:center; box-sizing:border-box;">
+        This looks correct
+      </a>
+      <a href="${SITE_BASE}/spec-approval/sample-token?status=rejected"
+         style="display:block; max-width:280px; margin:0 auto; background:#fff; color:#374151; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; border:1px solid #d1d5db; text-align:center; box-sizing:border-box;">
+        Something needs changing
+      </a>
+    </div>
+    <p>If you have any questions or would like to make changes, please call us on <strong>${PHONE}</strong> or reply to this email.</p>
+    <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+  `;
+  return emailLayout(body, {
+    extraCss: specTableCss,
+    footerNote: 'If you did not request this summary, please disregard this email.',
+  });
+}
+
+function generateQuoteSpecSummaryComparison(): string {
+  const upgradesListA = UPGRADES.map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('');
+  const upgradesListB = ['Nitrogen Generator', 'Heavy Duty Drawer System', 'Wheel Balancer Upgrade'].map(u => `<li style="margin-bottom:2px;">${u}</li>`).join('');
+
+  const chosenOption = 'B';
+  const SUBTOTAL_B = 1300000;
+  const VAT_B = 260000;
+  const TOTAL_B = 1560000;
+  const MONTHLY_B = 27800;
+  const WEEKLY_B = 6420;
+
+  const chosenBadge = (opt: 'A' | 'B') =>
+    chosenOption === opt
+      ? ` <span style="background:${BRAND_GREEN};color:${BRAND_DARK};font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>`
+      : '';
+
+  const optionBlock = (
+    opt: 'A' | 'B',
+    vanTitle: string,
+    kitName: string,
+    upgradesList: string,
+    sub: number,
+    v: number,
+    tot: number,
+    monthly: number,
+    weekly: number,
+  ) => {
+    const isChosen = chosenOption === opt;
+    const borderStyle = isChosen ? `border:2px solid ${BRAND_GREEN};` : 'border:1px solid #e5e7eb;';
+    return `
+      <div style="${borderStyle} border-radius:6px; padding:20px; margin-bottom:20px; background:#fff;">
+        <p style="font-weight:bold; font-size:15px; margin:0 0 12px; color:${BRAND_DARK};">
+          Option ${opt}${chosenBadge(opt)}
+        </p>
+        <table>
+          <tr><td>Van</td><td>${vanTitle}</td></tr>
+          <tr><td>Pack</td><td>${kitName}</td></tr>
+          <tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;">${upgradesList}</ul></td></tr>
+          <tr><td>Subtotal (ex. VAT)</td><td>${fmt(sub)}</td></tr>
+          <tr><td>VAT (20%)</td><td>${fmt(v)}</td></tr>
+          <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(tot)}</td></tr>
+        </table>
+        <h4 style="margin:12px 0 6px; color:#374151; font-size:13px;">Finance Option (HP — 10.9% APR)</h4>
+        <table>
+          <tr><td>Deposit</td><td>${fmt(DEPOSIT)}</td></tr>
+          <tr><td>Finance Term</td><td>${TERM} months (5 years)</td></tr>
+          <tr><td>Monthly Payment (est.)</td><td style="font-weight:bold; color:${BRAND_GREEN};">${fmt(monthly)}/month</td></tr>
+          <tr><td>Weekly Payment (est.)</td><td>${fmt(weekly)}/week</td></tr>
+        </table>
+      </div>`;
+  };
+
+  const chosenConfirmBlock = `
+    <div style="margin:24px 0; padding:20px; background:#f0fdf4; border:2px solid ${BRAND_GREEN}; border-radius:6px; text-align:center;">
+      <p style="font-size:16px; font-weight:bold; color:#166534; margin:0 0 6px;">Option ${chosenOption} selected</p>
+      <p style="font-size:13px; color:#166534; margin:0;">Our team will be in touch to confirm your order. Call us on <strong>${PHONE}</strong> if you have any questions.</p>
+    </div>`;
+
+  const body = `
+    <p>Hi ${CUSTOMER_NAME},</p>
+    <p>You have selected <strong>Option ${chosenOption}</strong> as your final choice. Our team will be in touch shortly to confirm next steps.</p>
+    <div class="ref-box">
+      <p><strong>Reference:</strong> #${REF}</p>
+      <p style="margin-top:6px; color:#6b7280; font-size:13px;">Please quote this reference in any correspondence with us.</p>
+    </div>
+    ${chosenConfirmBlock}
+    ${optionBlock('A', VAN_TITLE, KIT_NAME, upgradesListA, SUBTOTAL, VAT, TOTAL, MONTHLY, WEEKLY)}
+    ${optionBlock('B', 'Mercedes-Benz Sprinter 316 CDi 2023', 'Gold Pack – 10 Wheel Tyre Changer', upgradesListB, SUBTOTAL_B, VAT_B, TOTAL_B, MONTHLY_B, WEEKLY_B)}
+    <div class="note-box"><strong>Note from our team:</strong><br>Option B includes our premium racking system which gives you more storage capacity for a busy mobile operation.</div>
+    <p>If you have any questions, please call us on <strong>${PHONE}</strong> or reply to this email.</p>
+    <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+  `;
+  return emailLayout(body, {
+    extraCss: specTableCss,
+    footerNote: 'If you did not request this summary, please disregard this email.',
+  });
+}
+
 export function generatePreviewHtml(templateId: string): string | null {
   switch (templateId) {
     case 'enquiry-received-customer': return generateEnquiryReceivedCustomer();
@@ -585,6 +721,8 @@ export function generatePreviewHtml(templateId: string): string | null {
     case 'password-reset': return generatePasswordReset();
     case 'depot-invoice': return generateDepotInvoice();
     case 'testimonial-request': return generateTestimonialRequest();
+    case 'quote-spec-summary-single': return generateQuoteSpecSummarySingle();
+    case 'quote-spec-summary-comparison': return generateQuoteSpecSummaryComparison();
     default: return null;
   }
 }
