@@ -61,6 +61,9 @@ export const LIVE_SEND_TEMPLATE_IDS = new Set([
   'finance-submission',
   'depot-invoice',
   'testimonial-request',
+  'welcome-email',
+  'set-password',
+  'password-reset',
 ]);
 
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
