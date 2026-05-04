@@ -4,11 +4,15 @@ const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharo
 
 let connectionSettings: any;
 
+const DEFAULT_FROM_EMAIL = 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>';
+
 async function getCredentials() {
+  const fromEmail = process.env.MAIL_FROM || DEFAULT_FROM_EMAIL;
+
   if (process.env.RESEND_API_KEY) {
     return {
       apiKey: process.env.RESEND_API_KEY,
-      fromEmail: 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>',
+      fromEmail,
     };
   }
 
@@ -38,7 +42,7 @@ async function getCredentials() {
   }
   return {
     apiKey: connectionSettings.settings.api_key,
-    fromEmail: 'Mobile Tyre Van City <noreply@mobiletyrevancity.co.uk>',
+    fromEmail,
   };
 }
 
