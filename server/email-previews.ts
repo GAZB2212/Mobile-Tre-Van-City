@@ -5,7 +5,6 @@ const BRAND_DARK = '#191919';
 const SITE_DOMAIN = 'www.mobiletyrevancity.co.uk';
 const PHONE = '0151 203 8500';
 const ADDRESS = '5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL';
-const LOGO_URL = `${process.env.SITE_URL || `https://${SITE_DOMAIN}`}/LOGO_1762356342150.png`;
 
 export interface EmailTemplate {
   id: string;
