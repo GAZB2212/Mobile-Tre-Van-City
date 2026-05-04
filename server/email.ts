@@ -1318,6 +1318,407 @@ export async function sendTestimonialRequestEmail({
   });
 }
 
+// ── Email preview (admin design sign-off) ────────────────────────────────────
+
+export const EMAIL_PREVIEW_TYPES = [
+  { type: 'quote-confirmation',        label: 'Quote Confirmation',              description: 'Sent to a customer when admin manually confirms their quote is ready.' },
+  { type: 'quote-spec-summary',        label: 'Quote Spec Summary',              description: 'Full specification summary sent to the customer after admin discussion (supports single-van and A/B comparison modes).' },
+  { type: 'quote-received-customer',   label: 'Quote Received (Customer)',       description: 'Immediate acknowledgement sent to a customer after they submit the configurator.' },
+  { type: 'quote-received-admin',      label: 'Quote Received (Admin)',          description: 'Internal notification your team receives when a configurator enquiry comes in.' },
+  { type: 'option-chosen-admin',       label: 'Option Chosen (Admin)',           description: 'Internal notification sent when a customer picks Option A or B from a comparison quote.' },
+  { type: 'lead-received-customer',    label: 'Lead Received (Customer)',        description: 'Confirmation sent to someone who fills in a contact / enquiry form.' },
+  { type: 'lead-received-admin',       label: 'Lead Received (Admin)',           description: 'Internal notification when a contact / enquiry form is submitted.' },
+  { type: 'finance-submission',        label: 'Finance Submission',              description: 'Application email sent to the finance company when a customer proceeds with finance.' },
+  { type: 'new-user-welcome',          label: 'New User Welcome',                description: 'Sent to a new admin user with their login credentials.' },
+  { type: 'new-user-set-password',     label: 'New User Set Password',           description: 'Onboarding email with a link for the new user to choose their own password.' },
+  { type: 'password-reset',            label: 'Password Reset',                  description: 'Sent when an admin user requests a password reset link.' },
+  { type: 'testimonial-request',       label: 'Testimonial Request',             description: 'Sent to a completed customer asking them for a review.' },
+  { type: 'depot-invoice',             label: 'Depot Invoice Request',           description: 'Internal invoice request sent to the depot when a job is confirmed.' },
+] as const;
+
+export type EmailPreviewType = typeof EMAIL_PREVIEW_TYPES[number]['type'];
+
+const PREVIEW_BANNER = `
+  <div style="background:#fef3c7;border:2px solid #d97706;border-radius:6px;padding:14px 20px;margin-bottom:24px;text-align:center;">
+    <p style="margin:0 0 4px;font-size:16px;font-weight:bold;color:#92400e;letter-spacing:0.03em;">PREVIEW — NOT A REAL EMAIL</p>
+    <p style="margin:0;font-size:13px;color:#92400e;">This is a design preview sent for internal sign-off only. All data shown is fictional. No real transaction has taken place.</p>
+  </div>
+`;
+
+export async function sendEmailTypePreview(to: string, emailType: EmailPreviewType, baseUrl: string): Promise<void> {
+  const { client, fromEmail } = await getUncachableResendClient();
+
+  const DUMMY_REF = 'A1B2C3D4';
+  const fmt = (p: number) => `£${(p / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  const summaryTableCss = `
+    .ref-box { background: #f3f4f6; border-left: 4px solid ${BRAND_GREEN}; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
+    .ref-box p { margin: 0; }
+    .summary { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .summary td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 14px; word-break: break-word; }
+    .summary td:first-child { color: #6b7280; width: 40%; }
+    .total-row td { font-weight: bold; font-size: 16px; border-top: 2px solid ${BRAND_GREEN}; border-bottom: none; }
+    .cta-btn { display: block; max-width: 280px; margin: 20px auto; background-color: ${BRAND_GREEN}; color: ${BRAND_DARK}; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; box-sizing: border-box; }
+    .price-box { background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .credentials-box { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 20px 24px; margin: 20px 0; }
+    .credentials-box table { width: 100%; border-collapse: collapse; }
+    .credentials-box td { padding: 6px 0; font-size: 15px; }
+    .credentials-box td:first-child { color: #6b7280; width: 38%; font-weight: 500; }
+    .credentials-box td:last-child { font-weight: bold; font-family: monospace; }
+    .stars { font-size: 28px; letter-spacing: 4px; text-align: center; margin: 16px 0; color: ${BRAND_GREEN}; }
+  `;
+
+  let subject = '';
+  let bodyHtml = '';
+  let extraCss = summaryTableCss;
+  let footerNote: string | undefined;
+
+  switch (emailType) {
+    case 'quote-confirmation': {
+      subject = `[PREVIEW] Your Van Conversion Quote #${DUMMY_REF} is Ready`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi Jane Smith,</p>
+        <p>Thank you for requesting a quote for your mobile tyre van conversion. We've reviewed your configuration and are pleased to present your custom quote.</p>
+        <div class="price-box">
+          <h2 style="margin-top:0;">Quote #${DUMMY_REF}</h2>
+          <div style="background:#dcfce7;color:#166534;padding:15px;border-radius:8px;margin:15px 0;font-weight:bold;">Special Discount Applied — You Save £500.00!</div>
+          <p style="font-size:28px;font-weight:bold;color:${BRAND_GREEN};margin:10px 0;">${fmt(1850000)}</p>
+          <p style="color:#6b7280;margin:0;">Including VAT</p>
+        </div>
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:15px;margin:20px 0;">
+          <h3 style="margin-top:0;color:#1e40af;">Note from our team:</h3>
+          <p style="margin:0;">We've included the extended warranty upgrade as discussed on your call — please review the spec summary carefully before confirming.</p>
+        </div>
+        <p>To proceed with your order, please review and confirm your quote by clicking the button below:</p>
+        <div style="text-align:center;">
+          <a href="${baseUrl}/quote/confirm/PREVIEW_TOKEN" class="cta-btn">Review &amp; Confirm Quote</a>
+        </div>
+        <p style="font-size:14px;color:#6b7280;margin-top:30px;">This confirmation link is for one-time use and will expire after confirmation.</p>
+        <p>If you have any questions, please call us on <strong>${PHONE}</strong>.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = "If you didn't request this quote, please disregard this email.";
+      break;
+    }
+
+    case 'quote-received-customer': {
+      subject = `[PREVIEW] We've received your enquiry — Reference #${DUMMY_REF}`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi James Wilson,</p>
+        <p>Thank you for your enquiry — we've received your van configuration and one of our team will be in touch shortly to discuss next steps.</p>
+        <div class="ref-box">
+          <p><strong>Your reference number: #${DUMMY_REF}</strong></p>
+          <p style="margin:6px 0 0;font-size:13px;color:#6b7280;">Please quote this when contacting us.</p>
+        </div>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Your Configuration Summary</h3>
+        <table class="summary">
+          <tr><td>Van</td><td>2022 Ford Transit Custom 280 L1 H1</td></tr>
+          <tr><td>Pack</td><td>Silver — Mobile Tyre Service Pack</td></tr>
+          <tr><td>Upgrades</td><td>Racking System Upgrade, Generator Set, CCTV Package</td></tr>
+          <tr><td>Subtotal</td><td>${fmt(1458333)}</td></tr>
+          <tr><td>VAT (20%)</td><td>${fmt(291667)}</td></tr>
+          <tr class="total-row"><td>Total</td><td>${fmt(1750000)}</td></tr>
+        </table>
+        <p>If you have any questions in the meantime, please call us on <strong>${PHONE}</strong>.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = `Call us anytime on ${PHONE} — we're happy to help.`;
+      break;
+    }
+
+    case 'quote-received-admin': {
+      subject = `[PREVIEW] New Configurator Enquiry — #${DUMMY_REF} — James Wilson`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>A new configurator enquiry has been submitted. Details are below.</p>
+        <div class="ref-box">
+          <p><strong>Reference: #${DUMMY_REF}</strong></p>
+        </div>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Customer Details</h3>
+        <table class="summary">
+          <tr><td>Name</td><td>James Wilson</td></tr>
+          <tr><td>Email</td><td>james.wilson@example.com</td></tr>
+          <tr><td>Phone</td><td>07700 900 123</td></tr>
+          <tr><td>Company</td><td>Wilson Tyre Services Ltd</td></tr>
+        </table>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Configuration</h3>
+        <table class="summary">
+          <tr><td>Van</td><td>2022 Ford Transit Custom 280 L1 H1</td></tr>
+          <tr><td>Pack</td><td>Silver — Mobile Tyre Service Pack</td></tr>
+          <tr><td>Upgrades</td><td>Racking System Upgrade, Generator Set, CCTV Package</td></tr>
+          <tr><td>Subtotal</td><td>${fmt(1458333)}</td></tr>
+          <tr><td>VAT (20%)</td><td>${fmt(291667)}</td></tr>
+          <tr class="total-row"><td>Total</td><td>${fmt(1750000)}</td></tr>
+        </table>
+        <p style="text-align:center;">
+          <a href="${baseUrl}/admin/quotes" class="cta-btn">View in Admin Panel</a>
+        </p>
+      `;
+      break;
+    }
+
+    case 'lead-received-customer': {
+      subject = `[PREVIEW] Thanks for your enquiry — Reference #${DUMMY_REF}`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi Sarah Johnson,</p>
+        <p>Thank you for getting in touch with Mobile Tyre Van City. We've received your message and will get back to you as soon as possible.</p>
+        <div class="ref-box">
+          <p><strong>Your reference number: #${DUMMY_REF}</strong></p>
+          <p style="margin:6px 0 0;font-size:13px;color:#6b7280;">Please quote this if you contact us.</p>
+        </div>
+        <div style="background:#f9fafb;padding:15px;border-radius:4px;border-left:4px solid ${BRAND_GREEN};margin-top:16px;white-space:pre-wrap;font-size:14px;">I'm interested in finding out more about mobile tyre van conversions for our fleet. Could someone please give me a call?</div>
+        <p>If you have any questions in the meantime, please call us on <strong>${PHONE}</strong>.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = `Call us anytime on ${PHONE} — we're happy to help.`;
+      break;
+    }
+
+    case 'lead-received-admin': {
+      subject = `[PREVIEW] New Enquiry — Sarah Johnson`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>A new enquiry has been submitted via the contact form.</p>
+        <div class="ref-box">
+          <p><strong>Reference: #${DUMMY_REF}</strong></p>
+        </div>
+        <table class="summary">
+          <tr><td>Name</td><td>Sarah Johnson</td></tr>
+          <tr><td>Email</td><td>sarah.johnson@example.com</td></tr>
+          <tr><td>Phone</td><td>07700 900 456</td></tr>
+        </table>
+        <div style="background:#f9fafb;padding:15px;border-radius:4px;border-left:4px solid ${BRAND_GREEN};margin-top:16px;white-space:pre-wrap;font-size:14px;">I'm interested in finding out more about mobile tyre van conversions for our fleet. Could someone please give me a call?</div>
+        <p style="text-align:center;">
+          <a href="${baseUrl}/admin/leads" class="cta-btn">View in Admin Panel</a>
+        </p>
+      `;
+      break;
+    }
+
+    case 'new-user-welcome': {
+      subject = `[PREVIEW] Your Mobile Tyre Van City account has been created`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi Alex,</p>
+        <p>An account has been created for you on the Mobile Tyre Van City portal. You can use the details below to sign in.</p>
+        <div class="credentials-box">
+          <table>
+            <tr><td>Username</td><td>alex.patel</td></tr>
+            <tr><td>Password</td><td>Temp@Pass123!</td></tr>
+          </table>
+        </div>
+        <div style="text-align:center;">
+          <a href="${baseUrl}/login" class="cta-btn">Sign In Now</a>
+        </div>
+        <p style="color:#6b7280;font-size:13px;margin-top:20px;">For your security, we recommend changing your password after your first login. If you have any trouble accessing your account, please call us on <strong>${PHONE}</strong> or reply to this email.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = `If you did not expect this email, please contact us immediately on ${PHONE}.`;
+      break;
+    }
+
+    case 'new-user-set-password': {
+      subject = `[PREVIEW] You've been set up on Mobile Tyre Van City — set your password`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi Alex,</p>
+        <p>You've been set up as an admin on the <strong>Mobile Tyre Van City</strong> portal. To get started, you'll need to set your own password using the button below.</p>
+        <div class="credentials-box">
+          <table>
+            <tr><td>Username</td><td>alex.patel</td></tr>
+          </table>
+        </div>
+        <p style="text-align:center;">
+          <a href="${baseUrl}/reset-password/PREVIEW_TOKEN" class="cta-btn">Set Your Password</a>
+        </p>
+        <p style="color:#6b7280;font-size:13px;margin-top:0;">This link will expire in <strong>24 hours</strong>. If you weren't expecting this email, you can ignore it safely — no account access will be granted without setting a password.</p>
+        <p>If you have any trouble, call us on <strong>${PHONE}</strong> or reply to this email.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = `If you did not expect this email, please contact us on ${PHONE}.`;
+      break;
+    }
+
+    case 'password-reset': {
+      subject = `[PREVIEW] Reset your Mobile Tyre Van City password`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi Alex,</p>
+        <p>We received a request to reset the password for your account (<strong>alex.patel</strong>).</p>
+        <p style="text-align:center;">
+          <a href="${baseUrl}/reset-password/PREVIEW_TOKEN" class="cta-btn">Reset My Password</a>
+        </p>
+        <p style="color:#6b7280;font-size:13px;">This link will expire in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email — your password will not be changed.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = "If you did not request this, no action is needed.";
+      break;
+    }
+
+    case 'testimonial-request': {
+      subject = `[PREVIEW] How was your Mobile Tyre Van City experience?`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi James,</p>
+        <p>We hope you're enjoying your new mobile tyre van setup. We'd love to hear about your experience with Mobile Tyre Van City!</p>
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>Sharing your feedback helps other businesses like yours discover our service — and it means the world to us.</p>
+        <div style="text-align:center;">
+          <a href="https://g.page/r/PREVIEW_REVIEW_LINK" class="cta-btn">Leave a Review</a>
+        </div>
+        <p>It only takes a minute and we genuinely appreciate every review.</p>
+        <p>Thank you,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = 'This link is personal to you and can only be used once.';
+      break;
+    }
+
+    case 'depot-invoice': {
+      subject = `[PREVIEW] Invoice Request — Quote #${DUMMY_REF} — James Wilson`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Please raise an invoice for the following confirmed build.</p>
+        <div class="ref-box">
+          <p><strong>Quote Reference: #${DUMMY_REF}</strong></p>
+        </div>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Customer Details</h3>
+        <table class="summary">
+          <tr><td>Name</td><td>James Wilson</td></tr>
+          <tr><td>Email</td><td>james.wilson@example.com</td></tr>
+          <tr><td>Phone</td><td>07700 900 123</td></tr>
+        </table>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Vehicle &amp; Build</h3>
+        <table class="summary">
+          <tr><td colspan="2" style="padding:5px 12px;font-size:14px;color:#374151;">2022 Ford Transit Custom 280 L1 H1</td></tr>
+          <tr><td colspan="2" style="padding:5px 12px;font-size:14px;color:#374151;">Reg: MT22 VAN</td></tr>
+          <tr><td colspan="2" style="padding:5px 12px;font-size:14px;color:#374151;">Mileage: 12,500 miles</td></tr>
+          <tr><td>Pack</td><td>Silver — Mobile Tyre Service Pack</td></tr>
+          <tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;"><li>Racking System Upgrade</li><li>Generator Set</li></ul></td></tr>
+          <tr><td>Subtotal</td><td>${fmt(1458333)}</td></tr>
+          <tr><td>VAT (20%)</td><td>${fmt(291667)}</td></tr>
+          <tr class="total-row"><td>Total</td><td>${fmt(1750000)}</td></tr>
+        </table>
+      `;
+      break;
+    }
+
+    case 'quote-spec-summary': {
+      subject = `[PREVIEW] Your Van Conversion Specification — Quote #${DUMMY_REF}`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Hi James,</p>
+        <p>Thank you for discussing your van conversion requirements with us. We're pleased to present your tailored specification summary below for your review.</p>
+        <div class="ref-box">
+          <p><strong>Quote Reference: #${DUMMY_REF}</strong></p>
+        </div>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Your Specification</h3>
+        <table class="summary">
+          <tr><td>Van</td><td>2022 Ford Transit Custom 280 L1 H1</td></tr>
+          <tr><td>Pack</td><td>Silver — Mobile Tyre Service Pack</td></tr>
+          <tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;"><li>Racking System Upgrade</li><li>Generator Set</li><li>CCTV Package</li></ul></td></tr>
+          <tr><td>Subtotal</td><td>${fmt(1458333)}</td></tr>
+          <tr><td>VAT (20%)</td><td>${fmt(291667)}</td></tr>
+          <tr class="total-row"><td>Total</td><td>${fmt(1750000)}</td></tr>
+        </table>
+        <div style="background:#f3f4f6;padding:16px 20px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0 0 6px;font-size:13px;color:#6b7280;">Estimated monthly payments (subject to approval)</p>
+          <p style="margin:0;font-size:22px;font-weight:bold;color:${BRAND_GREEN};">${fmt(42800)} / month</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Based on ${fmt(35000)} deposit, 60-month term, 12.9% APR representative</p>
+        </div>
+        <div style="background:#eff6ff;border-left:4px solid #3b82f6;padding:15px;margin:20px 0;border-radius:4px;">
+          <h3 style="margin-top:0;color:#1e40af;">Note from our team:</h3>
+          <p style="margin:0;">We've included the extended CCTV package as discussed. Please review the spec and let us know if you'd like any adjustments.</p>
+        </div>
+        <p>Please review this specification carefully. Once you're happy, you can approve it using the link below:</p>
+        <div style="text-align:center;">
+          <a href="${baseUrl}/spec-approval/PREVIEW_TOKEN?status=approved" class="cta-btn">Approve This Specification</a>
+        </div>
+        <p style="font-size:13px;color:#6b7280;text-align:center;margin-top:8px;">Or <a href="${baseUrl}/spec-approval/PREVIEW_TOKEN?status=rejected" style="color:#dc2626;">request changes</a> if anything needs adjusting.</p>
+        <p>If you have any questions, please call us on <strong>${PHONE}</strong>.</p>
+        <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+      `;
+      footerNote = "If you didn't request this specification, please call us on " + PHONE + ".";
+      break;
+    }
+
+    case 'option-chosen-admin': {
+      subject = `[PREVIEW] Customer chose Option B — James Wilson — Ref #${DUMMY_REF}`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <div style="display:inline-block;background:${BRAND_GREEN};color:${BRAND_DARK};font-weight:bold;font-size:13px;padding:4px 14px;border-radius:4px;margin-bottom:16px;">Option B Selected</div>
+        <h3 style="margin-top:0;">Customer Details</h3>
+        <table class="summary">
+          <tr><td>Name</td><td>James Wilson</td></tr>
+          <tr><td>Email</td><td>james.wilson@example.com</td></tr>
+          <tr><td>Phone</td><td>07700 900 123</td></tr>
+          <tr><td>Reference</td><td>#${DUMMY_REF}</td></tr>
+        </table>
+        <h3>Chosen Configuration (Option B)</h3>
+        <table class="summary">
+          <tr><td>Van</td><td>2023 Mercedes Sprinter 314 CDI L2 H2</td></tr>
+          <tr><td>Pack</td><td>Gold — Premium Mobile Tyre Service Pack</td></tr>
+          <tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;"><li>Racking System Upgrade</li><li>Generator Set</li><li>CCTV Package</li><li>Air Compressor</li></ul></td></tr>
+          <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(2100000)}</td></tr>
+        </table>
+        <p style="margin-top:16px;font-size:13px;color:#6b7280;">Log in to the admin panel to view the full quote and continue the build process.</p>
+        <div style="text-align:center;">
+          <a href="${baseUrl}/admin/quotes" class="cta-btn">View in Admin Panel</a>
+        </div>
+      `;
+      break;
+    }
+
+    case 'finance-submission': {
+      subject = `[PREVIEW] Finance Application — ${DUMMY_REF} — James Wilson`;
+      bodyHtml = `
+        ${PREVIEW_BANNER}
+        <p>Please find below the details for a finance application from one of our customers who would like to proceed with a van conversion.</p>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Customer Details</h3>
+        <table class="summary">
+          <tr><td>Name</td><td>James Wilson</td></tr>
+          <tr><td>Phone</td><td>07700 900 123</td></tr>
+          <tr><td>Email</td><td>james.wilson@example.com</td></tr>
+          <tr><td>Reference</td><td>#${DUMMY_REF}</td></tr>
+        </table>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Vehicle Details</h3>
+        <table class="summary">
+          <tr><td>Van</td><td>2022 Ford Transit Custom 280 L1 H1</td></tr>
+          <tr><td>Registration</td><td>MT22 VAN</td></tr>
+          <tr><td>Mileage</td><td>12,500 miles</td></tr>
+        </table>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Conversion Specification</h3>
+        <table class="summary">
+          <tr><td>Pack</td><td>Silver — Mobile Tyre Service Pack</td></tr>
+          <tr><td>Upgrades</td><td><ul style="margin:2px 0;padding-left:18px;"><li>Racking System Upgrade — ${fmt(75000)}</li><li>Generator Set — ${fmt(120000)}</li></ul></td></tr>
+          <tr><td>Subtotal (ex. VAT)</td><td>${fmt(1458333)}</td></tr>
+          <tr><td>VAT (20%)</td><td>${fmt(291667)}</td></tr>
+          <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(1750000)}</td></tr>
+        </table>
+        <h3 style="border-bottom:2px solid ${BRAND_GREEN};padding-bottom:8px;">Finance Details</h3>
+        <table class="summary">
+          <tr><td>Plan Type</td><td>Hire Purchase (HP)</td></tr>
+          <tr><td>APR</td><td>12.9% representative</td></tr>
+          <tr><td>Deposit</td><td>${fmt(35000)}</td></tr>
+          <tr><td>Term</td><td>60 months</td></tr>
+          <tr><td>Monthly Payment</td><td>${fmt(42800)}</td></tr>
+          <tr><td>Weekly Payment</td><td>${fmt(9876)}</td></tr>
+        </table>
+        <p style="font-size:13px;color:#6b7280;">Please contact the customer directly to proceed with the application. All enquiries to <strong>${PHONE}</strong>.</p>
+      `;
+      break;
+    }
+  }
+
+  await client.emails.send({
+    from: fromEmail,
+    to,
+    subject,
+    html: emailLayout(bodyHtml, { extraCss, footerNote }),
+  });
+}
+
 // ── Generic pass-through email ────────────────────────────────────────────────
 export async function sendEmail({
   to,

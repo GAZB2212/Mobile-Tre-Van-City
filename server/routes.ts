@@ -4886,6 +4886,28 @@ ${blogEntries}
     }
   });
 
+  // Admin endpoint: send a branded email preview for design sign-off
+  app.post("/api/admin/email-preview", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { to, emailType } = req.body as { to?: string; emailType?: string };
+      if (!to || typeof to !== 'string' || !to.includes('@')) {
+        return res.status(400).json({ error: 'A valid email address is required.' });
+      }
+      const { sendEmailTypePreview, EMAIL_PREVIEW_TYPES } = await import('./email');
+      type PreviewType = typeof EMAIL_PREVIEW_TYPES[number]['type'];
+      const validTypes: readonly string[] = EMAIL_PREVIEW_TYPES.map(e => e.type);
+      if (!emailType || !validTypes.includes(emailType)) {
+        return res.status(400).json({ error: `Invalid email type. Must be one of: ${validTypes.join(', ')}` });
+      }
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      await sendEmailTypePreview(to, emailType as PreviewType, baseUrl);
+      res.json({ success: true, to, emailType });
+    } catch (error: any) {
+      console.error('Email preview error:', error);
+      res.status(500).json({ error: error?.message ?? 'Failed to send preview email.' });
+    }
+  });
+
   // Admin endpoint: update a site setting
   app.put("/api/admin/site-settings/:key", isAuthenticated, isAdmin, async (req, res) => {
     try {

@@ -30,6 +30,7 @@ import {
   LayoutDashboard,
   Star as QuoteIcon,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
@@ -127,6 +128,7 @@ export default function AdminDashboard() {
     { title: "AI Packages", description: "Configure Bronze, Silver and Gold package tiers for the AI assistant to recommend", icon: Layers, href: "/admin/ai-packages", badge: "AI", requiredRole: "full" as const },
     { title: "Manage Testimonials", description: "Add, edit, and manage customer testimonials on the homepage", icon: QuoteIcon, href: "/admin/testimonials", badge: "Content", requiredRole: "basic" as const },
     { title: "Manage Users", description: "Assign roles and manage admin access", icon: Shield, href: "/admin/users", badge: "Security", requiredRole: "full" as const },
+    { title: "Email Preview", description: "Send branded preview emails to any address so the team can sign off the design", icon: Mail, href: "/admin/email-preview", badge: "Email", requiredRole: "full" as const },
   ];
 
   const salesToolItems = [
