@@ -184,7 +184,7 @@ export default function EmailPreview() {
                                           variant="outline"
                                           className={`text-[10px] px-1.5 py-0 h-4 font-medium border cursor-default ${rc.className}`}
                                         >
-                                          {rc.label}
+                                          <rc.icon className="w-2.5 h-2.5 mr-0.5 inline-block" />{rc.label}
                                         </Badge>
                                       </TooltipTrigger>
                                       <TooltipContent side="right" className="max-w-xs">
@@ -242,7 +242,7 @@ export default function EmailPreview() {
                         variant="outline"
                         className={`text-[10px] px-1.5 py-0 h-4 font-medium border shrink-0 cursor-default ${selectedRc.className}`}
                       >
-                        {selectedRc.label}
+                        <selectedRc.icon className="w-2.5 h-2.5 mr-0.5 inline-block" />{selectedRc.label}
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
