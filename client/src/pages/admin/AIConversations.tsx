@@ -1198,7 +1198,7 @@ export default function AdminAIConversations() {
         onOpenChange={(open) => !open && setTranscriptConv(null)}
       >
         <DialogContent
-          className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0"
+          className="max-w-2xl w-[calc(100vw-2rem)] sm:w-full max-h-[85dvh] overflow-hidden flex flex-col gap-0 p-0"
           data-testid="dialog-transcript"
         >
           <DialogTitle className="sr-only">
@@ -1302,49 +1302,49 @@ export default function AdminAIConversations() {
                       Edit in configurator
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-xs mb-3">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs mb-3 min-w-0">
                     {cfg.packageId && (
                       <>
-                        <span className="text-muted-foreground">Package</span>
-                        <span className={`capitalize ${packageColour}`}>{cfg.packageId}</span>
+                        <span className="text-muted-foreground shrink-0">Package</span>
+                        <span className={`capitalize min-w-0 break-words ${packageColour}`}>{cfg.packageId}</span>
                       </>
                     )}
                     {cfg.serviceType && (
                       <>
-                        <span className="text-muted-foreground">Service type</span>
-                        <span className="font-medium">{serviceTypeLabel}</span>
+                        <span className="text-muted-foreground shrink-0">Service type</span>
+                        <span className="font-medium min-w-0 break-words">{serviceTypeLabel}</span>
                       </>
                     )}
                     {cfg.vanSize && (
                       <>
-                        <span className="text-muted-foreground">Van size</span>
-                        <span className="font-medium">{cfg.vanSize}</span>
+                        <span className="text-muted-foreground shrink-0">Van size</span>
+                        <span className="font-medium min-w-0 break-words">{cfg.vanSize}</span>
                       </>
                     )}
                     {cfg.machineType && (
                       <>
-                        <span className="text-muted-foreground">Machine type</span>
-                        <span className="font-medium capitalize">
+                        <span className="text-muted-foreground shrink-0">Machine type</span>
+                        <span className="font-medium capitalize min-w-0 break-words">
                           {cfg.machineType.replace("-", " ")}
                         </span>
                       </>
                     )}
                     {(cfg.kitId || kit) && (
                       <>
-                        <span className="text-muted-foreground">Kit</span>
-                        <span className="font-medium">{kit ? kit.name : cfg.kitId}</span>
+                        <span className="text-muted-foreground shrink-0">Kit</span>
+                        <span className="font-medium min-w-0 break-words">{kit ? kit.name : cfg.kitId}</span>
                       </>
                     )}
                     {cfg.includes48v && (
                       <>
-                        <span className="text-muted-foreground">48V system</span>
+                        <span className="text-muted-foreground shrink-0">48V system</span>
                         <span className="font-medium text-[#8bc440]">Yes</span>
                       </>
                     )}
                     {cfg.ownVan !== null && cfg.ownVan !== undefined && (
                       <>
-                        <span className="text-muted-foreground">Van supply</span>
-                        <span className="font-medium">
+                        <span className="text-muted-foreground shrink-0">Van supply</span>
+                        <span className="font-medium min-w-0 break-words">
                           {cfg.ownVan
                             ? "Customer's own van"
                             : `${cfg.vanSize ?? ""} van from MTVC`.trim()}
@@ -1353,8 +1353,8 @@ export default function AdminAIConversations() {
                     )}
                     {cfg.financePreference && (
                       <>
-                        <span className="text-muted-foreground">Finance</span>
-                        <span className="font-medium capitalize">{cfg.financePreference}</span>
+                        <span className="text-muted-foreground shrink-0">Finance</span>
+                        <span className="font-medium capitalize min-w-0 break-words">{cfg.financePreference}</span>
                       </>
                     )}
                   </div>
