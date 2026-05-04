@@ -59,8 +59,9 @@ const SITE_DOMAIN = 'www.mobiletyrevancity.co.uk';
 // Logo file is committed at client/public/LOGO_1762356342150.png.
 // Vite serves client/public/ at the site root, so the file is accessible
 // at https://www.mobiletyrevancity.co.uk/LOGO_1762356342150.png in production.
-// Email clients require an absolute HTTPS URL, hence the hardcoded production domain.
-const LOGO_URL = `https://${SITE_DOMAIN}/LOGO_1762356342150.png`;
+// Email clients require an absolute HTTPS URL; use SITE_URL env var so staging
+// and development environments also serve a working logo image.
+const LOGO_URL = `${process.env.SITE_URL || `https://${SITE_DOMAIN}`}/LOGO_1762356342150.png`;
 const ADDRESS = '5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL';
 const PHONE = '0151 203 8500';
 
