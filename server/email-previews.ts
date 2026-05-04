@@ -50,6 +50,9 @@ export interface EmailTemplate {
 export const LIVE_SEND_TEMPLATE_IDS = new Set([
   'spec-summary-single',
   'spec-summary-comparison',
+  'quote-confirmation',
+  'enquiry-received-customer',
+  'lead-received-customer',
   'quote-spec-summary-single',
   'quote-spec-summary-comparison',
 ]);
