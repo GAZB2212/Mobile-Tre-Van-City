@@ -73,9 +73,10 @@ export default function EmailPreview() {
   const sendMutation = useMutation({
     mutationFn: ({ to, templateId }: { to: string; templateId: string }) =>
       apiRequest("POST", "/api/admin/email-preview/send-test", { to, templateId }),
-    onSuccess: async (res) => {
+    onSuccess: async (res, variables) => {
       const data = await res.json();
-      toast({ title: "Test email sent", description: data.message });
+      const label = data.templateLabel ? `${data.templateLabel} sent to ${variables.to}` : data.message;
+      toast({ title: "Test email sent", description: label });
     },
     onError: async (err: any) => {
       let msg = "Failed to send test email";

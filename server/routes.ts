@@ -5861,7 +5861,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         WELCOME_EMAIL_TEST_ARGS,
         SET_PASSWORD_TEST_ARGS,
         PASSWORD_RESET_TEST_ARGS,
+        EMAIL_TEMPLATES,
       } = await import('./email-previews.js');
+
+      const templateLabel = EMAIL_TEMPLATES.find((t: { id: string }) => t.id === templateId)?.label ?? templateId;
 
       // ── Spec Summary (older flow) ──────────────────────────────────────────
       if (templateId === 'spec-summary-single' || templateId === 'spec-summary-comparison') {
@@ -5870,7 +5873,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           ? SPEC_SUMMARY_TEST_ARGS.comparison
           : SPEC_SUMMARY_TEST_ARGS.single;
         await sendQuoteSpecSummaryEmail({ to, ...fixture });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5881,7 +5884,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           ? QUOTE_SPEC_SUMMARY_TEST_ARGS.comparison
           : QUOTE_SPEC_SUMMARY_TEST_ARGS.single;
         await sendQuoteSpecSummaryEmail({ to, ...fixture });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5889,7 +5892,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'quote-confirmation') {
         const { sendQuoteConfirmationEmail } = await import('./email.js');
         await sendQuoteConfirmationEmail({ to, ...QUOTE_CONFIRMATION_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5897,7 +5900,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'finance-submission') {
         const { sendFinanceSubmissionEmail } = await import('./email.js');
         await sendFinanceSubmissionEmail({ financeCompanyEmail: to, ...FINANCE_SUBMISSION_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5905,7 +5908,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'option-chosen-admin') {
         const { sendOptionChosenAdminNotification } = await import('./email.js');
         await sendOptionChosenAdminNotification({ toOverride: to, ...OPTION_CHOSEN_ADMIN_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5913,7 +5916,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'depot-invoice') {
         const { sendDepotInvoiceEmail } = await import('./email.js');
         await sendDepotInvoiceEmail({ toOverride: to, ...DEPOT_INVOICE_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5921,7 +5924,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'testimonial-request') {
         const { sendTestimonialRequestEmail } = await import('./email.js');
         await sendTestimonialRequestEmail({ to, ...TESTIMONIAL_REQUEST_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5935,7 +5938,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           testMode: { variant: 'customer' as const, testAddress: to },
         };
         await sendQuoteReceivedEmails(fixture);
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5949,7 +5952,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           testMode: { variant: 'admin' as const, testAddress: to },
         };
         await sendQuoteReceivedEmails(fixture);
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5962,7 +5965,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           email: to,
           testMode: { variant: 'customer' as const, testAddress: to },
         });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5975,7 +5978,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           email: to,
           testMode: { variant: 'admin' as const, testAddress: to },
         });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5983,7 +5986,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'welcome-email') {
         const { sendNewUserWelcomeEmail } = await import('./email.js');
         await sendNewUserWelcomeEmail({ toEmail: to, ...WELCOME_EMAIL_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5991,7 +5994,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'set-password') {
         const { sendNewUserSetPasswordEmail } = await import('./email.js');
         await sendNewUserSetPasswordEmail({ toEmail: to, ...SET_PASSWORD_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
@@ -5999,11 +6002,11 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (templateId === 'password-reset') {
         const { sendPasswordResetEmail } = await import('./email.js');
         await sendPasswordResetEmail({ toEmail: to, ...PASSWORD_RESET_TEST_ARGS });
-        res.json({ ok: true, message: `Test email sent to ${to}` });
+        res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
         return;
       }
 
-      const { generatePreviewHtml, EMAIL_TEMPLATES } = await import('./email-previews.js');
+      const { generatePreviewHtml } = await import('./email-previews.js');
       const html = generatePreviewHtml(templateId);
       if (!html) return res.status(404).json({ error: "Template not found" });
 
@@ -6012,7 +6015,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       const { sendEmail } = await import('./email.js');
       await sendEmail({ to, subject, html });
-      res.json({ ok: true, message: `Test email sent to ${to}` });
+      res.json({ ok: true, message: `Test email sent to ${to}`, templateLabel });
     } catch (err: any) {
       console.error("[email-preview] send-test error:", err);
       res.status(500).json({ error: err?.message || "Failed to send test email" });
