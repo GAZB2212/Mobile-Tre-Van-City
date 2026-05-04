@@ -56,6 +56,32 @@ async function getCredentials() {
   };
 }
 
+// ── Startup health check ──────────────────────────────────────────────────────
+export function checkEmailConfig(): void {
+  const issues: string[] = [];
+
+  if (!process.env.MAIL_FROM) {
+    issues.push(`MAIL_FROM is not set — emails will be sent from the default address (${DEFAULT_FROM_EMAIL}). Set MAIL_FROM to override.`);
+  }
+
+  const hasResendKey = !!process.env.RESEND_API_KEY;
+  const hasConnectorHost = !!process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const hasReplToken = !!(process.env.REPL_IDENTITY || process.env.WEB_REPL_RENEWAL);
+
+  if (!hasResendKey && !(hasConnectorHost && hasReplToken)) {
+    issues.push('No Resend credentials found — RESEND_API_KEY is not set and the Replit Resend connector does not appear to be configured. Emails will fail until this is resolved.');
+  }
+
+  if (issues.length === 0) {
+    console.info('[EMAIL] Health check passed — email configuration looks good.');
+    return;
+  }
+
+  for (const issue of issues) {
+    console.warn(`[EMAIL] WARN: ${issue}`);
+  }
+}
+
 // WARNING: Never cache this client.
 // Access tokens expire, so a new client must be created each time.
 export async function getUncachableResendClient() {

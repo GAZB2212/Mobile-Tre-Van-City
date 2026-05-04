@@ -7,6 +7,7 @@ import { storage } from "./storage";
 import { createUser, getSession } from "./auth";
 import { pool } from "./db";
 import { generateAiBlogPost } from "./blogGenerator";
+import { checkEmailConfig } from "./email";
 
 const app = express();
 
@@ -155,6 +156,7 @@ app.use((req, res, next) => {
     }, { timezone: "Europe/London" });
 
     setImmediate(() => {
+      checkEmailConfig();
       bootstrapAdmin().catch(err => {
         console.error("Failed to bootstrap admin:", err);
       });
