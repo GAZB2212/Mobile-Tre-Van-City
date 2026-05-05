@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getAuthToken } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Users,
   Search,
@@ -24,6 +25,7 @@ import {
   AlertCircle,
   UserCheck,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 interface StaffMember {
@@ -50,6 +52,15 @@ interface CustomerListItem {
   openFollowUpCount: number;
   lastActivityAt?: string | null;
   pipelineStatus?: string | null;
+}
+
+interface BackfillResult {
+  ok: boolean;
+  customersCreated: number;
+  leadsLinked: number;
+  quotesLinked: number;
+  convosLinked: number;
+  failedCount: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -111,6 +122,31 @@ export default function AdminCustomers() {
   const { data: staffList = [] } = useQuery<StaffMember[]>({
     queryKey: ["/api/admin/staff"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const backfillMutation = useMutation<BackfillResult, Error>({
+    mutationFn: () =>
+      apiRequest("POST", "/api/admin/customers/backfill").then((res) => res.json() as Promise<BackfillResult>),
+    onSuccess: (data) => {
+      const parts: string[] = [];
+      if (data.customersCreated > 0) parts.push(`${data.customersCreated} new customer${data.customersCreated !== 1 ? "s" : ""} created`);
+      if (data.leadsLinked > 0) parts.push(`${data.leadsLinked} lead${data.leadsLinked !== 1 ? "s" : ""} linked`);
+      if (data.quotesLinked > 0) parts.push(`${data.quotesLinked} quote${data.quotesLinked !== 1 ? "s" : ""} linked`);
+      if (data.convosLinked > 0) parts.push(`${data.convosLinked} chat${data.convosLinked !== 1 ? "s" : ""} linked`);
+      const hasFailed = data.failedCount > 0;
+      toast({
+        title: parts.length > 0 ? "Sync complete" : "Already up to date",
+        description: [
+          parts.length > 0 ? parts.join(", ") + "." : "All records were already linked to customer profiles.",
+          hasFailed ? ` ${data.failedCount} record${data.failedCount !== 1 ? "s" : ""} could not be linked (see server logs).` : "",
+        ].join(""),
+        variant: hasFailed ? "destructive" : "default",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+    },
+    onError: () => {
+      toast({ title: "Sync failed", description: "Could not run the backfill. Please try again.", variant: "destructive" });
+    },
   });
 
   const queryParams = new URLSearchParams();
@@ -204,11 +240,23 @@ export default function AdminCustomers() {
           </div>
 
           {/* Stats row */}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>
-              {customersLoading ? "Loading..." : `${customers.length} customer${customers.length !== 1 ? "s" : ""}${hasFilters ? " found" : " total"}`}
-            </span>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span>
+                {customersLoading ? "Loading..." : `${customers.length} customer${customers.length !== 1 ? "s" : ""}${hasFilters ? " found" : " total"}`}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => backfillMutation.mutate()}
+              disabled={backfillMutation.isPending}
+              data-testid="button-sync-customers"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${backfillMutation.isPending ? "animate-spin" : ""}`} />
+              {backfillMutation.isPending ? "Syncing..." : "Sync Records"}
+            </Button>
           </div>
 
           {/* List */}

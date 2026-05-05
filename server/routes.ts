@@ -6777,6 +6777,103 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Backfill: link existing leads/quotes/ai_conversations without a customer_id to customer profiles
+  app.post("/api/admin/customers/backfill", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      let leadsLinked = 0;
+      let quotesLinked = 0;
+      let convosLinked = 0;
+      let customersCreated = 0;
+      const errors: string[] = [];
+
+      // Mirror findOrCreateCustomer's email-first, phone-fallback lookup to detect if customer already existed.
+      async function findOrCreate(email: string | null, phone: string | null, name: string): Promise<{ id: string; isNew: boolean }> {
+        let existing = email ? await storage.findCustomerByEmail(email) : undefined;
+        if (!existing && phone) existing = await storage.findCustomerByPhone(phone);
+        const customer = await storage.findOrCreateCustomer(email, phone, name);
+        return { id: customer.id, isNew: !existing };
+      }
+
+      function normalizeContact(val: unknown): string | null {
+        const s = typeof val === "string" ? val.trim() : "";
+        return s || null;
+      }
+
+      // Backfill leads
+      const leadsToLink = await pool.query(`
+        SELECT id, name, email, phone FROM leads
+        WHERE customer_id IS NULL AND (email IS NOT NULL OR phone IS NOT NULL)
+      `);
+      for (const row of leadsToLink.rows) {
+        try {
+          const email = normalizeContact(row.email);
+          const phone = normalizeContact(row.phone);
+          if (!email && !phone) continue;
+          const { id: customerId, isNew } = await findOrCreate(email, phone, normalizeContact(row.name) ?? "Unknown");
+          if (isNew) customersCreated++;
+          await storage.linkLeadToCustomer(row.id, customerId);
+          leadsLinked++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Customer backfill — lead ${row.id} failed:`, msg);
+          errors.push(`lead:${row.id}`);
+        }
+      }
+
+      // Backfill quotes
+      const quotesToLink = await pool.query(`
+        SELECT id, user_name, email, phone FROM quotes
+        WHERE customer_id IS NULL AND (email IS NOT NULL OR phone IS NOT NULL)
+      `);
+      for (const row of quotesToLink.rows) {
+        try {
+          const email = normalizeContact(row.email);
+          const phone = normalizeContact(row.phone);
+          if (!email && !phone) continue;
+          const { id: customerId, isNew } = await findOrCreate(email, phone, normalizeContact(row.user_name) ?? "Unknown");
+          if (isNew) customersCreated++;
+          await storage.linkQuoteToCustomer(row.id, customerId);
+          quotesLinked++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Customer backfill — quote ${row.id} failed:`, msg);
+          errors.push(`quote:${row.id}`);
+        }
+      }
+
+      // Backfill ai_conversations — derive contact from mapped_config (email/phone/name)
+      // and top-level contact_name / contact_phone columns (phone captured in real time).
+      const convosToLink = await pool.query(`
+        SELECT id, session_id, mapped_config, contact_name, contact_phone FROM ai_conversations
+        WHERE customer_id IS NULL
+          AND (contact_phone IS NOT NULL OR mapped_config IS NOT NULL)
+      `);
+      for (const row of convosToLink.rows) {
+        try {
+          const cfg = typeof row.mapped_config === "string" ? JSON.parse(row.mapped_config) : (row.mapped_config ?? {});
+          // Email only comes from mapped_config; phone and name fall back to top-level columns
+          const email = normalizeContact(cfg.contactEmail);
+          const phone = normalizeContact(cfg.contactPhone) ?? normalizeContact(row.contact_phone);
+          const name = normalizeContact(cfg.contactName) ?? normalizeContact(row.contact_name) ?? "AI Chat Contact";
+          if (!email && !phone) continue;
+          const { id: customerId, isNew } = await findOrCreate(email, phone, name);
+          if (isNew) customersCreated++;
+          await storage.linkConversationToCustomer(row.id, customerId);
+          convosLinked++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Customer backfill — conversation ${row.id} failed:`, msg);
+          errors.push(`conversation:${row.id}`);
+        }
+      }
+
+      res.json({ ok: true, customersCreated, leadsLinked, quotesLinked, convosLinked, failedCount: errors.length });
+    } catch (error) {
+      console.error("Customer backfill error:", error);
+      res.status(500).json({ error: "Backfill failed" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
