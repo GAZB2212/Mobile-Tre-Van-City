@@ -125,10 +125,13 @@ function MoveRecordDialog({
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [pendingCustomer, setPendingCustomer] = useState<{ id: string; name: string; email?: string | null; company?: string | null } | null>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!pendingCustomer) {
+      inputRef.current?.focus();
+    }
+  }, [pendingCustomer]);
 
   const { data: customers = [], isLoading: searchLoading } = useQuery<CustomerListItem[]>({
     queryKey: ["/api/admin/customers", debouncedSearch],
@@ -176,7 +179,9 @@ function MoveRecordDialog({
       >
         <div className="flex items-start justify-between gap-3 p-4 border-b">
           <div>
-            <p className="text-sm font-semibold">Move to another customer</p>
+            <p className="text-sm font-semibold">
+              {pendingCustomer ? "Confirm move" : "Move to another customer"}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[240px]">{recordLabel}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-move-dialog">
@@ -184,56 +189,91 @@ function MoveRecordDialog({
           </Button>
         </div>
 
-        <div className="p-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              placeholder="Search customers…"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-9"
-              data-testid="input-move-customer-search"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto max-h-64 px-3 pb-3 space-y-1">
-          {debouncedSearch.length < 2 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Type at least 2 characters to search</p>
-          ) : searchLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        {pendingCustomer ? (
+          <div className="p-4 space-y-4" data-testid="section-move-confirm">
+            <p className="text-sm text-muted-foreground">
+              Move this record to:
+            </p>
+            <div className="rounded-md border px-3 py-2.5">
+              <p className="text-sm font-medium">{pendingCustomer.name}</p>
+              {(pendingCustomer.email || pendingCustomer.company) && (
+                <p className="text-xs text-muted-foreground mt-0.5">{pendingCustomer.company ?? pendingCustomer.email}</p>
+              )}
             </div>
-          ) : filteredCandidates.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">No customers found</p>
-          ) : (
-            filteredCandidates.map(c => (
-              <button
-                key={c.id}
-                type="button"
-                className="w-full text-left rounded-md px-3 py-2 hover-elevate active-elevate-2 transition-colors"
-                onClick={() => reassignMutation.mutate(c.id)}
+            <p className="text-xs text-muted-foreground">This cannot be undone from this screen. Are you sure?</p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setPendingCustomer(null)}
                 disabled={reassignMutation.isPending}
-                data-testid={`button-move-to-customer-${c.id}`}
+                data-testid="button-move-confirm-back"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{c.name}</p>
-                    {(c.email || c.company) && (
-                      <p className="text-xs text-muted-foreground truncate">{c.company ?? c.email}</p>
-                    )}
-                  </div>
-                  {reassignMutation.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />
-                  ) : (
-                    <MoveRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  )}
+                Back
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => reassignMutation.mutate(pendingCustomer.id)}
+                disabled={reassignMutation.isPending}
+                data-testid="button-move-confirm-submit"
+              >
+                {reassignMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  "Confirm Move"
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="p-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  ref={inputRef}
+                  placeholder="Search customers…"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-move-customer-search"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto max-h-64 px-3 pb-3 space-y-1">
+              {debouncedSearch.length < 2 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">Type at least 2 characters to search</p>
+              ) : searchLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
-              </button>
-            ))
-          )}
-        </div>
+              ) : filteredCandidates.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">No customers found</p>
+              ) : (
+                filteredCandidates.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="w-full text-left rounded-md px-3 py-2 hover-elevate active-elevate-2 transition-colors"
+                    onClick={() => setPendingCustomer({ id: c.id, name: c.name, email: c.email, company: c.company })}
+                    data-testid={`button-move-to-customer-${c.id}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{c.name}</p>
+                        {(c.email || c.company) && (
+                          <p className="text-xs text-muted-foreground truncate">{c.company ?? c.email}</p>
+                        )}
+                      </div>
+                      <MoveRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
