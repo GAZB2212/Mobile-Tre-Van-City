@@ -609,6 +609,9 @@ interface MergedCustomerEntry {
   id: string;
   name: string;
   duplicatesAbsorbed: number;
+  leadsRepointed: number;
+  quotesRepointed: number;
+  convosRepointed: number;
 }
 
 interface DeduplicateResult {
@@ -957,11 +960,33 @@ export default function AdminCustomers() {
                       : mergeSummary.mergedCustomers.slice(0, MERGE_LIST_CAP)
                     ).map(c => (
                       <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap py-1" data-testid={`row-merged-customer-${c.id}`}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-sm font-medium truncate">{c.name}</span>
-                          <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate shrink-0">
-                            absorbed {c.duplicatesAbsorbed} duplicate{c.duplicatesAbsorbed !== 1 ? "s" : ""}
-                          </Badge>
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium truncate">{c.name}</span>
+                            <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate shrink-0">
+                              absorbed {c.duplicatesAbsorbed} duplicate{c.duplicatesAbsorbed !== 1 ? "s" : ""}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {c.leadsRepointed > 0 && (
+                              <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-blue-500/25 no-default-active-elevate shrink-0" data-testid={`badge-leads-repointed-${c.id}`}>
+                                {c.leadsRepointed} lead{c.leadsRepointed !== 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                            {c.quotesRepointed > 0 && (
+                              <Badge className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/25 no-default-active-elevate shrink-0" data-testid={`badge-quotes-repointed-${c.id}`}>
+                                {c.quotesRepointed} quote{c.quotesRepointed !== 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                            {c.convosRepointed > 0 && (
+                              <Badge className="text-[10px] bg-purple-500/15 text-purple-400 border-purple-500/25 no-default-active-elevate shrink-0" data-testid={`badge-convos-repointed-${c.id}`}>
+                                {c.convosRepointed} chat{c.convosRepointed !== 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                            {c.leadsRepointed === 0 && c.quotesRepointed === 0 && c.convosRepointed === 0 && (
+                              <span className="text-[10px] text-muted-foreground">no records re-pointed</span>
+                            )}
+                          </div>
                         </div>
                         <Button
                           variant="outline"

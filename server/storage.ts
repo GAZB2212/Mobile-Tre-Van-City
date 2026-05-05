@@ -139,7 +139,7 @@ export interface IStorage {
   linkQuoteToCustomer(quoteId: string, customerId: string): Promise<void>;
   linkConversationToCustomer(conversationId: string, customerId: string): Promise<void>;
   linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void>;
-  mergeCustomers(keepId: string, mergeId: string): Promise<void>;
+  mergeCustomers(keepId: string, mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
 }
 
 export class MemStorage implements IStorage {
@@ -1776,7 +1776,9 @@ export class MemStorage implements IStorage {
   async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string): Promise<void> {}
   async linkQuoteToCustomer(_quoteId: string, _customerId: string): Promise<void> {}
   async linkConversationToCustomer(_conversationId: string, _customerId: string): Promise<void> {}
-  async mergeCustomers(_keepId: string, _mergeId: string): Promise<void> {}
+  async mergeCustomers(_keepId: string, _mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
+    return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
+  }
 }
 
 // Database Storage Implementation
@@ -2392,8 +2394,8 @@ export class DbStorage implements IStorage {
    * 3. Delete the now-orphaned duplicate row.
    * Safe to call even if `mergeId` has no associated records.
    */
-  async mergeCustomers(keepId: string, mergeId: string): Promise<void> {
-    if (keepId === mergeId) return;
+  async mergeCustomers(keepId: string, mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
+    if (keepId === mergeId) return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -2414,16 +2416,21 @@ export class DbStorage implements IStorage {
         WHERE id = $1
       `, [keepId, mergeId]);
 
-      // Re-point all child records to the surviving customer.
-      await client.query(`UPDATE leads           SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
-      await client.query(`UPDATE quotes          SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
-      await client.query(`UPDATE ai_conversations SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+      // Re-point all child records to the surviving customer and capture counts.
+      const leadsResult = await client.query(`UPDATE leads           SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+      const quotesResult = await client.query(`UPDATE quotes          SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+      const convosResult = await client.query(`UPDATE ai_conversations SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
       await client.query(`UPDATE customer_notes  SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
 
       // Delete the duplicate.
       await client.query(`DELETE FROM customers WHERE id = $1`, [mergeId]);
 
       await client.query("COMMIT");
+      return {
+        leadsRepointed: leadsResult.rowCount ?? 0,
+        quotesRepointed: quotesResult.rowCount ?? 0,
+        convosRepointed: convosResult.rowCount ?? 0,
+      };
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;

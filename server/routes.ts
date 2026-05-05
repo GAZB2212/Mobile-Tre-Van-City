@@ -6887,19 +6887,22 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       let mergedCount = 0;
       const errors: string[] = [];
       // Track surviving customers and how many duplicates each absorbed
-      const mergedCustomerMap = new Map<string, { id: string; name: string; duplicatesAbsorbed: number }>();
+      const mergedCustomerMap = new Map<string, { id: string; name: string; duplicatesAbsorbed: number; leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>();
 
       async function fetchCustomerName(id: string): Promise<string> {
         const r = await pool.query<{ name: string }>(`SELECT name FROM customers WHERE id = $1 LIMIT 1`, [id]);
         return r.rows[0]?.name ?? "Unknown";
       }
 
-      function recordMerge(keepId: string, keepName: string) {
+      function recordMerge(keepId: string, keepName: string, counts: { leadsRepointed: number; quotesRepointed: number; convosRepointed: number }) {
         const existing = mergedCustomerMap.get(keepId);
         if (existing) {
           existing.duplicatesAbsorbed++;
+          existing.leadsRepointed += counts.leadsRepointed;
+          existing.quotesRepointed += counts.quotesRepointed;
+          existing.convosRepointed += counts.convosRepointed;
         } else {
-          mergedCustomerMap.set(keepId, { id: keepId, name: keepName, duplicatesAbsorbed: 1 });
+          mergedCustomerMap.set(keepId, { id: keepId, name: keepName, duplicatesAbsorbed: 1, ...counts });
         }
       }
 
@@ -6921,9 +6924,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           );
           const [keep, ...duplicates] = rows;
           for (const dup of duplicates) {
-            await storage.mergeCustomers(keep.id, dup.id);
+            const counts = await storage.mergeCustomers(keep.id, dup.id);
             mergedCount++;
-            recordMerge(keep.id, keep.name ?? "Unknown");
+            recordMerge(keep.id, keep.name ?? "Unknown", counts);
           }
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -6950,9 +6953,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           );
           const [keep, ...duplicates] = rows;
           for (const dup of duplicates) {
-            await storage.mergeCustomers(keep.id, dup.id);
+            const counts = await storage.mergeCustomers(keep.id, dup.id);
             mergedCount++;
-            recordMerge(keep.id, keep.name ?? "Unknown");
+            recordMerge(keep.id, keep.name ?? "Unknown", counts);
           }
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -7007,9 +7010,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         if (stillExists.rows.length === 0) continue;
         try {
           const keepName = mergedCustomerMap.get(keep_id)?.name ?? await fetchCustomerName(keep_id);
-          await storage.mergeCustomers(keep_id, merge_id);
+          const counts = await storage.mergeCustomers(keep_id, merge_id);
           mergedCount++;
-          recordMerge(keep_id, keepName);
+          recordMerge(keep_id, keepName, counts);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Dedup error (split-pair keep=${keep_id} merge=${merge_id}):`, msg);
