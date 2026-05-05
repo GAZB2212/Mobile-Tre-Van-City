@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode, Info, Link2 } from "lucide-react";
+import { Send, Monitor, Users, Building2, Warehouse, ChevronRight, ChevronDown, Zap, FileCode, Info, Link2, Copy, Check } from "lucide-react";
 
 const SEND_TYPE_TOOLTIPS = {
   live: "Live send uses the real email function — the test email is identical to what the customer receives.",
@@ -65,6 +65,8 @@ export default function EmailPreview() {
     "/api/admin/email-preview/html/enquiry-received-customer"
   );
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [lastSentTemplateId, setLastSentTemplateId] = useState<string | null>(null);
+  const [justCopied, setJustCopied] = useState(false);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/admin/email-preview/templates"],
@@ -77,17 +79,33 @@ export default function EmailPreview() {
       const data = await res.json();
       const label = data.templateLabel ? `${data.templateLabel} sent to ${variables.to}` : data.message;
       toast({ title: "Test email sent", description: label });
+      setLastSentTemplateId(variables.templateId);
+      setJustCopied(false);
     },
     onError: async (err: any) => {
       let msg = "Failed to send test email";
       try { msg = (await err.response?.json())?.error ?? msg; } catch {}
       toast({ title: "Failed to send", description: msg, variant: "destructive" });
+      setLastSentTemplateId(null);
+      setJustCopied(false);
     },
   });
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
     setIframeSrc(`/api/admin/email-preview/html/${id}`);
+    setLastSentTemplateId(null);
+    setJustCopied(false);
+  };
+
+  const handleCopyTemplateId = () => {
+    if (!lastSentTemplateId) return;
+    navigator.clipboard.writeText(lastSentTemplateId).then(() => {
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 2000);
+    }).catch(() => {
+      toast({ title: "Copy failed", description: "Could not copy to clipboard — try selecting and copying the template ID manually.", variant: "destructive" });
+    });
   };
 
   const handleSend = () => {
@@ -320,6 +338,26 @@ export default function EmailPreview() {
                   <Send className="w-3.5 h-3.5 mr-1.5" />
                   {sendMutation.isPending ? "Sending…" : "Send test"}
                 </Button>
+                {lastSentTemplateId && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        data-testid="button-copy-template-id"
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleCopyTemplateId}
+                      >
+                        {justCopied
+                          ? <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          : <Copy className="w-3.5 h-3.5" />
+                        }
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {justCopied ? "Copied!" : `Copy template ID: ${lastSentTemplateId}`}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
             </div>
           )}
