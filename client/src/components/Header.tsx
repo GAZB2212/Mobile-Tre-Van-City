@@ -22,7 +22,7 @@ export default function Header() {
         const currentScrollY = window.scrollY;
         if (currentScrollY < 80) {
           setHeaderVisible(true);
-        } else if (currentScrollY > lastScrollY.current + 4) {
+        } else if (window.innerWidth < 1024 && currentScrollY > lastScrollY.current + 4) {
           setHeaderVisible(false);
         } else if (currentScrollY < lastScrollY.current - 4) {
           setHeaderVisible(true);
