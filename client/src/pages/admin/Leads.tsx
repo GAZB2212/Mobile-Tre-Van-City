@@ -51,6 +51,7 @@ import {
   CheckCircle2,
   Link2,
   History,
+  UserPlus,
 } from "lucide-react";
 
 const REDIRECT_DELAY_MS = 500;
@@ -128,6 +129,12 @@ export default function AdminLeads() {
 
   // Unlink-customer confirmation state
   const [unlinkLeadId, setUnlinkLeadId] = useState<string | null>(null);
+
+  // Create-profile-from-lead dialog state
+  const [createProfileLead, setCreateProfileLead] = useState<Lead | null>(null);
+  const [createProfileName, setCreateProfileName] = useState("");
+  const [createProfileEmail, setCreateProfileEmail] = useState("");
+  const [createProfilePhone, setCreateProfilePhone] = useState("");
 
   // Follow-up scheduling prompt
   const [fuDialogOpen, setFuDialogOpen] = useState(false);
@@ -211,6 +218,27 @@ export default function AdminLeads() {
     },
     onError: () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to unlink customer." });
+    },
+  });
+
+  const createCustomerFromLeadMutation = useMutation({
+    mutationFn: async ({ leadId, name, email, phone }: { leadId: string; name: string; email: string; phone: string }) => {
+      const res = await apiRequest("POST", "/api/admin/customers", { name, email: email || undefined, phone: phone || undefined });
+      const customer = await res.json() as { id: string; name: string; email?: string | null };
+      await apiRequest("PATCH", `/api/admin/leads/${leadId}`, { customerId: customer.id });
+      return customer;
+    },
+    onSuccess: (customer) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      setCreateProfileLead(null);
+      toast({
+        title: "Profile created",
+        description: `A customer profile for ${customer.name} has been created and linked to this lead.`,
+      });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to create customer profile." });
     },
   });
 
@@ -710,13 +738,21 @@ export default function AdminLeads() {
                             </span>
                           </Link>
                         ) : (
-                          <span
-                            className="inline-flex items-center gap-1 text-xs text-muted-foreground"
-                            data-testid={`text-no-profile-summary-${lead.id}`}
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCreateProfileLead(lead);
+                              setCreateProfileName(lead.name || "");
+                              setCreateProfileEmail(lead.email || "");
+                              setCreateProfilePhone(lead.phone ?? "");
+                            }}
+                            data-testid={`button-create-profile-summary-${lead.id}`}
                           >
-                            <XCircle className="w-3 h-3 shrink-0" />
+                            <UserPlus className="w-3 h-3 shrink-0" />
                             No profile
-                          </span>
+                          </button>
                         )}
                       </div>
                       <div className="shrink-0">
@@ -779,13 +815,21 @@ export default function AdminLeads() {
                             </span>
                           </Link>
                         ) : (
-                          <span
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-                            data-testid={`text-no-profile-linked-${lead.id}`}
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCreateProfileLead(lead);
+                              setCreateProfileName(lead.name || "");
+                              setCreateProfileEmail(lead.email || "");
+                              setCreateProfilePhone(lead.phone ?? "");
+                            }}
+                            data-testid={`button-create-profile-linked-${lead.id}`}
                           >
-                            <XCircle className="w-3.5 h-3.5 shrink-0" />
-                            No profile linked
-                          </span>
+                            <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                            No profile — create one
+                          </button>
                         )}
                         <Button
                           size="sm"
@@ -931,6 +975,86 @@ export default function AdminLeads() {
         )}
         </div>
       </div>
+
+      {/* Create customer profile from lead dialog */}
+      <Dialog
+        open={!!createProfileLead}
+        onOpenChange={(open) => {
+          if (!open && !createCustomerFromLeadMutation.isPending) setCreateProfileLead(null);
+        }}
+      >
+        <DialogContent className="max-w-md" data-testid="modal-create-profile">
+          <DialogHeader>
+            <DialogTitle>Create Customer Profile</DialogTitle>
+            <DialogDescription>
+              Create a new customer profile pre-filled from this lead's details. The profile will be linked to the lead automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div>
+              <Label htmlFor="create-profile-name">Name</Label>
+              <Input
+                id="create-profile-name"
+                value={createProfileName}
+                onChange={(e) => setCreateProfileName(e.target.value)}
+                placeholder="Full name"
+                data-testid="input-create-profile-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-profile-email">Email</Label>
+              <Input
+                id="create-profile-email"
+                type="email"
+                value={createProfileEmail}
+                onChange={(e) => setCreateProfileEmail(e.target.value)}
+                placeholder="Email address"
+                data-testid="input-create-profile-email"
+              />
+            </div>
+            <div>
+              <Label htmlFor="create-profile-phone">Phone</Label>
+              <Input
+                id="create-profile-phone"
+                type="tel"
+                value={createProfilePhone}
+                onChange={(e) => setCreateProfilePhone(e.target.value)}
+                placeholder="Phone number"
+                data-testid="input-create-profile-phone"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCreateProfileLead(null)}
+              data-testid="button-cancel-create-profile"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!createProfileName.trim() || createCustomerFromLeadMutation.isPending}
+              onClick={() => {
+                if (createProfileLead) {
+                  createCustomerFromLeadMutation.mutate({
+                    leadId: createProfileLead.id,
+                    name: createProfileName.trim(),
+                    email: createProfileEmail.trim(),
+                    phone: createProfilePhone.trim(),
+                  });
+                }
+              }}
+              data-testid="button-confirm-create-profile"
+            >
+              {createCustomerFromLeadMutation.isPending ? (
+                <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" /> Creating…</span>
+              ) : (
+                <><UserPlus className="w-3.5 h-3.5 mr-1.5" />Create Profile</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Unlink customer confirmation dialog */}
       <Dialog
