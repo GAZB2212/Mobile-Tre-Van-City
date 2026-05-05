@@ -13,6 +13,7 @@ export const CONFIGURATOR_STORAGE_KEY = "configurator:v6";
 export type ServiceType = "car" | "commercial" | "hybrid";
 export type VanSize = "MWB" | "LWB";
 export type FinancePreference = "outright" | "lease" | "finance";
+export type DailyJobVolume = "high" | "standard";
 export type Stage = "chat" | "summary" | "complete";
 export type FortyEightVResponse = "yes" | "objection" | "soft_no" | "hard_no" | null;
 
@@ -25,6 +26,7 @@ export interface AIConfig {
   vanSize: VanSize | null;
   serviceType: ServiceType | null;
   isEuro6: boolean | null;
+  dailyJobVolume: DailyJobVolume | null;
   machineType: "semi-auto" | "fully-auto" | null;
   packageId: "bronze" | "silver" | "gold" | null;
   kitId: string | null;
@@ -69,6 +71,7 @@ export const defaultConfig: AIConfig = {
   vanSize: null,
   serviceType: null,
   isEuro6: null,
+  dailyJobVolume: null,
   machineType: null,
   packageId: null,
   kitId: null,

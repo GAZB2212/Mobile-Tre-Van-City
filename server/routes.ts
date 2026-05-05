@@ -5370,9 +5370,10 @@ Use their name warmly and then ask Q1. Something like:
 
 Q2 — DAILY WORKLOAD:
 "Got it — and roughly how many tyre jobs are you looking to do per day?"
-→ Under 10 = standard kit, lean towards MWB
-→ 10-20 = mid kit
-→ 20+ = full kit, lean towards LWB
+→ Under 10 = standard kit, lean towards MWB → set dailyJobVolume: "standard"
+→ 10-20 = mid kit → set dailyJobVolume: "standard"
+→ 20+ = full kit, lean towards LWB → set dailyJobVolume: "high"
+Set dailyJobVolume in config as soon as you have a number from the customer.
 
 Q2b — VEHICLE TYPE (ask immediately after workload, before van supply):
 "And what type of vehicles will you mainly be working on — cars and light vans, commercials like HGVs and LCVs, or a mix of both?"
@@ -5505,9 +5506,10 @@ The POPULARITY INTELLIGENCE block above is derived from actual customer quote su
 - When an upgrade appears in 50%+ of quotes, mention it as "our most popular choice" or "most customers add this"
 - When the 48V rate is high (60%+), pitch it early and confidently — not as a question but as "what most of our customers go with"
 - When recommending a package, if the popularity data shows a tier is dominant, lead with that tier and reference the data naturally: "this is the setup most of our [commercial/car] customers go with"
-- VOLUME SEGMENTS: The popularity data includes breakdowns by kit type — fully-auto T2000 operators (higher-throughput, 20+ jobs/day) vs semi-auto T1000 operators (standard volume). Once you know which machine type the customer wants, cross-reference the matching segment:
-  → If they choose or lean towards fully-auto T2000, say things like "operators doing a high volume of jobs a day who go for the fully-auto setup tend to choose [tier] — it's the setup that keeps up with that kind of throughput"
-  → If they prefer the semi-auto T1000, reference what standard-volume customers typically choose
+- VOLUME SEGMENTS: The popularity data includes breakdowns by kit type — fully-auto T2000 operators (higher-throughput, 20+ jobs/day) vs semi-auto T1000 operators (standard volume). Use config.dailyJobVolume to drive this:
+  → If dailyJobVolume is "high" (20+ jobs/day), cross-reference the high-volume segment — say things like "operators doing a high volume of jobs a day who go for the fully-auto setup tend to choose [tier] — it's the setup that keeps up with that kind of throughput"
+  → If dailyJobVolume is "standard" (under 20 jobs/day), reference what standard-volume customers typically choose
+  → If dailyJobVolume is null (not yet asked), ask Q2 before making volume-based segment comparisons
   → Frame it naturally — never cite numbers, say "most high-throughput operators", "the majority of fully-auto customers", "operators running at your kind of volume typically go with", etc.
 - Never cite raw percentages or numbers to the customer — translate data into natural sales language: "most", "the majority", "eight out of ten", "our most popular setup", etc.
 - If popularity data is unavailable, fall back to general best-practice recommendations as normal
@@ -5522,6 +5524,7 @@ You MUST always respond with valid JSON only — no other text outside the JSON.
     "vanSize": "MWB" or "LWB" or null,
     "serviceType": "car" or "commercial" or "hybrid" or null,
     "isEuro6": true/false/null,
+    "dailyJobVolume": "high" or "standard" or null,
     "machineType": "semi-auto" or "fully-auto" or null,
     "packageId": "bronze" or "silver" or "gold" or null,
     "kitId": "<exact id from list above>" or null,
