@@ -73,6 +73,8 @@ const AdminTestimonials = lazy(() => import("@/pages/admin/Testimonials"));
 const AdminEmailPreview = lazy(() => import("@/pages/admin/EmailPreview"));
 const AdminSettings = lazy(() => import("@/pages/admin/Settings"));
 const AdminCalendar = lazy(() => import("@/pages/admin/Calendar"));
+const AdminCustomers = lazy(() => import("@/pages/admin/Customers"));
+const AdminCustomerProfile = lazy(() => import("@/pages/admin/CustomerProfile"));
 
 function Router() {
   return (
@@ -138,6 +140,8 @@ function Router() {
       <Route path="/admin/email-preview">{() => <AdminLayout><AdminEmailPreview /></AdminLayout>}</Route>
       <Route path="/admin/settings">{() => <AdminLayout><AdminSettings /></AdminLayout>}</Route>
       <Route path="/admin/calendar">{() => <AdminLayout><AdminCalendar /></AdminLayout>}</Route>
+      <Route path="/admin/customers/:id">{() => <AdminLayout><AdminCustomerProfile /></AdminLayout>}</Route>
+      <Route path="/admin/customers">{() => <AdminLayout><AdminCustomers /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
   );

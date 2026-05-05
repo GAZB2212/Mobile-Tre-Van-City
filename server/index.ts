@@ -399,6 +399,158 @@ app.use((req, res, next) => {
         .then(() => log("✅ Testimonials table ready"))
         .catch((err: Error) => console.error("Testimonials migration:", err.message));
 
+      // ── CRM Customers tables & FK columns ───────────────────────────────────
+      // Create customers table first (so FK columns on other tables can reference it)
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS customers (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          email TEXT,
+          phone TEXT,
+          company TEXT,
+          primary_staff_id VARCHAR,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_customers_email ON customers (email);
+        CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers (phone);
+      `)
+        .then(async () => {
+          log("✅ Customers table ready");
+          // customer_notes table
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS customer_notes (
+              id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+              customer_id VARCHAR NOT NULL REFERENCES customers(id),
+              author_id VARCHAR,
+              author_name TEXT,
+              note_type TEXT NOT NULL DEFAULT 'general',
+              text TEXT NOT NULL,
+              created_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_customer_notes_customer ON customer_notes (customer_id);
+          `).then(() => log("✅ Customer notes table ready"))
+            .catch((err: Error) => console.error("Customer notes migration:", err.message));
+          // Add customer_id FK columns to leads, quotes, ai_conversations
+          // Also add FK constraints for primary_staff_id (→ users) and customer_notes.author_id (→ users) if users table exists
+          await pool.query(`
+            ALTER TABLE leads ADD COLUMN IF NOT EXISTS customer_id VARCHAR REFERENCES customers(id);
+            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS customer_id VARCHAR REFERENCES customers(id);
+            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS customer_id VARCHAR REFERENCES customers(id);
+          `).then(() => log("✅ Customer FK columns ready"))
+            .catch((err: Error) => console.error("Customer FK columns migration:", err.message));
+
+          // FK constraints for staff columns (best-effort — won't fail if users table doesn't exist yet)
+          await pool.query(`
+            DO $$
+            BEGIN
+              IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+                BEGIN
+                  ALTER TABLE customers
+                    ADD CONSTRAINT fk_customers_primary_staff FOREIGN KEY (primary_staff_id) REFERENCES users(id) ON DELETE SET NULL;
+                EXCEPTION WHEN duplicate_object THEN NULL;
+                END;
+                BEGIN
+                  ALTER TABLE customer_notes
+                    ADD CONSTRAINT fk_customer_notes_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL;
+                EXCEPTION WHEN duplicate_object THEN NULL;
+                END;
+              END IF;
+            END $$;
+          `).then(() => log("✅ Customer staff FK constraints ready"))
+            .catch((err: Error) => console.error("Customer staff FK migration:", err.message));
+          // Add status_changed_at to leads
+          await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMP`)
+            .then(() => log("✅ Lead status_changed_at column ready"))
+            .catch((err: Error) => console.error("Lead status_changed_at migration:", err.message));
+
+          // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
+          // Uses email-first, phone-fallback precedence to avoid cross-matching
+          (async () => {
+            // Helper: find customer by email first, then phone
+            async function findCustomerByEmailThenPhone(email: string | null, phone: string | null): Promise<string | null> {
+              if (email) {
+                const { rows } = await pool.query(`SELECT id FROM customers WHERE email = $1 LIMIT 1`, [email]);
+                if (rows.length > 0) return rows[0].id;
+              }
+              if (phone) {
+                const { rows } = await pool.query(`SELECT id FROM customers WHERE phone = $1 LIMIT 1`, [phone]);
+                if (rows.length > 0) return rows[0].id;
+              }
+              return null;
+            }
+
+            try {
+              // Backfill from leads (email or phone required)
+              const leadsToLink = await pool.query(`
+                SELECT id, name, email, phone FROM leads
+                WHERE customer_id IS NULL AND (email IS NOT NULL OR phone IS NOT NULL)
+              `);
+              for (const row of leadsToLink.rows) {
+                try {
+                  const found = await findCustomerByEmailThenPhone(row.email ?? null, row.phone ?? null);
+                  let customerId = found;
+                  if (!customerId) {
+                    const ins = await pool.query(
+                      `INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id`,
+                      [row.name || "Unknown", row.email ?? null, row.phone ?? null]
+                    );
+                    customerId = ins.rows[0].id;
+                  }
+                  await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, row.id]);
+                } catch { /* skip individual row errors */ }
+              }
+              // Backfill from quotes (email or phone required)
+              const quotesToLink = await pool.query(`
+                SELECT id, user_name, email, phone FROM quotes
+                WHERE customer_id IS NULL AND (email IS NOT NULL OR phone IS NOT NULL)
+              `);
+              for (const row of quotesToLink.rows) {
+                try {
+                  const found = await findCustomerByEmailThenPhone(row.email ?? null, row.phone ?? null);
+                  let customerId = found;
+                  if (!customerId) {
+                    const ins = await pool.query(
+                      `INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id`,
+                      [row.user_name || "Unknown", row.email ?? null, row.phone ?? null]
+                    );
+                    customerId = ins.rows[0].id;
+                  }
+                  await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, row.id]);
+                } catch { /* skip individual row errors */ }
+              }
+              // Backfill from ai_conversations (email or phone required via mapped_config)
+              const convosToLink = await pool.query(`
+                SELECT id, session_id, mapped_config FROM ai_conversations
+                WHERE customer_id IS NULL AND mapped_config IS NOT NULL
+              `);
+              for (const row of convosToLink.rows) {
+                try {
+                  const cfg = typeof row.mapped_config === "string" ? JSON.parse(row.mapped_config) : (row.mapped_config ?? {});
+                  const cfgEmail = (cfg.contactEmail ?? "").trim() || null;
+                  const cfgPhone = (cfg.contactPhone ?? "").trim() || null;
+                  const cfgName = (cfg.contactName ?? "AI Chat Contact").trim();
+                  if (!cfgEmail && !cfgPhone) continue;
+                  const found = await findCustomerByEmailThenPhone(cfgEmail, cfgPhone);
+                  let customerId = found;
+                  if (!customerId) {
+                    const ins = await pool.query(
+                      `INSERT INTO customers (name, email, phone) VALUES ($1, $2, $3) RETURNING id`,
+                      [cfgName, cfgEmail, cfgPhone]
+                    );
+                    customerId = ins.rows[0].id;
+                  }
+                  await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, row.id]);
+                } catch { /* skip individual row errors */ }
+              }
+              log("✅ Customer backfill complete");
+            } catch (err: any) {
+              console.error("Customer backfill error:", err?.message);
+            }
+          })();
+        })
+        .catch((err: Error) => console.error("Customers migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.

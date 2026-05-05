@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, decimal, json, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, decimal, json, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -251,6 +251,9 @@ export const quotes = pgTable("quotes", {
   // Staff attribution — which team member created this quote in the admin configurator
   staffName: text("staff_name"),
 
+  // CRM customer link
+  customerId: varchar("customer_id"),
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),
@@ -266,8 +269,10 @@ export const leads = pgTable("leads", {
   source: text("source").notNull(),
   message: text("message"),
   status: text("status").notNull().default("new"), // "new" | "contacted" | "qualified" | "converted" | "closed" | "dead"
+  statusChangedAt: timestamp("status_changed_at"),
   crmNotes: json("crm_notes").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]),
   quoteId: varchar("quote_id").references(() => quotes.id), // Linked quote ID for converted leads
+  customerId: varchar("customer_id"), // FK to customers — set after customers table is created
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -583,6 +588,43 @@ export type AnalyticsSession = typeof analyticsSessions.$inferSelect;
 export type AnalyticsPageview = typeof analyticsPageviews.$inferSelect;
 export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
 
+// ─── CRM Customers ─────────────────────────────────────────────────────────
+export const customerNoteTypes = ["call", "email", "meeting", "general"] as const;
+export type CustomerNoteType = typeof customerNoteTypes[number];
+
+export const customers = pgTable("customers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  company: text("company"),
+  primaryStaffId: varchar("primary_staff_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_customers_email").on(table.email),
+  index("idx_customers_phone").on(table.phone),
+]);
+
+export const customerNotes = pgTable("customer_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").notNull().references(() => customers.id),
+  authorId: varchar("author_id").references(() => users.id),
+  authorName: text("author_name"),
+  noteType: text("note_type").notNull().default("general"),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_customer_notes_customer").on(table.customerId),
+]);
+
+export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCustomerNoteSchema = createInsertSchema(customerNotes).omit({ id: true, createdAt: true });
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomerNote = z.infer<typeof insertCustomerNoteSchema>;
+export type CustomerNote = typeof customerNotes.$inferSelect;
+
 export const aiConversations = pgTable("ai_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sessionId: varchar("session_id").notNull().unique(),
@@ -603,6 +645,7 @@ export const aiConversations = pgTable("ai_conversations", {
   configCompleted: boolean("config_completed").notNull().default(false),
   markedContacted: boolean("marked_contacted").notNull().default(false),
   contactedNote: text("contacted_note"),
+  customerId: varchar("customer_id"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });

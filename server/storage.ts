@@ -13,6 +13,8 @@ import {
   type SiteSetting,
   type Testimonial, type InsertTestimonial,
   type TestimonialToken,
+  type Customer, type InsertCustomer,
+  type CustomerNote, type InsertCustomerNote,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -122,6 +124,21 @@ export interface IStorage {
   // Site Settings
   getSiteSettings(): Promise<Record<string, string>>;
   setSiteSetting(key: string, value: string): Promise<void>;
+
+  // Customers (CRM)
+  getCustomers(search?: string): Promise<Customer[]>;
+  getCustomer(id: string): Promise<Customer | undefined>;
+  findCustomerByEmail(email: string): Promise<Customer | undefined>;
+  findCustomerByPhone(phone: string): Promise<Customer | undefined>;
+  findOrCreateCustomer(email: string | null, phone: string | null, name: string): Promise<Customer>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(id: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
+  getCustomerNotes(customerId: string): Promise<CustomerNote[]>;
+  createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote>;
+  linkLeadToCustomer(leadId: string, customerId: string): Promise<void>;
+  linkQuoteToCustomer(quoteId: string, customerId: string): Promise<void>;
+  linkConversationToCustomer(conversationId: string, customerId: string): Promise<void>;
+  linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -1737,12 +1754,33 @@ export class MemStorage implements IStorage {
   async createTestimonialToken(token: string, customerName: string, customerEmail: string): Promise<TestimonialToken> { return { id: randomUUID(), token, customerName, customerEmail, sentAt: new Date(), usedAt: null }; }
   async getTestimonialToken(_token: string): Promise<TestimonialToken | undefined> { return undefined; }
   async markTestimonialTokenUsed(_token: string): Promise<void> {}
+
+  // Customer stubs for MemStorage
+  async getCustomers(_search?: string): Promise<Customer[]> { return []; }
+  async getCustomer(_id: string): Promise<Customer | undefined> { return undefined; }
+  async findCustomerByEmail(_email: string): Promise<Customer | undefined> { return undefined; }
+  async findCustomerByPhone(_phone: string): Promise<Customer | undefined> { return undefined; }
+  async findOrCreateCustomer(_email: string | null, _phone: string | null, name: string): Promise<Customer> {
+    return { id: randomUUID(), name, email: _email, phone: _phone, company: null, primaryStaffId: null, createdAt: new Date(), updatedAt: new Date() };
+  }
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    return { ...customer, id: randomUUID(), email: customer.email ?? null, phone: customer.phone ?? null, company: customer.company ?? null, primaryStaffId: customer.primaryStaffId ?? null, createdAt: new Date(), updatedAt: new Date() };
+  }
+  async updateCustomer(_id: string, _data: Partial<InsertCustomer>): Promise<Customer | undefined> { return undefined; }
+  async getCustomerNotes(_customerId: string): Promise<CustomerNote[]> { return []; }
+  async createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote> {
+    return { ...note, id: randomUUID(), authorId: note.authorId ?? null, authorName: note.authorName ?? null, createdAt: new Date() };
+  }
+  async linkLeadToCustomer(_leadId: string, _customerId: string): Promise<void> {}
+  async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string): Promise<void> {}
+  async linkQuoteToCustomer(_quoteId: string, _customerId: string): Promise<void> {}
+  async linkConversationToCustomer(_conversationId: string, _customerId: string): Promise<void> {}
 }
 
 // Database Storage Implementation
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, gte, lte, asc, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, asc, isNull, or, ilike, desc } from "drizzle-orm";
 
 export class DbStorage implements IStorage {
   // Users
@@ -2187,6 +2225,98 @@ export class DbStorage implements IStorage {
   async deleteFollowUp(id: string): Promise<boolean> {
     const result = await db.delete(schema.followUps).where(eq(schema.followUps.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Customers (CRM)
+  async getCustomers(search?: string): Promise<Customer[]> {
+    if (search) {
+      const term = `%${search}%`;
+      return db.select().from(schema.customers).where(
+        or(
+          ilike(schema.customers.name, term),
+          ilike(schema.customers.email, term),
+          ilike(schema.customers.phone, term),
+          ilike(schema.customers.company, term)
+        )
+      ).orderBy(desc(schema.customers.updatedAt));
+    }
+    return db.select().from(schema.customers).orderBy(desc(schema.customers.updatedAt));
+  }
+
+  async getCustomer(id: string): Promise<Customer | undefined> {
+    const result = await db.select().from(schema.customers).where(eq(schema.customers.id, id));
+    return result[0];
+  }
+
+  async findCustomerByEmail(email: string): Promise<Customer | undefined> {
+    const result = await db.select().from(schema.customers).where(eq(schema.customers.email, email)).limit(1);
+    return result[0];
+  }
+
+  async findCustomerByPhone(phone: string): Promise<Customer | undefined> {
+    const result = await db.select().from(schema.customers).where(eq(schema.customers.phone, phone)).limit(1);
+    return result[0];
+  }
+
+  async findOrCreateCustomer(email: string | null, phone: string | null, name: string): Promise<Customer> {
+    // Try to find by email first, then phone
+    if (email) {
+      const byEmail = await this.findCustomerByEmail(email);
+      if (byEmail) {
+        // Update name if it's more complete
+        if (name && name !== byEmail.name) {
+          const updated = await this.updateCustomer(byEmail.id, { name });
+          return updated ?? byEmail;
+        }
+        return byEmail;
+      }
+    }
+    if (phone) {
+      const byPhone = await this.findCustomerByPhone(phone);
+      if (byPhone) return byPhone;
+    }
+    // Create new customer
+    return this.createCustomer({ name, email: email ?? undefined, phone: phone ?? undefined });
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const result = await db.insert(schema.customers).values(customer).returning();
+    return result[0];
+  }
+
+  async updateCustomer(id: string, data: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    const result = await db.update(schema.customers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.customers.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async getCustomerNotes(customerId: string): Promise<CustomerNote[]> {
+    return db.select().from(schema.customerNotes)
+      .where(eq(schema.customerNotes.customerId, customerId))
+      .orderBy(asc(schema.customerNotes.createdAt));
+  }
+
+  async createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote> {
+    const result = await db.insert(schema.customerNotes).values(note).returning();
+    return result[0];
+  }
+
+  async linkLeadToCustomer(leadId: string, customerId: string): Promise<void> {
+    await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, leadId]);
+  }
+
+  async linkQuoteToCustomer(quoteId: string, customerId: string): Promise<void> {
+    await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, quoteId]);
+  }
+
+  async linkConversationToCustomer(conversationId: string, customerId: string): Promise<void> {
+    await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, conversationId]);
+  }
+
+  async linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void> {
+    await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE session_id = $2`, [customerId, sessionId]);
   }
 }
 

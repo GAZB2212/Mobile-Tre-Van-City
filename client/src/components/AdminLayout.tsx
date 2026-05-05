@@ -51,6 +51,7 @@ import {
   Calendar,
   Phone,
   Clock,
+  BookUser,
 } from "lucide-react";
 
 interface NavItem {
@@ -74,6 +75,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
     items: [
       { title: "Configurators", href: "/admin/quotes", icon: FileText, requiredRole: "basic" },
       { title: "Leads", href: "/admin/leads", icon: Users, requiredRole: "basic" },
+      { title: "Customers", href: "/admin/customers", icon: BookUser, requiredRole: "basic" },
       { title: "AI Conversations", href: "/admin/ai-conversations", icon: Bot, requiredRole: "basic" },
       { title: "Calendar", href: "/admin/calendar", icon: Calendar, requiredRole: "basic" },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3, requiredRole: "basic" },
@@ -186,7 +188,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     location.startsWith("/admin/training-options") || location.startsWith("/admin/gallery-items") ||
     location.startsWith("/admin/videos") || location.startsWith("/admin/blog") ||
     location.startsWith("/admin/ai-packages") || location.startsWith("/admin/users") ||
-    location.startsWith("/admin/email-preview") || location.startsWith("/admin/settings");
+    location.startsWith("/admin/email-preview") || location.startsWith("/admin/settings") ||
+    location.startsWith("/admin/testimonials");
 
   const CONTENT_GROUP_KEY = "adminSidebar_Content_collapsed";
 

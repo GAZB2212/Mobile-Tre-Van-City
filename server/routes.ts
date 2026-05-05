@@ -633,6 +633,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const quote = await storage.createQuote(quoteData);
 
+      // Auto-link / create a unified Customer record (non-blocking, best-effort)
+      const customerName = validatedData.name ?? validatedData.userName ?? validatedData.email ?? "Unknown";
+      const customerEmail = validatedData.email ?? null;
+      const customerPhone = validatedData.phone ?? null;
+      if (customerName || customerEmail || customerPhone) {
+        storage.findOrCreateCustomer(customerEmail, customerPhone, customerName as string)
+          .then(customer => storage.linkQuoteToCustomer(quote.id, customer.id))
+          .catch(err => console.error("Customer auto-link (quote) error:", err?.message));
+      }
+
       // For comparison quotes, generate a choose-option token immediately so the initial
       // customer confirmation email can include secure selection links.
       let initialChooseOptionToken: string | undefined;
@@ -757,6 +767,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertLeadSchema.parse(req.body);
       const lead = await storage.createLead(validatedData);
+
+      // Auto-link / create a unified Customer record (non-blocking, best-effort)
+      const leadCustomerName = validatedData.name ?? validatedData.email ?? "Unknown";
+      const leadCustomerEmail = validatedData.email ?? null;
+      const leadCustomerPhone = validatedData.phone ?? null;
+      if (leadCustomerName || leadCustomerEmail || leadCustomerPhone) {
+        storage.findOrCreateCustomer(leadCustomerEmail, leadCustomerPhone, leadCustomerName as string)
+          .then(customer => storage.linkLeadToCustomer(lead.id, customer.id))
+          .catch(err => console.error("Customer auto-link (lead) error:", err?.message));
+      }
 
       // Send confirmation email to customer + notification to admin (non-blocking)
       try {
@@ -2262,6 +2282,24 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       }
       res.json(updated);
 
+      // Re-link / update customer if contact fields changed
+      const patchedUserName = typeof (validatedData as Record<string, unknown>).userName === "string"
+        ? (validatedData as Record<string, unknown>).userName as string : undefined;
+      const patchedEmail = typeof (validatedData as Record<string, unknown>).email === "string"
+        ? (validatedData as Record<string, unknown>).email as string : undefined;
+      const patchedPhone = typeof (validatedData as Record<string, unknown>).phone === "string"
+        ? (validatedData as Record<string, unknown>).phone as string : undefined;
+      if (patchedUserName !== undefined || patchedEmail !== undefined || patchedPhone !== undefined) {
+        const effectiveEmail = patchedEmail ?? updated.email ?? null;
+        const effectivePhone = patchedPhone ?? updated.phone ?? null;
+        const effectiveName = patchedUserName ?? updated.userName ?? "Unknown";
+        if (effectiveEmail || effectivePhone) {
+          storage.findOrCreateCustomer(effectiveEmail, effectivePhone, effectiveName)
+            .then(customer => storage.linkQuoteToCustomer(updated.id, customer.id))
+            .catch(err => console.error("Customer re-link (quote update):", err?.message));
+        }
+      }
+
       // ── Auto-dispatch when moving to "in_build" ─────────────────────────
       if (validatedData.status === 'in_build') {
         (async () => {
@@ -3642,14 +3680,38 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
   app.patch("/api/admin/leads/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const { status, crmNotes, quoteId } = req.body;
+      const { status, crmNotes, quoteId, email, phone, name } = req.body;
       const updateData: Record<string, any> = {};
       if (status !== undefined) updateData.status = status;
       if (crmNotes !== undefined) updateData.crmNotes = crmNotes;
       if (quoteId !== undefined) updateData.quoteId = quoteId;
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (name !== undefined) updateData.name = name;
+
+      // Stamp statusChangedAt whenever status is explicitly changed
+      if (status !== undefined) {
+        const current = await storage.getLead(req.params.id);
+        if (current && current.status !== status) {
+          updateData.statusChangedAt = new Date();
+        }
+      }
+
       const updated = await storage.updateLead(req.params.id, updateData);
       if (!updated) return res.status(404).json({ error: "Lead not found" });
       res.json(updated);
+
+      // Re-link customer if contact details changed
+      if (email !== undefined || phone !== undefined || name !== undefined) {
+        const effectiveEmail = (email ?? updated.email ?? null) as string | null;
+        const effectivePhone = (phone ?? updated.phone ?? null) as string | null;
+        const effectiveName = (name ?? updated.name ?? "Unknown") as string;
+        if (effectiveEmail || effectivePhone) {
+          storage.findOrCreateCustomer(effectiveEmail, effectivePhone, effectiveName)
+            .then(customer => storage.linkLeadToCustomer(updated.id, customer.id))
+            .catch(err => console.error("Customer re-link (lead update):", err?.message));
+        }
+      }
     } catch (error) {
       console.error('PATCH /api/admin/leads/:id error:', error);
       res.status(500).json({ error: "Failed to update lead" });
@@ -5663,6 +5725,16 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
+      // Auto-link / create a unified Customer record — only when email or phone is known (prevents name-only duplicates)
+      const aiContactName = (contactName ?? cfg.contactName ?? "").trim() || "AI Chat Contact";
+      const aiContactEmail = (cfg.contactEmail ?? "").trim() || null;
+      const aiContactPhone = (contactPhone ?? cfg.contactPhone ?? "").trim() || null;
+      if (aiContactEmail || aiContactPhone) {
+        storage.findOrCreateCustomer(aiContactEmail, aiContactPhone, aiContactName)
+          .then(customer => storage.linkConversationBySessionToCustomer(sessionId, customer.id))
+          .catch(err => console.error("Customer auto-link (ai-conversation) error:", err?.message));
+      }
+
       res.json({ ok: true });
     } catch (error) {
       console.error("AI chat save error:", error);
@@ -6258,6 +6330,376 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ error: "Failed to disconnect Sage." });
+    }
+  });
+
+  // ── Customer CRM Routes ────────────────────────────────────────────────────
+
+  // List customers (searchable)
+  app.get("/api/admin/customers", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const search = req.query.search as string | undefined;
+      const customers = await storage.getCustomers(search);
+
+      // Enrich with linked record counts, last contact date, and current pipeline status
+      const { rows } = await pool.query(`
+        SELECT
+          c.id,
+          COUNT(DISTINCT l.id) AS lead_count,
+          COUNT(DISTINCT q.id) AS quote_count,
+          COUNT(DISTINCT ai.id) AS convo_count,
+          COUNT(DISTINCT fu.id) FILTER (WHERE fu.completed = false) AS open_followup_count,
+          GREATEST(
+            MAX(l.created_at), MAX(q.created_at), MAX(ai.created_at)
+          ) AS last_activity_at,
+          -- Latest quote status takes precedence for pipeline status
+          (SELECT q2.status FROM quotes q2 WHERE q2.customer_id = c.id ORDER BY q2.created_at DESC LIMIT 1) AS latest_quote_status,
+          (SELECT l2.status FROM leads l2 WHERE l2.customer_id = c.id ORDER BY l2.created_at DESC LIMIT 1) AS latest_lead_status
+        FROM customers c
+        LEFT JOIN leads l ON l.customer_id = c.id
+        LEFT JOIN quotes q ON q.customer_id = c.id
+        LEFT JOIN ai_conversations ai ON ai.customer_id = c.id
+        LEFT JOIN follow_ups fu ON (fu.lead_id = l.id OR fu.quote_id = q.id)
+        ${search ? `WHERE c.id = ANY($1::text[])` : ""}
+        GROUP BY c.id
+      `, search ? [customers.map(c => c.id)] : []);
+
+      const statsMap = new Map(rows.map((r: any) => [r.id, r]));
+
+      const enriched = customers.map(c => {
+        const s = statsMap.get(c.id) as any;
+        const pipelineStatus = s?.latest_quote_status ?? s?.latest_lead_status ?? "new";
+        return {
+          ...c,
+          leadCount: s ? parseInt(s.lead_count ?? "0") : 0,
+          quoteCount: s ? parseInt(s.quote_count ?? "0") : 0,
+          convoCount: s ? parseInt(s.convo_count ?? "0") : 0,
+          openFollowUpCount: s ? parseInt(s.open_followup_count ?? "0") : 0,
+          lastActivityAt: s?.last_activity_at ?? c.createdAt,
+          pipelineStatus,
+        };
+      });
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get customers error:", error);
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
+  // Get single customer with full profile
+  app.get("/api/admin/customers/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomer(id);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      // Fetch all linked records in parallel
+      const [notes, leadsRows, quotesRows, convosRows, followUpsRows] = await Promise.all([
+        storage.getCustomerNotes(id),
+        pool.query(`SELECT * FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
+      ]);
+
+      const leads = leadsRows.rows;
+      const quotes = quotesRows.rows;
+      const convos = convosRows.rows;
+      const followUps = followUpsRows.rows;
+
+      // Build unified activity timeline
+      type TimelineEvent = {
+        id: string;
+        type: string;
+        title: string;
+        description?: string;
+        author?: string;
+        timestamp: string;
+        entityId?: string;
+        entityType?: string;
+      };
+
+      const timeline: TimelineEvent[] = [];
+
+      // Lead events: creation, status changes, CRM notes
+      for (const lead of leads) {
+        timeline.push({
+          id: `lead-created-${lead.id}`,
+          type: "lead_created",
+          title: `Lead submitted via ${(lead.source ?? "unknown").replace(/_/g, " ")}`,
+          description: lead.message,
+          timestamp: lead.created_at,
+          entityId: lead.id,
+          entityType: "lead",
+        });
+
+        // Status-change event (shown when status is not the default "new", using the timestamp stored)
+        if (lead.status && lead.status !== "new" && lead.status_changed_at) {
+          timeline.push({
+            id: `lead-status-${lead.id}`,
+            type: "lead_status_changed",
+            title: `Lead status changed to ${(lead.status).replace(/_/g, " ")}`,
+            timestamp: lead.status_changed_at,
+            entityId: lead.id,
+            entityType: "lead",
+          });
+        }
+
+        // CRM notes on lead
+        const crmNotes = lead.crm_notes ?? [];
+        for (const note of crmNotes) {
+          timeline.push({
+            id: `lead-note-${lead.id}-${note.timestamp}`,
+            type: "note",
+            title: `Note on lead`,
+            description: note.text,
+            author: note.author,
+            timestamp: note.timestamp,
+            entityId: lead.id,
+            entityType: "lead",
+          });
+        }
+      }
+
+      // Quote events
+      for (const quote of quotes) {
+        timeline.push({
+          id: `quote-created-${quote.id}`,
+          type: "quote_created",
+          title: `Quote created`,
+          description: `Status: ${(quote.status ?? "new").replace(/_/g, " ")} — £${Math.round((quote.est_total ?? 0) / 100).toLocaleString()}`,
+          timestamp: quote.created_at,
+          entityId: quote.id,
+          entityType: "quote",
+        });
+        if (quote.status_changed_at && quote.status !== "new") {
+          timeline.push({
+            id: `quote-status-${quote.id}`,
+            type: "quote_status",
+            title: `Quote moved to ${(quote.status ?? "").replace(/_/g, " ")}`,
+            timestamp: quote.status_changed_at,
+            entityId: quote.id,
+            entityType: "quote",
+          });
+        }
+        const adminNotes = quote.admin_notes_history ?? [];
+        for (const note of adminNotes) {
+          timeline.push({
+            id: `quote-note-${quote.id}-${note.timestamp}`,
+            type: "note",
+            title: `Note on quote`,
+            description: note.text,
+            author: note.author,
+            timestamp: note.timestamp,
+            entityId: quote.id,
+            entityType: "quote",
+          });
+        }
+      }
+
+      // AI Conversation events
+      for (const convo of convos) {
+        timeline.push({
+          id: `convo-started-${convo.id}`,
+          type: "chat_started",
+          title: `AI chat started`,
+          description: convo.contact_phone ? `Phone: ${convo.contact_phone}` : undefined,
+          timestamp: convo.created_at,
+          entityId: convo.id,
+          entityType: "conversation",
+        });
+        if (convo.completed_at) {
+          timeline.push({
+            id: `convo-completed-${convo.id}`,
+            type: "chat_completed",
+            title: `AI chat completed`,
+            timestamp: convo.completed_at,
+            entityId: convo.id,
+            entityType: "conversation",
+          });
+        }
+        if (convo.contacted_note) {
+          timeline.push({
+            id: `convo-note-${convo.id}`,
+            type: "note",
+            title: "Note from AI conversation",
+            description: convo.contacted_note,
+            timestamp: convo.completed_at ?? convo.created_at,
+            entityId: convo.id,
+            entityType: "conversation",
+          });
+        }
+      }
+
+      // Customer notes (direct)
+      for (const note of notes) {
+        timeline.push({
+          id: `customer-note-${note.id}`,
+          type: "customer_note",
+          title: `${(note.noteType ?? "general").charAt(0).toUpperCase() + (note.noteType ?? "general").slice(1)} note`,
+          description: note.text,
+          author: note.authorName ?? undefined,
+          timestamp: note.createdAt?.toISOString() ?? new Date().toISOString(),
+          entityId: note.id,
+          entityType: "customer_note",
+        });
+      }
+
+      // Follow-up events
+      for (const fu of followUps) {
+        timeline.push({
+          id: `followup-sched-${fu.id}`,
+          type: "followup_scheduled",
+          title: `Follow-up scheduled for ${fu.scheduled_date}`,
+          description: fu.notes,
+          author: fu.assigned_to_name,
+          timestamp: fu.created_at,
+          entityId: fu.id,
+          entityType: "follow_up",
+        });
+        if (fu.completed && fu.completed_at) {
+          timeline.push({
+            id: `followup-done-${fu.id}`,
+            type: "followup_completed",
+            title: `Follow-up completed`,
+            author: fu.assigned_to_name,
+            timestamp: fu.completed_at,
+            entityId: fu.id,
+            entityType: "follow_up",
+          });
+        }
+      }
+
+      // Sort timeline newest-first
+      timeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      // Build handoff card data
+      const lastNote = timeline.find(e => e.type === "note" || e.type === "customer_note");
+      const openFollowUps = followUps.filter((f: any) => !f.completed);
+      const latestLead = leads[0];
+      const latestQuote = quotes[0];
+
+      res.json({
+        customer,
+        leads,
+        quotes,
+        conversations: convos,
+        followUps,
+        notes,
+        timeline,
+        handoff: {
+          currentStatus: latestQuote?.status ?? latestLead?.status ?? "unknown",
+          lastContactAt: timeline[0]?.timestamp ?? null,
+          lastNote: lastNote ? { text: lastNote.description, author: lastNote.author, timestamp: lastNote.timestamp } : null,
+          openFollowUps: openFollowUps.map((f: any) => ({
+            id: f.id,
+            scheduledDate: f.scheduled_date,
+            notes: f.notes,
+            assignedToName: f.assigned_to_name,
+          })),
+        },
+      });
+    } catch (error) {
+      console.error("Get customer error:", error);
+      res.status(500).json({ error: "Failed to fetch customer" });
+    }
+  });
+
+  // Create customer
+  app.post("/api/admin/customers", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const schema_z = z.object({
+        name: z.string().min(1),
+        email: z.string().email().optional().or(z.literal("")),
+        phone: z.string().optional(),
+        company: z.string().optional(),
+      });
+      const data = schema_z.parse(req.body);
+      const customer = await storage.createCustomer({
+        name: data.name,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        company: data.company || undefined,
+      });
+      res.status(201).json(customer);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Create customer error:", error);
+      res.status(500).json({ error: "Failed to create customer" });
+    }
+  });
+
+  // Update customer contact details
+  app.patch("/api/admin/customers/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const schema_z = z.object({
+        name: z.string().min(1).optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        phone: z.string().optional(),
+        company: z.string().optional(),
+        primaryStaffId: z.string().optional().nullable(),
+      });
+      const data = schema_z.parse(req.body);
+      const customer = await storage.updateCustomer(id, data);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+      res.json(customer);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Update customer error:", error);
+      res.status(500).json({ error: "Failed to update customer" });
+    }
+  });
+
+  // Add a note to a customer (also appends to linked lead/quote if applicable)
+  app.post("/api/admin/customers/:id/notes", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomer(id);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      const schema_z = z.object({
+        noteType: z.enum(["call", "email", "meeting", "general"]).default("general"),
+        text: z.string().min(1),
+      });
+      const data = schema_z.parse(req.body);
+      const authorName = req.session.user?.username ?? "Admin";
+      const authorId = req.session.user?.id ?? null;
+      const timestamp = new Date().toISOString();
+      const noteEntry = { text: data.text, timestamp, author: authorName };
+
+      // Create customer note
+      const note = await storage.createCustomerNote({
+        customerId: id,
+        authorId,
+        authorName,
+        noteType: data.noteType,
+        text: data.text,
+      });
+
+      // Automatically propagate to ALL linked leads and quotes for this customer
+      const [linkedLeads, linkedQuotes] = await Promise.all([
+        pool.query(`SELECT id, crm_notes FROM leads WHERE customer_id = $1`, [id]),
+        pool.query(`SELECT id, admin_notes_history FROM quotes WHERE customer_id = $1`, [id]),
+      ]);
+
+      await Promise.all([
+        ...linkedLeads.rows.map((lead: any) => {
+          const existing: Array<{ text: string; timestamp: string; author?: string }> = lead.crm_notes ?? [];
+          return storage.updateLead(lead.id, { crmNotes: [...existing, noteEntry] });
+        }),
+        ...linkedQuotes.rows.map((quote: any) => {
+          const existing: Array<{ text: string; timestamp: string; author?: string }> = quote.admin_notes_history ?? [];
+          return storage.updateQuote(quote.id, { adminNotesHistory: [...existing, noteEntry] });
+        }),
+      ]);
+
+      res.status(201).json(note);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Create customer note error:", error);
+      res.status(500).json({ error: "Failed to add note" });
     }
   });
 
