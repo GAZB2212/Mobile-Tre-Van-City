@@ -594,6 +594,10 @@ app.use((req, res, next) => {
           `).then(() => log("✅ Customer merge history table ready"))
             .catch((err: Error) => console.error("Customer merge history migration:", err.message));
 
+          pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS dashboard_tab VARCHAR DEFAULT 'overview'`)
+            .then(() => log("✅ User dashboard tab preference column ready"))
+            .catch((err: Error) => console.error("User dashboard_tab migration:", err.message));
+
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {

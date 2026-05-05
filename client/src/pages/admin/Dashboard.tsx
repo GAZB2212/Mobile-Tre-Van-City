@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { User, Quote, Testimonial } from "@shared/schema";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,9 +69,29 @@ export default function AdminDashboard() {
     return "overview";
   });
 
+  // Once the user profile loads, apply their server-side tab preference so the
+  // correct tab is restored across devices and browsers.
+  const serverTabApplied = useRef(false);
+  useEffect(() => {
+    if (serverTabApplied.current) return;
+    const serverTab = user?.dashboardTab;
+    if (serverTab === "overview" || serverTab === "pipeline" || serverTab === "enquiries") {
+      serverTabApplied.current = true;
+      setActiveTab(serverTab);
+      localStorage.setItem("adminDashboardActiveTab", serverTab);
+    } else if (user && !isLoading) {
+      // User loaded but no server preference yet — mark as applied so we don't re-run
+      serverTabApplied.current = true;
+    }
+  }, [user, isLoading]);
+
   const handleTabChange = (tab: "overview" | "pipeline" | "enquiries") => {
     setActiveTab(tab);
     localStorage.setItem("adminDashboardActiveTab", tab);
+    // Persist preference to server (fire-and-forget)
+    apiRequest("PATCH", "/api/auth/preferences", { dashboardTab: tab }).catch(() => {
+      // Non-critical — local state already updated
+    });
   };
 
   const { data: quotes = [] } = useQuery<Quote[]>({

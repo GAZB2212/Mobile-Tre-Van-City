@@ -30,6 +30,7 @@ export const users = pgTable("users", {
   adminRole: text("admin_role").notNull().default("none"), // "none", "basic", or "full"
   passwordResetToken: varchar("password_reset_token"),
   passwordResetExpiry: timestamp("password_reset_expiry"),
+  dashboardTab: varchar("dashboard_tab").default("overview"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

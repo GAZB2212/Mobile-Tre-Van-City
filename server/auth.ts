@@ -6,7 +6,7 @@ import createMemoryStore from "memorystore";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
 import { loginSchema, createUserSchema } from "@shared/schema";
-import type { User } from "@shared/schema";
+import type { User, InsertUser } from "@shared/schema";
 
 // Extend Express session to include user
 declare module 'express-session' {
@@ -366,6 +366,33 @@ export async function setupAuth(app: Express) {
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Get user error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update user preferences (e.g. last-used dashboard tab)
+  app.patch("/api/auth/preferences", async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+      const { dashboardTab } = req.body;
+      const allowed = ["overview", "pipeline", "enquiries"];
+      if (dashboardTab !== undefined && !allowed.includes(dashboardTab)) {
+        return res.status(400).json({ message: "Invalid dashboardTab value" });
+      }
+
+      const updates: Partial<InsertUser> = {};
+      if (dashboardTab !== undefined) updates.dashboardTab = dashboardTab;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid preferences provided" });
+      }
+
+      await storage.updateUser(user.id, updates);
+      res.json({ message: "Preferences updated" });
+    } catch (error) {
+      console.error("Update preferences error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
