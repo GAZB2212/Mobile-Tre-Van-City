@@ -50,6 +50,7 @@ import {
   PhoneCall,
   CheckCircle2,
   Link2,
+  History,
 } from "lucide-react";
 
 const REDIRECT_DELAY_MS = 500;
@@ -814,6 +815,25 @@ export default function AdminLeads() {
                           </Button>
                         </div>
                       </div>
+
+                      {/* Reassignment history */}
+                      {Array.isArray((lead as any).reassignmentHistory) && (lead as any).reassignmentHistory.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                            <History className="w-3.5 h-3.5" /> Reassignment History
+                          </p>
+                          <div className="space-y-1" data-testid={`text-reassignment-history-lead-${lead.id}`}>
+                            {(lead as any).reassignmentHistory.map((entry: { customerName: string; timestamp: string; staffName?: string }, i: number) => (
+                              <p key={i} className="text-xs text-amber-500 dark:text-amber-400">
+                                Previously: {entry.customerName}
+                                <span className="text-muted-foreground ml-1">
+                                  ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
+                                </span>
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Notes history */}
                       <div>

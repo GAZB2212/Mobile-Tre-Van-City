@@ -62,6 +62,7 @@ import {
   Loader2,
   Link2,
   Search,
+  History,
 } from "lucide-react";
 import {
   Dialog,
@@ -1530,6 +1531,25 @@ export default function AdminQuoteDetail() {
                   )}
                 </div>
               </CardHeader>
+
+              {/* Reassignment history */}
+              {!editingCustomer && Array.isArray(quote.reassignmentHistory) && quote.reassignmentHistory.length > 0 && (
+                <CardContent className="pt-0 pb-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                    <History className="w-3.5 h-3.5" /> Reassignment History
+                  </p>
+                  <div className="space-y-1" data-testid="text-reassignment-history-quote">
+                    {quote.reassignmentHistory.map((entry, i) => (
+                      <p key={i} className="text-xs text-amber-500 dark:text-amber-400">
+                        Previously: {entry.customerName}
+                        <span className="text-muted-foreground ml-1">
+                          ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
+                        </span>
+                      </p>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
 
               {/* Edit Form */}
               {editingCustomer && (
