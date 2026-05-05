@@ -6606,13 +6606,13 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const [notes, leadsRows, quotesRows, convosRows, followUpsRows, movedLeadsRows, movedQuotesRows, movedConvosRows] = await Promise.all([
         storage.getCustomerNotes(id),
         pool.query(`SELECT * FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, reassignment_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, reassignment_history FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, reassignment_history, previous_customer_name, previous_customer_id, reassigned_at FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, reassignment_history, previous_customer_name, previous_customer_id, reassigned_at FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
         // Records that were previously owned by this customer but moved to another
-        pool.query(`SELECT l.id, l.reassigned_at, c.name AS target_customer_name FROM leads l JOIN customers c ON c.id = l.customer_id WHERE l.previous_customer_id = $1 AND l.reassigned_at IS NOT NULL`, [id]),
-        pool.query(`SELECT q.id, q.reassigned_at, c.name AS target_customer_name FROM quotes q JOIN customers c ON c.id = q.customer_id WHERE q.previous_customer_id = $1 AND q.reassigned_at IS NOT NULL`, [id]),
-        pool.query(`SELECT a.id, a.reassigned_at, c.name AS target_customer_name FROM ai_conversations a JOIN customers c ON c.id = a.customer_id WHERE a.previous_customer_id = $1 AND a.reassigned_at IS NOT NULL`, [id]),
+        pool.query(`SELECT l.id, l.reassigned_at, l.customer_id AS target_customer_id, c.name AS target_customer_name FROM leads l JOIN customers c ON c.id = l.customer_id WHERE l.previous_customer_id = $1 AND l.reassigned_at IS NOT NULL`, [id]),
+        pool.query(`SELECT q.id, q.reassigned_at, q.customer_id AS target_customer_id, c.name AS target_customer_name FROM quotes q JOIN customers c ON c.id = q.customer_id WHERE q.previous_customer_id = $1 AND q.reassigned_at IS NOT NULL`, [id]),
+        pool.query(`SELECT a.id, a.reassigned_at, a.customer_id AS target_customer_id, c.name AS target_customer_name FROM ai_conversations a JOIN customers c ON c.id = a.customer_id WHERE a.previous_customer_id = $1 AND a.reassigned_at IS NOT NULL`, [id]),
       ]);
 
       const leads = leadsRows.rows;
@@ -6633,6 +6633,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         timestamp: string;
         entityId?: string;
         entityType?: string;
+        relatedCustomerId?: string;
+        relatedCustomerName?: string;
       };
 
       const timeline: TimelineEvent[] = [];
@@ -6796,6 +6798,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
             timestamp: lead.reassigned_at,
             entityId: lead.id,
             entityType: "lead",
+            relatedCustomerId: lead.previous_customer_id,
+            relatedCustomerName: lead.previous_customer_name,
           });
         }
       }
@@ -6808,6 +6812,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
             timestamp: quote.reassigned_at,
             entityId: quote.id,
             entityType: "quote",
+            relatedCustomerId: quote.previous_customer_id,
+            relatedCustomerName: quote.previous_customer_name,
           });
         }
       }
@@ -6820,6 +6826,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
             timestamp: convo.reassigned_at,
             entityId: convo.id,
             entityType: "conversation",
+            relatedCustomerId: convo.previous_customer_id,
+            relatedCustomerName: convo.previous_customer_name,
           });
         }
       }
@@ -6833,6 +6841,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           timestamp: lead.reassigned_at,
           entityId: lead.id,
           entityType: "lead",
+          relatedCustomerId: lead.target_customer_id,
+          relatedCustomerName: lead.target_customer_name,
         });
       }
       for (const quote of movedQuotes) {
@@ -6843,6 +6853,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           timestamp: quote.reassigned_at,
           entityId: quote.id,
           entityType: "quote",
+          relatedCustomerId: quote.target_customer_id,
+          relatedCustomerName: quote.target_customer_name,
         });
       }
       for (const convo of movedConvos) {
@@ -6853,6 +6865,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           timestamp: convo.reassigned_at,
           entityId: convo.id,
           entityType: "conversation",
+          relatedCustomerId: convo.target_customer_id,
+          relatedCustomerName: convo.target_customer_name,
         });
       }
 

@@ -88,6 +88,8 @@ interface TimelineEvent {
   timestamp: string;
   entityId?: string;
   entityType?: string;
+  relatedCustomerId?: string;
+  relatedCustomerName?: string;
 }
 
 interface HandoffData {
@@ -1168,7 +1170,23 @@ export default function CustomerProfile() {
                           {/* Content */}
                           <div className="flex-1 min-w-0 pt-1.5">
                             <div className="flex items-start justify-between gap-2 flex-wrap">
-                              <p className="text-sm font-medium leading-tight">{event.title}</p>
+                              {(event.type === "record_reassigned_in" || event.type === "record_reassigned_out") && event.relatedCustomerId && event.relatedCustomerName ? (
+                                <p className="text-sm font-medium leading-tight" data-testid={`text-reassignment-title-${event.id}`}>
+                                  {event.entityType === "lead" ? "Lead" : event.entityType === "quote" ? "Quote" : "AI chat"}
+                                  {" "}
+                                  {event.type === "record_reassigned_in" ? "moved from" : "moved to"}
+                                  {" "}
+                                  <Link
+                                    href={`/admin/customers/${event.relatedCustomerId}`}
+                                    className="text-[hsl(86_53%_60%)] hover:underline"
+                                    data-testid={`link-reassignment-customer-${event.id}`}
+                                  >
+                                    {event.relatedCustomerName}
+                                  </Link>
+                                </p>
+                              ) : (
+                                <p className="text-sm font-medium leading-tight">{event.title}</p>
+                              )}
                               <p className="text-[11px] text-muted-foreground shrink-0">{formatDate(event.timestamp)}</p>
                             </div>
                             {event.description && (
@@ -1179,7 +1197,7 @@ export default function CustomerProfile() {
                             {event.author && (
                               <p className="text-[11px] text-muted-foreground mt-1">by {event.author}</p>
                             )}
-                            {(event.entityType === "quote" || event.entityType === "lead") && event.entityId && (
+                            {(event.entityType === "quote" || event.entityType === "lead") && event.entityId && event.type !== "record_reassigned_in" && event.type !== "record_reassigned_out" && (
                               <Link
                                 href={event.entityType === "quote" ? `/admin/quotes/${event.entityId}` : `/admin/leads`}
                                 className="inline-flex items-center gap-1 text-[11px] text-[hsl(86_53%_60%)] hover:underline mt-1"
