@@ -140,7 +140,7 @@ export interface IStorage {
   linkQuoteToCustomer(quoteId: string, customerId: string, staffName?: string): Promise<void>;
   linkConversationToCustomer(conversationId: string, customerId: string, staffName?: string): Promise<void>;
   linkConversationBySessionToCustomer(sessionId: string, customerId: string, staffName?: string): Promise<void>;
-  mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
+  mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number; historyId: string }>;
   getMergeHistory(limit?: number, keepId?: string): Promise<CustomerMergeHistory[]>;
   splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
 }
@@ -1779,8 +1779,8 @@ export class MemStorage implements IStorage {
   async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async linkQuoteToCustomer(_quoteId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async linkConversationToCustomer(_conversationId: string, _customerId: string, _staffName?: string): Promise<void> {}
-  async mergeCustomers(_keepId: string, _mergeId: string, _triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
-    return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
+  async mergeCustomers(_keepId: string, _mergeId: string, _triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number; historyId: string }> {
+    return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0, historyId: "" };
   }
   async getMergeHistory(_limit?: number): Promise<CustomerMergeHistory[]> { return []; }
   async splitMerge(_historyId: string): Promise<{ newCustomerId: string }> { return { newCustomerId: "" }; }
@@ -2399,8 +2399,8 @@ export class DbStorage implements IStorage {
    * 3. Delete the now-orphaned duplicate row.
    * Safe to call even if `mergeId` has no associated records.
    */
-  async mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
-    if (keepId === mergeId) return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
+  async mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number; historyId: string }> {
+    if (keepId === mergeId) return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0, historyId: "" };
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -2447,12 +2447,13 @@ export class DbStorage implements IStorage {
       // Log the merge history so it can be undone.
       const keepRow = keepBefore.rows[0];
       const removedRow = removedBefore.rows[0];
-      await client.query(`
+      const historyInsert = await client.query<{ id: string }>(`
         INSERT INTO customer_merge_history
           (keep_id, keep_snapshot_name, keep_snapshot_email, keep_snapshot_phone, keep_snapshot_company,
            removed_id, removed_snapshot_name, removed_snapshot_email, removed_snapshot_phone, removed_snapshot_company,
            leads_relinked, quotes_relinked, conversations_relinked, notes_relinked, triggered_by)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        RETURNING id
       `, [
         keepId, keepRow?.name ?? null, keepRow?.email ?? null, keepRow?.phone ?? null, keepRow?.company ?? null,
         mergeId, removedRow?.name ?? null, removedRow?.email ?? null, removedRow?.phone ?? null, removedRow?.company ?? null,
@@ -2468,6 +2469,7 @@ export class DbStorage implements IStorage {
         leadsRepointed: leadsResult.rowCount ?? 0,
         quotesRepointed: quotesResult.rowCount ?? 0,
         convosRepointed: convosResult.rowCount ?? 0,
+        historyId: historyInsert.rows[0]?.id ?? "",
       };
     } catch (err) {
       await client.query("ROLLBACK");

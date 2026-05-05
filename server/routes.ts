@@ -6587,7 +6587,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (!removeCustomer) return res.status(404).json({ error: "Customer to remove not found" });
 
       const counts = await storage.mergeCustomers(keepId, removeId);
-      res.json({ ok: true, survivingId: keepId, ...counts });
+      res.json({ ok: true, survivingId: keepId, historyId: counts.historyId, ...counts });
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
       console.error("Manual merge error:", error);

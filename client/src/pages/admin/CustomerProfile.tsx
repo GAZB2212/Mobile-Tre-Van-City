@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
 import { useParams, Link, useLocation } from "wouter";
@@ -314,10 +315,28 @@ export default function CustomerProfile() {
     },
   });
 
+  const undoMergeMutation = useMutation({
+    mutationFn: (historyId: string) =>
+      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then(r => r.json()),
+    onSuccess: (data: { ok: boolean; newCustomerId: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", id] });
+      toast({
+        title: "Merge undone",
+        description: "The customer has been recreated and their records re-linked.",
+      });
+      if (data.newCustomerId) {
+        navigate(`/admin/customers/${data.newCustomerId}`);
+      }
+    },
+    onError: () => toast({ variant: "destructive", title: "Undo failed", description: "Could not reverse the merge. Please try again." }),
+  });
+
   const mergeMutation = useMutation({
     mutationFn: ({ mergeWithId, keepId }: { mergeWithId: string; keepId: string }) =>
       apiRequest("POST", `/api/admin/customers/${id}/merge`, { mergeWithId, keepId }).then(r => r.json()),
-    onSuccess: (result: { ok: boolean; survivingId: string }) => {
+    onSuccess: (result: { ok: boolean; survivingId: string; historyId: string }) => {
       setShowMergeConfirm(false);
       setShowMergePanel(false);
       const isCurrentRemoved = result.survivingId !== id;
@@ -328,17 +347,45 @@ export default function CustomerProfile() {
       setMergeKeepId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
+      const historyId = result.historyId;
       if (isCurrentRemoved) {
-        toast({
-          title: "Profile merged",
-          description: `This profile has been merged into ${survivingName ?? "the other customer"} — redirecting…`,
-        });
         mergeRedirectTimer.current = setTimeout(() => {
           mergeRedirectTimer.current = null;
           navigate(`/admin/customers/${result.survivingId}`);
-        }, 1500);
+        }, 4000);
+        toast({
+          title: "Profile merged",
+          description: `This profile has been merged into ${survivingName ?? "the other customer"}.`,
+          action: historyId ? (
+            <ToastAction
+              altText="Undo merge"
+              data-testid="button-undo-merge"
+              onClick={() => {
+                if (mergeRedirectTimer.current !== null) {
+                  clearTimeout(mergeRedirectTimer.current);
+                  mergeRedirectTimer.current = null;
+                }
+                undoMergeMutation.mutate(historyId);
+              }}
+            >
+              Undo
+            </ToastAction>
+          ) : undefined,
+        });
       } else {
-        toast({ title: "Customers merged", description: "The merge has been logged and can be reversed from the Merge History panel." });
+        toast({
+          title: "Customers merged",
+          description: "The merge has been logged and can be reversed.",
+          action: historyId ? (
+            <ToastAction
+              altText="Undo merge"
+              data-testid="button-undo-merge"
+              onClick={() => undoMergeMutation.mutate(historyId)}
+            >
+              Undo
+            </ToastAction>
+          ) : undefined,
+        });
         queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", id] });
       }
     },
