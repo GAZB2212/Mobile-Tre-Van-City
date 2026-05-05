@@ -59,6 +59,7 @@ import {
   CalendarDays,
   Flag,
   Circle,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -2977,7 +2978,15 @@ export default function AdminQuoteDetail() {
 
                     {/* Add Note */}
                     <div className="space-y-2 pt-4 border-t">
-                      <Label htmlFor="new-admin-note-tab">Add Note</Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="new-admin-note-tab">Add Note</Label>
+                        {addNoteMutation.isPending && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="status-note-saving">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Saving...
+                          </span>
+                        )}
+                      </div>
                       <Textarea
                         id="new-admin-note-tab"
                         value={newAdminNote}
@@ -2992,6 +3001,7 @@ export default function AdminQuoteDetail() {
                         }}
                         placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
                         rows={3}
+                        disabled={addNoteMutation.isPending}
                         data-testid="textarea-new-admin-note"
                       />
                       <p className="text-xs text-muted-foreground">Press Enter to save · Shift+Enter for new line</p>
