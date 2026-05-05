@@ -5252,7 +5252,7 @@ ${blogEntries}
       }
 
       // Fetch live data to inject into system prompt (so AI uses real IDs)
-      const [kits, upgrades, financePlans, packagesResult, popularityIntel] = await Promise.all([
+      const [kits, upgrades, financePlans, packagesResult, popularityIntel, siteSettings] = await Promise.all([
         storage.getKits(),
         storage.getUpgrades(),
         storage.getFinancePlans(),
@@ -5261,7 +5261,9 @@ ${blogEntries}
           console.error("[ai-chat] Failed to compute popularity intelligence:", err);
           return null;
         }),
+        storage.getSiteSettings().catch(() => ({} as Record<string, string>)),
       ]);
+      const maxBusinessContext = (siteSettings as Record<string, string>)["max_business_context"]?.trim() ?? "";
       const packages: Array<{ id: string; name: string; tier: number; description: string | null; recommended_for: string | null; upgrade_ids: string[] }> = packagesResult.rows;
 
       const kitsInfo = kits.map(k => {
@@ -5505,6 +5507,7 @@ The POPULARITY INTELLIGENCE block above is derived from actual customer quote su
 - When recommending a package, if the popularity data shows a tier is dominant, lead with that tier and reference the data naturally: "this is the setup most of our [commercial/car] customers go with"
 - Never cite raw percentages or numbers to the customer — translate data into natural sales language: "most", "the majority", "eight out of ten", "our most popular setup", etc.
 - If popularity data is unavailable, fall back to general best-practice recommendations as normal
+${maxBusinessContext ? `\nBUSINESS CONTEXT (added by the team — treat this as ground truth for anything it covers):\n${maxBusinessContext}` : ""}
 
 RESPONSE FORMAT:
 You MUST always respond with valid JSON only — no other text outside the JSON. Use this exact structure:

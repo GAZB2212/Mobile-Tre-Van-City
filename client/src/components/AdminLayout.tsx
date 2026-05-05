@@ -93,6 +93,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
       { title: "Videos", href: "/admin/videos", icon: Video, requiredRole: "full" },
       { title: "Blog", href: "/admin/blog", icon: BookOpen, requiredRole: "full" },
       { title: "AI Packages", href: "/admin/ai-packages", icon: Layers, requiredRole: "full" },
+      { title: "Max AI Settings", href: "/admin/max-settings", icon: Bot, requiredRole: "full" },
       { title: "Users", href: "/admin/users", icon: Shield, requiredRole: "full" },
       { title: "Email Templates", href: "/admin/email-preview", icon: Mail, requiredRole: "full" },
       { title: "Settings", href: "/admin/settings", icon: Settings, requiredRole: "full" },

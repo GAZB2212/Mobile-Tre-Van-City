@@ -72,6 +72,7 @@ const AdminAIConversations = lazy(() => import("@/pages/admin/AIConversations"))
 const AdminTestimonials = lazy(() => import("@/pages/admin/Testimonials"));
 const AdminEmailPreview = lazy(() => import("@/pages/admin/EmailPreview"));
 const AdminSettings = lazy(() => import("@/pages/admin/Settings"));
+const AdminMaxSettings = lazy(() => import("@/pages/admin/MaxSettings"));
 const AdminCalendar = lazy(() => import("@/pages/admin/Calendar"));
 const AdminCustomers = lazy(() => import("@/pages/admin/Customers"));
 const AdminCustomerProfile = lazy(() => import("@/pages/admin/CustomerProfile"));
@@ -139,6 +140,7 @@ function Router() {
       <Route path="/admin/testimonials">{() => <AdminLayout><AdminTestimonials /></AdminLayout>}</Route>
       <Route path="/admin/email-preview">{() => <AdminLayout><AdminEmailPreview /></AdminLayout>}</Route>
       <Route path="/admin/settings">{() => <AdminLayout><AdminSettings /></AdminLayout>}</Route>
+      <Route path="/admin/max-settings">{() => <AdminLayout><AdminMaxSettings /></AdminLayout>}</Route>
       <Route path="/admin/calendar">{() => <AdminLayout><AdminCalendar /></AdminLayout>}</Route>
       <Route path="/admin/customers/:id">{() => <AdminLayout><AdminCustomerProfile /></AdminLayout>}</Route>
       <Route path="/admin/customers">{() => <AdminLayout><AdminCustomers /></AdminLayout>}</Route>
