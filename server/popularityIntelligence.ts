@@ -23,7 +23,16 @@ export interface PopularityIntelligence {
 let lastPopularSyncAt = 0;
 const POPULAR_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 
+// Short-lived in-memory cache to avoid a DB query on every chat message
+let cachedIntel: PopularityIntelligence | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export async function computePopularityIntelligence(): Promise<PopularityIntelligence> {
+  const now = Date.now();
+  if (cachedIntel !== null && now - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedIntel;
+  }
   // Fetch the last 200 meaningful quotes (not cancelled, has at least a kit or upgrade)
   // and fetch active packages in parallel
   const [result, packagesResult, all48vResult] = await Promise.all([
@@ -74,7 +83,7 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
   }));
 
   if (total === 0) {
-    return {
+    const emptyResult: PopularityIntelligence = {
       totalMeaningfulQuotes: 0,
       topUpgradesOverall: [],
       topUpgradesByServiceType: {},
@@ -84,6 +93,9 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
       packageTierDistribution: [],
       dominantPackageTier: null,
     };
+    cachedIntel = emptyResult;
+    cacheTimestamp = Date.now();
+    return emptyResult;
   }
 
   // Count upgrade frequencies overall and by service type
@@ -231,9 +243,9 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
   // Sync popular flag on upgrades (throttled to once per hour).
   // Always runs the update — clears stale popular flags even if no upgrades were
   // selected in the recent window (popularUpgradeIds will be empty in that case).
-  const now = Date.now();
-  if (now - lastPopularSyncAt >= POPULAR_SYNC_INTERVAL_MS) {
-    lastPopularSyncAt = now;
+  const syncNow = Date.now();
+  if (syncNow - lastPopularSyncAt >= POPULAR_SYNC_INTERVAL_MS) {
+    lastPopularSyncAt = syncNow;
     try {
       if (popularUpgradeIds.length > 0) {
         await pool.query(
@@ -251,7 +263,7 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     }
   }
 
-  return {
+  const intel: PopularityIntelligence = {
     totalMeaningfulQuotes: total,
     topUpgradesOverall,
     topUpgradesByServiceType,
@@ -261,6 +273,11 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     packageTierDistribution,
     dominantPackageTier,
   };
+
+  cachedIntel = intel;
+  cacheTimestamp = Date.now();
+
+  return intel;
 }
 
 export function formatPopularityBlock(intel: PopularityIntelligence): string {
