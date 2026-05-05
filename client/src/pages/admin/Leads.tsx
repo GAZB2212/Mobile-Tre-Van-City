@@ -825,9 +825,9 @@ export default function AdminLeads() {
                           <div className="space-y-1.5" data-testid={`text-reassignment-history-lead-${lead.id}`}>
                             {(lead as any).reassignmentHistory.map((entry: { fromCustomerName: string; fromCustomerId: string; toCustomerName: string; toCustomerId: string; reassignedAt: string }, i: number) => (
                               <div key={i} className="flex items-center gap-1.5 text-xs">
-                                <span className="text-muted-foreground">{entry.fromCustomerName}</span>
+                                <Link href={`/admin/customers/${entry.fromCustomerId}`} className="text-muted-foreground hover:text-foreground hover:underline transition-colors" data-testid={`link-reassignment-from-customer-${entry.fromCustomerId}`}>{entry.fromCustomerName}</Link>
                                 <span className="text-muted-foreground">→</span>
-                                <span className="text-foreground font-medium">{entry.toCustomerName}</span>
+                                <Link href={`/admin/customers/${entry.toCustomerId}`} className="text-foreground font-medium hover:underline transition-colors" data-testid={`link-reassignment-to-customer-${entry.toCustomerId}`}>{entry.toCustomerName}</Link>
                                 <span className="text-muted-foreground ml-auto">
                                   {new Date(entry.reassignedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}{" "}
                                   {new Date(entry.reassignedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
