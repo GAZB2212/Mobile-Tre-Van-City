@@ -250,6 +250,9 @@ export default function AdminQuoteDetail() {
 
   // AI transcript viewer
   const [showAiTranscript, setShowAiTranscript] = useState(false);
+  // Transcript-view note editing state
+  const [editingTranscriptNote, setEditingTranscriptNote] = useState<{ timestamp: string; text: string } | null>(null);
+  const [newTranscriptNote, setNewTranscriptNote] = useState("");
 
   // Unsaved-changes guard (all tabs + back navigation)
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -3520,7 +3523,7 @@ export default function AdminQuoteDetail() {
         const msgs: Array<{role: string; content: string}> = Array.isArray(ai.messages) ? ai.messages : [];
         const displayName = ai.contact_name || ai.contactName || quote?.userName || "Customer";
         return (
-          <Dialog open={showAiTranscript} onOpenChange={setShowAiTranscript}>
+          <Dialog open={showAiTranscript} onOpenChange={(open) => { setShowAiTranscript(open); if (!open) { setEditingTranscriptNote(null); setNewTranscriptNote(""); } }}>
             <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0" data-testid="dialog-ai-transcript">
               <DialogHeader className="px-5 py-4 border-b shrink-0">
                 <DialogTitle className="flex items-center gap-3">
@@ -3547,6 +3550,170 @@ export default function AdminQuoteDetail() {
                     </div>
                   </div>
                 ))}
+              </div>
+              {/* Staff notes section in transcript view */}
+              <div className="border-t px-5 py-4 shrink-0 space-y-3" data-testid="section-transcript-notes">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Staff Notes</p>
+                {(() => {
+                  const adminNotes: Array<{text: string; timestamp: string; author?: string}> = Array.isArray((quote as any)?.adminNotesHistory) ? (quote as any).adminNotesHistory : [];
+                  return adminNotes.length === 0 && !editingTranscriptNote ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">No notes yet.</p>
+                      <div className="flex gap-2">
+                        <Textarea
+                          placeholder="Add a note about this conversation…"
+                          value={newTranscriptNote}
+                          onChange={(e) => setNewTranscriptNote(e.target.value)}
+                          rows={2}
+                          disabled={editNoteMutation.isPending || addNoteMutation.isPending}
+                          data-testid="textarea-transcript-new-note"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (newTranscriptNote.trim()) {
+                              addNoteMutation.mutate(newTranscriptNote.trim(), {
+                                onSuccess: () => setNewTranscriptNote(""),
+                              });
+                            }
+                          }}
+                          disabled={!newTranscriptNote.trim() || addNoteMutation.isPending}
+                          data-testid="button-transcript-save-new-note"
+                        >
+                          {addNoteMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4 mr-1" />Save Note
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {adminNotes.map((note, idx) => {
+                        const isThisEditing = editingTranscriptNote?.timestamp === note.timestamp;
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                {isThisEditing ? (
+                                  <div className="space-y-2">
+                                    <Textarea
+                                      value={editingTranscriptNote.text}
+                                      onChange={(e) => setEditingTranscriptNote({ ...editingTranscriptNote, text: e.target.value })}
+                                      rows={3}
+                                      disabled={editNoteMutation.isPending}
+                                      data-testid={`textarea-transcript-edit-note-${idx}`}
+                                    />
+                                    {editNoteMutation.isPending && (
+                                      <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="status-transcript-note-saving">
+                                        <Loader2 className="h-3 w-3 animate-spin" />Saving...
+                                      </span>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          if (editingTranscriptNote.text.trim()) {
+                                            editNoteMutation.mutate({ noteType: 'admin', timestamp: editingTranscriptNote.timestamp, text: editingTranscriptNote.text }, {
+                                              onSuccess: () => setEditingTranscriptNote(null),
+                                            });
+                                          }
+                                        }}
+                                        disabled={!editingTranscriptNote.text.trim() || editNoteMutation.isPending}
+                                        data-testid={`button-transcript-save-note-${idx}`}
+                                      >
+                                        {editNoteMutation.isPending ? (
+                                          <>
+                                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />Saving...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Check className="h-4 w-4 mr-1" />Save
+                                          </>
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setEditingTranscriptNote(null)}
+                                        disabled={editNoteMutation.isPending}
+                                        data-testid={`button-transcript-cancel-note-${idx}`}
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" />Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                                )}
+                              </div>
+                              {!isThisEditing && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 shrink-0"
+                                  onClick={() => setEditingTranscriptNote({ timestamp: note.timestamp, text: note.text })}
+                                  data-testid={`button-transcript-edit-note-${idx}`}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                            {!isThisEditing && (
+                              <p className="text-xs text-muted-foreground">{note.author || 'Staff'} · {new Date(note.timestamp).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {/* Add new note below existing ones */}
+                      {!editingTranscriptNote && (
+                        <div className="pt-1 space-y-2">
+                          <Textarea
+                            placeholder="Add another note…"
+                            value={newTranscriptNote}
+                            onChange={(e) => setNewTranscriptNote(e.target.value)}
+                            rows={2}
+                            disabled={addNoteMutation.isPending}
+                            data-testid="textarea-transcript-new-note"
+                          />
+                          {newTranscriptNote.trim() && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  if (newTranscriptNote.trim()) {
+                                    addNoteMutation.mutate(newTranscriptNote.trim(), {
+                                      onSuccess: () => setNewTranscriptNote(""),
+                                    });
+                                  }
+                                }}
+                                disabled={addNoteMutation.isPending}
+                                data-testid="button-transcript-save-new-note"
+                              >
+                                {addNoteMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check className="h-4 w-4 mr-1" />Save Note
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </DialogContent>
           </Dialog>
