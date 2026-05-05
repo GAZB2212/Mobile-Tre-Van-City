@@ -106,6 +106,8 @@ export default function AdminCustomers() {
         credentials: "include",
       }).then(r => r.json()),
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   if (isLoading) {
