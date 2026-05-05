@@ -21,7 +21,7 @@ import {
   ArrowLeft, Activity, CalendarDays, Globe, Monitor,
   Smartphone, Tablet, MousePointer, Eye, Timer,
   BarChart2, RefreshCw, Zap, ChevronDown,
-  Bot, Phone, CheckCircle2, XCircle, MessageSquare, Percent
+  Bot, Phone, CheckCircle2, XCircle, MessageSquare, Percent, Star, Layers
 } from "lucide-react";
 
 interface PackageTierStats {
@@ -40,6 +40,31 @@ interface VolumeSegmentStats {
   dominantPackageTier: PackageTierStats | null;
 }
 
+interface UpgradeSelectionStat {
+  id: string;
+  name: string;
+  category: string;
+  count: number;
+  pct: number;
+}
+
+interface KitSelectionStat {
+  id: string;
+  name: string;
+  count: number;
+  pct: number;
+}
+
+interface PopularityData {
+  totalMeaningfulQuotes: number;
+  allKits: KitSelectionStat[];
+  allUpgradesOverall: UpgradeSelectionStat[];
+  rate48v: number;
+  packageTierDistribution: PackageTierStats[];
+  dominantPackageTier: PackageTierStats | null;
+  volumeSegments: VolumeSegmentStats[];
+}
+
 interface BusinessAnalytics {
   overview: {
     totalQuotes: number;
@@ -53,6 +78,7 @@ interface BusinessAnalytics {
   popularVans: Array<{ vanId: string; title: string; count: number }>;
   popularKits: Array<{ kitId: string; count: number }>;
   volumeSegments: VolumeSegmentStats[];
+  popularity: PopularityData;
   recentActivity: {
     quotes: Array<{ id: string; customerName: string; customerEmail: string; status: string; totalPrice: number; createdAt: string }>;
     leads: Array<{ id: string; name: string; email: string; subject: string; createdAt: string }>;
@@ -122,7 +148,7 @@ export default function AdminAnalytics() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
-  const [activeTab, setActiveTab] = useState<"web" | "business" | "configurators" | "max_ai">("web");
+  const [activeTab, setActiveTab] = useState<"web" | "business" | "configurators" | "max_ai" | "popularity">("web");
   const [days, setDays] = useState("30");
 
   // Configurators date range — default: last 30 days
@@ -277,6 +303,15 @@ export default function AdminAnalytics() {
             >
               <Bot className="w-4 h-4 mr-2" />
               Max AI
+            </Button>
+            <Button
+              variant={activeTab === "popularity" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("popularity")}
+              data-testid="button-tab-popularity"
+            >
+              <Star className="w-4 h-4 mr-2" />
+              Popularity
             </Button>
           </div>
         </div>
@@ -1010,6 +1045,243 @@ export default function AdminAnalytics() {
                     </CardContent>
                   </Card>
                 </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ===== POPULARITY TAB ===== */}
+        {activeTab === "popularity" && (
+          <div className="space-y-6">
+            {businessLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : !businessAnalytics?.popularity || businessAnalytics.popularity.totalMeaningfulQuotes === 0 ? (
+              <Card>
+                <CardContent className="py-16 text-center">
+                  <Star className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No popularity data yet</h3>
+                  <p className="text-muted-foreground">Popularity intelligence will appear here as quotes are submitted.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Summary KPIs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card data-testid="card-popularity-quotes">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-xs font-medium text-muted-foreground">Quotes Analysed</CardTitle>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-popularity-quotes">{businessAnalytics.popularity.totalMeaningfulQuotes.toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground mt-1">Recent non-cancelled quotes</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-48v-rate">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-xs font-medium text-muted-foreground">48V Selection Rate</CardTitle>
+                      <Zap className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-48v-rate">{businessAnalytics.popularity.rate48v}%</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {businessAnalytics.popularity.rate48v >= 60
+                          ? "Strong signal — majority choose 48V"
+                          : businessAnalytics.popularity.rate48v >= 40
+                          ? "Solid majority — recommend proactively"
+                          : "Mention when relevant"}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card data-testid="card-dominant-tier">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-xs font-medium text-muted-foreground">Dominant Package</CardTitle>
+                      <Layers className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold truncate" data-testid="text-dominant-tier">
+                        {businessAnalytics.popularity.dominantPackageTier?.name ?? "—"}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {businessAnalytics.popularity.dominantPackageTier
+                          ? `${businessAnalytics.popularity.dominantPackageTier.pct}% of classified quotes`
+                          : "No classified quotes yet"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Kit Frequency & Package Tier Distribution */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Most Selected Kits */}
+                  <Card data-testid="card-kit-frequency">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Package className="w-5 h-5 text-primary" />
+                        Kit Selection Frequency
+                      </CardTitle>
+                      <CardDescription>All kits chosen by customers, ranked by popularity</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {businessAnalytics.popularity.allKits.length > 0 ? (
+                        <div className="space-y-3">
+                          {businessAnalytics.popularity.allKits.map((kit, index) => (
+                            <div key={kit.id} className="space-y-1" data-testid={`row-kit-freq-${index}`}>
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Badge variant="outline" className="shrink-0 w-6 h-6 flex items-center justify-center p-0 text-xs">{index + 1}</Badge>
+                                  <span className="font-medium truncate" data-testid={`text-kit-name-${index}`}>{kit.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                  <span className="text-xs text-muted-foreground">{kit.count} quotes</span>
+                                  <Badge variant="secondary" data-testid={`badge-kit-pct-${index}`}>{kit.pct}%</Badge>
+                                </div>
+                              </div>
+                              <div className="flex-1 bg-muted rounded-full h-1.5">
+                                <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${kit.pct}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No kit data yet</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Package Tier Distribution */}
+                  <Card data-testid="card-package-tier-dist">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-primary" />
+                        Package Tier Distribution
+                      </CardTitle>
+                      <CardDescription>Overall breakdown of package tiers chosen across all quotes</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {businessAnalytics.popularity.packageTierDistribution.some(p => p.count > 0) ? (
+                        <div className="space-y-3">
+                          {businessAnalytics.popularity.packageTierDistribution.filter(p => p.count > 0).map((tier) => (
+                            <div key={tier.id} className="flex items-center gap-3" data-testid={`row-pkg-tier-${tier.id}`}>
+                              <div className="w-28 text-xs text-muted-foreground truncate shrink-0">{tier.name}</div>
+                              <div className="flex-1 bg-muted rounded-full h-2">
+                                <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${tier.pct}%` }} />
+                              </div>
+                              <div className="w-8 text-right text-xs font-medium shrink-0">{tier.count}</div>
+                              <div className="w-9 text-right text-xs text-muted-foreground shrink-0">{tier.pct}%</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No package classifications yet</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Upgrades by Category */}
+                {businessAnalytics.popularity.allUpgradesOverall.length > 0 && (() => {
+                  const byCategory: Record<string, UpgradeSelectionStat[]> = {};
+                  for (const u of businessAnalytics.popularity.allUpgradesOverall) {
+                    if (!byCategory[u.category]) byCategory[u.category] = [];
+                    byCategory[u.category].push(u);
+                  }
+                  const sortedCategories = Object.entries(byCategory)
+                    .map(([cat, upgrades]) => [cat, [...upgrades].sort((a, b) => b.pct - a.pct)] as [string, UpgradeSelectionStat[]])
+                    .sort((a, b) => b[1][0].pct - a[1][0].pct);
+                  return (
+                    <Card data-testid="card-upgrades-by-category">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Star className="w-5 h-5 text-primary" />
+                          Upgrade Selection Rates by Category
+                        </CardTitle>
+                        <CardDescription>Every upgrade chosen by customers, grouped by category and sorted by popularity</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {sortedCategories.map(([category, upgrades]) => (
+                            <div key={category} className="space-y-2" data-testid={`section-category-${category}`}>
+                              <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{category}</div>
+                              <div className="space-y-2">
+                                {upgrades.map((u, i) => (
+                                  <div key={u.id} className="space-y-1" data-testid={`row-upgrade-${u.id}`}>
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="truncate text-sm" data-testid={`text-upgrade-name-${i}-${category}`}>{u.name}</span>
+                                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                                        {u.pct >= 70 && <Badge variant="default" className="text-xs shrink-0">Very popular</Badge>}
+                                        {u.pct >= 50 && u.pct < 70 && <Badge variant="secondary" className="text-xs shrink-0">Popular</Badge>}
+                                        <span className="text-xs text-muted-foreground w-8 text-right">{u.pct}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 bg-muted rounded-full h-1.5">
+                                      <div className="h-1.5 rounded-full bg-primary transition-all" style={{ width: `${u.pct}%` }} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
+                {/* Volume Segments */}
+                {businessAnalytics.popularity.volumeSegments.length > 0 && (
+                  <Card data-testid="card-popularity-volume-segments">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart2 className="w-5 h-5 text-primary" />
+                        Package Choice by Operator Volume
+                      </CardTitle>
+                      <CardDescription>Package tier distribution split by job volume segment (derived from kit choice)</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {businessAnalytics.popularity.volumeSegments.map((seg) => {
+                          const segLabel = seg.segment === "high" ? "High-Volume Operators" : "Standard-Volume Operators";
+                          const activeTiers = seg.packageTierDistribution.filter(p => p.count > 0);
+                          return (
+                            <div key={seg.segment} data-testid={`card-pop-volume-segment-${seg.segment}`} className="space-y-3">
+                              <div>
+                                <div className="font-medium text-sm">{segLabel}</div>
+                                <div className="text-xs text-muted-foreground capitalize">{seg.label}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {seg.totalQuotes} {seg.totalQuotes === 1 ? "quote" : "quotes"}
+                                  {seg.dominantPackageTier && (
+                                    <span className="ml-1">· dominant: <span className="font-medium text-foreground">{seg.dominantPackageTier.name}</span></span>
+                                  )}
+                                </div>
+                              </div>
+                              {activeTiers.length > 0 ? (
+                                <div className="space-y-2">
+                                  {activeTiers.map((tier) => (
+                                    <div key={tier.id} className="flex items-center gap-3" data-testid={`row-pop-segment-tier-${seg.segment}-${tier.id}`}>
+                                      <div className="w-24 text-xs text-muted-foreground truncate shrink-0">{tier.name}</div>
+                                      <div className="flex-1 bg-muted rounded-full h-2">
+                                        <div className="h-2 rounded-full bg-primary" style={{ width: `${tier.pct}%` }} />
+                                      </div>
+                                      <div className="w-8 text-right text-xs font-medium shrink-0">{tier.count}</div>
+                                      <div className="w-9 text-right text-xs text-muted-foreground shrink-0">{tier.pct}%</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No package classifications yet</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
           </div>

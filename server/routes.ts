@@ -3944,6 +3944,15 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         popularVans,
         popularKits,
         volumeSegments: popularityIntel?.volumeSegments ?? [],
+        popularity: {
+          totalMeaningfulQuotes: popularityIntel?.totalMeaningfulQuotes ?? 0,
+          allKits: popularityIntel?.allKits ?? [],
+          allUpgradesOverall: popularityIntel?.allUpgradesOverall ?? [],
+          rate48v: popularityIntel?.rate48v ?? 0,
+          packageTierDistribution: popularityIntel?.packageTierDistribution ?? [],
+          dominantPackageTier: popularityIntel?.dominantPackageTier ?? null,
+          volumeSegments: popularityIntel?.volumeSegments ?? [],
+        },
         recentActivity: {
           quotes: quotes
             .sort((a, b) => {
