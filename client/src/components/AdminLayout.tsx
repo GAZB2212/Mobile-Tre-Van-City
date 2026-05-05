@@ -74,8 +74,8 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
     items: [
       { title: "Configurators", href: "/admin/quotes", icon: FileText, requiredRole: "basic" },
       { title: "Leads", href: "/admin/leads", icon: Users, requiredRole: "basic" },
-      { title: "Calendar", href: "/admin/calendar", icon: Calendar, requiredRole: "basic" },
       { title: "AI Conversations", href: "/admin/ai-conversations", icon: Bot, requiredRole: "basic" },
+      { title: "Calendar", href: "/admin/calendar", icon: Calendar, requiredRole: "basic" },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3, requiredRole: "basic" },
     ],
   },
