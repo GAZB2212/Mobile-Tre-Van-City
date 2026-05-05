@@ -554,17 +554,26 @@ export default function AIChatWidget() {
       // ignore
     }
 
-    // Save conversation as completed
-    saveToDb(messages, config, trackers, "completed");
-
-    // Mark chat as complete
-    setStage("complete");
+    // Write completed state to localStorage BEFORE navigating so the new page sees it immediately
     try {
       const state: AIChatState = { sessionId, messages, config, stage: "complete", trackers, savedAt: new Date().toISOString() };
       localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(state));
     } catch {
       // ignore
     }
+
+    // Synchronously update liveStateRef to "complete" BEFORE calling window.location.href.
+    // window.location.href triggers beforeunload, which reads liveStateRef to decide whether
+    // to fire a sendBeacon("abandoned"). Without this update, the ref still shows "summary"
+    // (setStage is a queued React update, not synchronous), so the abandoned beacon would race
+    // with and overwrite our completed save — preventing the auto-quote from being created.
+    liveStateRef.current = { ...liveStateRef.current, stage: "complete" };
+    setStage("complete");
+
+    // Use sendBeacon instead of fetch for the completed save — regular fetch is cancelled
+    // by the page navigation that follows immediately below.
+    const completedPayload = JSON.stringify({ sessionId, status: "completed", messages, config, trackers });
+    navigator.sendBeacon("/api/ai-chat/save", new Blob([completedPayload], { type: "application/json" }));
 
     // Navigate to the AI review page (dedicated review/adjust step)
     window.location.href = "/configurator/ai-review";
