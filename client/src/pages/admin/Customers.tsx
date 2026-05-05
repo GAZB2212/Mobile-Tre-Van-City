@@ -41,6 +41,7 @@ import {
   ArrowRightLeft,
   UserCircle,
   HelpCircle,
+  Trash2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -771,6 +772,8 @@ export default function AdminCustomers() {
   const [attentionFilter, setAttentionFilter] = useState(false);
   const [showMergeHistory, setShowMergeHistory] = useState(false);
   const [splittingId, setSplittingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CustomerListItem | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const NEW_CUSTOMERS_KEY = "new-customers-count";
 
@@ -837,6 +840,20 @@ export default function AdminCustomers() {
         msg = "A customer with that email/phone already exists. This split cannot be completed.";
       }
       toast({ title: "Split failed", description: msg, variant: "destructive" });
+    },
+  });
+
+  const deleteCustomerMutation = useMutation<{ ok: boolean }, Error, string>({
+    mutationFn: (id: string) =>
+      apiRequest("DELETE", `/api/admin/customers/${id}`).then(r => r.json()),
+    onSuccess: () => {
+      setDeleteTarget(null);
+      setDeleteConfirmText("");
+      toast({ title: "Customer deleted", description: "The customer profile has been permanently removed." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+    },
+    onError: () => {
+      toast({ title: "Delete failed", description: "Could not delete the customer. Please try again.", variant: "destructive" });
     },
   });
 
@@ -1582,13 +1599,29 @@ export default function AdminCustomers() {
                           </div>
                         </div>
 
-                        {/* Right side: last activity + arrow */}
+                        {/* Right side: last activity + delete + arrow */}
                         <div className="flex items-center gap-3 shrink-0">
                           {c.lastActivityAt && (
                             <div className="text-right hidden sm:block">
                               <p className="text-[10px] text-muted-foreground">Last activity</p>
                               <p className="text-xs text-foreground">{formatDate(c.lastActivityAt)}</p>
                             </div>
+                          )}
+                          {user?.adminRole === "full" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-red-400"
+                              onClick={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDeleteTarget(c);
+                                setDeleteConfirmText("");
+                              }}
+                              data-testid={`button-delete-customer-${c.id}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           )}
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
                         </div>
@@ -1607,6 +1640,91 @@ export default function AdminCustomers() {
           customerId={reviewCustomerId}
           onClose={() => setReviewCustomerId(null)}
         />
+      )}
+
+      {deleteTarget && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/60 z-[60]"
+            onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}
+            aria-hidden="true"
+            data-testid="backdrop-delete-customer"
+          />
+          <div
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-full max-w-sm bg-background border rounded-md shadow-xl flex flex-col"
+            role="dialog"
+            aria-label="Delete customer"
+            data-testid="dialog-delete-customer"
+          >
+            <div className="flex items-start justify-between gap-3 p-4 border-b">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <Trash2 className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Delete customer profile</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[220px]" data-testid="text-delete-customer-name">{deleteTarget.name}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}
+                data-testid="button-close-delete-dialog"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                This permanently deletes the customer profile and all their notes.
+                {(deleteTarget.leadCount > 0 || deleteTarget.quoteCount > 0 || deleteTarget.convoCount > 0) && (
+                  <span> Their {[
+                    deleteTarget.leadCount > 0 && `${deleteTarget.leadCount} lead${deleteTarget.leadCount !== 1 ? "s" : ""}`,
+                    deleteTarget.quoteCount > 0 && `${deleteTarget.quoteCount} quote${deleteTarget.quoteCount !== 1 ? "s" : ""}`,
+                    deleteTarget.convoCount > 0 && `${deleteTarget.convoCount} chat${deleteTarget.convoCount !== 1 ? "s" : ""}`,
+                  ].filter(Boolean).join(", ")} will be unlinked but not deleted.</span>
+                )}
+              </p>
+
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  Type <span className="font-mono font-semibold text-foreground">DELETE</span> to confirm
+                </p>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE"
+                  autoComplete="off"
+                  data-testid="input-delete-confirm"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 p-4 pt-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}
+                data-testid="button-cancel-delete-customer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteConfirmText !== "DELETE" || deleteCustomerMutation.isPending}
+                onClick={() => deleteCustomerMutation.mutate(deleteTarget.id)}
+                data-testid="button-confirm-delete-customer"
+              >
+                {deleteCustomerMutation.isPending ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Deleting...</>
+                ) : (
+                  <><Trash2 className="w-3.5 h-3.5 mr-1.5" />Delete permanently</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

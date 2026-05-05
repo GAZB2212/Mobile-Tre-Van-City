@@ -136,6 +136,7 @@ export interface IStorage {
   updateCustomer(id: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
   getCustomerNotes(customerId: string): Promise<CustomerNote[]>;
   createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote>;
+  deleteCustomer(id: string): Promise<void>;
   linkLeadToCustomer(leadId: string, customerId: string, staffName?: string): Promise<void>;
   linkQuoteToCustomer(quoteId: string, customerId: string, staffName?: string): Promise<void>;
   linkConversationToCustomer(conversationId: string, customerId: string, staffName?: string): Promise<void>;
@@ -1775,6 +1776,7 @@ export class MemStorage implements IStorage {
   async createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote> {
     return { ...note, id: randomUUID(), authorId: note.authorId ?? null, authorName: note.authorName ?? null, createdAt: new Date() };
   }
+  async deleteCustomer(_id: string): Promise<void> {}
   async linkLeadToCustomer(_leadId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async linkQuoteToCustomer(_quoteId: string, _customerId: string, _staffName?: string): Promise<void> {}
@@ -2654,6 +2656,15 @@ export class DbStorage implements IStorage {
   async createCustomerNote(note: InsertCustomerNote): Promise<CustomerNote> {
     const result = await db.insert(schema.customerNotes).values(note).returning();
     return result[0];
+  }
+
+  async deleteCustomer(id: string): Promise<void> {
+    await db.execute(sql`UPDATE leads SET customer_id = NULL WHERE customer_id = ${id}`);
+    await db.execute(sql`UPDATE quotes SET customer_id = NULL WHERE customer_id = ${id}`);
+    await db.execute(sql`UPDATE ai_conversations SET customer_id = NULL WHERE customer_id = ${id}`);
+    await db.execute(sql`DELETE FROM customer_notes WHERE customer_id = ${id}`);
+    await db.execute(sql`DELETE FROM customer_merge_history WHERE keep_id = ${id} OR removed_id = ${id}`);
+    await db.execute(sql`DELETE FROM customers WHERE id = ${id}`);
   }
 
   private appendReassignmentEntry(

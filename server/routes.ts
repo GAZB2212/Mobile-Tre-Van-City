@@ -7020,6 +7020,20 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Delete a customer profile (full admin only) — unlinks related records, removes notes, then deletes profile
+  app.delete("/api/admin/customers/:id", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomer(id);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+      await storage.deleteCustomer(id);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Delete customer error:", error);
+      res.status(500).json({ error: "Failed to delete customer" });
+    }
+  });
+
   // Add a note to a customer (also appends to linked lead/quote if applicable)
   app.post("/api/admin/customers/:id/notes", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
