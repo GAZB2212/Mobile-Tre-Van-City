@@ -574,7 +574,7 @@ export default function AdminConfigurator() {
   return (
     <div className="min-h-screen bg-background">
       {/* Admin header */}
-      <div className="sticky top-0 z-50">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border/60">
         <AdminPageHeader
           title="Admin Configurator"
           description="Build and price a conversion for a customer"
