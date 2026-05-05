@@ -49,6 +49,7 @@ import {
   XCircle,
   PhoneCall,
   CheckCircle2,
+  Link2,
 } from "lucide-react";
 
 const REDIRECT_DELAY_MS = 500;
@@ -116,6 +117,11 @@ export default function AdminLeads() {
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
+  // Link-to-customer dialog state
+  const [linkLeadId, setLinkLeadId] = useState<string | null>(null);
+  const [linkCustomerSearch, setLinkCustomerSearch] = useState("");
+  const [linkCustomerSelected, setLinkCustomerSelected] = useState<{ id: string; name: string; email?: string | null } | null>(null);
+
   // Follow-up scheduling prompt
   const [fuDialogOpen, setFuDialogOpen] = useState(false);
   const [fuLead, setFuLead] = useState<Lead | null>(null);
@@ -171,6 +177,28 @@ export default function AdminLeads() {
     onError: () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to update lead." });
     },
+  });
+
+  const linkCustomerMutation = useMutation({
+    mutationFn: async ({ leadId, customerId }: { leadId: string; customerId: string }) =>
+      apiRequest("PATCH", `/api/admin/leads/${leadId}`, { customerId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
+      setLinkLeadId(null);
+      setLinkCustomerSearch("");
+      setLinkCustomerSelected(null);
+      toast({ title: "Customer linked", description: "The lead has been linked to the selected customer profile." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to link customer." });
+    },
+  });
+
+  const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
+    queryKey: ["/api/admin/customers", linkCustomerSearch],
+    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
+    enabled: !!linkLeadId,
+    staleTime: 10_000,
   });
 
   const handleStatusChange = (lead: Lead, status: LeadStatus) => {
@@ -692,6 +720,20 @@ export default function AdminLeads() {
                             No profile linked
                           </span>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLinkLeadId(lead.id);
+                            setLinkCustomerSearch("");
+                            setLinkCustomerSelected(null);
+                          }}
+                          data-testid={`button-link-customer-${lead.id}`}
+                        >
+                          <Link2 className="w-3.5 h-3.5 mr-1.5" />
+                          {lead.customerId ? "Change Customer" : "Link to Customer"}
+                        </Button>
 
                         <div className="ml-auto flex items-center gap-2">
                           {lead.customerId && (
@@ -784,6 +826,96 @@ export default function AdminLeads() {
         )}
         </div>
       </div>
+
+      {/* Link to customer dialog */}
+      <Dialog
+        open={!!linkLeadId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLinkLeadId(null);
+            setLinkCustomerSearch("");
+            setLinkCustomerSelected(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md" data-testid="modal-link-customer">
+          <DialogHeader>
+            <DialogTitle>Link to Customer Profile</DialogTitle>
+            <DialogDescription>
+              Search by name or email to find the right customer profile and link it to this lead.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search by name or email…"
+                value={linkCustomerSearch}
+                onChange={(e) => {
+                  setLinkCustomerSearch(e.target.value);
+                  setLinkCustomerSelected(null);
+                }}
+                className="pl-8"
+                autoFocus
+                data-testid="input-link-customer-search"
+              />
+            </div>
+            <div className="border rounded-md divide-y max-h-56 overflow-y-auto">
+              {customerSearchResults.length === 0 ? (
+                <p className="text-sm text-muted-foreground px-3 py-4 text-center">
+                  {linkCustomerSearch ? "No customers found." : "Type to search customers."}
+                </p>
+              ) : (
+                customerSearchResults.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`w-full text-left px-3 py-2 hover-elevate transition-colors ${linkCustomerSelected?.id === c.id ? "bg-accent" : ""}`}
+                    onClick={() => setLinkCustomerSelected({ id: c.id, name: c.name, email: c.email })}
+                    data-testid={`option-customer-${c.id}`}
+                  >
+                    <p className="text-sm font-medium">{c.name}</p>
+                    {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                  </button>
+                ))
+              )}
+            </div>
+            {linkCustomerSelected && (
+              <p className="text-xs text-muted-foreground">
+                Selected: <span className="font-medium text-foreground">{linkCustomerSelected.name}</span>
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLinkLeadId(null);
+                setLinkCustomerSearch("");
+                setLinkCustomerSelected(null);
+              }}
+              data-testid="button-cancel-link-customer"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!linkCustomerSelected || linkCustomerMutation.isPending}
+              onClick={() => {
+                if (linkLeadId && linkCustomerSelected) {
+                  linkCustomerMutation.mutate({ leadId: linkLeadId, customerId: linkCustomerSelected.id });
+                }
+              }}
+              data-testid="button-confirm-link-customer"
+            >
+              {linkCustomerMutation.isPending ? (
+                <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" /> Linking…</span>
+              ) : (
+                <><Link2 className="w-3.5 h-3.5 mr-1.5" />Link Customer</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Schedule follow-up dialog — shown when a lead is marked as "Contacted" */}
       {fuLead && (

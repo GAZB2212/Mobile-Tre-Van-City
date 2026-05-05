@@ -60,6 +60,8 @@ import {
   Flag,
   Circle,
   Loader2,
+  Link2,
+  Search,
 } from "lucide-react";
 import {
   Dialog,
@@ -231,6 +233,11 @@ export default function AdminQuoteDetail() {
   const [editCustomerPhone, setEditCustomerPhone] = useState("");
   const [editCustomerCompany, setEditCustomerCompany] = useState("");
 
+  // Link-to-customer dialog state
+  const [linkCustomerDialogOpen, setLinkCustomerDialogOpen] = useState(false);
+  const [linkCustomerSearch, setLinkCustomerSearch] = useState("");
+  const [linkCustomerSelected, setLinkCustomerSelected] = useState<{ id: string; name: string; email?: string | null } | null>(null);
+
   // Active detail tab — initialised from ?tab= URL param for deep-linking
   const validTabs = ["overview", "configuration", "finance", "build", "activity"] as const;
   type TabValue = typeof validTabs[number];
@@ -387,6 +394,29 @@ export default function AdminQuoteDetail() {
       else setViewingSlot('A');
     }
   }, [quote]);
+
+  const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
+    queryKey: ["/api/admin/customers", linkCustomerSearch],
+    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
+    enabled: linkCustomerDialogOpen,
+    staleTime: 10_000,
+  });
+
+  const linkCustomerMutation = useMutation({
+    mutationFn: async (customerId: string) =>
+      apiRequest("PATCH", `/api/admin/quotes/${id}`, { customerId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      setLinkCustomerDialogOpen(false);
+      setLinkCustomerSearch("");
+      setLinkCustomerSelected(null);
+      toast({ title: "Customer linked", description: "The quote has been linked to the selected customer profile." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to link customer." });
+    },
+  });
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Quote>) => {
@@ -1407,6 +1437,19 @@ export default function AdminQuoteDetail() {
                           No profile linked
                         </span>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setLinkCustomerDialogOpen(true);
+                          setLinkCustomerSearch("");
+                          setLinkCustomerSelected(null);
+                        }}
+                        data-testid="button-link-customer"
+                      >
+                        <Link2 className="w-3 h-3 mr-1" />
+                        {quote.customerId ? "Change Customer" : "Link to Customer"}
+                      </Button>
                       {quote.customerId && (
                         <Link href={`/admin/customers/${quote.customerId}`}>
                           <Button
@@ -3806,6 +3849,96 @@ export default function AdminQuoteDetail() {
             >
               <Building2 className="w-4 h-4 mr-2" />
               Add to calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link to customer dialog */}
+      <Dialog
+        open={linkCustomerDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLinkCustomerDialogOpen(false);
+            setLinkCustomerSearch("");
+            setLinkCustomerSelected(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md" data-testid="modal-link-customer">
+          <DialogHeader>
+            <DialogTitle>Link to Customer Profile</DialogTitle>
+            <DialogDescription>
+              Search by name or email to find the right customer profile and link it to this quote.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search by name or email…"
+                value={linkCustomerSearch}
+                onChange={(e) => {
+                  setLinkCustomerSearch(e.target.value);
+                  setLinkCustomerSelected(null);
+                }}
+                className="pl-8"
+                autoFocus
+                data-testid="input-link-customer-search"
+              />
+            </div>
+            <div className="border rounded-md divide-y max-h-56 overflow-y-auto">
+              {customerSearchResults.length === 0 ? (
+                <p className="text-sm text-muted-foreground px-3 py-4 text-center">
+                  {linkCustomerSearch ? "No customers found." : "Type to search customers."}
+                </p>
+              ) : (
+                customerSearchResults.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`w-full text-left px-3 py-2 hover-elevate transition-colors ${linkCustomerSelected?.id === c.id ? "bg-accent" : ""}`}
+                    onClick={() => setLinkCustomerSelected({ id: c.id, name: c.name, email: c.email })}
+                    data-testid={`option-customer-${c.id}`}
+                  >
+                    <p className="text-sm font-medium">{c.name}</p>
+                    {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                  </button>
+                ))
+              )}
+            </div>
+            {linkCustomerSelected && (
+              <p className="text-xs text-muted-foreground">
+                Selected: <span className="font-medium text-foreground">{linkCustomerSelected.name}</span>
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLinkCustomerDialogOpen(false);
+                setLinkCustomerSearch("");
+                setLinkCustomerSelected(null);
+              }}
+              data-testid="button-cancel-link-customer"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={!linkCustomerSelected || linkCustomerMutation.isPending}
+              onClick={() => {
+                if (linkCustomerSelected) {
+                  linkCustomerMutation.mutate(linkCustomerSelected.id);
+                }
+              }}
+              data-testid="button-confirm-link-customer"
+            >
+              {linkCustomerMutation.isPending ? (
+                <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />Linking…</span>
+              ) : (
+                <><Link2 className="w-3.5 h-3.5 mr-1.5" />Link Customer</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

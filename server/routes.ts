@@ -2116,6 +2116,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
           description: z.string(),
           pricePence: z.number().int().min(0),
         })).optional(),
+        // Manual customer profile link
+        customerId: z.string().nullable().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
@@ -3689,7 +3691,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
   app.patch("/api/admin/leads/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const { status, crmNotes, quoteId, email, phone, name } = req.body;
+      const { status, crmNotes, quoteId, email, phone, name, customerId } = req.body;
       const updateData: Record<string, any> = {};
       if (status !== undefined) updateData.status = status;
       if (crmNotes !== undefined) updateData.crmNotes = crmNotes;
@@ -3697,6 +3699,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (email !== undefined) updateData.email = email;
       if (phone !== undefined) updateData.phone = phone;
       if (name !== undefined) updateData.name = name;
+      if (customerId !== undefined) updateData.customerId = customerId;
 
       // Stamp statusChangedAt whenever status is explicitly changed
       if (status !== undefined) {
@@ -3710,8 +3713,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (!updated) return res.status(404).json({ error: "Lead not found" });
       res.json(updated);
 
-      // Re-link customer if contact details changed
-      if (email !== undefined || phone !== undefined || name !== undefined) {
+      // Re-link customer if contact details changed (skip if customerId was explicitly set)
+      if (customerId === undefined && (email !== undefined || phone !== undefined || name !== undefined)) {
         const effectiveEmail = (email ?? updated.email ?? null) as string | null;
         const effectivePhone = (phone ?? updated.phone ?? null) as string | null;
         const effectiveName = (name ?? updated.name ?? "Unknown") as string;
