@@ -1272,8 +1272,22 @@ export default function CustomerProfile() {
               <ShieldAlert className="w-4 h-4 text-amber-400" />
               Confirm customer merge
             </DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground pt-1">
-              This will permanently combine two customer records into one. The removed customer will be deleted, but the merge can be reversed from the Merge History panel.
+            <DialogDescription className="text-sm text-muted-foreground pt-1" asChild>
+              <div className="space-y-1">
+                {selectedMergeTarget && mergeKeepId && (
+                  <p className="font-medium text-foreground">
+                    <span className="text-destructive">
+                      {mergeKeepId === id ? selectedMergeTarget.name : data?.customer.name}
+                    </span>
+                    {" will be removed. All records will move to "}
+                    <span className="text-[hsl(86_53%_60%)]">
+                      {mergeKeepId === id ? data?.customer.name : selectedMergeTarget.name}
+                    </span>
+                    .
+                  </p>
+                )}
+                <p>This will permanently combine two customer records into one. The merge can be reversed from the Merge History panel.</p>
+              </div>
             </DialogDescription>
           </DialogHeader>
 
