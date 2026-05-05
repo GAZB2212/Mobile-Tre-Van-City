@@ -3681,6 +3681,75 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // Recent enquiries feed — combined leads + quotes sorted by createdAt desc
+  app.get("/api/admin/enquiries/recent", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const [allLeads, allQuotes, allVans, allKits] = await Promise.all([
+        storage.getLeads(),
+        storage.getQuotes(),
+        storage.getVans(),
+        storage.getKits(),
+      ]);
+
+      const vanMap = new Map(allVans.map(v => [v.id, v.title || `${v.make} ${v.model}`]));
+      const kitMap = new Map(allKits.map(k => [k.id, k.name]));
+
+      // Today's start (midnight UTC) for unread badge counting
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Full counts across all items (not limited) so badge is always accurate
+      const todayNewLeadCount = allLeads.filter(
+        l => l.status === "new" && l.createdAt && new Date(l.createdAt) >= todayStart
+      ).length;
+      const todayNewQuoteCount = allQuotes.filter(
+        q => q.status === "new" && q.createdAt && new Date(q.createdAt) >= todayStart
+      ).length;
+
+      const recentLeads = allLeads
+        .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+        .slice(0, limit)
+        .map(l => ({
+          kind: "lead" as const,
+          id: l.id,
+          name: l.name,
+          phone: l.phone ?? null,
+          email: l.email,
+          source: l.source,
+          status: l.status,
+          createdAt: l.createdAt,
+        }));
+
+      const recentQuotes = allQuotes
+        .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+        .slice(0, limit)
+        .map(q => ({
+          kind: "quote" as const,
+          id: q.id,
+          name: q.userName,
+          phone: q.phone ?? null,
+          email: q.email,
+          source: "configurator",
+          status: q.status,
+          createdAt: q.createdAt,
+          vanTitle: q.vanId ? (vanMap.get(q.vanId) ?? null) : (q.customVanDescription ?? null),
+          kitName: q.kitId ? (kitMap.get(q.kitId) ?? null) : null,
+          estTotal: q.estTotal,
+        }));
+
+      res.json({
+        leads: recentLeads,
+        quotes: recentQuotes,
+        todayNewLeadCount,
+        todayNewQuoteCount,
+      });
+    } catch (error) {
+      console.error("GET /api/admin/enquiries/recent error:", error);
+      res.status(500).json({ error: "Failed to fetch recent enquiries" });
+    }
+  });
+
   app.get("/api/admin/leads", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const leads = await storage.getLeads();

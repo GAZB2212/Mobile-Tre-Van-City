@@ -116,8 +116,15 @@ export default function AdminLeads() {
   const [sortBy, setSortBy] = useState("newest");
   const [showClosed, setShowClosed] = useState(false);
 
+  // Deep-link focus: ?focus=<leadId> — auto-expand and scroll to a specific lead
+  const focusLeadId = new URLSearchParams(window.location.search).get("focus") ?? null;
+  const focusHandledRef = useRef(false);
+  const focusCardRef = useRef<HTMLDivElement | null>(null);
+
   // CRM expansion state
-  const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
+  const [expandedLeads, setExpandedLeads] = useState<Set<string>>(
+    focusLeadId ? new Set([focusLeadId]) : new Set()
+  );
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
   // Link-to-customer dialog state
@@ -181,6 +188,24 @@ export default function AdminLeads() {
     refetchInterval: isActive ? POLL_INTERVAL_MS : false,
     refetchIntervalInBackground: false,
   });
+
+  // Scroll to and highlight the focused lead once data is available
+  useEffect(() => {
+    if (!focusLeadId || focusHandledRef.current || leadsLoading || leads.length === 0) return;
+    const exists = leads.some(l => l.id === focusLeadId);
+    if (!exists) return;
+    focusHandledRef.current = true;
+    // If the lead is in a closed/dead state we need showClosed enabled
+    const lead = leads.find(l => l.id === focusLeadId);
+    if (lead) {
+      const s = lead.status || "new";
+      if (s === "closed" || s === "dead") setShowClosed(true);
+    }
+    // Scroll after a tick to let React render the card
+    setTimeout(() => {
+      focusCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [focusLeadId, leads, leadsLoading]);
 
   const updateLeadMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Lead> }) =>
@@ -596,8 +621,18 @@ export default function AdminLeads() {
               const crmNotes: Array<{ text: string; timestamp: string; author?: string }> =
                 (lead as any).crmNotes || [];
 
+              const isFocused = lead.id === focusLeadId;
+
               return (
-                <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className={(status === 'dead' || status === 'closed') ? 'opacity-60' : ''}>
+                <Card
+                  key={lead.id}
+                  data-testid={`card-lead-${lead.id}`}
+                  ref={isFocused ? focusCardRef : undefined}
+                  className={[
+                    (status === 'dead' || status === 'closed') ? 'opacity-60' : '',
+                    isFocused ? 'ring-2 ring-accent/50' : '',
+                  ].filter(Boolean).join(' ')}
+                >
                   {/* ── Main summary row ── */}
                   <div className="px-5 pt-4 pb-3">
                     {/* Top row: name + status */}

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { EnquiryFeed, type EnquiryLead, type EnquiryQuote } from "@/components/EnquiryFeed";
 import { 
   Car, 
   Package, 
@@ -31,6 +32,7 @@ import {
   Star as QuoteIcon,
   ExternalLink,
   Mail,
+  Inbox,
 } from "lucide-react";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
@@ -60,7 +62,7 @@ export default function AdminDashboard() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
-  const [activeTab, setActiveTab] = useState<"overview" | "pipeline">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "pipeline" | "enquiries">("overview");
 
   const { data: quotes = [] } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
@@ -71,6 +73,24 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/testimonials"],
     enabled: !!(user?.adminRole && user.adminRole === "full"),
   });
+
+  const { data: recentEnquiries } = useQuery<{
+    leads: EnquiryLead[];
+    quotes: EnquiryQuote[];
+    todayNewLeadCount: number;
+    todayNewQuoteCount: number;
+  }>({
+    queryKey: ["/api/admin/enquiries/recent"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
+
+  const enquiryLeads = recentEnquiries?.leads ?? [];
+  const enquiryQuotes = recentEnquiries?.quotes ?? [];
+
+  // Use server-computed counts (covers all items, not just the limited feed page)
+  const unreadCount = (recentEnquiries?.todayNewLeadCount ?? 0) + (recentEnquiries?.todayNewQuoteCount ?? 0);
 
   const publishedTestimonialsCount = testimonials.filter(t => t.published).length;
 
@@ -179,6 +199,18 @@ export default function AdminDashboard() {
               Pipeline
               {committedQuotes.length > 0 && (
                 <Badge variant="secondary" className="ml-1.5 no-default-active-elevate">{committedQuotes.length}</Badge>
+              )}
+            </Button>
+            <Button
+              variant={activeTab === "enquiries" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("enquiries")}
+              data-testid="button-tab-enquiries"
+            >
+              <Inbox className="w-3.5 h-3.5 mr-1.5" />
+              Enquiries
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="ml-1.5 no-default-active-elevate">{unreadCount}</Badge>
               )}
             </Button>
           </div>
@@ -427,6 +459,34 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* ── ENQUIRIES TAB ── */}
+        {activeTab === "enquiries" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Inbox className="w-5 h-5 text-accent" />
+                  Live Enquiry Inbox
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Auto-refreshes every 30 seconds. Items received in the last 24 hours are highlighted.
+                </p>
+              </div>
+              {unreadCount > 0 && (
+                <Badge className="no-default-active-elevate">
+                  {unreadCount} new today
+                </Badge>
+              )}
+            </div>
+
+            <Card>
+              <CardContent className="pt-6">
+                <EnquiryFeed leads={enquiryLeads} quotes={enquiryQuotes} />
+              </CardContent>
+            </Card>
           </div>
         )}
 
