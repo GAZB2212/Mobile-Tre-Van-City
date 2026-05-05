@@ -2337,6 +2337,25 @@ export class DbStorage implements IStorage {
       `UPDATE quotes SET customer_id = $1 WHERE customer_id IS NULL AND (${whereClause})`,
       params
     );
+
+    // Also backfill AI conversations using their contact_email / contact_phone columns
+    const convConditions: string[] = [];
+    const convParams: (string)[] = [customerId];
+
+    if (emailVal) {
+      convParams.push(emailVal);
+      convConditions.push(`contact_email = $${convParams.length}`);
+    }
+    if (phoneVal) {
+      convParams.push(phoneVal);
+      convConditions.push(`contact_phone = $${convParams.length}`);
+    }
+
+    const convWhereClause = convConditions.join(" OR ");
+    await pool.query(
+      `UPDATE ai_conversations SET customer_id = $1 WHERE customer_id IS NULL AND (${convWhereClause})`,
+      convParams
+    );
   }
 
   async linkConversationToCustomer(conversationId: string, customerId: string): Promise<void> {
