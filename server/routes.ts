@@ -6554,6 +6554,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       console.error("Split merge error:", msg);
       if (msg === "Merge history entry not found") return res.status(404).json({ error: msg });
       if (msg === "This merge has already been split") return res.status(409).json({ error: msg });
+      if (msg.startsWith("A customer with that email or phone already exists")) return res.status(409).json({ error: msg });
       res.status(500).json({ error: "Failed to split merge" });
     }
   });

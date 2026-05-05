@@ -2536,6 +2536,19 @@ export class DbStorage implements IStorage {
     const hist = histResult.rows[0];
     if (hist.splitAt) throw new Error("This merge has already been split");
 
+    // Pre-flight: check for duplicate email or phone before attempting the INSERT.
+    if (hist.removedSnapshotEmail || hist.removedSnapshotPhone) {
+      const conflictResult = await pool.query<{ id: string }>(`
+        SELECT id FROM customers
+        WHERE ($1::text IS NOT NULL AND email = $1)
+           OR ($2::text IS NOT NULL AND phone = $2)
+        LIMIT 1
+      `, [hist.removedSnapshotEmail ?? null, hist.removedSnapshotPhone ?? null]);
+      if (conflictResult.rows.length > 0) {
+        throw new Error("A customer with that email or phone already exists. This split cannot be completed.");
+      }
+    }
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -2594,6 +2607,16 @@ export class DbStorage implements IStorage {
       return { newCustomerId };
     } catch (err) {
       await client.query("ROLLBACK");
+      // Remap a unique-constraint violation on email/phone to the same
+      // descriptive conflict message so the route can return 409.
+      if (
+        err instanceof Error &&
+        (err as unknown as { code?: string }).code === "23505" &&
+        ((err as unknown as { constraint?: string }).constraint?.includes("email") ||
+          (err as unknown as { constraint?: string }).constraint?.includes("phone"))
+      ) {
+        throw new Error("A customer with that email or phone already exists. This split cannot be completed.");
+      }
       throw err;
     } finally {
       client.release();

@@ -801,9 +801,12 @@ export default function AdminCustomers() {
     },
     onError: (err) => {
       setSplittingId(null);
-      const msg = err.message?.includes("already been split")
-        ? "This merge has already been reversed."
-        : "Could not reverse the merge. Please try again.";
+      let msg = "Could not reverse the merge. Please try again.";
+      if (err.message?.includes("already been split")) {
+        msg = "This merge has already been reversed.";
+      } else if (err.message?.includes("email or phone already exists")) {
+        msg = "A customer with that email/phone already exists. This split cannot be completed.";
+      }
       toast({ title: "Split failed", description: msg, variant: "destructive" });
     },
   });
