@@ -464,6 +464,19 @@ app.use((req, res, next) => {
             .then(() => log("✅ Lead status_changed_at column ready"))
             .catch((err: Error) => console.error("Lead status_changed_at migration:", err.message));
 
+          // Unique partial indexes on customers.email and customers.phone to prevent
+          // future duplicate records at the DB level. Partial (WHERE NOT NULL / NOT empty)
+          // so NULL is still allowed (multi-customers without email/phone can co-exist).
+          await pool.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_email_unique
+              ON customers (email)
+              WHERE email IS NOT NULL AND email != '';
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_unique
+              ON customers (phone)
+              WHERE phone IS NOT NULL AND phone != '';
+          `).then(() => log("✅ Customer unique indexes ready"))
+            .catch((err: Error) => console.error("Customer unique indexes migration:", err.message));
+
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {

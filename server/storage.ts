@@ -139,6 +139,7 @@ export interface IStorage {
   linkQuoteToCustomer(quoteId: string, customerId: string): Promise<void>;
   linkConversationToCustomer(conversationId: string, customerId: string): Promise<void>;
   linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void>;
+  mergeCustomers(keepId: string, mergeId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -1775,6 +1776,7 @@ export class MemStorage implements IStorage {
   async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string): Promise<void> {}
   async linkQuoteToCustomer(_quoteId: string, _customerId: string): Promise<void> {}
   async linkConversationToCustomer(_conversationId: string, _customerId: string): Promise<void> {}
+  async mergeCustomers(_keepId: string, _mergeId: string): Promise<void> {}
 }
 
 // Database Storage Implementation
@@ -2259,24 +2261,106 @@ export class DbStorage implements IStorage {
   }
 
   async findOrCreateCustomer(email: string | null, phone: string | null, name: string): Promise<Customer> {
-    // Try to find by email first, then phone
-    if (email) {
-      const byEmail = await this.findCustomerByEmail(email);
-      if (byEmail) {
-        // Update name if it's more complete
-        if (name && name !== byEmail.name) {
-          const updated = await this.updateCustomer(byEmail.id, { name });
-          return updated ?? byEmail;
-        }
-        return byEmail;
+    // Look up by both email and phone simultaneously to detect potential duplicates early.
+    const [byEmail, byPhone] = await Promise.all([
+      email ? this.findCustomerByEmail(email) : Promise.resolve(undefined),
+      phone ? this.findCustomerByPhone(phone) : Promise.resolve(undefined),
+    ]);
+
+    // Case 1: both email AND phone match, but they point to DIFFERENT customer records.
+    // This is the classic duplicate scenario — merge the phone-matched record into the
+    // email-matched record (keeping the one created earliest), then return the survivor.
+    if (byEmail && byPhone && byEmail.id !== byPhone.id) {
+      // Prefer the older record as the canonical one to preserve history.
+      const keepOlder = (byEmail.createdAt ?? new Date()) <= (byPhone.createdAt ?? new Date());
+      const keepCustomer = keepOlder ? byEmail : byPhone;
+      const dropCustomer = keepOlder ? byPhone : byEmail;
+      await this.mergeCustomers(keepCustomer.id, dropCustomer.id);
+      // Ensure the survivor has both email and phone recorded.
+      const patch: Partial<InsertCustomer> = {};
+      if (!keepCustomer.email && email) patch.email = email;
+      if (!keepCustomer.phone && phone) patch.phone = phone;
+      if (name && name !== keepCustomer.name && name !== "AI Chat Contact") patch.name = name;
+      if (Object.keys(patch).length > 0) {
+        const updated = await this.updateCustomer(keepCustomer.id, patch);
+        return updated ?? keepCustomer;
       }
+      return keepCustomer;
     }
-    if (phone) {
-      const byPhone = await this.findCustomerByPhone(phone);
-      if (byPhone) return byPhone;
+
+    // Case 2: found by email only — update with phone and/or name if missing.
+    if (byEmail) {
+      const patch: Partial<InsertCustomer> = {};
+      if (!byEmail.phone && phone) patch.phone = phone;
+      if (name && name !== byEmail.name && name !== "AI Chat Contact") patch.name = name;
+      if (Object.keys(patch).length > 0) {
+        const updated = await this.updateCustomer(byEmail.id, patch);
+        return updated ?? byEmail;
+      }
+      return byEmail;
     }
-    // Create new customer
+
+    // Case 3: found by phone only — update with email and/or name if missing.
+    if (byPhone) {
+      const patch: Partial<InsertCustomer> = {};
+      if (!byPhone.email && email) patch.email = email;
+      if (name && name !== byPhone.name && name !== "AI Chat Contact") patch.name = name;
+      if (Object.keys(patch).length > 0) {
+        const updated = await this.updateCustomer(byPhone.id, patch);
+        return updated ?? byPhone;
+      }
+      return byPhone;
+    }
+
+    // Case 4: no existing record found — create one with all known contact details.
     return this.createCustomer({ name, email: email ?? undefined, phone: phone ?? undefined });
+  }
+
+  /**
+   * Merge `mergeId` into `keepId` inside a single transaction:
+   * 1. Coalesce non-null fields from the duplicate into the survivor (no data loss).
+   * 2. Re-point all FK references (leads, quotes, ai_conversations, customer_notes).
+   * 3. Delete the now-orphaned duplicate row.
+   * Safe to call even if `mergeId` has no associated records.
+   */
+  async mergeCustomers(keepId: string, mergeId: string): Promise<void> {
+    if (keepId === mergeId) return;
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Coalesce non-null fields from the duplicate into the survivor so no
+      // contact data (email, phone, company, name) is silently discarded.
+      await client.query(`
+        UPDATE customers SET
+          email   = COALESCE(email,   (SELECT email   FROM customers WHERE id = $2)),
+          phone   = COALESCE(phone,   (SELECT phone   FROM customers WHERE id = $2)),
+          company = COALESCE(company, (SELECT company FROM customers WHERE id = $2)),
+          name    = CASE
+                      WHEN name IS NULL OR name = '' OR name = 'AI Chat Contact'
+                      THEN COALESCE((SELECT name FROM customers WHERE id = $2), name)
+                      ELSE name
+                    END,
+          updated_at = NOW()
+        WHERE id = $1
+      `, [keepId, mergeId]);
+
+      // Re-point all child records to the surviving customer.
+      await client.query(`UPDATE leads           SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+      await client.query(`UPDATE quotes          SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+      await client.query(`UPDATE ai_conversations SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+      await client.query(`UPDATE customer_notes  SET customer_id = $1 WHERE customer_id = $2`, [keepId, mergeId]);
+
+      // Delete the duplicate.
+      await client.query(`DELETE FROM customers WHERE id = $1`, [mergeId]);
+
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {

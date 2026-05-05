@@ -345,6 +345,13 @@ interface BackfillResult {
   linkedCustomers: LinkedCustomerSummary[];
 }
 
+interface DeduplicateResult {
+  ok: boolean;
+  mergedCount: number;
+  failedCount: number;
+  errors: string[];
+}
+
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-500/15 text-blue-400 border-blue-500/25",
   contacted: "bg-amber-500/15 text-amber-400 border-amber-500/25",
@@ -409,6 +416,25 @@ export default function AdminCustomers() {
   const { data: staffList = [] } = useQuery<StaffMember[]>({
     queryKey: ["/api/admin/staff"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const deduplicateMutation = useMutation<DeduplicateResult, Error>({
+    mutationFn: () =>
+      apiRequest("POST", "/api/admin/customers/deduplicate").then((res) => res.json() as Promise<DeduplicateResult>),
+    onSuccess: (data) => {
+      if (data.mergedCount === 0) {
+        toast({ title: "No duplicates found", description: "All customer records are already unique." });
+      } else {
+        toast({
+          title: "Duplicates merged",
+          description: `${data.mergedCount} duplicate record${data.mergedCount !== 1 ? "s" : ""} merged successfully.${data.failedCount > 0 ? ` ${data.failedCount} failed.` : ""}`,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+    },
+    onError: () => {
+      toast({ title: "Deduplication failed", description: "Could not run deduplication. Please try again.", variant: "destructive" });
+    },
   });
 
   const backfillMutation = useMutation<BackfillResult, Error>({
@@ -531,16 +557,28 @@ export default function AdminCustomers() {
                 {customersLoading ? "Loading..." : `${customers.length} customer${customers.length !== 1 ? "s" : ""}${hasFilters ? " found" : " total"}`}
               </span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => backfillMutation.mutate()}
-              disabled={backfillMutation.isPending}
-              data-testid="button-sync-customers"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${backfillMutation.isPending ? "animate-spin" : ""}`} />
-              {backfillMutation.isPending ? "Syncing..." : "Sync Records"}
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => deduplicateMutation.mutate()}
+                disabled={deduplicateMutation.isPending || backfillMutation.isPending}
+                data-testid="button-deduplicate-customers"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${deduplicateMutation.isPending ? "animate-spin" : ""}`} />
+                {deduplicateMutation.isPending ? "Merging..." : "Merge Duplicates"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => backfillMutation.mutate()}
+                disabled={backfillMutation.isPending || deduplicateMutation.isPending}
+                data-testid="button-sync-customers"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${backfillMutation.isPending ? "animate-spin" : ""}`} />
+                {backfillMutation.isPending ? "Syncing..." : "Sync Records"}
+              </Button>
+            </div>
           </div>
 
           {/* Sync summary panel */}

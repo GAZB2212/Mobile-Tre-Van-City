@@ -6879,6 +6879,131 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Deduplicate: find customers sharing the same email or phone and merge them.
+  // Runs the same email-first, phone-fallback merge logic that findOrCreateCustomer now uses,
+  // applied to all existing customer pairs so historical duplicates are cleaned up.
+  app.post("/api/admin/customers/deduplicate", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      let mergedCount = 0;
+      const errors: string[] = [];
+
+      // --- Step 1: Merge customers that share the same non-null email ---
+      const dupEmails = await pool.query<{ email: string }>(`
+        SELECT email
+        FROM customers
+        WHERE email IS NOT NULL AND email != ''
+        GROUP BY email
+        HAVING COUNT(*) > 1
+      `);
+
+      for (const { email } of dupEmails.rows) {
+        try {
+          // Fetch all customers with this email, oldest first (keep the oldest).
+          const { rows } = await pool.query<{ id: string }>(
+            `SELECT id FROM customers WHERE email = $1 ORDER BY created_at ASC`,
+            [email]
+          );
+          const [keep, ...duplicates] = rows;
+          for (const dup of duplicates) {
+            await storage.mergeCustomers(keep.id, dup.id);
+            mergedCount++;
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Dedup error (email=${email}):`, msg);
+          errors.push(`email:${email}`);
+        }
+      }
+
+      // --- Step 2: Merge customers that share the same non-null phone ---
+      // (After email dedup some phone dupes may already be resolved.)
+      const dupPhones = await pool.query<{ phone: string }>(`
+        SELECT phone
+        FROM customers
+        WHERE phone IS NOT NULL AND phone != ''
+        GROUP BY phone
+        HAVING COUNT(*) > 1
+      `);
+
+      for (const { phone } of dupPhones.rows) {
+        try {
+          const { rows } = await pool.query<{ id: string }>(
+            `SELECT id FROM customers WHERE phone = $1 ORDER BY created_at ASC`,
+            [phone]
+          );
+          const [keep, ...duplicates] = rows;
+          for (const dup of duplicates) {
+            await storage.mergeCustomers(keep.id, dup.id);
+            mergedCount++;
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Dedup error (phone=${phone}):`, msg);
+          errors.push(`phone:${phone}`);
+        }
+      }
+
+      // --- Step 3: Split-pair detection — same conversation/lead/quote, different customers ---
+      // The classic historical scenario: save 1 had only phone → Customer A; save 2 had only
+      // email → Customer B; completion linked Customer B. Customer A is orphaned.
+      // Detect via: the linked customer has an email and the conversation also recorded a phone
+      // that belongs to a DIFFERENT customer (and vice-versa).
+      const splitPairs = await pool.query<{ keep_id: string; merge_id: string }>(`
+        SELECT DISTINCT
+          ac.customer_id AS keep_id,
+          c2.id           AS merge_id
+        FROM ai_conversations ac
+        JOIN customers c1 ON c1.id = ac.customer_id
+        JOIN customers c2 ON c2.id != ac.customer_id
+        WHERE ac.customer_id IS NOT NULL
+          AND (
+            -- linked customer was matched by email; orphan was created by phone
+            (
+              c1.email IS NOT NULL AND c1.email != ''
+              AND c2.phone IS NOT NULL AND c2.phone != ''
+              AND c2.email IS NULL
+              AND (
+                ac.contact_phone = c2.phone
+                OR (ac.mapped_config->>'contactPhone') = c2.phone
+              )
+            )
+            OR
+            -- linked customer was matched by phone; orphan was created by email
+            (
+              c1.phone IS NOT NULL AND c1.phone != ''
+              AND c2.email IS NOT NULL AND c2.email != ''
+              AND c2.phone IS NULL
+              AND (
+                (ac.mapped_config->>'contactEmail') = c2.email
+              )
+            )
+          )
+      `);
+
+      for (const { keep_id, merge_id } of splitPairs.rows) {
+        // Skip pairs that were already merged in steps 1 or 2.
+        const stillExists = await pool.query(
+          `SELECT id FROM customers WHERE id = $1 LIMIT 1`,
+          [merge_id]
+        );
+        if (stillExists.rows.length === 0) continue;
+        try {
+          await storage.mergeCustomers(keep_id, merge_id);
+          mergedCount++;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`Dedup error (split-pair keep=${keep_id} merge=${merge_id}):`, msg);
+          errors.push(`split-pair:${merge_id}`);
+        }
+      }
+
+      res.json({ ok: true, mergedCount, failedCount: errors.length, errors });
+    } catch (error) {
+      console.error("Customer dedup error:", error);
+      res.status(500).json({ error: "Deduplication failed" });
+    }
+  });
+
   // Backfill: link existing leads/quotes/ai_conversations without a customer_id to customer profiles
   app.post("/api/admin/customers/backfill", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
