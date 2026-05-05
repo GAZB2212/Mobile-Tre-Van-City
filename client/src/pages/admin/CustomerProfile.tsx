@@ -3,7 +3,7 @@ import type { User } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
 import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,8 +187,13 @@ export default function CustomerProfile() {
 
   const { data, isLoading: profileLoading } = useQuery<CustomerProfileData>({
     queryKey: ["/api/admin/customers", id],
-    queryFn: () =>
-      fetch(`/api/admin/customers/${id}`, { credentials: "include" }).then(r => r.json()),
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers/${id}`, { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
   });
 

@@ -5,7 +5,7 @@ import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -229,7 +229,9 @@ export default function AdminAIConversations() {
       if (filters.dateFrom) params.set(QP_DATE_FROM, filters.dateFrom);
       if (filters.dateTo) params.set(QP_DATE_TO, filters.dateTo);
       const url = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
-      const res = await fetch(url, { credentials: "include" });
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(url, { credentials: "include", headers });
       if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
       return res.json();
     },
