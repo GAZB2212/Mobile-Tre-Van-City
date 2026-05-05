@@ -6335,11 +6335,51 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // ── Customer CRM Routes ────────────────────────────────────────────────────
 
-  // List customers (searchable)
+  // Staff list for assignment dropdowns (basic admin+)
+  app.get("/api/admin/staff", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const allUsers = await storage.getUsers();
+      const staff = allUsers
+        .filter(u => u.adminRole && u.adminRole !== "none")
+        .map(u => ({
+          id: u.id,
+          username: u.username,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          displayName:
+            u.firstName && u.lastName
+              ? `${u.firstName} ${u.lastName}`
+              : u.username,
+        }));
+      res.json(staff);
+    } catch (error) {
+      console.error("Get staff error:", error);
+      res.status(500).json({ error: "Failed to fetch staff" });
+    }
+  });
+
+  // List customers (searchable, filterable by assigned staff)
   app.get("/api/admin/customers", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const search = req.query.search as string | undefined;
-      const customers = await storage.getCustomers(search);
+      const staffId = req.query.staffId as string | undefined;
+      let customers = await storage.getCustomers(search);
+
+      // Filter by assigned staff if requested
+      if (staffId === "unassigned") {
+        customers = customers.filter(c => !c.primaryStaffId);
+      } else if (staffId) {
+        customers = customers.filter(c => c.primaryStaffId === staffId);
+      }
+
+      // Build a lookup of staff names
+      const allUsers = await storage.getUsers();
+      const staffMap = new Map(
+        allUsers.map(u => [
+          u.id,
+          u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.username,
+        ])
+      );
 
       // Enrich with linked record counts, last contact date, and current pipeline status
       const { rows } = await pool.query(`
@@ -6360,9 +6400,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         LEFT JOIN quotes q ON q.customer_id = c.id
         LEFT JOIN ai_conversations ai ON ai.customer_id = c.id
         LEFT JOIN follow_ups fu ON (fu.lead_id = l.id OR fu.quote_id = q.id)
-        ${search ? `WHERE c.id = ANY($1::text[])` : ""}
+        ${customers.length > 0 ? `WHERE c.id = ANY($1::text[])` : "WHERE FALSE"}
         GROUP BY c.id
-      `, search ? [customers.map(c => c.id)] : []);
+      `, customers.length > 0 ? [customers.map(c => c.id)] : []);
 
       const statsMap = new Map(rows.map((r: any) => [r.id, r]));
 
@@ -6377,6 +6417,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           openFollowUpCount: s ? parseInt(s.open_followup_count ?? "0") : 0,
           lastActivityAt: s?.last_activity_at ?? c.createdAt,
           pipelineStatus,
+          primaryStaffName: c.primaryStaffId ? (staffMap.get(c.primaryStaffId) ?? null) : null,
         };
       });
 
@@ -6580,8 +6621,20 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const latestLead = leads[0];
       const latestQuote = quotes[0];
 
+      // Resolve assigned staff name
+      let primaryStaffName: string | null = null;
+      if (customer.primaryStaffId) {
+        const staffUser = await storage.getUser(customer.primaryStaffId);
+        if (staffUser) {
+          primaryStaffName =
+            staffUser.firstName && staffUser.lastName
+              ? `${staffUser.firstName} ${staffUser.lastName}`
+              : staffUser.username;
+        }
+      }
+
       res.json({
-        customer,
+        customer: { ...customer, primaryStaffName },
         leads,
         quotes,
         conversations: convos,
@@ -6642,6 +6695,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         primaryStaffId: z.string().optional().nullable(),
       });
       const data = schema_z.parse(req.body);
+
+      // Validate that the assigned staff member exists and has an admin role
+      if (data.primaryStaffId) {
+        const staffUser = await storage.getUser(data.primaryStaffId);
+        if (!staffUser || !staffUser.adminRole || staffUser.adminRole === "none") {
+          return res.status(400).json({ error: "Invalid staff member: user does not exist or is not a staff member" });
+        }
+      }
+
       const customer = await storage.updateCustomer(id, data);
       if (!customer) return res.status(404).json({ error: "Customer not found" });
       res.json(customer);

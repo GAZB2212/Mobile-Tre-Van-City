@@ -16,8 +16,16 @@ import {
   ArrowLeft, Mail, Phone, Building2, Pencil, Save, X,
   FileText, Bot, Users, CheckCircle2, Clock,
   CalendarDays, StickyNote, PhoneCall, Coffee, ExternalLink,
-  AlertCircle, ChevronRight, Plus, Check,
+  AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX,
 } from "lucide-react";
+
+interface StaffMember {
+  id: string;
+  username: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  displayName: string;
+}
 
 interface Customer {
   id: string;
@@ -26,6 +34,7 @@ interface Customer {
   phone?: string | null;
   company?: string | null;
   primaryStaffId?: string | null;
+  primaryStaffName?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -163,6 +172,7 @@ export default function CustomerProfile() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editCompany, setEditCompany] = useState("");
+  const [editPrimaryStaffId, setEditPrimaryStaffId] = useState<string | null>(null);
 
   // Note form state
   type NoteType = "call" | "email" | "meeting" | "general";
@@ -182,6 +192,11 @@ export default function CustomerProfile() {
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
   });
 
+  const { data: staffList = [] } = useQuery<StaffMember[]>({
+    queryKey: ["/api/admin/staff"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
   // Populate edit fields when data loads
   useEffect(() => {
     if (data?.customer) {
@@ -189,6 +204,7 @@ export default function CustomerProfile() {
       setEditEmail(data.customer.email ?? "");
       setEditPhone(data.customer.phone ?? "");
       setEditCompany(data.customer.company ?? "");
+      setEditPrimaryStaffId(data.customer.primaryStaffId ?? null);
     }
   }, [data?.customer]);
 
@@ -219,12 +235,22 @@ export default function CustomerProfile() {
       email: editEmail.trim() || null,
       phone: editPhone.trim() || null,
       company: editCompany.trim() || null,
+      primaryStaffId: editPrimaryStaffId || null,
     });
   };
 
   const handleAddNote = () => {
     if (!noteText.trim()) return;
     addNoteMutation.mutate({ noteType, text: noteText.trim() });
+  };
+
+  const handleAssignToMe = () => {
+    if (!user?.id) return;
+    updateMutation.mutate({ primaryStaffId: user.id });
+  };
+
+  const handleUnassign = () => {
+    updateMutation.mutate({ primaryStaffId: null });
   };
 
   if (isLoading || profileLoading) {
@@ -244,6 +270,7 @@ export default function CustomerProfile() {
   }
 
   const { customer, leads, quotes, conversations, notes, timeline, handoff } = data;
+  const isAssignedToMe = customer.primaryStaffId === user?.id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -311,6 +338,23 @@ export default function CustomerProfile() {
                       <Label className="text-xs">Company</Label>
                       <Input value={editCompany} onChange={e => setEditCompany(e.target.value)} data-testid="input-edit-company" />
                     </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Assigned Staff</Label>
+                      <Select
+                        value={editPrimaryStaffId ?? "none"}
+                        onValueChange={v => setEditPrimaryStaffId(v === "none" ? null : v)}
+                      >
+                        <SelectTrigger data-testid="select-assigned-staff">
+                          <SelectValue placeholder="Unassigned" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Unassigned</SelectItem>
+                          {staffList.map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.displayName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-customer">
                         <Save className="w-3.5 h-3.5 mr-1" />
@@ -362,6 +406,57 @@ export default function CustomerProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Assigned Staff */}
+                <div className="rounded-md bg-card border border-border/60 p-2.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-[hsl(86_53%_60%)] shrink-0" />
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Owner</span>
+                    </div>
+                    {customer.primaryStaffId && (
+                      <button
+                        onClick={handleUnassign}
+                        disabled={updateMutation.isPending}
+                        className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                        data-testid="button-unassign-staff"
+                      >
+                        <UserX className="w-3 h-3" />
+                        Unassign
+                      </button>
+                    )}
+                  </div>
+                  {customer.primaryStaffName ? (
+                    <p className="text-sm font-semibold text-foreground" data-testid="text-assigned-staff">
+                      {customer.primaryStaffName}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">Unassigned</p>
+                  )}
+                  {!isAssignedToMe && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleAssignToMe}
+                      disabled={updateMutation.isPending}
+                      className="w-full"
+                      data-testid="button-assign-to-me"
+                    >
+                      {updateMutation.isPending ? (
+                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                      ) : (
+                        <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Assign to me
+                    </Button>
+                  )}
+                  {isAssignedToMe && (
+                    <p className="text-[11px] text-[hsl(86_53%_60%)] flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Assigned to you
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground text-xs">Current status</span>
                   <StatusBadge status={handoff.currentStatus} />

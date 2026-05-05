@@ -10,6 +10,7 @@ import { AdminBackButton } from "@/components/AdminBackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users,
   Search,
@@ -17,12 +18,20 @@ import {
   Phone,
   Building2,
   ChevronRight,
-  CalendarDays,
-  MessageSquare,
   FileText,
   Bot,
   AlertCircle,
+  UserCheck,
+  X,
 } from "lucide-react";
+
+interface StaffMember {
+  id: string;
+  username: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  displayName: string;
+}
 
 interface CustomerListItem {
   id: string;
@@ -30,6 +39,8 @@ interface CustomerListItem {
   email?: string | null;
   phone?: string | null;
   company?: string | null;
+  primaryStaffId?: string | null;
+  primaryStaffName?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   leadCount: number;
@@ -79,6 +90,7 @@ export default function AdminCustomers() {
   };
   const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [staffFilter, setStaffFilter] = useState<string>("");
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
@@ -95,20 +107,35 @@ export default function AdminCustomers() {
     }
   }, [user, toast]);
 
-  const queryKey = debouncedSearch
-    ? ["/api/admin/customers", debouncedSearch]
-    : ["/api/admin/customers"];
+  const { data: staffList = [] } = useQuery<StaffMember[]>({
+    queryKey: ["/api/admin/staff"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const queryParams = new URLSearchParams();
+  if (debouncedSearch) queryParams.set("search", debouncedSearch);
+  if (staffFilter) queryParams.set("staffId", staffFilter);
+  const queryString = queryParams.toString();
+
+  const queryKey = ["/api/admin/customers", debouncedSearch, staffFilter].filter(Boolean);
 
   const { data: customers = [], isLoading: customersLoading } = useQuery<CustomerListItem[]>({
     queryKey,
     queryFn: () =>
-      fetch(`/api/admin/customers${debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : ""}`, {
+      fetch(`/api/admin/customers${queryString ? `?${queryString}` : ""}`, {
         credentials: "include",
       }).then(r => r.json()),
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     staleTime: 0,
     refetchOnMount: "always",
   });
+
+  const hasFilters = !!debouncedSearch || !!staffFilter;
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStaffFilter("");
+  };
 
   if (isLoading) {
     return (
@@ -131,23 +158,49 @@ export default function AdminCustomers() {
         <AdminBackButton />
 
         <div className="space-y-5">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, or phone..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10"
-              data-testid="input-search-customers"
-            />
+          {/* Filters row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or phone..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-customers"
+              />
+            </div>
+            <Select value={staffFilter || "all"} onValueChange={v => setStaffFilter(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-52" data-testid="select-staff-filter">
+                <UserCheck className="w-3.5 h-3.5 mr-1.5 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="All staff" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All customers</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {staffList.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.displayName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                data-testid="button-clear-filters"
+              >
+                <X className="w-3.5 h-3.5 mr-1.5" />
+                Clear
+              </Button>
+            )}
           </div>
 
           {/* Stats row */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
             <span>
-              {customersLoading ? "Loading..." : `${customers.length} customer${customers.length !== 1 ? "s" : ""}${debouncedSearch ? " found" : " total"}`}
+              {customersLoading ? "Loading..." : `${customers.length} customer${customers.length !== 1 ? "s" : ""}${hasFilters ? " found" : " total"}`}
             </span>
           </div>
 
@@ -165,8 +218,8 @@ export default function AdminCustomers() {
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No customers found</h3>
                 <p className="text-muted-foreground text-sm">
-                  {debouncedSearch
-                    ? "Try a different search term."
+                  {hasFilters
+                    ? "Try adjusting the filters."
                     : "Customers are created automatically when leads, quotes, or AI conversations are linked by email or phone."}
                 </p>
               </CardContent>
@@ -204,6 +257,15 @@ export default function AdminCustomers() {
                               <Badge className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/30 no-default-active-elevate">
                                 <AlertCircle className="w-2.5 h-2.5 mr-1" />
                                 {c.openFollowUpCount} follow-up{c.openFollowUpCount !== 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                            {c.primaryStaffName && (
+                              <Badge
+                                className="text-[10px] bg-[hsl(86_45%_51%/0.12)] text-[hsl(86_53%_60%)] border-[hsl(86_53%_51%/0.25)] no-default-active-elevate"
+                                data-testid={`badge-staff-${c.id}`}
+                              >
+                                <UserCheck className="w-2.5 h-2.5 mr-1" />
+                                {c.primaryStaffName}
                               </Badge>
                             )}
                           </div>
