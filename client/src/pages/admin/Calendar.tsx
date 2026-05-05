@@ -96,6 +96,8 @@ export default function AdminCalendar() {
 
   const { data: followUps = [], isLoading } = useQuery<FollowUp[]>({
     queryKey: ["/api/admin/follow-ups"],
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: users = [] } = useQuery<User[]>({

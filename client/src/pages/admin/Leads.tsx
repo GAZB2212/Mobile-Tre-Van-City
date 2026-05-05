@@ -125,7 +125,7 @@ export default function AdminLeads() {
   const scheduleFollowUpMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"], refetchType: "all" });
       setFuDialogOpen(false);
       toast({ title: "Follow-up scheduled", description: "You can view it in the Calendar." });
     },

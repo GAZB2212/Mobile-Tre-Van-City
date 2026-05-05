@@ -162,7 +162,7 @@ export default function AdminQuotes() {
   const scheduleFollowUpMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"], refetchType: "all" });
       setFuDialogOpen(false);
       toast({ title: "Follow-up scheduled", description: "Added to your calendar." });
     },
