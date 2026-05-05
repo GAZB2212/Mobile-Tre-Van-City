@@ -62,7 +62,16 @@ export default function AdminDashboard() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
-  const [activeTab, setActiveTab] = useState<"overview" | "pipeline" | "enquiries">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "pipeline" | "enquiries">(() => {
+    const saved = localStorage.getItem("adminDashboardActiveTab");
+    if (saved === "overview" || saved === "pipeline" || saved === "enquiries") return saved;
+    return "overview";
+  });
+
+  const handleTabChange = (tab: "overview" | "pipeline" | "enquiries") => {
+    setActiveTab(tab);
+    localStorage.setItem("adminDashboardActiveTab", tab);
+  };
 
   const { data: quotes = [] } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
@@ -183,7 +192,7 @@ export default function AdminDashboard() {
             <Button
               variant={activeTab === "overview" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setActiveTab("overview")}
+              onClick={() => handleTabChange("overview")}
               data-testid="button-tab-overview"
             >
               <LayoutDashboard className="w-3.5 h-3.5 mr-1.5" />
@@ -192,7 +201,7 @@ export default function AdminDashboard() {
             <Button
               variant={activeTab === "pipeline" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setActiveTab("pipeline")}
+              onClick={() => handleTabChange("pipeline")}
               data-testid="button-tab-pipeline"
             >
               <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
@@ -204,7 +213,7 @@ export default function AdminDashboard() {
             <Button
               variant={activeTab === "enquiries" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setActiveTab("enquiries")}
+              onClick={() => handleTabChange("enquiries")}
               data-testid="button-tab-enquiries"
             >
               <Inbox className="w-3.5 h-3.5 mr-1.5" />
