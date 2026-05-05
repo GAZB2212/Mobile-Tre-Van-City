@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Lead } from "@shared/schema";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -53,6 +53,7 @@ import {
   Link2,
   History,
   UserPlus,
+  AlertTriangle,
 } from "lucide-react";
 
 const REDIRECT_DELAY_MS = 500;
@@ -278,6 +279,57 @@ export default function AdminLeads() {
     queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
     enabled: !!linkLeadId,
     staleTime: 10_000,
+  });
+
+  // Duplicate customer check for create-profile dialog — uses current input values
+  // so the warning stays accurate if staff edits the email or phone before submitting
+  const dupEmailTerm = createProfileEmail.trim();
+  const dupPhoneTerm = createProfilePhone.trim();
+
+  const { data: dupEmailResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
+    queryKey: ["/api/admin/customers", "dup-check-email", dupEmailTerm],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/admin/customers?search=${encodeURIComponent(dupEmailTerm)}`);
+      return res.json();
+    },
+    enabled: !!createProfileLead && !!dupEmailTerm,
+    staleTime: 30_000,
+  });
+
+  const { data: dupPhoneResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
+    queryKey: ["/api/admin/customers", "dup-check-phone", dupPhoneTerm],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/admin/customers?search=${encodeURIComponent(dupPhoneTerm)}`);
+      return res.json();
+    },
+    enabled: !!createProfileLead && !!dupPhoneTerm,
+    staleTime: 30_000,
+  });
+
+  const duplicateMatches = useMemo(() => {
+    const leadEmail = dupEmailTerm.toLowerCase();
+    const leadPhone = dupPhoneTerm;
+    const seen = new Set<string>();
+    return [...dupEmailResults, ...dupPhoneResults].filter((c) => {
+      if (seen.has(c.id)) return false;
+      const emailMatch = leadEmail && c.email?.toLowerCase() === leadEmail;
+      const phoneMatch = leadPhone && c.phone === leadPhone;
+      if (emailMatch || phoneMatch) { seen.add(c.id); return true; }
+      return false;
+    });
+  }, [dupEmailResults, dupPhoneResults, dupEmailTerm, dupPhoneTerm]);
+
+  const linkExistingFromCreateMutation = useMutation({
+    mutationFn: async ({ leadId, customerId }: { leadId: string; customerId: string }) =>
+      apiRequest("PATCH", `/api/admin/leads/${leadId}`, { customerId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
+      setCreateProfileLead(null);
+      toast({ title: "Customer linked", description: "The existing customer profile has been linked to this lead." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to link customer." });
+    },
   });
 
   const { data: linkedCustomerProfile, isError: linkedCustomerError } = useQuery<{ id: string; name: string; email?: string | null }>({
@@ -1031,6 +1083,42 @@ export default function AdminLeads() {
               Create a new customer profile pre-filled from this lead's details. The profile will be linked to the lead automatically.
             </DialogDescription>
           </DialogHeader>
+          {duplicateMatches.length > 0 && (
+            <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3 space-y-2" data-testid="banner-duplicate-customer">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Possible duplicate detected</p>
+                  {duplicateMatches.map((match) => {
+                    const matchReason = match.email?.toLowerCase() === dupEmailTerm.toLowerCase() ? "email" : "phone number";
+                    return (
+                      <div key={match.id} className="flex items-center justify-between gap-2 mt-2">
+                        <p className="text-sm text-muted-foreground min-w-0 truncate">
+                          A customer with this {matchReason} already exists:{" "}
+                          <span className="font-medium text-foreground">{match.name}</span>
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={() => {
+                            if (createProfileLead) {
+                              linkExistingFromCreateMutation.mutate({ leadId: createProfileLead.id, customerId: match.id });
+                            }
+                          }}
+                          disabled={linkExistingFromCreateMutation.isPending}
+                          data-testid={`button-link-existing-customer-${match.id}`}
+                        >
+                          <Link2 className="w-3.5 h-3.5 mr-1" />
+                          Link instead
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-3 py-1">
             <div>
               <Label htmlFor="create-profile-name">Name</Label>
