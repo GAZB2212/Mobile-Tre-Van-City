@@ -464,15 +464,19 @@ app.use((req, res, next) => {
             .then(() => log("✅ Lead status_changed_at column ready"))
             .catch((err: Error) => console.error("Lead status_changed_at migration:", err.message));
 
-          // Add previous_customer_id and reassigned_at for full reassignment audit trail
-          await pool.query(`
-            ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR;
-            ALTER TABLE leads ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
-            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR;
-            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
-            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR;
-            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
-          `).then(() => log("✅ Reassignment audit columns ready"))
+          // Add previous_customer_name, previous_customer_id and reassigned_at for full reassignment audit trail
+          // Split into individual queries — node-postgres multi-statement batches can silently skip statements
+          await Promise.all([
+            pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_customer_name VARCHAR`),
+            pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR`),
+            pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS previous_customer_name VARCHAR`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP`),
+            pool.query(`ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS previous_customer_name VARCHAR`),
+            pool.query(`ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR`),
+            pool.query(`ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP`),
+          ]).then(() => log("✅ Reassignment audit columns ready"))
             .catch((err: Error) => console.error("Reassignment audit migration:", err.message));
 
           // Add reassignment_history JSONB column for full multi-hop audit chain
