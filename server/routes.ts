@@ -6800,18 +6800,25 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       let convosLinked = 0;
       let customersCreated = 0;
       const errors: string[] = [];
+      const linkedCustomerMap = new Map<string, { id: string; name: string; isNew: boolean; leadsLinked: number; quotesLinked: number; convosLinked: number }>();
 
       // Mirror findOrCreateCustomer's email-first, phone-fallback lookup to detect if customer already existed.
-      async function findOrCreate(email: string | null, phone: string | null, name: string): Promise<{ id: string; isNew: boolean }> {
+      async function findOrCreate(email: string | null, phone: string | null, name: string): Promise<{ id: string; isNew: boolean; name: string }> {
         let existing = email ? await storage.findCustomerByEmail(email) : undefined;
         if (!existing && phone) existing = await storage.findCustomerByPhone(phone);
         const customer = await storage.findOrCreateCustomer(email, phone, name);
-        return { id: customer.id, isNew: !existing };
+        return { id: customer.id, isNew: !existing, name: customer.name ?? name };
       }
 
       function normalizeContact(val: unknown): string | null {
         const s = typeof val === "string" ? val.trim() : "";
         return s || null;
+      }
+
+      function ensureInMap(customerId: string, customerName: string, isNew: boolean) {
+        if (!linkedCustomerMap.has(customerId)) {
+          linkedCustomerMap.set(customerId, { id: customerId, name: customerName, isNew, leadsLinked: 0, quotesLinked: 0, convosLinked: 0 });
+        }
       }
 
       // Backfill leads
@@ -6824,10 +6831,12 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           const email = normalizeContact(row.email);
           const phone = normalizeContact(row.phone);
           if (!email && !phone) continue;
-          const { id: customerId, isNew } = await findOrCreate(email, phone, normalizeContact(row.name) ?? "Unknown");
+          const { id: customerId, isNew, name: customerName } = await findOrCreate(email, phone, normalizeContact(row.name) ?? "Unknown");
           if (isNew) customersCreated++;
+          ensureInMap(customerId, customerName, isNew);
           await storage.linkLeadToCustomer(row.id, customerId);
           leadsLinked++;
+          linkedCustomerMap.get(customerId)!.leadsLinked++;
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Customer backfill — lead ${row.id} failed:`, msg);
@@ -6845,10 +6854,12 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           const email = normalizeContact(row.email);
           const phone = normalizeContact(row.phone);
           if (!email && !phone) continue;
-          const { id: customerId, isNew } = await findOrCreate(email, phone, normalizeContact(row.user_name) ?? "Unknown");
+          const { id: customerId, isNew, name: customerName } = await findOrCreate(email, phone, normalizeContact(row.user_name) ?? "Unknown");
           if (isNew) customersCreated++;
+          ensureInMap(customerId, customerName, isNew);
           await storage.linkQuoteToCustomer(row.id, customerId);
           quotesLinked++;
+          linkedCustomerMap.get(customerId)!.quotesLinked++;
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Customer backfill — quote ${row.id} failed:`, msg);
@@ -6871,10 +6882,12 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           const phone = normalizeContact(cfg.contactPhone) ?? normalizeContact(row.contact_phone);
           const name = normalizeContact(cfg.contactName) ?? normalizeContact(row.contact_name) ?? "AI Chat Contact";
           if (!email && !phone) continue;
-          const { id: customerId, isNew } = await findOrCreate(email, phone, name);
+          const { id: customerId, isNew, name: customerName } = await findOrCreate(email, phone, name);
           if (isNew) customersCreated++;
+          ensureInMap(customerId, customerName, isNew);
           await storage.linkConversationToCustomer(row.id, customerId);
           convosLinked++;
+          linkedCustomerMap.get(customerId)!.convosLinked++;
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Customer backfill — conversation ${row.id} failed:`, msg);
@@ -6882,7 +6895,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
-      res.json({ ok: true, customersCreated, leadsLinked, quotesLinked, convosLinked, failedCount: errors.length });
+      const linkedCustomers = Array.from(linkedCustomerMap.values());
+      res.json({ ok: true, customersCreated, leadsLinked, quotesLinked, convosLinked, failedCount: errors.length, linkedCustomers });
     } catch (error) {
       console.error("Customer backfill error:", error);
       res.status(500).json({ error: "Backfill failed" });

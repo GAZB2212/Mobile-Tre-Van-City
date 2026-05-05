@@ -26,6 +26,9 @@ import {
   UserCheck,
   X,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
 } from "lucide-react";
 
 interface StaffMember {
@@ -54,6 +57,15 @@ interface CustomerListItem {
   pipelineStatus?: string | null;
 }
 
+interface LinkedCustomerSummary {
+  id: string;
+  name: string;
+  isNew: boolean;
+  leadsLinked: number;
+  quotesLinked: number;
+  convosLinked: number;
+}
+
 interface BackfillResult {
   ok: boolean;
   customersCreated: number;
@@ -61,6 +73,7 @@ interface BackfillResult {
   quotesLinked: number;
   convosLinked: number;
   failedCount: number;
+  linkedCustomers: LinkedCustomerSummary[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -103,6 +116,8 @@ export default function AdminCustomers() {
   const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [staffFilter, setStaffFilter] = useState<string>("");
+  const [syncSummary, setSyncSummary] = useState<BackfillResult | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(true);
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
@@ -128,20 +143,16 @@ export default function AdminCustomers() {
     mutationFn: () =>
       apiRequest("POST", "/api/admin/customers/backfill").then((res) => res.json() as Promise<BackfillResult>),
     onSuccess: (data) => {
-      const parts: string[] = [];
-      if (data.customersCreated > 0) parts.push(`${data.customersCreated} new customer${data.customersCreated !== 1 ? "s" : ""} created`);
-      if (data.leadsLinked > 0) parts.push(`${data.leadsLinked} lead${data.leadsLinked !== 1 ? "s" : ""} linked`);
-      if (data.quotesLinked > 0) parts.push(`${data.quotesLinked} quote${data.quotesLinked !== 1 ? "s" : ""} linked`);
-      if (data.convosLinked > 0) parts.push(`${data.convosLinked} chat${data.convosLinked !== 1 ? "s" : ""} linked`);
       const hasFailed = data.failedCount > 0;
-      toast({
-        title: parts.length > 0 ? "Sync complete" : "Already up to date",
-        description: [
-          parts.length > 0 ? parts.join(", ") + "." : "All records were already linked to customer profiles.",
-          hasFailed ? ` ${data.failedCount} record${data.failedCount !== 1 ? "s" : ""} could not be linked (see server logs).` : "",
-        ].join(""),
-        variant: hasFailed ? "destructive" : "default",
-      });
+      if (hasFailed) {
+        toast({
+          title: "Sync complete with errors",
+          description: `${data.failedCount} record${data.failedCount !== 1 ? "s" : ""} could not be linked (see server logs).`,
+          variant: "destructive",
+        });
+      }
+      setSyncSummary(data);
+      setSummaryExpanded(true);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
     },
     onError: () => {
@@ -258,6 +269,121 @@ export default function AdminCustomers() {
               {backfillMutation.isPending ? "Syncing..." : "Sync Records"}
             </Button>
           </div>
+
+          {/* Sync summary panel */}
+          {syncSummary && (
+            <Card data-testid="panel-sync-summary">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-sm font-medium">
+                      {syncSummary.leadsLinked > 0 || syncSummary.quotesLinked > 0 || syncSummary.convosLinked > 0
+                        ? "Sync complete"
+                        : "Already up to date"}
+                    </span>
+                    {(syncSummary.customersCreated > 0 || syncSummary.leadsLinked > 0 || syncSummary.quotesLinked > 0 || syncSummary.convosLinked > 0) && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {syncSummary.customersCreated > 0 && (
+                          <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate">
+                            {syncSummary.customersCreated} new customer{syncSummary.customersCreated !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                        {syncSummary.leadsLinked > 0 && (
+                          <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-blue-500/25 no-default-active-elevate">
+                            {syncSummary.leadsLinked} lead{syncSummary.leadsLinked !== 1 ? "s" : ""} linked
+                          </Badge>
+                        )}
+                        {syncSummary.quotesLinked > 0 && (
+                          <Badge className="text-[10px] bg-purple-500/15 text-purple-400 border-purple-500/25 no-default-active-elevate">
+                            {syncSummary.quotesLinked} quote{syncSummary.quotesLinked !== 1 ? "s" : ""} linked
+                          </Badge>
+                        )}
+                        {syncSummary.convosLinked > 0 && (
+                          <Badge className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/25 no-default-active-elevate">
+                            {syncSummary.convosLinked} chat{syncSummary.convosLinked !== 1 ? "s" : ""} linked
+                          </Badge>
+                        )}
+                        {syncSummary.failedCount > 0 && (
+                          <Badge className="text-[10px] bg-red-500/15 text-red-400 border-red-500/25 no-default-active-elevate">
+                            <AlertCircle className="w-2.5 h-2.5 mr-1" />
+                            {syncSummary.failedCount} failed
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {syncSummary.linkedCustomers.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSummaryExpanded(v => !v)}
+                        data-testid="button-toggle-sync-summary"
+                      >
+                        {summaryExpanded ? <ChevronUp className="w-3.5 h-3.5 mr-1" /> : <ChevronDown className="w-3.5 h-3.5 mr-1" />}
+                        {summaryExpanded ? "Hide" : "Show"} details
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSyncSummary(null)}
+                      data-testid="button-dismiss-sync-summary"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {summaryExpanded && syncSummary.linkedCustomers.length > 0 && (
+                  <div className="mt-3 border-t pt-3 space-y-1.5">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Customer profiles updated by this sync:
+                    </p>
+                    {syncSummary.linkedCustomers.map(c => (
+                      <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap py-1" data-testid={`row-synced-customer-${c.id}`}>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/customers/${c.id}`}>
+                            <span className="text-sm font-medium hover:underline cursor-pointer">{c.name}</span>
+                          </Link>
+                          {c.isNew && (
+                            <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate">
+                              new
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {c.leadsLinked > 0 && (
+                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Users className="w-3 h-3" />
+                              {c.leadsLinked} lead{c.leadsLinked !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {c.quotesLinked > 0 && (
+                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <FileText className="w-3 h-3" />
+                              {c.quotesLinked} quote{c.quotesLinked !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {c.convosLinked > 0 && (
+                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Bot className="w-3 h-3" />
+                              {c.convosLinked} chat{c.convosLinked !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {syncSummary.linkedCustomers.length === 0 && syncSummary.leadsLinked === 0 && syncSummary.quotesLinked === 0 && syncSummary.convosLinked === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">All records were already linked to customer profiles.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* List */}
           {customersLoading ? (
