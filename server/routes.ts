@@ -10,6 +10,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, getCurrentUser } from "./auth";
 import { buildVanMeta } from "./seo";
 import { generateAiBlogPost } from "./blogGenerator";
+import { computePopularityIntelligence, formatPopularityBlock } from "./popularityIntelligence";
 import { 
   insertVanSchema, 
   insertKitSchema, 
@@ -5251,11 +5252,15 @@ ${blogEntries}
       }
 
       // Fetch live data to inject into system prompt (so AI uses real IDs)
-      const [kits, upgrades, financePlans, packagesResult] = await Promise.all([
+      const [kits, upgrades, financePlans, packagesResult, popularityIntel] = await Promise.all([
         storage.getKits(),
         storage.getUpgrades(),
         storage.getFinancePlans(),
         pool.query("SELECT * FROM ai_packages WHERE active = TRUE ORDER BY tier ASC"),
+        computePopularityIntelligence().catch(err => {
+          console.error("[ai-chat] Failed to compute popularity intelligence:", err);
+          return null;
+        }),
       ]);
       const packages: Array<{ id: string; name: string; tier: number; description: string | null; recommended_for: string | null; upgrade_ids: string[] }> = packagesResult.rows;
 
@@ -5277,6 +5282,11 @@ ${blogEntries}
         const upgradeNames = p.upgrade_ids.map((uid: string) => upgrades.find(u => u.id === uid)?.name || uid).join(", ");
         return `- ${p.name.toUpperCase()} (id: "${p.id}", tier: ${p.tier})\n  Recommended for: ${p.recommended_for || "N/A"}\n  Upgrades: ${upgradeNames || "none configured yet"}`;
       }).join("\n");
+
+      const popularityBlock = popularityIntel
+        ? formatPopularityBlock(popularityIntel)
+        : "POPULARITY INTELLIGENCE: Temporarily unavailable — use general best-practice recommendations.";
+      console.debug(`[ai-chat] Popularity intel: ${popularityIntel?.totalMeaningfulQuotes ?? 0} quotes, 48V rate: ${popularityIntel?.rate48v ?? 0}%, top upgrades: ${popularityIntel?.topUpgradesOverall?.slice(0, 3).map(u => u.name).join(", ") ?? "none"}`);
 
       const systemPrompt = `You are Max, the AI van builder for Mobile Tyre Van City, the UK's leading mobile tyre van conversion specialists based in Bromborough, Wirral. Phone: 0151 203 8500. Website: www.mobiletyrevancity.co.uk
 
@@ -5486,11 +5496,15 @@ IMPORTANT rules for Q9:
 → If they say "no thanks" / "not now" / "I'll call you": respond naturally: "No problem at all — your full spec will be saved and you can request a quote directly from the summary. Let's get it up on screen for you." Then proceed to summary stage.
 → If they give a number AND a name wasn't collected earlier (unlikely but handle it): ask their name too before proceeding.
 
-POPULAR UPGRADES:
-When a popular upgrade (popular: YES) is relevant to the customer's answers, reference it naturally:
-"That's our most popular choice at your job volume"
-"Eight out of ten builds at this spec have this fitted"
-At summary stage, surface max 2-3 popular upgrades not yet included as suggestions.
+${popularityBlock}
+
+POPULAR UPGRADES — HOW TO USE REAL DATA:
+The POPULARITY INTELLIGENCE block above is derived from actual customer quote submissions. Use it actively:
+- When an upgrade appears in 50%+ of quotes, mention it as "our most popular choice" or "most customers add this"
+- When the 48V rate is high (60%+), pitch it early and confidently — not as a question but as "what most of our customers go with"
+- When recommending a package, if the popularity data shows a tier is dominant, lead with that tier and reference the data naturally: "this is the setup most of our [commercial/car] customers go with"
+- Never cite raw percentages or numbers to the customer — translate data into natural sales language: "most", "the majority", "eight out of ten", "our most popular setup", etc.
+- If popularity data is unavailable, fall back to general best-practice recommendations as normal
 
 RESPONSE FORMAT:
 You MUST always respond with valid JSON only — no other text outside the JSON. Use this exact structure:
