@@ -5737,17 +5737,37 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
-      // Auto-link / create a unified Customer record — only when email or phone is known (prevents name-only duplicates)
-      const aiContactName = (contactName ?? cfg.contactName ?? "").trim() || "AI Chat Contact";
-      const aiContactEmail = (cfg.contactEmail ?? "").trim() || null;
-      const aiContactPhone = (contactPhone ?? cfg.contactPhone ?? "").trim() || null;
-      if (aiContactEmail || aiContactPhone) {
-        storage.findOrCreateCustomer(aiContactEmail, aiContactPhone, aiContactName)
-          .then(customer =>
-            storage.linkConversationBySessionToCustomer(sessionId, customer.id)
-              .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, aiContactEmail, aiContactPhone))
-          )
-          .catch(err => console.error("Customer auto-link (ai-conversation) error:", err?.message));
+      // Auto-link / create a unified Customer record when the conversation is completed.
+      // We read from the DB row after the upsert so that contact details persisted by
+      // earlier in-progress saves (stored via COALESCE for contact_phone/contact_name,
+      // and in mapped_config for contactEmail) are used even if the final "completed"
+      // save request does not re-include them in its config payload.
+      // Awaited before responding so the customer link is guaranteed to have committed
+      // by the time the caller receives { ok: true }.
+      if (status === "completed") {
+        try {
+          const { rows: [saved] } = await pool.query(
+            `SELECT mapped_config, contact_name, contact_phone FROM ai_conversations WHERE session_id = $1`,
+            [sessionId]
+          );
+          if (saved) {
+            const savedCfg = typeof saved.mapped_config === "string"
+              ? JSON.parse(saved.mapped_config)
+              : (saved.mapped_config ?? {});
+            const resolvedEmail = (savedCfg.contactEmail ?? "").trim() || null;
+            const resolvedPhone = (savedCfg.contactPhone ?? saved.contact_phone ?? "").trim() || null;
+            const resolvedName = (savedCfg.contactName ?? saved.contact_name ?? "").trim() || "AI Chat Contact";
+            if (resolvedEmail || resolvedPhone) {
+              const customer = await storage.findOrCreateCustomer(resolvedEmail, resolvedPhone, resolvedName);
+              await storage.linkConversationBySessionToCustomer(sessionId, customer.id);
+              storage.backfillLeadsAndQuotesForCustomer(customer.id, resolvedEmail, resolvedPhone)
+                .catch(err => console.error("Customer backfill (ai-conversation) error:", err?.message));
+            }
+          }
+        } catch (err: any) {
+          // Non-fatal — log but don't fail the save response
+          console.error("Customer auto-link (ai-conversation) error:", err?.message);
+        }
       }
 
       res.json({ ok: true });
