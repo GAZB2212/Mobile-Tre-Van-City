@@ -711,6 +711,7 @@ interface MergeHistoryEntry {
   conversationsRelinked: string[];
   notesRelinked: string[];
   triggeredBy: string | null;
+  splitBy: string | null;
   mergedAt: string | null;
   splitAt: string | null;
 }
@@ -1133,6 +1134,16 @@ export default function AdminCustomers() {
                                   system / automated
                                 </span>
                               )}
+                              {alreadySplit && entry.splitBy && (() => {
+                                const staff = staffList.find(s => s.id === entry.splitBy);
+                                const name = staff?.displayName ?? staff?.username ?? entry.splitBy;
+                                return (
+                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground" data-testid={`text-merge-split-by-${entry.id}`}>
+                                    <Scissors className="w-3 h-3 shrink-0" />
+                                    split by {name}
+                                  </span>
+                                );
+                              })()}
                               {entry.mergedAt && (
                                 <span className="text-[11px] text-muted-foreground">
                                   {formatDate(entry.mergedAt)}

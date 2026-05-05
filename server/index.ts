@@ -586,6 +586,7 @@ app.use((req, res, next) => {
             CREATE INDEX IF NOT EXISTS idx_merge_history_keep ON customer_merge_history (keep_id);
             CREATE INDEX IF NOT EXISTS idx_merge_history_merged_at ON customer_merge_history (merged_at);
             ALTER TABLE customer_merge_history ADD COLUMN IF NOT EXISTS triggered_by VARCHAR;
+            ALTER TABLE customer_merge_history ADD COLUMN IF NOT EXISTS split_by VARCHAR;
           `).then(() => log("✅ Customer merge history table ready"))
             .catch((err: Error) => console.error("Customer merge history migration:", err.message));
 

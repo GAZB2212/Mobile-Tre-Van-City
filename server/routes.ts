@@ -6547,7 +6547,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   app.post("/api/admin/customers/split/:historyId", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { historyId } = req.params;
-      const result = await storage.splitMerge(historyId);
+      const splitBy = (req.session as any)?.user?.id ?? undefined;
+      const result = await storage.splitMerge(historyId, splitBy);
       res.json({ ok: true, newCustomerId: result.newCustomerId });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);

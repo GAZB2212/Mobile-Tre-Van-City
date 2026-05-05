@@ -2495,6 +2495,7 @@ export class DbStorage implements IStorage {
         conversations_relinked AS "conversationsRelinked",
         notes_relinked AS "notesRelinked",
         triggered_by AS "triggeredBy",
+        split_by AS "splitBy",
         merged_at AS "mergedAt",
         split_at AS "splitAt"
       FROM customer_merge_history
@@ -2504,7 +2505,7 @@ export class DbStorage implements IStorage {
     return result.rows;
   }
 
-  async splitMerge(historyId: string): Promise<{ newCustomerId: string }> {
+  async splitMerge(historyId: string, splitBy?: string): Promise<{ newCustomerId: string }> {
     const histResult = await pool.query<{
       keepId: string;
       removedId: string;
@@ -2599,10 +2600,10 @@ export class DbStorage implements IStorage {
         );
       }
 
-      // Mark the history entry as split.
+      // Mark the history entry as split, recording who triggered it.
       await client.query(
-        `UPDATE customer_merge_history SET split_at = NOW() WHERE id = $1`,
-        [historyId]
+        `UPDATE customer_merge_history SET split_at = NOW(), split_by = $2 WHERE id = $1`,
+        [historyId, splitBy ?? null]
       );
 
       await client.query("COMMIT");
