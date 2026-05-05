@@ -39,6 +39,7 @@ import {
   Scissors,
   History,
   ArrowRightLeft,
+  UserCircle,
 } from "lucide-react";
 
 interface StaffMember {
@@ -688,6 +689,7 @@ interface MergeHistoryEntry {
   quotesRelinked: string[];
   conversationsRelinked: string[];
   notesRelinked: string[];
+  triggeredBy: string | null;
   mergedAt: string | null;
   splitAt: string | null;
 }
@@ -1095,6 +1097,16 @@ export default function AdminCustomers() {
                                   {recordCount} record{recordCount !== 1 ? "s" : ""} re-linked
                                 </span>
                               )}
+                              {entry.triggeredBy && (() => {
+                                const staff = staffList.find(s => s.id === entry.triggeredBy);
+                                const name = staff?.displayName ?? staff?.username ?? entry.triggeredBy;
+                                return (
+                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground" data-testid={`text-merge-triggered-by-${entry.id}`}>
+                                    <UserCircle className="w-3 h-3 shrink-0" />
+                                    {name}
+                                  </span>
+                                );
+                              })()}
                               {entry.mergedAt && (
                                 <span className="text-[11px] text-muted-foreground">
                                   {formatDate(entry.mergedAt)}

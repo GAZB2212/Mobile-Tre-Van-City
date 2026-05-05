@@ -140,7 +140,7 @@ export interface IStorage {
   linkQuoteToCustomer(quoteId: string, customerId: string): Promise<void>;
   linkConversationToCustomer(conversationId: string, customerId: string): Promise<void>;
   linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void>;
-  mergeCustomers(keepId: string, mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
+  mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
   getMergeHistory(limit?: number): Promise<CustomerMergeHistory[]>;
   splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
 }
@@ -1779,7 +1779,7 @@ export class MemStorage implements IStorage {
   async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string): Promise<void> {}
   async linkQuoteToCustomer(_quoteId: string, _customerId: string): Promise<void> {}
   async linkConversationToCustomer(_conversationId: string, _customerId: string): Promise<void> {}
-  async mergeCustomers(_keepId: string, _mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
+  async mergeCustomers(_keepId: string, _mergeId: string, _triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
     return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
   }
   async getMergeHistory(_limit?: number): Promise<CustomerMergeHistory[]> { return []; }
@@ -2399,7 +2399,7 @@ export class DbStorage implements IStorage {
    * 3. Delete the now-orphaned duplicate row.
    * Safe to call even if `mergeId` has no associated records.
    */
-  async mergeCustomers(keepId: string, mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
+  async mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
     if (keepId === mergeId) return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
     const client = await pool.connect();
     try {
@@ -2451,8 +2451,8 @@ export class DbStorage implements IStorage {
         INSERT INTO customer_merge_history
           (keep_id, keep_snapshot_name, keep_snapshot_email, keep_snapshot_phone, keep_snapshot_company,
            removed_id, removed_snapshot_name, removed_snapshot_email, removed_snapshot_phone, removed_snapshot_company,
-           leads_relinked, quotes_relinked, conversations_relinked, notes_relinked)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+           leads_relinked, quotes_relinked, conversations_relinked, notes_relinked, triggered_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       `, [
         keepId, keepRow?.name ?? null, keepRow?.email ?? null, keepRow?.phone ?? null, keepRow?.company ?? null,
         mergeId, removedRow?.name ?? null, removedRow?.email ?? null, removedRow?.phone ?? null, removedRow?.company ?? null,
@@ -2460,6 +2460,7 @@ export class DbStorage implements IStorage {
         JSON.stringify(quotesRows.rows.map(r => r.id)),
         JSON.stringify(convosRows.rows.map(r => r.id)),
         JSON.stringify(notesRows.rows.map(r => r.id)),
+        triggeredBy ?? null,
       ]);
 
       await client.query("COMMIT");
@@ -2493,6 +2494,7 @@ export class DbStorage implements IStorage {
         quotes_relinked AS "quotesRelinked",
         conversations_relinked AS "conversationsRelinked",
         notes_relinked AS "notesRelinked",
+        triggered_by AS "triggeredBy",
         merged_at AS "mergedAt",
         split_at AS "splitAt"
       FROM customer_merge_history

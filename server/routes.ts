@@ -6990,6 +6990,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   // applied to all existing customer pairs so historical duplicates are cleaned up.
   app.post("/api/admin/customers/deduplicate", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
+      const triggeredByUserId: string | undefined = (req.session as any)?.user?.id ?? undefined;
       let mergedCount = 0;
       const errors: string[] = [];
       // Track surviving customers and how many duplicates each absorbed
@@ -7030,7 +7031,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           );
           const [keep, ...duplicates] = rows;
           for (const dup of duplicates) {
-            const counts = await storage.mergeCustomers(keep.id, dup.id);
+            const counts = await storage.mergeCustomers(keep.id, dup.id, triggeredByUserId);
             mergedCount++;
             recordMerge(keep.id, keep.name ?? "Unknown", counts);
           }
@@ -7059,7 +7060,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           );
           const [keep, ...duplicates] = rows;
           for (const dup of duplicates) {
-            const counts = await storage.mergeCustomers(keep.id, dup.id);
+            const counts = await storage.mergeCustomers(keep.id, dup.id, triggeredByUserId);
             mergedCount++;
             recordMerge(keep.id, keep.name ?? "Unknown", counts);
           }
@@ -7116,7 +7117,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         if (stillExists.rows.length === 0) continue;
         try {
           const keepName = mergedCustomerMap.get(keep_id)?.name ?? await fetchCustomerName(keep_id);
-          const counts = await storage.mergeCustomers(keep_id, merge_id);
+          const counts = await storage.mergeCustomers(keep_id, merge_id, triggeredByUserId);
           mergedCount++;
           recordMerge(keep_id, keepName, counts);
         } catch (err: unknown) {

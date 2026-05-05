@@ -652,6 +652,7 @@ export const customerMergeHistory = pgTable("customer_merge_history", {
   quotesRelinked: json("quotes_relinked").$type<string[]>().notNull().default([]),
   conversationsRelinked: json("conversations_relinked").$type<string[]>().notNull().default([]),
   notesRelinked: json("notes_relinked").$type<string[]>().notNull().default([]),
+  triggeredBy: varchar("triggered_by"), // user ID of the staff member who ran deduplication
   mergedAt: timestamp("merged_at").defaultNow(),
   splitAt: timestamp("split_at"), // null until the merge is undone
 }, (table) => [
