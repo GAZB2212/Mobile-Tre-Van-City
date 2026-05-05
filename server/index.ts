@@ -472,6 +472,17 @@ app.use((req, res, next) => {
           `).then(() => log("✅ Previous customer name columns ready"))
             .catch((err: Error) => console.error("Previous customer name migration:", err.message));
 
+          // Add previous_customer_id and reassigned_at for full reassignment audit trail
+          await pool.query(`
+            ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR;
+            ALTER TABLE leads ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
+            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR;
+            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
+            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS previous_customer_id VARCHAR;
+            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
+          `).then(() => log("✅ Reassignment audit columns ready"))
+            .catch((err: Error) => console.error("Reassignment audit migration:", err.message));
+
           // Unique partial indexes on customers.email and customers.phone to prevent
           // future duplicate records at the DB level. Only create them if the data
           // is already clean — if duplicates exist, warn and defer to dedup endpoint.

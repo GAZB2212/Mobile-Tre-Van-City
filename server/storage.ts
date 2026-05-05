@@ -2654,10 +2654,11 @@ export class DbStorage implements IStorage {
     );
     const prev = existing.rows[0];
     const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    const previousId = prev?.customer_id && prev.customer_id !== customerId ? prev.customer_id : null;
     if (previousName) {
       await pool.query(
-        `UPDATE leads SET customer_id = $1, previous_customer_name = $2 WHERE id = $3`,
-        [customerId, previousName, leadId]
+        `UPDATE leads SET customer_id = $1, previous_customer_name = $2, previous_customer_id = $3, reassigned_at = NOW() WHERE id = $4`,
+        [customerId, previousName, previousId, leadId]
       );
     } else {
       await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, leadId]);
@@ -2671,10 +2672,11 @@ export class DbStorage implements IStorage {
     );
     const prev = existing.rows[0];
     const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    const previousId = prev?.customer_id && prev.customer_id !== customerId ? prev.customer_id : null;
     if (previousName) {
       await pool.query(
-        `UPDATE quotes SET customer_id = $1, previous_customer_name = $2 WHERE id = $3`,
-        [customerId, previousName, quoteId]
+        `UPDATE quotes SET customer_id = $1, previous_customer_name = $2, previous_customer_id = $3, reassigned_at = NOW() WHERE id = $4`,
+        [customerId, previousName, previousId, quoteId]
       );
     } else {
       await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, quoteId]);
@@ -2735,10 +2737,11 @@ export class DbStorage implements IStorage {
     );
     const prev = existing.rows[0];
     const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    const previousId = prev?.customer_id && prev.customer_id !== customerId ? prev.customer_id : null;
     if (previousName) {
       await pool.query(
-        `UPDATE ai_conversations SET customer_id = $1, previous_customer_name = $2 WHERE id = $3`,
-        [customerId, previousName, conversationId]
+        `UPDATE ai_conversations SET customer_id = $1, previous_customer_name = $2, previous_customer_id = $3, reassigned_at = NOW() WHERE id = $4`,
+        [customerId, previousName, previousId, conversationId]
       );
     } else {
       await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, conversationId]);

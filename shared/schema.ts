@@ -254,6 +254,8 @@ export const quotes = pgTable("quotes", {
   // CRM customer link
   customerId: varchar("customer_id"),
   previousCustomerName: text("previous_customer_name"), // Name of prior customer if this quote was reassigned
+  previousCustomerId: varchar("previous_customer_id"),   // ID of prior customer if this quote was reassigned
+  reassignedAt: timestamp("reassigned_at"),              // When the quote was last reassigned to a different customer
 
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -275,6 +277,8 @@ export const leads = pgTable("leads", {
   quoteId: varchar("quote_id").references(() => quotes.id), // Linked quote ID for converted leads
   customerId: varchar("customer_id"), // FK to customers — set after customers table is created
   previousCustomerName: text("previous_customer_name"), // Name of prior customer if this lead was reassigned
+  previousCustomerId: varchar("previous_customer_id"),   // ID of prior customer if this lead was reassigned
+  reassignedAt: timestamp("reassigned_at"),              // When the lead was last reassigned to a different customer
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -679,6 +683,8 @@ export const aiConversations = pgTable("ai_conversations", {
   contactedNote: text("contacted_note"),
   customerId: varchar("customer_id"),
   previousCustomerName: text("previous_customer_name"), // Name of prior customer if this conversation was reassigned
+  previousCustomerId: varchar("previous_customer_id"),   // ID of prior customer if this conversation was reassigned
+  reassignedAt: timestamp("reassigned_at"),              // When the conversation was last reassigned to a different customer
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });

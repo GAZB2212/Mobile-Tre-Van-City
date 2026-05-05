@@ -16,7 +16,7 @@ import {
   ArrowLeft, Mail, Phone, Building2, Pencil, Save, X,
   FileText, Bot, Users, CheckCircle2, Clock,
   CalendarDays, StickyNote, PhoneCall, Coffee, ExternalLink,
-  AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX,
+  AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
 } from "lucide-react";
 
 interface StaffMember {
@@ -103,6 +103,8 @@ const TIMELINE_ICONS: Record<string, React.ElementType> = {
   customer_note: StickyNote,
   followup_scheduled: CalendarDays,
   followup_completed: CheckCircle2,
+  record_reassigned_in: ArrowRightLeft,
+  record_reassigned_out: ArrowRightLeft,
 };
 
 const TIMELINE_COLORS: Record<string, string> = {
@@ -116,6 +118,8 @@ const TIMELINE_COLORS: Record<string, string> = {
   customer_note: "bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)]",
   followup_scheduled: "bg-orange-500/20 text-orange-400",
   followup_completed: "bg-emerald-500/20 text-emerald-400",
+  record_reassigned_in: "bg-violet-500/20 text-violet-400",
+  record_reassigned_out: "bg-slate-500/20 text-slate-400",
 };
 
 function formatDate(date: string | null | undefined) {
