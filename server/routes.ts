@@ -6788,14 +6788,17 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
-      // Reassignment events — records moved TO this customer from another
+      // Reassignment events — records moved TO this customer from another.
+      // Uses the structured reassignment_history array (migrated from the legacy
+      // previous_customer_name TEXT column on startup).
       for (const lead of leads) {
-        if (lead.previous_customer_name && lead.reassigned_at) {
+        const history: Array<{customerName: string; timestamp: string; staffName?: string}> = lead.reassignment_history ?? [];
+        for (const entry of history) {
           timeline.push({
-            id: `lead-reassigned-in-${lead.id}`,
+            id: `lead-reassigned-in-${lead.id}-${entry.timestamp}`,
             type: "record_reassigned_in",
-            title: `Lead moved from ${lead.previous_customer_name}`,
-            timestamp: lead.reassigned_at,
+            title: `Lead moved from ${entry.customerName}`,
+            timestamp: entry.timestamp,
             entityId: lead.id,
             entityType: "lead",
             relatedCustomerId: lead.previous_customer_id,
@@ -6804,12 +6807,13 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
       for (const quote of quotes) {
-        if (quote.previous_customer_name && quote.reassigned_at) {
+        const history: Array<{customerName: string; timestamp: string; staffName?: string}> = quote.reassignment_history ?? [];
+        for (const entry of history) {
           timeline.push({
-            id: `quote-reassigned-in-${quote.id}`,
+            id: `quote-reassigned-in-${quote.id}-${entry.timestamp}`,
             type: "record_reassigned_in",
-            title: `Quote moved from ${quote.previous_customer_name}`,
-            timestamp: quote.reassigned_at,
+            title: `Quote moved from ${entry.customerName}`,
+            timestamp: entry.timestamp,
             entityId: quote.id,
             entityType: "quote",
             relatedCustomerId: quote.previous_customer_id,
@@ -6818,12 +6822,13 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
       for (const convo of convos) {
-        if (convo.previous_customer_name && convo.reassigned_at) {
+        const history: Array<{customerName: string; timestamp: string; staffName?: string}> = convo.reassignment_history ?? [];
+        for (const entry of history) {
           timeline.push({
-            id: `convo-reassigned-in-${convo.id}`,
+            id: `convo-reassigned-in-${convo.id}-${entry.timestamp}`,
             type: "record_reassigned_in",
-            title: `AI chat moved from ${convo.previous_customer_name}`,
-            timestamp: convo.reassigned_at,
+            title: `AI chat moved from ${entry.customerName}`,
+            timestamp: entry.timestamp,
             entityId: convo.id,
             entityType: "conversation",
             relatedCustomerId: convo.previous_customer_id,
