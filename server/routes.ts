@@ -6127,6 +6127,61 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── Sage Business Cloud Accounting ─────────────────────────────────────────
+
+  app.get("/api/sage/status", isAuthenticated, isBasicAdmin, async (_req, res) => {
+    try {
+      const { isSageConnected } = await import("./sage.js");
+      const connected = await isSageConnected();
+      res.json({ connected });
+    } catch {
+      res.json({ connected: false });
+    }
+  });
+
+  app.get("/api/sage/auth", isAuthenticated, isFullAdmin, async (_req, res) => {
+    const { getSageAuthUrl } = await import("./sage.js");
+    const url = getSageAuthUrl();
+    res.redirect(url);
+  });
+
+  app.get("/api/sage/callback", async (req, res) => {
+    const code = req.query.code as string;
+    if (!code) {
+      return res.status(400).send("Missing authorization code from Sage.");
+    }
+    try {
+      const { exchangeCodeForTokens } = await import("./sage.js");
+      await exchangeCodeForTokens(code);
+      res.redirect("/admin?sage=connected");
+    } catch (err: any) {
+      console.error("[Sage] OAuth callback error:", err);
+      res.redirect("/admin?sage=error");
+    }
+  });
+
+  app.post("/api/sage/push/:quoteId", isAuthenticated, isFullAdmin, async (req, res) => {
+    const { quoteId } = req.params;
+    try {
+      const { pushQuoteToSage } = await import("./sage.js");
+      const result = await pushQuoteToSage(quoteId);
+      res.json({ ok: true, ...result });
+    } catch (err: any) {
+      console.error("[Sage] Push invoice error:", err);
+      res.status(500).json({ error: err?.message ?? "Failed to push to Sage." });
+    }
+  });
+
+  app.delete("/api/sage/disconnect", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const { disconnectSage } = await import("./sage.js");
+      await disconnectSage();
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to disconnect Sage." });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

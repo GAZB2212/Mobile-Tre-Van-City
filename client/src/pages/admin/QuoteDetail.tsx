@@ -54,6 +54,7 @@ import {
   Bot,
   Eye,
   Mail,
+  Building2,
 } from "lucide-react";
 import {
   Dialog,
@@ -269,6 +270,12 @@ export default function AdminQuoteDetail() {
     queryKey: ["/api/admin/upgrades"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
+
+  const { data: sageStatus } = useQuery<{ connected: boolean }>({
+    queryKey: ["/api/sage/status"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+  const sageConnected = sageStatus?.connected ?? false;
 
   // Initialize form fields when quote loads
   useEffect(() => {
@@ -593,6 +600,26 @@ export default function AdminQuoteDetail() {
         variant: "destructive",
         title: "Error",
         description: "Failed to send depot email. Please try again.",
+      });
+    },
+  });
+
+  const pushToSageMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/sage/push/${id}`);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      toast({
+        title: "Pushed to Sage",
+        description: `Invoice ${data.invoiceNumber} created in Sage Business Cloud.`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        variant: "destructive",
+        title: "Sage Error",
+        description: err?.message ?? "Failed to push invoice to Sage.",
       });
     },
   });
@@ -2984,6 +3011,66 @@ export default function AdminQuoteDetail() {
                 </p>
               </CardContent>
             </Card>
+
+            {/* Push to Sage */}
+            {canEdit && (
+              <Card>
+                <CardContent className="pt-4 pb-4 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sage Accounting</p>
+                  {(quote as any).sageInvoiceId ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-[#8bc440]" />
+                        <p className="text-sm font-medium">Pushed to Sage</p>
+                      </div>
+                      {(quote as any).sagePushedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          {new Date((quote as any).sagePushedAt).toLocaleDateString("en-GB", {
+                            day: "2-digit", month: "short", year: "numeric",
+                            hour: "2-digit", minute: "2-digit",
+                          })}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground font-mono">
+                        Ref: MTVC-{quote.id.slice(0, 8).toUpperCase()}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => pushToSageMutation.mutate()}
+                        disabled={pushToSageMutation.isPending}
+                        data-testid="button-push-sage-again"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                        {pushToSageMutation.isPending ? "Pushing..." : "Push Again"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        className="w-full bg-[#1c5f3a] text-white"
+                        onClick={() => pushToSageMutation.mutate()}
+                        disabled={pushToSageMutation.isPending || !sageConnected}
+                        data-testid="button-push-sage"
+                      >
+                        <Building2 className="w-3.5 h-3.5 mr-1.5" />
+                        {pushToSageMutation.isPending ? "Pushing..." : "Push to Sage"}
+                      </Button>
+                      {!sageConnected && (
+                        <p className="text-xs text-muted-foreground">
+                          Sage not connected.{" "}
+                          <a href="/api/sage/auth" className="underline hover:text-foreground transition-colors">
+                            Connect now
+                          </a>
+                        </p>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             </>}
 

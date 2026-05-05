@@ -238,6 +238,10 @@ export const quotes = pgTable("quotes", {
   chosenOption: text("chosen_option"), // null | 'A' | 'B'
   chooseOptionToken: text("choose_option_token"), // One-time token included in comparison email links — prevents link-scanner/prefetch from triggering option selection
 
+  // Sage Business Cloud Accounting — invoice pushed from admin panel
+  sageInvoiceId: text("sage_invoice_id"),
+  sagePushedAt: timestamp("sage_pushed_at"),
+
   // Stock management integration — ID returned by autotradeportal.com when build is dispatched
   stockBuildId: text("stock_build_id"),
 

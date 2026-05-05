@@ -203,6 +203,12 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quote_id VARCHAR REFERENCES quotes(id)`)
         .then(() => log("✅ Lead quote_id column ready"))
         .catch((err: Error) => console.error("Lead quote_id migration:", err.message));
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sage_invoice_id TEXT`)
+        .then(() => log("✅ Sage invoice ID column ready"))
+        .catch((err: Error) => console.error("Sage invoice_id migration:", err.message));
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sage_pushed_at TIMESTAMP`)
+        .then(() => log("✅ Sage pushed_at column ready"))
+        .catch((err: Error) => console.error("Sage pushed_at migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_conversations (
