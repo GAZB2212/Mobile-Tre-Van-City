@@ -141,7 +141,7 @@ export interface IStorage {
   linkConversationToCustomer(conversationId: string, customerId: string, staffName?: string): Promise<void>;
   linkConversationBySessionToCustomer(sessionId: string, customerId: string, staffName?: string): Promise<void>;
   mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
-  getMergeHistory(limit?: number): Promise<CustomerMergeHistory[]>;
+  getMergeHistory(limit?: number, keepId?: string): Promise<CustomerMergeHistory[]>;
   splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
 }
 
@@ -2477,7 +2477,10 @@ export class DbStorage implements IStorage {
     }
   }
 
-  async getMergeHistory(limit = 50): Promise<CustomerMergeHistory[]> {
+  async getMergeHistory(limit = 50, keepId?: string): Promise<CustomerMergeHistory[]> {
+    const params: (number | string)[] = [limit];
+    const whereClause = keepId ? `WHERE keep_id = $2` : "";
+    if (keepId) params.push(keepId);
     const result = await pool.query<CustomerMergeHistory>(`
       SELECT
         id, keep_id AS "keepId",
@@ -2499,9 +2502,10 @@ export class DbStorage implements IStorage {
         merged_at AS "mergedAt",
         split_at AS "splitAt"
       FROM customer_merge_history
+      ${whereClause}
       ORDER BY merged_at DESC
       LIMIT $1
-    `, [limit]);
+    `, params);
     return result.rows;
   }
 

@@ -17,7 +17,7 @@ import {
   FileText, Bot, Users, CheckCircle2, Clock,
   CalendarDays, StickyNote, PhoneCall, Coffee, ExternalLink,
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
-  Merge, Search, ShieldAlert,
+  Merge, Search, ShieldAlert, Scissors, UserCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -34,6 +34,27 @@ interface StaffMember {
   firstName?: string | null;
   lastName?: string | null;
   displayName: string;
+}
+
+interface MergeHistoryEntry {
+  id: string;
+  keepId: string;
+  keepSnapshotName: string | null;
+  keepSnapshotEmail: string | null;
+  keepSnapshotPhone: string | null;
+  keepSnapshotCompany: string | null;
+  removedId: string;
+  removedSnapshotName: string | null;
+  removedSnapshotEmail: string | null;
+  removedSnapshotPhone: string | null;
+  removedSnapshotCompany: string | null;
+  leadsRelinked: string[];
+  quotesRelinked: string[];
+  conversationsRelinked: string[];
+  notesRelinked: string[];
+  triggeredBy: string | null;
+  mergedAt: string | null;
+  splitAt: string | null;
 }
 
 interface Customer {
@@ -207,6 +228,7 @@ export default function CustomerProfile() {
   const [mergeSearch, setMergeSearch] = useState("");
   const [mergeSearchInput, setMergeSearchInput] = useState("");
   const [selectedMergeTarget, setSelectedMergeTarget] = useState<{ id: string; name: string; email?: string | null; phone?: string | null } | null>(null);
+  const [splittingId, setSplittingId] = useState<string | null>(null);
   const [mergeKeepId, setMergeKeepId] = useState<string | null>(null);
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
 
@@ -251,6 +273,43 @@ export default function CustomerProfile() {
       return (all as Array<{ id: string; name: string; email?: string | null; phone?: string | null }>).filter(c => c.id !== id);
     },
     enabled: !!(user?.adminRole && user.adminRole !== "none") && showMergePanel && mergeSearch.trim().length > 0,
+  });
+
+  const { data: mergeHistory = [], isLoading: mergeHistoryLoading } = useQuery<MergeHistoryEntry[]>({
+    queryKey: ["/api/admin/customers/merge-history", id],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers/merge-history?keepId=${encodeURIComponent(id ?? "")}`, { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
+    enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
+  });
+
+  const splitMutation = useMutation<{ ok: boolean; newCustomerId: string }, Error, string>({
+    mutationFn: (historyId: string) =>
+      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then((res) => res.json()),
+    onSuccess: () => {
+      setSplittingId(null);
+      toast({
+        title: "Merge reversed",
+        description: "The customer has been recreated and their records re-linked.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", id] });
+    },
+    onError: (err) => {
+      setSplittingId(null);
+      let msg = "Could not reverse the merge. Please try again.";
+      if (err.message?.includes("already been split")) {
+        msg = "This merge has already been reversed.";
+      } else if (err.message?.includes("email or phone already exists")) {
+        msg = "A customer with that email/phone already exists. This split cannot be completed.";
+      }
+      toast({ title: "Split failed", description: msg, variant: "destructive" });
+    },
   });
 
   const mergeMutation = useMutation({
@@ -779,6 +838,113 @@ export default function CustomerProfile() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Merge History — only shown when there are entries for this customer */}
+            {(mergeHistoryLoading || mergeHistory.length > 0) && (
+              <Card data-testid="panel-merge-history-profile">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-center gap-2">
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Merge History</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  {mergeHistoryLoading ? (
+                    <div className="flex items-center gap-2 py-3 justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                      <span className="text-xs text-muted-foreground">Loading...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {mergeHistory.map((entry) => {
+                        const recordCount =
+                          (entry.leadsRelinked?.length ?? 0) +
+                          (entry.quotesRelinked?.length ?? 0) +
+                          (entry.conversationsRelinked?.length ?? 0) +
+                          (entry.notesRelinked?.length ?? 0);
+                        const alreadySplit = !!entry.splitAt;
+                        const isSplitting = splittingId === entry.id;
+                        return (
+                          <div
+                            key={entry.id}
+                            className="py-3 border-t first:border-t-0 space-y-1.5"
+                            data-testid={`row-profile-merge-history-${entry.id}`}
+                          >
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-medium truncate" data-testid={`text-profile-merge-removed-${entry.id}`}>
+                                {entry.removedSnapshotName ?? "Unknown"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">absorbed</span>
+                              {alreadySplit && (
+                                <Badge className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/25 no-default-active-elevate shrink-0">
+                                  <Scissors className="w-2.5 h-2.5 mr-1" />
+                                  split
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1">
+                              {entry.removedSnapshotEmail && (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Mail className="w-3 h-3 shrink-0" />
+                                  {entry.removedSnapshotEmail}
+                                </span>
+                              )}
+                              {entry.removedSnapshotPhone && (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Phone className="w-3 h-3 shrink-0" />
+                                  {entry.removedSnapshotPhone}
+                                </span>
+                              )}
+                              {recordCount > 0 && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {recordCount} record{recordCount !== 1 ? "s" : ""} re-linked
+                                </span>
+                              )}
+                              {entry.triggeredBy ? (() => {
+                                const staff = staffList.find(s => s.id === entry.triggeredBy);
+                                const name = staff?.displayName ?? staff?.username ?? entry.triggeredBy;
+                                return (
+                                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                    <UserCircle className="w-3 h-3 shrink-0" />
+                                    {name}
+                                  </span>
+                                );
+                              })() : (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60 italic">
+                                  <UserCircle className="w-3 h-3 shrink-0" />
+                                  system / automated
+                                </span>
+                              )}
+                              {entry.mergedAt && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {formatDate(entry.mergedAt)}
+                                </span>
+                              )}
+                            </div>
+                            {!alreadySplit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full mt-1"
+                                onClick={() => {
+                                  setSplittingId(entry.id);
+                                  splitMutation.mutate(entry.id);
+                                }}
+                                disabled={isSplitting || splitMutation.isPending}
+                                data-testid={`button-profile-split-merge-${entry.id}`}
+                              >
+                                <Scissors className={`w-3 h-3 mr-1 ${isSplitting ? "animate-pulse" : ""}`} />
+                                {isSplitting ? "Reversing..." : "Reverse merge"}
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Linked records */}
             <Card>

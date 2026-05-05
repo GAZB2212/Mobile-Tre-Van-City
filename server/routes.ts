@@ -6535,7 +6535,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   app.get("/api/admin/customers/merge-history", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const limit = Math.min(Number(req.query.limit) || 50, 200);
-      const history = await storage.getMergeHistory(limit);
+      const keepId = typeof req.query.keepId === "string" && req.query.keepId ? req.query.keepId : undefined;
+      const history = await storage.getMergeHistory(limit, keepId);
       res.json(history);
     } catch (error) {
       console.error("Merge history fetch error:", error);
