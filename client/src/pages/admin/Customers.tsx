@@ -380,8 +380,8 @@ function CustomerReviewSheet({
               {customer ? (
                 <>
                   <p className="font-semibold text-sm truncate" data-testid="text-review-customer-name">{customer.name}</p>
-                  {customer.company && (
-                    <p className="text-xs text-muted-foreground truncate">{customer.company}</p>
+                  {(customer.company || customer.email || customer.phone) && (
+                    <p className="text-xs text-muted-foreground truncate">{customer.company || customer.email || customer.phone}</p>
                   )}
                 </>
               ) : (
@@ -1516,8 +1516,8 @@ export default function AdminCustomers() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm" data-testid={`text-customer-name-${c.id}`}>{c.name}</span>
-                            {c.company && (
-                              <span className="text-xs text-muted-foreground">· {c.company}</span>
+                            {(c.company || c.email || c.phone) && (
+                              <span className="text-xs text-muted-foreground">· {c.company || c.email || c.phone}</span>
                             )}
                             {c.pipelineStatus && (
                               <Badge
