@@ -827,29 +827,53 @@ export default function CustomerProfile() {
                       <div className="space-y-2 pt-1">
                         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Keep which record?</p>
                         <div className="space-y-1.5">
+                          {/* Current customer option */}
                           <button
                             onClick={() => setMergeKeepId(id ?? null)}
-                            className={`w-full text-left rounded-md border px-2.5 py-2 transition-colors ${mergeKeepId === id ? "border-[hsl(86_53%_51%/0.5)] bg-[hsl(86_45%_51%/0.08)]" : "border-border hover-elevate"}`}
+                            className={`w-full text-left rounded-md border px-2.5 py-2 transition-colors ${mergeKeepId === id ? "border-[hsl(86_53%_51%/0.5)] bg-[hsl(86_45%_51%/0.08)]" : mergeKeepId === selectedMergeTarget.id ? "border-destructive/40 bg-destructive/5" : "border-border hover-elevate"}`}
                             data-testid="button-keep-current"
                           >
-                            <div className="flex items-center gap-1.5">
-                              {mergeKeepId === id && <Check className="w-3 h-3 text-[hsl(86_53%_60%)] shrink-0" />}
+                            <div className="flex items-center justify-between gap-1.5">
                               <p className="text-xs font-medium truncate">{data?.customer.name} <span className="text-muted-foreground font-normal">(this profile)</span></p>
+                              {mergeKeepId === id && (
+                                <span className="shrink-0 inline-flex items-center gap-0.5 rounded-sm bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)] text-[10px] font-semibold px-1.5 py-0.5">
+                                  <Check className="w-2.5 h-2.5" />
+                                  Keep
+                                </span>
+                              )}
+                              {mergeKeepId === selectedMergeTarget.id && (
+                                <span className="shrink-0 inline-flex items-center gap-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-semibold px-1.5 py-0.5">
+                                  <X className="w-2.5 h-2.5" />
+                                  Remove
+                                </span>
+                              )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground truncate ml-4.5">
+                            <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                               {[data?.customer.email, data?.customer.phone].filter(Boolean).join(" · ") || "No contact details"}
                             </p>
                           </button>
+                          {/* Other customer option */}
                           <button
                             onClick={() => setMergeKeepId(selectedMergeTarget.id)}
-                            className={`w-full text-left rounded-md border px-2.5 py-2 transition-colors ${mergeKeepId === selectedMergeTarget.id ? "border-[hsl(86_53%_51%/0.5)] bg-[hsl(86_45%_51%/0.08)]" : "border-border hover-elevate"}`}
+                            className={`w-full text-left rounded-md border px-2.5 py-2 transition-colors ${mergeKeepId === selectedMergeTarget.id ? "border-[hsl(86_53%_51%/0.5)] bg-[hsl(86_45%_51%/0.08)]" : mergeKeepId === id ? "border-destructive/40 bg-destructive/5" : "border-border hover-elevate"}`}
                             data-testid="button-keep-other"
                           >
-                            <div className="flex items-center gap-1.5">
-                              {mergeKeepId === selectedMergeTarget.id && <Check className="w-3 h-3 text-[hsl(86_53%_60%)] shrink-0" />}
+                            <div className="flex items-center justify-between gap-1.5">
                               <p className="text-xs font-medium truncate">{selectedMergeTarget.name}</p>
+                              {mergeKeepId === selectedMergeTarget.id && (
+                                <span className="shrink-0 inline-flex items-center gap-0.5 rounded-sm bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)] text-[10px] font-semibold px-1.5 py-0.5">
+                                  <Check className="w-2.5 h-2.5" />
+                                  Keep
+                                </span>
+                              )}
+                              {mergeKeepId === id && (
+                                <span className="shrink-0 inline-flex items-center gap-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-semibold px-1.5 py-0.5">
+                                  <X className="w-2.5 h-2.5" />
+                                  Remove
+                                </span>
+                              )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground truncate">
+                            <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                               {[selectedMergeTarget.email, selectedMergeTarget.phone].filter(Boolean).join(" · ") || "No contact details"}
                             </p>
                           </button>
