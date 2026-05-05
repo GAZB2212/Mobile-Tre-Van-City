@@ -777,11 +777,11 @@ export default function CustomerProfile() {
                           <p className="text-[10px] text-muted-foreground">{formatDateShort(l.created_at)}</p>
                           {Array.isArray(l.reassignment_history) && l.reassignment_history.length > 0 && (
                             <div className="mt-0.5 space-y-0.5" data-testid={`text-reassignment-history-lead-${l.id}`}>
-                              {l.reassignment_history.map((entry: {customerName: string; timestamp: string}, i: number) => (
+                              {l.reassignment_history.map((entry: {customerName: string; timestamp: string; staffName?: string}, i: number) => (
                                 <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
                                   Previously: {entry.customerName}
                                   <span className="text-muted-foreground ml-1">
-                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                    ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
                                   </span>
                                 </p>
                               ))}
@@ -806,11 +806,11 @@ export default function CustomerProfile() {
                           <p className="text-[10px] text-muted-foreground">{formatDateShort(q.created_at)}</p>
                           {Array.isArray(q.reassignment_history) && q.reassignment_history.length > 0 && (
                             <div className="mt-0.5 space-y-0.5" data-testid={`text-reassignment-history-quote-${q.id}`}>
-                              {q.reassignment_history.map((entry: {customerName: string; timestamp: string}, i: number) => (
+                              {q.reassignment_history.map((entry: {customerName: string; timestamp: string; staffName?: string}, i: number) => (
                                 <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
                                   Previously: {entry.customerName}
                                   <span className="text-muted-foreground ml-1">
-                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                    ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
                                   </span>
                                 </p>
                               ))}
@@ -835,11 +835,11 @@ export default function CustomerProfile() {
                           <p className="text-[10px] text-muted-foreground">{formatDateShort(c.created_at)}</p>
                           {Array.isArray(c.reassignment_history) && c.reassignment_history.length > 0 && (
                             <div className="mt-0.5 space-y-0.5" data-testid={`text-reassignment-history-convo-${c.id}`}>
-                              {c.reassignment_history.map((entry: {customerName: string; timestamp: string}, i: number) => (
+                              {c.reassignment_history.map((entry: {customerName: string; timestamp: string; staffName?: string}, i: number) => (
                                 <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
                                   Previously: {entry.customerName}
                                   <span className="text-muted-foreground ml-1">
-                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                    ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
                                   </span>
                                 </p>
                               ))}

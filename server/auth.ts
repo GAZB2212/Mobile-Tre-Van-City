@@ -56,7 +56,7 @@ async function getUserFromBearer(req: any): Promise<SessionUser | null> {
 }
 
 // Returns the authenticated user from session OR bearer token, always fresh from DB.
-async function getCurrentUser(req: any): Promise<SessionUser | null> {
+export async function getCurrentUser(req: any): Promise<SessionUser | null> {
   if (req.session?.user?.id) {
     try {
       const user = await storage.getUser(req.session.user.id);

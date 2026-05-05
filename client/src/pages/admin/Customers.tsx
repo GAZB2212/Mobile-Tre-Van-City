@@ -95,9 +95,9 @@ interface CustomerProfileData {
     primaryStaffName?: string | null;
     createdAt?: string | null;
   };
-  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string}> | null }>;
-  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string}> | null }>;
-  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string}> | null }>;
+  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string; staffName?: string}> | null }>;
+  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string; staffName?: string}> | null }>;
+  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string; staffName?: string}> | null }>;
   notes: CustomerNote[];
 }
 
@@ -491,7 +491,7 @@ function CustomerReviewSheet({
                                 <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
                                   Previously: {entry.customerName}
                                   <span className="text-muted-foreground ml-1">
-                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                    ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
                                   </span>
                                 </p>
                               ))}
@@ -535,7 +535,7 @@ function CustomerReviewSheet({
                                 <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
                                   Previously: {entry.customerName}
                                   <span className="text-muted-foreground ml-1">
-                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                    ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
                                   </span>
                                 </p>
                               ))}
@@ -579,7 +579,7 @@ function CustomerReviewSheet({
                                 <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
                                   Previously: {entry.customerName}
                                   <span className="text-muted-foreground ml-1">
-                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                    ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
                                   </span>
                                 </p>
                               ))}

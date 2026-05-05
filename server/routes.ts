@@ -7,7 +7,7 @@ import fs from "fs";
 import { pool } from "./db";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, getCurrentUser } from "./auth";
 import { buildVanMeta } from "./seo";
 import { generateAiBlogPost } from "./blogGenerator";
 import { 
@@ -7315,12 +7315,18 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const targetCustomer = await storage.getCustomer(targetCustomerId);
       if (!targetCustomer) return res.status(404).json({ error: "Target customer not found" });
 
+      const currentUser = await getCurrentUser(req);
+      const actorDbUser = currentUser ? await storage.getUser(currentUser.id) : null;
+      const staffName = actorDbUser
+        ? ([actorDbUser.firstName, actorDbUser.lastName].filter(Boolean).join(" ").trim() || actorDbUser.username)
+        : undefined;
+
       if (type === "lead") {
-        await storage.linkLeadToCustomer(id, targetCustomerId);
+        await storage.linkLeadToCustomer(id, targetCustomerId, staffName);
       } else if (type === "quote") {
-        await storage.linkQuoteToCustomer(id, targetCustomerId);
+        await storage.linkQuoteToCustomer(id, targetCustomerId, staffName);
       } else {
-        await storage.linkConversationToCustomer(id, targetCustomerId);
+        await storage.linkConversationToCustomer(id, targetCustomerId, staffName);
       }
 
       res.json({ ok: true, targetCustomerId });
