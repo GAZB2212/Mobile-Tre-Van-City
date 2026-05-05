@@ -3753,7 +3753,22 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   app.get("/api/admin/leads", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const leads = await storage.getLeads();
-      res.json(leads);
+      // Collect unique customer IDs and fetch their names in one query
+      const customerIds = [...new Set(leads.map(l => l.customerId).filter(Boolean))] as string[];
+      let customerNames: Record<string, string> = {};
+      if (customerIds.length > 0) {
+        const placeholders = customerIds.map((_, i) => `$${i + 1}`).join(", ");
+        const { rows } = await pool.query<{ id: string; name: string }>(
+          `SELECT id, name FROM customers WHERE id IN (${placeholders})`,
+          customerIds
+        );
+        customerNames = Object.fromEntries(rows.map(r => [r.id, r.name]));
+      }
+      const result = leads.map(l => ({
+        ...l,
+        customerName: l.customerId ? (customerNames[l.customerId] ?? null) : null,
+      }));
+      res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch leads" });
     }

@@ -184,7 +184,9 @@ export default function AdminLeads() {
 
   const isActive = useIdlePolling();
 
-  const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching } = useQuery<Lead[]>({
+  type LeadWithCustomer = Lead & { customerName?: string | null };
+
+  const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching } = useQuery<LeadWithCustomer[]>({
     queryKey: ["/api/admin/leads"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? POLL_INTERVAL_MS : false,
@@ -827,7 +829,7 @@ export default function AdminLeads() {
                           >
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
                               <CheckCircle2 className="w-3 h-3 shrink-0" />
-                              View profile
+                              {lead.customerName ? `${lead.customerName} · View profile` : "View profile"}
                             </span>
                           </Link>
                         ) : (
@@ -904,7 +906,7 @@ export default function AdminLeads() {
                               data-testid={`text-profile-linked-${lead.id}`}
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                              Profile linked
+                              {lead.customerName ? `${lead.customerName} · Profile linked` : "Profile linked"}
                             </span>
                           </Link>
                         ) : (
