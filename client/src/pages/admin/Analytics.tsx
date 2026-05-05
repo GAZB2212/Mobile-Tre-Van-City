@@ -24,6 +24,22 @@ import {
   Bot, Phone, CheckCircle2, XCircle, MessageSquare, Percent
 } from "lucide-react";
 
+interface PackageTierStats {
+  id: string;
+  name: string;
+  tier: number;
+  count: number;
+  pct: number;
+}
+
+interface VolumeSegmentStats {
+  segment: "high" | "standard";
+  label: string;
+  totalQuotes: number;
+  packageTierDistribution: PackageTierStats[];
+  dominantPackageTier: PackageTierStats | null;
+}
+
 interface BusinessAnalytics {
   overview: {
     totalQuotes: number;
@@ -36,6 +52,7 @@ interface BusinessAnalytics {
   quotesByStatus: Record<string, number>;
   popularVans: Array<{ vanId: string; title: string; count: number }>;
   popularKits: Array<{ kitId: string; count: number }>;
+  volumeSegments: VolumeSegmentStats[];
   recentActivity: {
     quotes: Array<{ id: string; customerName: string; customerEmail: string; status: string; totalPrice: number; createdAt: string }>;
     leads: Array<{ id: string; name: string; email: string; subject: string; createdAt: string }>;
@@ -867,6 +884,60 @@ export default function AdminAnalytics() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Package Choice by Operator Volume */}
+                {businessAnalytics?.volumeSegments && businessAnalytics.volumeSegments.length > 0 && (
+                  <Card data-testid="card-volume-segments">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart2 className="w-5 h-5 text-primary" />
+                        Package Choice by Operator Volume
+                      </CardTitle>
+                      <CardDescription>Package tier distribution split by job volume segment (derived from kit choice)</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {businessAnalytics.volumeSegments.map((seg) => {
+                          const segLabel = seg.segment === "high" ? "High-Volume Operators" : "Standard-Volume Operators";
+                          const activeTiers = seg.packageTierDistribution.filter(p => p.count > 0);
+                          return (
+                            <div key={seg.segment} data-testid={`card-volume-segment-${seg.segment}`} className="space-y-3">
+                              <div>
+                                <div className="font-medium text-sm" data-testid={`text-segment-label-${seg.segment}`}>{segLabel}</div>
+                                <div className="text-xs text-muted-foreground capitalize">{seg.label}</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {seg.totalQuotes} {seg.totalQuotes === 1 ? "quote" : "quotes"}
+                                  {seg.dominantPackageTier && (
+                                    <span className="ml-1">· dominant: <span className="font-medium text-foreground" data-testid={`text-segment-dominant-${seg.segment}`}>{seg.dominantPackageTier.name}</span></span>
+                                  )}
+                                </div>
+                              </div>
+                              {activeTiers.length > 0 ? (
+                                <div className="space-y-2">
+                                  {activeTiers.map((tier) => (
+                                    <div key={tier.id} className="flex items-center gap-3" data-testid={`row-segment-tier-${seg.segment}-${tier.id}`}>
+                                      <div className="w-24 text-xs text-muted-foreground truncate shrink-0">{tier.name}</div>
+                                      <div className="flex-1 bg-muted rounded-full h-2">
+                                        <div
+                                          className="h-2 rounded-full bg-primary"
+                                          style={{ width: `${tier.pct}%` }}
+                                        />
+                                      </div>
+                                      <div className="w-8 text-right text-xs font-medium shrink-0">{tier.count}</div>
+                                      <div className="w-9 text-right text-xs text-muted-foreground shrink-0">{tier.pct}%</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No package classifications yet</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Recent Activity */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

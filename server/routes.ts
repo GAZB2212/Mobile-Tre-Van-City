@@ -3795,10 +3795,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // Analytics endpoint
   app.get("/api/admin/analytics", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const [quotes, leads, vans] = await Promise.all([
+      const [quotes, leads, vans, popularityIntel] = await Promise.all([
         storage.getQuotes(),
         storage.getLeads(),
-        storage.getVans()
+        storage.getVans(),
+        computePopularityIntelligence().catch(() => null),
       ]);
 
       // Calculate metrics
@@ -3873,6 +3874,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         quotesByStatus,
         popularVans,
         popularKits,
+        volumeSegments: popularityIntel?.volumeSegments ?? [],
         recentActivity: {
           quotes: quotes
             .sort((a, b) => {
