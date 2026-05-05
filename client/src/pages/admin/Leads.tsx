@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Lead } from "@shared/schema";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -121,6 +121,8 @@ export default function AdminLeads() {
   const [linkLeadId, setLinkLeadId] = useState<string | null>(null);
   const [linkCustomerSearch, setLinkCustomerSearch] = useState("");
   const [linkCustomerSelected, setLinkCustomerSelected] = useState<{ id: string; name: string; email?: string | null } | null>(null);
+  const [linkCurrentCustomerId, setLinkCurrentCustomerId] = useState<string | null>(null);
+  const linkSearchPrefilledRef = useRef(false);
 
   // Unlink-customer confirmation state
   const [unlinkLeadId, setUnlinkLeadId] = useState<string | null>(null);
@@ -216,6 +218,21 @@ export default function AdminLeads() {
     enabled: !!linkLeadId,
     staleTime: 10_000,
   });
+
+  const { data: linkedCustomerProfile, isError: linkedCustomerError } = useQuery<{ id: string; name: string; email?: string | null }>({
+    queryKey: ["/api/admin/customers/profile", linkCurrentCustomerId],
+    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`),
+    enabled: !!linkCurrentCustomerId,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (linkedCustomerProfile && !linkSearchPrefilledRef.current) {
+      linkSearchPrefilledRef.current = true;
+      setLinkCustomerSearch(linkedCustomerProfile.name);
+      setLinkCustomerSelected({ id: linkedCustomerProfile.id, name: linkedCustomerProfile.name, email: linkedCustomerProfile.email ?? null });
+    }
+  }, [linkedCustomerProfile]);
 
   const handleStatusChange = (lead: Lead, status: LeadStatus) => {
     updateLeadMutation.mutate({ id: lead.id, data: { status } });
@@ -742,6 +759,8 @@ export default function AdminLeads() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setLinkLeadId(lead.id);
+                            setLinkCurrentCustomerId(lead.customerId ?? null);
+                            linkSearchPrefilledRef.current = false;
                             setLinkCustomerSearch("");
                             setLinkCustomerSelected(null);
                           }}
@@ -905,6 +924,8 @@ export default function AdminLeads() {
             setLinkLeadId(null);
             setLinkCustomerSearch("");
             setLinkCustomerSelected(null);
+            setLinkCurrentCustomerId(null);
+            linkSearchPrefilledRef.current = false;
           }
         }}
       >
@@ -916,6 +937,17 @@ export default function AdminLeads() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
+            {linkCurrentCustomerId && (
+              <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2" data-testid="banner-currently-linked">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                  Currently linked:{" "}
+                  <span className="font-semibold">
+                    {linkedCustomerProfile ? linkedCustomerProfile.name : linkedCustomerError ? "Unable to load customer" : "Loading…"}
+                  </span>
+                </p>
+              </div>
+            )}
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               <Input
@@ -936,18 +968,32 @@ export default function AdminLeads() {
                   {linkCustomerSearch ? "No customers found." : "Type to search customers."}
                 </p>
               ) : (
-                customerSearchResults.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`w-full text-left px-3 py-2 hover-elevate transition-colors ${linkCustomerSelected?.id === c.id ? "bg-accent" : ""}`}
-                    onClick={() => setLinkCustomerSelected({ id: c.id, name: c.name, email: c.email })}
-                    data-testid={`option-customer-${c.id}`}
-                  >
-                    <p className="text-sm font-medium">{c.name}</p>
-                    {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
-                  </button>
-                ))
+                customerSearchResults.map((c) => {
+                  const isCurrentlyLinked = linkCurrentCustomerId === c.id;
+                  const isSelected = linkCustomerSelected?.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`w-full text-left px-3 py-2 hover-elevate transition-colors ${isSelected ? "bg-accent" : ""}`}
+                      onClick={() => setLinkCustomerSelected({ id: c.id, name: c.name, email: c.email })}
+                      data-testid={`option-customer-${c.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium">{c.name}</p>
+                          {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                        </div>
+                        {isCurrentlyLinked && (
+                          <span className="shrink-0 text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1" data-testid={`badge-currently-linked-${c.id}`}>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Current
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
             {linkCustomerSelected && (
@@ -963,6 +1009,8 @@ export default function AdminLeads() {
                 setLinkLeadId(null);
                 setLinkCustomerSearch("");
                 setLinkCustomerSelected(null);
+                setLinkCurrentCustomerId(null);
+                linkSearchPrefilledRef.current = false;
               }}
               data-testid="button-cancel-link-customer"
             >
