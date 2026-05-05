@@ -161,6 +161,22 @@ export default function AdminQuoteDetail() {
 
   const [status, setStatus] = useState("");
   const [completedBuildStages, setCompletedBuildStages] = useState<string[]>([]);
+
+  // Follow-up scheduling dialog (shown when marking as Contacted)
+  const [fuDialogOpen, setFuDialogOpen] = useState(false);
+  const [fuDate, setFuDate] = useState(new Date().toISOString().split("T")[0]);
+  const [fuNotes, setFuNotes] = useState("");
+
+  const scheduleFollowUpMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"] });
+      setFuDialogOpen(false);
+      toast({ title: "Follow-up scheduled", description: "Added to your calendar." });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to schedule follow-up" }),
+  });
+
   const [stageInitials, setStageInitials] = useState<Record<string, string>>({});
   const [customBuildStages, setCustomBuildStages] = useState<Array<{id: string; label: string}> | null>(null);
   const [newStageName, setNewStageName] = useState("");
@@ -1479,7 +1495,16 @@ export default function AdminQuoteDetail() {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Next Step</p>
                     <div className="flex flex-col gap-2">
                       {status === "new" && (
-                        <Button size="sm" onClick={() => quickStatusMutation.mutate("contacted")} disabled={quickStatusMutation.isPending} data-testid="button-mark-contacted">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setFuDate(new Date().toISOString().split("T")[0]);
+                            setFuNotes("");
+                            setFuDialogOpen(true);
+                          }}
+                          disabled={quickStatusMutation.isPending}
+                          data-testid="button-mark-contacted"
+                        >
                           Mark as Contacted
                         </Button>
                       )}
@@ -3349,6 +3374,78 @@ export default function AdminQuoteDetail() {
           </Dialog>
         );
       })()}
+
+      {/* Follow-up scheduling dialog — shown when "Mark as Contacted" is clicked */}
+      <Dialog open={fuDialogOpen} onOpenChange={setFuDialogOpen}>
+        <DialogContent className="max-w-sm" data-testid="modal-schedule-followup-detail">
+          <DialogHeader>
+            <DialogTitle>When do you want to follow up?</DialogTitle>
+            <DialogDescription>
+              {quote?.userName
+                ? <>Choose a follow-up date for <strong>{quote.userName}</strong>. The status will be set to Contacted and a reminder added to your calendar.</>
+                : <>Choose a follow-up date. A reminder will be added to your calendar.</>
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-1">
+            <div>
+              <Label htmlFor="fu-date-detail">Follow-up date</Label>
+              <Input
+                id="fu-date-detail"
+                type="date"
+                value={fuDate}
+                onChange={(e) => setFuDate(e.target.value)}
+                data-testid="input-followup-date-detail"
+              />
+            </div>
+            <div>
+              <Label htmlFor="fu-notes-detail">Notes (optional)</Label>
+              <Textarea
+                id="fu-notes-detail"
+                value={fuNotes}
+                onChange={(e) => setFuNotes(e.target.value)}
+                placeholder="What to discuss or follow up on..."
+                rows={2}
+                data-testid="textarea-followup-notes-detail"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFuDialogOpen(false);
+                quickStatusMutation.mutate("contacted");
+              }}
+              data-testid="button-skip-followup-detail"
+            >
+              Skip, just mark contacted
+            </Button>
+            <Button
+              onClick={() => {
+                quickStatusMutation.mutate("contacted");
+                scheduleFollowUpMutation.mutate({
+                  customerName: quote?.userName || quote?.email || "Unknown",
+                  customerPhone: quote?.phone || null,
+                  customerEmail: quote?.email || null,
+                  scheduledDate: fuDate,
+                  notes: fuNotes || null,
+                  quoteId: id,
+                  assignedToUserId: user?.id || null,
+                  assignedToName: user ? `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || user.username : null,
+                  assignedToEmail: (user as any)?.email || null,
+                  createdBy: user?.username || "admin",
+                });
+              }}
+              disabled={!fuDate || quickStatusMutation.isPending || scheduleFollowUpMutation.isPending}
+              data-testid="button-confirm-followup-detail"
+            >
+              <Building2 className="w-4 h-4 mr-2" />
+              Add to calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -84,7 +84,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   FileText, 
   Search, 
@@ -142,6 +152,22 @@ export default function AdminQuotes() {
       return next;
     });
   };
+
+  // Follow-up scheduling dialog state (triggered when status → "contacted")
+  const [fuDialogOpen, setFuDialogOpen] = useState(false);
+  const [fuDate, setFuDate] = useState(new Date().toISOString().split("T")[0]);
+  const [fuNotes, setFuNotes] = useState("");
+  const [fuPendingQuote, setFuPendingQuote] = useState<{ id: string; name?: string | null; email?: string | null; phone?: string | null } | null>(null);
+
+  const scheduleFollowUpMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"] });
+      setFuDialogOpen(false);
+      toast({ title: "Follow-up scheduled", description: "Added to your calendar." });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to schedule follow-up" }),
+  });
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -894,7 +920,15 @@ export default function AdminQuotes() {
                         >
                           <Select
                             value={pendingStatuses[quote.id] ?? quote.status}
-                            onValueChange={(v) => statusMutation.mutate({ id: quote.id, status: v })}
+                            onValueChange={(v) => {
+                              statusMutation.mutate({ id: quote.id, status: v });
+                              if (v === "contacted") {
+                                setFuPendingQuote({ id: quote.id, name: (quote as any).userName, email: (quote as any).email, phone: (quote as any).phone });
+                                setFuDate(new Date().toISOString().split("T")[0]);
+                                setFuNotes("");
+                                setFuDialogOpen(true);
+                              }
+                            }}
                           >
                             <SelectTrigger
                               className={`h-auto py-0.5 pl-2 pr-1.5 text-xs font-medium border-0 gap-1 shadow-none focus:ring-1 focus:ring-ring ${getStatusBadgeClass(pendingStatuses[quote.id] ?? quote.status)}`}
@@ -1107,6 +1141,71 @@ export default function AdminQuotes() {
           </div>
         )}
       </div>
+
+      {/* Follow-up scheduling dialog — shown when a configurator is marked Contacted */}
+      <Dialog open={fuDialogOpen} onOpenChange={setFuDialogOpen}>
+        <DialogContent className="max-w-sm" data-testid="modal-schedule-followup-quote">
+          <DialogHeader>
+            <DialogTitle>When do you want to follow up?</DialogTitle>
+            <DialogDescription>
+              {fuPendingQuote?.name
+                ? <>Choose a follow-up date for <strong>{fuPendingQuote.name}</strong>. It will be added to your calendar automatically.</>
+                : <>Choose a follow-up date. It will be added to your calendar automatically.</>
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-1">
+            <div>
+              <Label htmlFor="fu-date-quote">Follow-up date</Label>
+              <Input
+                id="fu-date-quote"
+                type="date"
+                value={fuDate}
+                onChange={(e) => setFuDate(e.target.value)}
+                data-testid="input-followup-date-quote"
+              />
+            </div>
+            <div>
+              <Label htmlFor="fu-notes-quote">Notes (optional)</Label>
+              <Textarea
+                id="fu-notes-quote"
+                value={fuNotes}
+                onChange={(e) => setFuNotes(e.target.value)}
+                placeholder="What to discuss or follow up on..."
+                rows={2}
+                data-testid="textarea-followup-notes-quote"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setFuDialogOpen(false)} data-testid="button-skip-followup-quote">
+              Skip
+            </Button>
+            <Button
+              onClick={() => {
+                if (!fuPendingQuote || !fuDate) return;
+                scheduleFollowUpMutation.mutate({
+                  customerName: fuPendingQuote.name || fuPendingQuote.email || "Unknown",
+                  customerPhone: fuPendingQuote.phone || null,
+                  customerEmail: fuPendingQuote.email || null,
+                  scheduledDate: fuDate,
+                  notes: fuNotes || null,
+                  quoteId: fuPendingQuote.id,
+                  assignedToUserId: user?.id || null,
+                  assignedToName: user ? `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || user.username : null,
+                  assignedToEmail: user?.email || null,
+                  createdBy: user?.username || "admin",
+                });
+              }}
+              disabled={!fuDate || scheduleFollowUpMutation.isPending}
+              data-testid="button-confirm-followup-quote"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Add to calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
