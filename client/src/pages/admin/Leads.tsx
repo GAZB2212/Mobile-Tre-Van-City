@@ -111,6 +111,7 @@ export default function AdminLeads() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [profileFilter, setProfileFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [showClosed, setShowClosed] = useState(false);
 
@@ -272,6 +273,8 @@ export default function AdminLeads() {
       )) return false;
       if (sourceFilter !== "all" && lead.source !== sourceFilter) return false;
       if (statusFilter !== "all" && (lead.status || "new") !== statusFilter) return false;
+      if (profileFilter === "linked" && !lead.customerId) return false;
+      if (profileFilter === "unlinked" && lead.customerId) return false;
       if (dateFilter !== "all" && lead.createdAt) {
         const d = new Date(lead.createdAt);
         const now = new Date();
@@ -383,7 +386,7 @@ export default function AdminLeads() {
                   data-testid="input-search-leads"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
                 <SelectTrigger className="w-full" data-testid="select-source-filter">
                   <SelectValue placeholder="All sources" />
@@ -406,6 +409,16 @@ export default function AdminLeads() {
                   {(Object.entries(STATUS_CONFIG) as [LeadStatus, typeof STATUS_CONFIG[LeadStatus]][]).map(([val, cfg]) => (
                     <SelectItem key={val} value={val}>{cfg.label}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={profileFilter} onValueChange={setProfileFilter}>
+                <SelectTrigger className="w-full" data-testid="select-profile-filter-leads">
+                  <SelectValue placeholder="Profile linked" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All profiles</SelectItem>
+                  <SelectItem value="linked">Linked to profile</SelectItem>
+                  <SelectItem value="unlinked">No profile</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
@@ -435,7 +448,7 @@ export default function AdminLeads() {
         </Card>
 
         {/* Result count — visible only when filters are active */}
-        {!leadsLoading && (searchTerm !== "" || sourceFilter !== "all" || statusFilter !== "all" || dateFilter !== "all") && (
+        {!leadsLoading && (searchTerm !== "" || sourceFilter !== "all" || statusFilter !== "all" || profileFilter !== "all" || dateFilter !== "all") && (
           <p className="text-sm text-muted-foreground" data-testid="text-leads-result-count">
             Showing <span className="font-medium text-foreground">{filteredLeads.length}</span> of{" "}
             <span className="font-medium text-foreground">{leads.length}</span>{" "}

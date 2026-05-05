@@ -138,6 +138,7 @@ export default function AdminQuotes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [profileFilter, setProfileFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [hideIncomplete, setHideIncomplete] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -382,7 +383,11 @@ export default function AdminQuotes() {
         statusFilter === "all" ||
         (statusFilter === "overdue" ? isOverdue(quote) : quote.status === statusFilter);
 
-      return matchesSearch && matchesDate && matchesStatus;
+      const matchesProfile =
+        profileFilter === "all" ||
+        (profileFilter === "linked" ? !!quote.customerId : !quote.customerId);
+
+      return matchesSearch && matchesDate && matchesStatus && matchesProfile;
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
@@ -589,7 +594,7 @@ export default function AdminQuotes() {
                   data-testid="input-search-quotes"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full" data-testid="select-status-filter">
                   <SelectValue placeholder="Filter by status" />
@@ -607,6 +612,16 @@ export default function AdminQuotes() {
                   <SelectItem value="in_build">In Build</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={profileFilter} onValueChange={setProfileFilter}>
+                <SelectTrigger className="w-full" data-testid="select-profile-filter-quotes">
+                  <SelectValue placeholder="Profile linked" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All profiles</SelectItem>
+                  <SelectItem value="linked">Linked to profile</SelectItem>
+                  <SelectItem value="unlinked">No profile</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={dateFilter} onValueChange={setDateFilter}>
