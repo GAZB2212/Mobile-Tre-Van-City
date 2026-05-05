@@ -640,7 +640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (customerName || customerEmail || customerPhone) {
         storage.findOrCreateCustomer(customerEmail, customerPhone, customerName as string)
           .then(customer =>
-            storage.linkQuoteToCustomer(quote.id, customer.id)
+            storage.linkQuoteToCustomer(quote.id, customer.id, "System (auto-link)")
               .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, customerEmail, customerPhone))
           )
           .catch(err => console.error("Customer auto-link (quote) error:", err?.message));
@@ -778,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (leadCustomerName || leadCustomerEmail || leadCustomerPhone) {
         storage.findOrCreateCustomer(leadCustomerEmail, leadCustomerPhone, leadCustomerName as string)
           .then(customer =>
-            storage.linkLeadToCustomer(lead.id, customer.id)
+            storage.linkLeadToCustomer(lead.id, customer.id, "System (auto-link)")
               .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, leadCustomerEmail, leadCustomerPhone))
           )
           .catch(err => console.error("Customer auto-link (lead) error:", err?.message));
@@ -2304,7 +2304,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         if (effectiveEmail || effectivePhone) {
           storage.findOrCreateCustomer(effectiveEmail, effectivePhone, effectiveName)
             .then(customer =>
-              storage.linkQuoteToCustomer(updated.id, customer.id)
+              storage.linkQuoteToCustomer(updated.id, customer.id, "System (auto-link)")
                 .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, effectiveEmail, effectivePhone))
             )
             .catch(err => console.error("Customer re-link (quote update):", err?.message));
@@ -3721,7 +3721,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         if (effectiveEmail || effectivePhone) {
           storage.findOrCreateCustomer(effectiveEmail, effectivePhone, effectiveName)
             .then(customer =>
-              storage.linkLeadToCustomer(updated.id, customer.id)
+              storage.linkLeadToCustomer(updated.id, customer.id, "System (auto-link)")
                 .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, effectiveEmail, effectivePhone))
             )
             .catch(err => console.error("Customer re-link (lead update):", err?.message));
@@ -6003,10 +6003,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           const effectiveName = (updatedName ?? "").trim() || "AI Chat Contact";
           const customer = await storage.findOrCreateCustomer(updatedEmail || null, updatedPhone || null, effectiveName);
           if (existing.session_id) {
-            await storage.linkConversationBySessionToCustomer(existing.session_id, customer.id);
+            await storage.linkConversationBySessionToCustomer(existing.session_id, customer.id, "System (auto-link)");
           } else {
             console.warn("[AI conv contact edit] no session_id — falling back to id-based link for conv", id);
-            await storage.linkConversationToCustomer(id, customer.id);
+            await storage.linkConversationToCustomer(id, customer.id, "System (auto-link)");
           }
         } catch (linkErr) {
           console.error("[AI conv contact edit] re-link error:", (linkErr as Error).message);

@@ -139,7 +139,7 @@ export interface IStorage {
   linkLeadToCustomer(leadId: string, customerId: string, staffName?: string): Promise<void>;
   linkQuoteToCustomer(quoteId: string, customerId: string, staffName?: string): Promise<void>;
   linkConversationToCustomer(conversationId: string, customerId: string, staffName?: string): Promise<void>;
-  linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void>;
+  linkConversationBySessionToCustomer(sessionId: string, customerId: string, staffName?: string): Promise<void>;
   mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
   getMergeHistory(limit?: number): Promise<CustomerMergeHistory[]>;
   splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
@@ -1776,7 +1776,7 @@ export class MemStorage implements IStorage {
     return { ...note, id: randomUUID(), authorId: note.authorId ?? null, authorName: note.authorName ?? null, createdAt: new Date() };
   }
   async linkLeadToCustomer(_leadId: string, _customerId: string, _staffName?: string): Promise<void> {}
-  async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string): Promise<void> {}
+  async linkConversationBySessionToCustomer(_sessionId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async linkQuoteToCustomer(_quoteId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async linkConversationToCustomer(_conversationId: string, _customerId: string, _staffName?: string): Promise<void> {}
   async mergeCustomers(_keepId: string, _mergeId: string, _triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
@@ -2760,7 +2760,25 @@ export class DbStorage implements IStorage {
     }
   }
 
-  async linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void> {
+  async linkConversationBySessionToCustomer(sessionId: string, customerId: string, staffName?: string): Promise<void> {
+    if (staffName) {
+      const existing = await pool.query(
+        `SELECT a.customer_id, c.name, COALESCE(a.reassignment_history, '[]'::jsonb) AS reassignment_history FROM ai_conversations a LEFT JOIN customers c ON c.id = a.customer_id WHERE a.session_id = $1`,
+        [sessionId]
+      );
+      const prev = existing.rows[0];
+      const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+      if (previousName) {
+        const currentHistory: Array<{customerName: string; timestamp: string; staffName?: string}> = prev.reassignment_history ?? [];
+        const entry: {customerName: string; timestamp: string; staffName?: string} = { customerName: previousName, timestamp: new Date().toISOString(), staffName };
+        const updatedHistory = [...currentHistory, entry];
+        await pool.query(
+          `UPDATE ai_conversations SET customer_id = $1, reassignment_history = $2::jsonb WHERE session_id = $3`,
+          [customerId, JSON.stringify(updatedHistory), sessionId]
+        );
+        return;
+      }
+    }
     await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE session_id = $2`, [customerId, sessionId]);
   }
 }
