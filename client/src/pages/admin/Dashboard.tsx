@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User, Quote, Testimonial } from "@shared/schema";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -34,7 +34,15 @@ import {
   ExternalLink,
   Mail,
   Inbox,
+  Bell,
+  BellOff,
+  BellRing,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
 const COMMITTED_LABEL: Record<string, string> = {
@@ -122,6 +130,63 @@ export default function AdminDashboard() {
 
   // Use server-computed counts (covers all items, not just the limited feed page)
   const unreadCount = (recentEnquiries?.todayNewLeadCount ?? 0) + (recentEnquiries?.todayNewQuoteCount ?? 0);
+
+
+  // ── Notification permission bell (task-301) ─────────────────────────────────
+  // Track the current browser notification permission state so the bell icon
+  // stays in sync even when the user changes settings in the browser.
+  // Polling and toast/browser-notification firing are handled globally by
+  // useEnquiryNotifications inside AdminLayout — this is only the UI state.
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(() => {
+    if (typeof Notification === "undefined") return "unsupported";
+    return Notification.permission;
+  });
+
+  // Re-read the permission whenever the tab becomes visible (e.g. after the
+  // user opens browser settings and comes back).
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        setNotifPermission(Notification.permission);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  // Handler for the notification bell button in the enquiries header.
+  const handleNotifBellClick = async () => {
+    if (typeof Notification === "undefined") {
+      toast({ title: "Not supported", description: "Your browser does not support desktop notifications.", variant: "destructive" });
+      return;
+    }
+    if (Notification.permission === "denied") {
+      toast({
+        title: "Notifications blocked",
+        description: "Open your browser settings and allow notifications for this site, then return here.",
+      });
+      return;
+    }
+    if (Notification.permission === "granted") {
+      toast({ title: "Notifications are on", description: "You will receive browser alerts when new enquiries arrive." });
+      return;
+    }
+    // "default" — ask again
+    localStorage.setItem("enquiry-notif-asked", "1");
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+    if (result === "granted") {
+      toast({ title: "Notifications enabled", description: "You will now receive browser alerts when new enquiries arrive." });
+    } else if (result === "denied") {
+      toast({
+        title: "Notifications blocked",
+        description: "Open your browser settings and allow notifications for this site to re-enable them.",
+        variant: "destructive",
+      });
+    }
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const publishedTestimonialsCount = testimonials.filter(t => t.published).length;
 
@@ -501,6 +566,41 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <Inbox className="w-5 h-5 text-accent" />
                   Live Enquiry Inbox
+                  {/* Notification permission bell */}
+                  {notifPermission !== "unsupported" && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleNotifBellClick}
+                          data-testid="button-notif-permission"
+                          className={
+                            notifPermission === "granted"
+                              ? "text-accent"
+                              : notifPermission === "denied"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {notifPermission === "granted" ? (
+                            <BellRing className="w-4 h-4" />
+                          ) : notifPermission === "denied" ? (
+                            <BellOff className="w-4 h-4" />
+                          ) : (
+                            <Bell className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        {notifPermission === "granted"
+                          ? "Browser notifications are on"
+                          : notifPermission === "denied"
+                          ? "Notifications blocked — click for instructions"
+                          : "Click to enable browser notifications"}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Auto-refreshes every 30 seconds. Items received in the last 24 hours are highlighted.
