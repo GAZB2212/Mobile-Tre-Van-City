@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getAuthToken } from "@/lib/queryClient";
@@ -8,7 +8,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { AdminBackButton } from "@/components/AdminBackButton";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +29,11 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  ExternalLink,
+  StickyNote,
+  PhoneCall,
+  Coffee,
+  CalendarDays,
 } from "lucide-react";
 
 interface StaffMember {
@@ -64,6 +69,270 @@ interface LinkedCustomerSummary {
   leadsLinked: number;
   quotesLinked: number;
   convosLinked: number;
+}
+
+interface CustomerNote {
+  id: string;
+  noteType: string;
+  text: string;
+  authorName?: string | null;
+  createdAt?: string | null;
+}
+
+interface CustomerProfileData {
+  customer: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    company?: string | null;
+    primaryStaffName?: string | null;
+    createdAt?: string | null;
+  };
+  leads: Array<{ id: string; status?: string | null }>;
+  quotes: Array<{ id: string; status?: string | null }>;
+  conversations: Array<{ id: string }>;
+  notes: CustomerNote[];
+}
+
+const NOTE_TYPE_ICONS: Record<string, React.ElementType> = {
+  call: PhoneCall,
+  email: Mail,
+  meeting: Coffee,
+  general: StickyNote,
+};
+
+function formatReviewDate(date: string | null | undefined) {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+  });
+}
+
+function CustomerReviewSheet({
+  customerId,
+  onClose,
+}: {
+  customerId: string;
+  onClose: () => void;
+}) {
+  const [, navigate] = useLocation();
+
+  const { data, isLoading } = useQuery<CustomerProfileData>({
+    queryKey: ["/api/admin/customers", customerId],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers/${customerId}`, { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
+  });
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  const customer = data?.customer;
+  const leads = data?.leads ?? [];
+  const quotes = data?.quotes ?? [];
+  const conversations = data?.conversations ?? [];
+  const notes = data?.notes ?? [];
+  const recentNotes = notes.slice(0, 3);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 z-40"
+        onClick={onClose}
+        aria-hidden="true"
+        data-testid="backdrop-review-sheet"
+      />
+
+      {/* Side panel */}
+      <div
+        className="fixed top-0 right-0 h-full w-full max-w-md bg-background border-l shadow-xl z-50 flex flex-col"
+        role="dialog"
+        aria-label="Customer review"
+        data-testid="panel-customer-review"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 p-4 border-b shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-[hsl(86_45%_51%/0.12)] flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-[hsl(86_53%_60%)]">
+                {customer ? customer.name.charAt(0).toUpperCase() : "?"}
+              </span>
+            </div>
+            <div className="min-w-0">
+              {customer ? (
+                <>
+                  <p className="font-semibold text-sm truncate" data-testid="text-review-customer-name">{customer.name}</p>
+                  {customer.company && (
+                    <p className="text-xs text-muted-foreground truncate">{customer.company}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/admin/customers/${customerId}`)}
+              data-testid="button-open-full-profile"
+            >
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              Full profile
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              data-testid="button-close-review-sheet"
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : !customer ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-sm">Could not load customer details.</p>
+            </div>
+          ) : (
+            <>
+              {/* Contact info */}
+              <Card>
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Contact</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 pb-3 space-y-2">
+                  {customer.email && (
+                    <a
+                      href={`mailto:${customer.email}`}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="link-review-email"
+                    >
+                      <Mail className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{customer.email}</span>
+                    </a>
+                  )}
+                  {customer.phone && (
+                    <a
+                      href={`tel:${customer.phone}`}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="link-review-phone"
+                    >
+                      <Phone className="w-3.5 h-3.5 shrink-0" />
+                      {customer.phone}
+                    </a>
+                  )}
+                  {!customer.email && !customer.phone && (
+                    <p className="text-xs text-muted-foreground italic">No contact details on file</p>
+                  )}
+                  {customer.primaryStaffName && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                      {customer.primaryStaffName}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Linked records */}
+              <Card>
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Linked Records</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 pb-3">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-sm" data-testid="text-review-lead-count">
+                      <Users className="w-3.5 h-3.5 text-blue-400" />
+                      <span className="font-medium">{leads.length}</span>
+                      <span className="text-muted-foreground">lead{leads.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm" data-testid="text-review-quote-count">
+                      <FileText className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="font-medium">{quotes.length}</span>
+                      <span className="text-muted-foreground">quote{quotes.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm" data-testid="text-review-convo-count">
+                      <Bot className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="font-medium">{conversations.length}</span>
+                      <span className="text-muted-foreground">chat{conversations.length !== 1 ? "s" : ""}</span>
+                    </div>
+                  </div>
+                  {leads.length === 0 && quotes.length === 0 && conversations.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic mt-1">No linked records yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent notes */}
+              <Card>
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Recent Notes</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 pb-3 space-y-2">
+                  {recentNotes.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No notes yet</p>
+                  ) : (
+                    recentNotes.map(note => {
+                      const NoteIcon = NOTE_TYPE_ICONS[note.noteType] ?? StickyNote;
+                      return (
+                        <div key={note.id} className="space-y-0.5" data-testid={`note-review-${note.id}`}>
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <NoteIcon className="w-3 h-3 shrink-0" />
+                            <span>{note.authorName ?? "Staff"}</span>
+                            <span>·</span>
+                            <span>{formatReviewDate(note.createdAt)}</span>
+                          </div>
+                          <p className="text-xs text-foreground line-clamp-2">{note.text}</p>
+                        </div>
+                      );
+                    })
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="pt-1">
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Customer since {formatReviewDate(customer.createdAt)}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer CTA */}
+        <div className="p-4 border-t shrink-0">
+          <Button
+            className="w-full"
+            onClick={() => navigate(`/admin/customers/${customerId}`)}
+            data-testid="button-review-open-profile"
+          >
+            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+            Open full profile
+          </Button>
+        </div>
+      </div>
+    </>
+  );
 }
 
 interface BackfillResult {
@@ -117,8 +386,8 @@ export default function AdminCustomers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [staffFilter, setStaffFilter] = useState<string>("");
   const [syncSummary, setSyncSummary] = useState<BackfillResult | null>(null);
-  const [summaryExpanded, setSummaryExpanded] = useState(true);
   const [showAllSyncedCustomers, setShowAllSyncedCustomers] = useState(false);
+  const [reviewCustomerId, setReviewCustomerId] = useState<string | null>(null);
 
   const SYNC_LIST_CAP = 20;
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -350,17 +619,15 @@ export default function AdminCustomers() {
                       : syncSummary.linkedCustomers.slice(0, SYNC_LIST_CAP)
                     ).map(c => (
                       <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap py-1" data-testid={`row-synced-customer-${c.id}`}>
-                        <div className="flex items-center gap-2">
-                          <Link href={`/admin/customers/${c.id}`}>
-                            <span className="text-sm font-medium hover:underline cursor-pointer">{c.name}</span>
-                          </Link>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium">{c.name}</span>
                           {c.isNew && (
-                            <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate">
+                            <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate shrink-0">
                               new
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           {c.leadsLinked > 0 && (
                             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <Users className="w-3 h-3" />
@@ -379,6 +646,15 @@ export default function AdminCustomers() {
                               {c.convosLinked} chat{c.convosLinked !== 1 ? "s" : ""}
                             </span>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReviewCustomerId(c.id)}
+                            data-testid={`button-review-customer-${c.id}`}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            Review
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -526,6 +802,13 @@ export default function AdminCustomers() {
           )}
         </div>
       </div>
+
+      {reviewCustomerId && (
+        <CustomerReviewSheet
+          customerId={reviewCustomerId}
+          onClose={() => setReviewCustomerId(null)}
+        />
+      )}
     </div>
   );
 }
