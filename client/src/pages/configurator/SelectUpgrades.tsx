@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ImageGallery, ImageThumbnail } from "@/components/ImageGallery";
 import { UpgradeDetailsModal } from "@/components/UpgradeDetailsModal";
-import { ArrowRight, ArrowLeft, Star, Info } from "lucide-react";
+import { ArrowRight, ArrowLeft, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -549,10 +549,13 @@ export default function SelectUpgrades() {
                                         )}
                                         {upgrade.popular && (
                                           <div className="flex justify-end">
-                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
-                                              <Star className="w-3 h-3 fill-current" />
-                                              Popular Upgrade
-                                            </span>
+                                            <Badge
+                                              variant="outline"
+                                              className="text-[10px] py-0 border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                              data-testid={`badge-popular-${upgrade.id}`}
+                                            >
+                                              Popular choice
+                                            </Badge>
                                           </div>
                                         )}
                                       </div>
@@ -650,10 +653,13 @@ export default function SelectUpgrades() {
                                         ) : null}
                                         {parent.popular && (
                                           <div className="flex justify-end mb-2">
-                                            <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm font-medium">
-                                              <Star className="w-3 h-3 fill-current" />
-                                              Popular Upgrade
-                                            </span>
+                                            <Badge
+                                              variant="outline"
+                                              className="text-[10px] py-0 border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                              data-testid={`badge-popular-${parent.id}`}
+                                            >
+                                              Popular choice
+                                            </Badge>
                                           </div>
                                         )}
                                         {isSelected && (

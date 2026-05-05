@@ -14,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Star } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -371,8 +370,7 @@ export default function Configurator() {
                                 const quantity = upgradeQuantities[upgrade.id] || 1;
                                 const firstImage = upgrade.images && upgrade.images.length > 0 ? upgrade.images[0] : null;
                                 
-                                // Check if this upgrade is popular
-                                const isPopular = upgrade.popular === true || upgrade.id === 'compressor-12hp-270l';
+                                const isPopular = upgrade.popular === true;
                                 
                                 return (
                                   <div 
@@ -404,10 +402,13 @@ export default function Configurator() {
                                               {upgrade.name}
                                             </label>
                                             {isPopular && (
-                                              <div className="flex items-center gap-1 flex-shrink-0">
-                                                <Star className="h-4 w-4 fill-green-500 text-green-500" />
-                                                <span className="text-xs font-medium text-green-600">Popular upgrade</span>
-                                              </div>
+                                              <Badge
+                                                variant="outline"
+                                                className="text-[10px] py-0 border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 flex-shrink-0"
+                                                data-testid={`badge-popular-${upgrade.id}`}
+                                              >
+                                                Popular choice
+                                              </Badge>
                                             )}
                                           </div>
                                         </div>
@@ -468,10 +469,13 @@ export default function Configurator() {
                                             {variants.length} options available
                                           </Badge>
                                           {parent.popular && (
-                                            <div className="flex items-center gap-1">
-                                              <Star className="h-4 w-4 fill-green-500 text-green-500" />
-                                              <span className="text-xs font-medium text-green-600">Popular upgrade</span>
-                                            </div>
+                                            <Badge
+                                              variant="outline"
+                                              className="text-[10px] py-0 border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                                              data-testid={`badge-popular-${parent.id}`}
+                                            >
+                                              Popular choice
+                                            </Badge>
                                           )}
                                         </div>
                                         <p className="text-sm text-muted-foreground mt-1">

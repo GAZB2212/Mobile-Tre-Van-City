@@ -128,7 +128,15 @@ function SummaryCard({
           <p className="text-white/50 text-xs">Customers like you also typically add:</p>
           {suggestedPopular.map(u => (
             <div key={u.id} className="flex items-center justify-between gap-2">
-              <span className="text-white/80 text-xs flex-1">{u.name}</span>
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span className="text-white/80 text-xs truncate">{u.name}</span>
+                <span
+                  className="text-[9px] font-medium px-1.5 py-px rounded bg-[#8bc440]/15 text-[#8bc440] border border-[#8bc440]/25 shrink-0"
+                  data-testid={`badge-popular-widget-${u.id}`}
+                >
+                  Popular choice
+                </span>
+              </div>
               <button
                 onClick={() => onAddUpgrade(u.id)}
                 data-testid={`button-add-upgrade-${u.id}`}
