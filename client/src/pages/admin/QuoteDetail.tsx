@@ -602,6 +602,18 @@ export default function AdminQuoteDetail() {
     },
   });
 
+  const addNoteMutation = useMutation({
+    mutationFn: async (text: string) =>
+      apiRequest("POST", `/api/admin/quotes/${id}/notes`, { text, author: user?.username || "Admin" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      setNewAdminNote("");
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save note" });
+    },
+  });
+
   const chooseOptionMutation = useMutation({
     mutationFn: async (option: 'A' | 'B') => {
       return await apiRequest("PATCH", `/api/admin/quotes/${id}/choose-option`, { option });
@@ -2973,9 +2985,8 @@ export default function AdminQuoteDetail() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            if (newAdminNote.trim()) {
-                              handleSave();
-                              setNewAdminNote("");
+                            if (newAdminNote.trim() && !addNoteMutation.isPending) {
+                              addNoteMutation.mutate(newAdminNote.trim());
                             }
                           }
                         }}

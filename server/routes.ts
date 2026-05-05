@@ -2366,6 +2366,27 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Edit a specific note in the history
+  app.post("/api/admin/quotes/:id/notes", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { text, author } = req.body;
+      if (!text || !text.trim()) {
+        return res.status(400).json({ error: "text is required" });
+      }
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) return res.status(404).json({ error: "Quote not found" });
+
+      const newEntry = { text: text.trim(), timestamp: new Date().toISOString(), author: author || "Admin" };
+      const updated = await storage.updateQuote(req.params.id, {
+        adminNotesHistory: [...(quote.adminNotesHistory || []), newEntry],
+      });
+      if (!updated) return res.status(500).json({ error: "Failed to add note" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error adding note:", error);
+      res.status(500).json({ error: "Failed to add note" });
+    }
+  });
+
   app.patch("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { noteType, timestamp, text } = req.body;
