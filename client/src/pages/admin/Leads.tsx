@@ -670,18 +670,35 @@ export default function AdminLeads() {
                           </Select>
                         </div>
 
-                        <Button
-                          size="sm"
-                          className="bg-[#8bc440e6] text-[#191919] ml-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open("/configurator/van", "_blank");
-                          }}
-                          data-testid={`button-start-configurator-${lead.id}`}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                          Start Configurator
-                        </Button>
+                        <div className="ml-auto flex items-center gap-2">
+                          {lead.customerId && (
+                            <Link
+                              href={`/admin/customers/${lead.customerId}`}
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            >
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                data-testid={`button-view-customer-profile-${lead.id}`}
+                              >
+                                <UserIcon className="w-3.5 h-3.5 mr-1.5" />
+                                View Customer Profile
+                              </Button>
+                            </Link>
+                          )}
+                          <Button
+                            size="sm"
+                            className="bg-[#8bc440e6] text-[#191919]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open("/configurator/van", "_blank");
+                            }}
+                            data-testid={`button-start-configurator-${lead.id}`}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                            Start Configurator
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Notes history */}

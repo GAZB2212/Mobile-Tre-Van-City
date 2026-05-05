@@ -1383,22 +1383,38 @@ export default function AdminQuoteDetail() {
                       </>
                     )}
                   </div>
-                  {canEdit && !editingCustomer && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditCustomerName(quote.userName || "");
-                        setEditCustomerEmail(quote.email || "");
-                        setEditCustomerPhone(quote.phone || "");
-                        setEditCustomerCompany(quote.company || "");
-                        setEditingCustomer(true);
-                      }}
-                      data-testid="button-edit-customer"
-                    >
-                      <Pencil className="w-3 h-3 mr-1" />
-                      Edit
-                    </Button>
+                  {!editingCustomer && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {quote.customerId && (
+                        <Link href={`/admin/customers/${quote.customerId}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-testid="button-view-customer-profile"
+                          >
+                            <UserIcon className="w-3 h-3 mr-1" />
+                            View Customer Profile
+                          </Button>
+                        </Link>
+                      )}
+                      {canEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditCustomerName(quote.userName || "");
+                            setEditCustomerEmail(quote.email || "");
+                            setEditCustomerPhone(quote.phone || "");
+                            setEditCustomerCompany(quote.company || "");
+                            setEditingCustomer(true);
+                          }}
+                          data-testid="button-edit-customer"
+                        >
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardHeader>
