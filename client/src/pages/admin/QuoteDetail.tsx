@@ -1083,7 +1083,7 @@ export default function AdminQuoteDetail() {
   return (
     <div className="min-h-screen bg-background">
       {/* Sticky header bar for QuoteDetail */}
-      <div className="border-b border-border/60 bg-card/20 sticky top-0 z-50">
+      <div className="border-b border-border/60 bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
