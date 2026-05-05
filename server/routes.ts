@@ -6559,6 +6559,40 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Manual merge: merge two specific customers from the profile page.
+  // keepId must be one of the two customers (defaults to :id if not provided).
+  app.post("/api/admin/customers/:id/merge", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const schema_z = z.object({
+        mergeWithId: z.string().min(1),
+        keepId: z.string().min(1),
+      });
+      const { mergeWithId, keepId } = schema_z.parse(req.body);
+
+      // Validate: keepId must be one of the two involved customers.
+      if (keepId !== id && keepId !== mergeWithId) {
+        return res.status(400).json({ error: "keepId must be one of the two customers being merged" });
+      }
+      const removeId = keepId === id ? mergeWithId : id;
+
+      // Verify both customers exist.
+      const [keepCustomer, removeCustomer] = await Promise.all([
+        storage.getCustomer(keepId),
+        storage.getCustomer(removeId),
+      ]);
+      if (!keepCustomer) return res.status(404).json({ error: "Customer to keep not found" });
+      if (!removeCustomer) return res.status(404).json({ error: "Customer to remove not found" });
+
+      const counts = await storage.mergeCustomers(keepId, removeId);
+      res.json({ ok: true, survivingId: keepId, ...counts });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Manual merge error:", error);
+      res.status(500).json({ error: "Failed to merge customers" });
+    }
+  });
+
   // Get single customer with full profile
   app.get("/api/admin/customers/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

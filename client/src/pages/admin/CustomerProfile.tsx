@@ -17,7 +17,16 @@ import {
   FileText, Bot, Users, CheckCircle2, Clock,
   CalendarDays, StickyNote, PhoneCall, Coffee, ExternalLink,
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
+  Merge, Search, ShieldAlert,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface StaffMember {
   id: string;
@@ -183,6 +192,14 @@ export default function CustomerProfile() {
   const [noteType, setNoteType] = useState<NoteType>("general");
   const [noteText, setNoteText] = useState("");
 
+  // Manual merge state
+  const [showMergePanel, setShowMergePanel] = useState(false);
+  const [mergeSearch, setMergeSearch] = useState("");
+  const [mergeSearchInput, setMergeSearchInput] = useState("");
+  const [selectedMergeTarget, setSelectedMergeTarget] = useState<{ id: string; name: string; email?: string | null; phone?: string | null } | null>(null);
+  const [mergeKeepId, setMergeKeepId] = useState<string | null>(null);
+  const [showMergeConfirm, setShowMergeConfirm] = useState(false);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/login";
@@ -205,6 +222,53 @@ export default function CustomerProfile() {
     queryKey: ["/api/admin/staff"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
+
+  // Debounce merge search input
+  useEffect(() => {
+    const timer = setTimeout(() => setMergeSearch(mergeSearchInput), 350);
+    return () => clearTimeout(timer);
+  }, [mergeSearchInput]);
+
+  const { data: mergeSearchResults = [], isFetching: mergeSearchFetching } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
+    queryKey: ["/api/admin/customers", { search: mergeSearch }],
+    queryFn: async () => {
+      if (!mergeSearch.trim()) return [];
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers?search=${encodeURIComponent(mergeSearch.trim())}`, { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      const all = await r.json();
+      return (all as Array<{ id: string; name: string; email?: string | null; phone?: string | null }>).filter(c => c.id !== id);
+    },
+    enabled: !!(user?.adminRole && user.adminRole !== "none") && showMergePanel && mergeSearch.trim().length > 0,
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: ({ mergeWithId, keepId }: { mergeWithId: string; keepId: string }) =>
+      apiRequest("POST", `/api/admin/customers/${id}/merge`, { mergeWithId, keepId }).then(r => r.json()),
+    onSuccess: (result: { ok: boolean; survivingId: string }) => {
+      setShowMergeConfirm(false);
+      setShowMergePanel(false);
+      setSelectedMergeTarget(null);
+      setMergeSearchInput("");
+      setMergeSearch("");
+      setMergeKeepId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
+      toast({ title: "Customers merged", description: "The merge has been logged and can be reversed from the Merge History panel." });
+      if (result.survivingId !== id) {
+        navigate(`/admin/customers/${result.survivingId}`);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", id] });
+      }
+    },
+    onError: () => toast({ variant: "destructive", title: "Merge failed", description: "Could not merge the customers. Please try again." }),
+  });
+
+  const handleMergeConfirm = () => {
+    if (!selectedMergeTarget || !mergeKeepId) return;
+    mergeMutation.mutate({ mergeWithId: selectedMergeTarget.id, keepId: mergeKeepId });
+  };
 
   // Populate edit fields when data loads
   useEffect(() => {
@@ -561,6 +625,142 @@ export default function CustomerProfile() {
               </CardContent>
             </Card>
 
+            {/* Merge with another customer */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Merge className="w-3.5 h-3.5" />
+                  Merge Customer
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!showMergePanel ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Combine this customer with a duplicate record. All linked leads, quotes, and conversations will be reassigned to the surviving customer, and the merge can be reversed from the Merge History panel.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowMergePanel(true)}
+                      data-testid="button-open-merge-panel"
+                    >
+                      <Merge className="w-3.5 h-3.5 mr-1.5" />
+                      Merge with another customer
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        placeholder="Search by name, email or phone..."
+                        value={mergeSearchInput}
+                        onChange={e => {
+                          setMergeSearchInput(e.target.value);
+                          setSelectedMergeTarget(null);
+                          setMergeKeepId(null);
+                        }}
+                        className="pl-8 text-sm"
+                        data-testid="input-merge-search"
+                      />
+                    </div>
+
+                    {/* Search results */}
+                    {mergeSearch.trim().length > 0 && (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {mergeSearchFetching ? (
+                          <p className="text-xs text-muted-foreground text-center py-3">Searching...</p>
+                        ) : mergeSearchResults.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-3 italic">No other customers found</p>
+                        ) : (
+                          mergeSearchResults.map(c => (
+                            <button
+                              key={c.id}
+                              onClick={() => {
+                                setSelectedMergeTarget(c);
+                                setMergeKeepId(id ?? null);
+                              }}
+                              className={`w-full text-left rounded-md px-2.5 py-2 hover-elevate transition-colors ${selectedMergeTarget?.id === c.id ? "bg-muted" : ""}`}
+                              data-testid={`button-select-merge-target-${c.id}`}
+                            >
+                              <p className="text-xs font-medium truncate">{c.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {[c.email, c.phone].filter(Boolean).join(" · ") || "No contact details"}
+                              </p>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    {/* Keep which customer choice */}
+                    {selectedMergeTarget && (
+                      <div className="space-y-2 pt-1">
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Keep which record?</p>
+                        <div className="space-y-1.5">
+                          <button
+                            onClick={() => setMergeKeepId(id ?? null)}
+                            className={`w-full text-left rounded-md border px-2.5 py-2 transition-colors ${mergeKeepId === id ? "border-[hsl(86_53%_51%/0.5)] bg-[hsl(86_45%_51%/0.08)]" : "border-border hover-elevate"}`}
+                            data-testid="button-keep-current"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              {mergeKeepId === id && <Check className="w-3 h-3 text-[hsl(86_53%_60%)] shrink-0" />}
+                              <p className="text-xs font-medium truncate">{data?.customer.name} <span className="text-muted-foreground font-normal">(this profile)</span></p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate ml-4.5">
+                              {[data?.customer.email, data?.customer.phone].filter(Boolean).join(" · ") || "No contact details"}
+                            </p>
+                          </button>
+                          <button
+                            onClick={() => setMergeKeepId(selectedMergeTarget.id)}
+                            className={`w-full text-left rounded-md border px-2.5 py-2 transition-colors ${mergeKeepId === selectedMergeTarget.id ? "border-[hsl(86_53%_51%/0.5)] bg-[hsl(86_45%_51%/0.08)]" : "border-border hover-elevate"}`}
+                            data-testid="button-keep-other"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              {mergeKeepId === selectedMergeTarget.id && <Check className="w-3 h-3 text-[hsl(86_53%_60%)] shrink-0" />}
+                              <p className="text-xs font-medium truncate">{selectedMergeTarget.name}</p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {[selectedMergeTarget.email, selectedMergeTarget.phone].filter(Boolean).join(" · ") || "No contact details"}
+                            </p>
+                          </button>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setShowMergeConfirm(true)}
+                          disabled={!mergeKeepId}
+                          data-testid="button-merge-confirm-open"
+                        >
+                          <Merge className="w-3.5 h-3.5 mr-1.5" />
+                          Merge customers
+                        </Button>
+                      </div>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setShowMergePanel(false);
+                        setSelectedMergeTarget(null);
+                        setMergeSearchInput("");
+                        setMergeSearch("");
+                        setMergeKeepId(null);
+                      }}
+                      data-testid="button-cancel-merge"
+                    >
+                      <X className="w-3.5 h-3.5 mr-1.5" />
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Linked records */}
             <Card>
               <CardHeader className="pb-3">
@@ -813,6 +1013,86 @@ export default function CustomerProfile() {
           </div>
         </div>
       </div>
+
+      {/* Merge confirmation dialog */}
+      <Dialog open={showMergeConfirm} onOpenChange={setShowMergeConfirm}>
+        <DialogContent data-testid="dialog-merge-confirm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400" />
+              Confirm customer merge
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-1">
+              This will permanently combine two customer records into one. The removed customer will be deleted, but the merge can be reversed from the Merge History panel.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedMergeTarget && mergeKeepId && (
+            <div className="space-y-3 py-1">
+              <div className="rounded-md bg-muted/50 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-[hsl(86_53%_60%)] shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-[hsl(86_53%_60%)]">Keep (surviving record)</p>
+                    <p className="text-sm font-semibold">
+                      {mergeKeepId === id ? data?.customer.name : selectedMergeTarget.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {mergeKeepId === id
+                        ? [data?.customer.email, data?.customer.phone].filter(Boolean).join(" · ") || "No contact details"
+                        : [selectedMergeTarget.email, selectedMergeTarget.phone].filter(Boolean).join(" · ") || "No contact details"
+                      }
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-destructive shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-destructive">Remove (will be deleted)</p>
+                    <p className="text-sm font-semibold">
+                      {mergeKeepId === id ? selectedMergeTarget.name : data?.customer.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {mergeKeepId === id
+                        ? [selectedMergeTarget.email, selectedMergeTarget.phone].filter(Boolean).join(" · ") || "No contact details"
+                        : [data?.customer.email, data?.customer.phone].filter(Boolean).join(" · ") || "No contact details"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                All leads, quotes, and conversations from the removed record will be reassigned to the surviving record. Contact details will be merged automatically.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMergeConfirm(false)}
+              disabled={mergeMutation.isPending}
+              data-testid="button-merge-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleMergeConfirm}
+              disabled={mergeMutation.isPending}
+              data-testid="button-merge-execute"
+            >
+              {mergeMutation.isPending ? (
+                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+              ) : (
+                <Merge className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {mergeMutation.isPending ? "Merging..." : "Confirm merge"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
