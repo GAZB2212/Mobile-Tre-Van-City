@@ -685,6 +685,26 @@ export default function AdminLeads() {
                             {crmNotes.length} {crmNotes.length === 1 ? "note" : "notes"}
                           </span>
                         )}
+                        {lead.customerId ? (
+                          <Link
+                            href={`/admin/customers/${lead.customerId}`}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            data-testid={`link-profile-linked-summary-${lead.id}`}
+                          >
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
+                              <CheckCircle2 className="w-3 h-3 shrink-0" />
+                              Linked
+                            </span>
+                          </Link>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                            data-testid={`text-no-profile-summary-${lead.id}`}
+                          >
+                            <XCircle className="w-3 h-3 shrink-0" />
+                            No profile
+                          </span>
+                        )}
                       </div>
                       <div className="shrink-0">
                         {isExpanded

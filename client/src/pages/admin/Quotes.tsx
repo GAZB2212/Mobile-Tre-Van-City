@@ -122,6 +122,8 @@ import {
   Bot,
   Settings,
   History,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 export default function AdminQuotes() {
@@ -847,6 +849,27 @@ export default function AdminQuotes() {
                                     <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{daysInStatus(quote)}d — action needed</span>
                                   </div>
                                 )}
+                                {/* Profile-linked indicator */}
+                                {(quote as any).customerId ? (
+                                  <Link
+                                    href={`/admin/customers/${(quote as any).customerId}`}
+                                    onClick={e => e.stopPropagation()}
+                                    data-testid={`link-profile-linked-kanban-${quote.id}`}
+                                  >
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
+                                      <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                      Linked
+                                    </span>
+                                  </Link>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                                    data-testid={`text-no-profile-kanban-${quote.id}`}
+                                  >
+                                    <XCircle className="w-3 h-3 shrink-0" />
+                                    No profile
+                                  </span>
+                                )}
                                 <div className="pt-1 border-t border-border/50">
                                   <Link
                                     href={`/admin/quotes/${quote.id}?tab=configuration&from=quotes`}
@@ -956,6 +979,27 @@ export default function AdminQuotes() {
                           >
                             <Clock className="w-3 h-3" />
                             {daysInStatus(quote)}d — action needed
+                          </span>
+                        )}
+                        {/* Profile-linked indicator */}
+                        {(quote as any).customerId ? (
+                          <Link
+                            href={`/admin/customers/${(quote as any).customerId}`}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            data-testid={`link-profile-linked-${quote.id}`}
+                          >
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline shrink-0">
+                              <CheckCircle2 className="w-3 h-3 shrink-0" />
+                              Linked
+                            </span>
+                          </Link>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0"
+                            data-testid={`text-no-profile-${quote.id}`}
+                          >
+                            <XCircle className="w-3 h-3 shrink-0" />
+                            No profile
                           </span>
                         )}
                       </div>
