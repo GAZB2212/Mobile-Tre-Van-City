@@ -112,6 +112,8 @@ function MoveRecordDialog({
   recordLabel,
   sourceCustomerId,
   sourceCustomerName,
+  sourceCustomerCompany,
+  sourceCustomerEmail,
   onMoved,
   onClose,
 }: {
@@ -120,6 +122,8 @@ function MoveRecordDialog({
   recordLabel: string;
   sourceCustomerId: string;
   sourceCustomerName: string;
+  sourceCustomerCompany?: string | null;
+  sourceCustomerEmail?: string | null;
   onMoved: (targetCustomerId: string) => void;
   onClose: () => void;
 }) {
@@ -198,6 +202,9 @@ function MoveRecordDialog({
                 <span className="text-xs text-muted-foreground w-8 shrink-0 pt-0.5">From:</span>
                 <div className="rounded-md border px-3 py-2 flex-1 bg-muted/40">
                   <p className="text-sm font-medium" data-testid="text-move-source-customer">{sourceCustomerName}</p>
+                  {(sourceCustomerCompany || sourceCustomerEmail) && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{sourceCustomerCompany ?? sourceCustomerEmail}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-2">
@@ -625,6 +632,8 @@ function CustomerReviewSheet({
           recordLabel={moveTarget.label}
           sourceCustomerId={customerId}
           sourceCustomerName={customer?.name ?? "Unknown"}
+          sourceCustomerCompany={customer?.company}
+          sourceCustomerEmail={customer?.email}
           onMoved={() => setMoveTarget(null)}
           onClose={() => setMoveTarget(null)}
         />
