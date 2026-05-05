@@ -361,7 +361,7 @@ export default function AdminLeads() {
         }
       />
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="w-full px-4 py-6">
         <AdminBackButton />
 
         <div className="space-y-6">
