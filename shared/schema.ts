@@ -236,6 +236,7 @@ export const quotes = pgTable("quotes", {
     };
   } | null>(),
   chosenOption: text("chosen_option"), // null | 'A' | 'B'
+  chooseOptionToken: text("choose_option_token"), // One-time token included in comparison email links — prevents link-scanner/prefetch from triggering option selection
 
   // Stock management integration — ID returned by autotradeportal.com when build is dispatched
   stockBuildId: text("stock_build_id"),

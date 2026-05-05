@@ -416,8 +416,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public build-progress endpoints — secured by unguessable quote UUID
-  app.get("/api/build-progress/:id", async (req, res) => {
+  // Build-progress endpoints — require authentication (workshop staff must be logged in)
+  app.get("/api/build-progress/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) return res.status(404).json({ error: "Not found" });
@@ -442,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/build-progress/:id", async (req, res) => {
+  app.patch("/api/build-progress/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) return res.status(404).json({ error: "Not found" });
@@ -633,6 +633,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const quote = await storage.createQuote(quoteData);
 
+      // For comparison quotes, generate a choose-option token immediately so the initial
+      // customer confirmation email can include secure selection links.
+      let initialChooseOptionToken: string | undefined;
+      if (enrichedComparisonConfig?.slotA && enrichedComparisonConfig?.slotB) {
+        const { randomBytes } = await import('crypto');
+        initialChooseOptionToken = randomBytes(32).toString('hex');
+        await storage.updateQuote(quote.id, { chooseOptionToken: initialChooseOptionToken });
+      }
+
       // Back-fill AI conversation with contact details if the quote came from an AI session
       const aiSessionId = req.body.aiSessionId as string | undefined;
       if (aiSessionId) {
@@ -718,6 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // so resend/re-trigger email paths can pass the current chosen state
           chosenOption: null,
           baseUrl: comparisonSlotBEmail ? baseUrl : undefined,
+          chooseOptionToken: comparisonSlotBEmail ? initialChooseOptionToken : undefined,
         });
       } catch (emailErr) {
         console.error('Failed to send quote received emails:', emailErr);
@@ -2402,13 +2412,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
-  // Public: customer clicks "I choose Option A/B" link from their confirmation email
-  app.get("/api/quotes/:id/choose-option", async (req, res) => {
+  // Shared HTML renderer for customer-facing choose-option pages
+  function chooseOptionHtmlPage(title: string, heading: string, body: string, isError = false) {
     const brandGreen = '#8bc440';
     const brandDark = '#191919';
-
-    function htmlPage(title: string, heading: string, body: string, isError = false) {
-      return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -2426,6 +2434,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     .card-body p { color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
     .badge { display: inline-block; background: ${brandGreen}; color: ${brandDark}; font-weight: bold; font-size: 14px; padding: 6px 18px; border-radius: 4px; margin-bottom: 16px; }
     .phone { color: ${brandDark}; font-weight: bold; }
+    .confirm-btn { display: block; width: 100%; background: ${brandGreen}; color: ${brandDark}; font-weight: bold; font-size: 16px; padding: 14px 24px; border-radius: 4px; border: none; cursor: pointer; margin-top: 8px; }
+    .confirm-btn:hover { opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -2441,30 +2451,42 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   </div>
 </body>
 </html>`;
-    }
+  }
 
+  // Public: customer clicks "I choose Option A/B" link from their confirmation email.
+  // GET renders a confirmation page (no state change) — safe for mail scanners and prefetch.
+  // POST (below) performs the actual state change after the customer clicks the confirmation button.
+  app.get("/api/quotes/:id/choose-option", async (req, res) => {
     try {
-      const { option } = req.query;
+      const { option, token: chooseToken } = req.query;
       if (option !== 'A' && option !== 'B') {
-        res.status(400).send(htmlPage('Invalid Request', 'Invalid request', '<p>The link you followed is not valid. Please contact us directly.</p>', true));
+        res.status(400).send(chooseOptionHtmlPage('Invalid Request', 'Invalid request', '<p>The link you followed is not valid. Please contact us directly.</p>', true));
         return;
       }
 
       const quote = await storage.getQuote(req.params.id);
       if (!quote) {
-        res.status(404).send(htmlPage('Not Found', 'Quote not found', '<p>We could not find your quote. Please contact us and we\'ll be happy to help.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        res.status(404).send(chooseOptionHtmlPage('Not Found', 'Quote not found', '<p>We could not find your quote. Please contact us and we\'ll be happy to help.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        return;
+      }
+
+      // Validate the one-time choose-option token — prevents bare-UUID replay attacks.
+      // This is a read-only check; the POST handler will validate and invalidate the token.
+      const storedToken = quote.chooseOptionToken;
+      if (!storedToken || !chooseToken || chooseToken !== storedToken) {
+        res.status(400).send(chooseOptionHtmlPage('Invalid Link', 'This link is no longer valid', '<p>This selection link has expired or is invalid. Please use the link from the most recent email we sent you, or call us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
         return;
       }
 
       if (!quote.comparisonConfig?.slotA || !quote.comparisonConfig?.slotB) {
-        res.status(400).send(htmlPage('Not Available', 'Option selection not available', '<p>This quote does not have two options to choose from. Please contact us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        res.status(400).send(chooseOptionHtmlPage('Not Available', 'Option selection not available', '<p>This quote does not have two options to choose from. Please contact us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
         return;
       }
 
       if (quote.chosenOption) {
         const alreadyOption = quote.chosenOption;
         const sameChoice = alreadyOption === option;
-        res.send(htmlPage(
+        res.send(chooseOptionHtmlPage(
           'Already Selected',
           sameChoice ? 'Choice already recorded' : 'An option has already been selected',
           sameChoice
@@ -2475,13 +2497,86 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       }
 
       if (quote.buildStage != null) {
-        res.send(htmlPage('Selection Closed', 'Selection period has closed', '<p>Your build has already started so we\'re unable to accept a new option selection via this link. Please call us if you have any queries.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>'));
+        res.send(chooseOptionHtmlPage('Selection Closed', 'Selection period has closed', '<p>Your build has already started so we\'re unable to accept a new option selection via this link. Please call us if you have any queries.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>'));
         return;
       }
 
-      // Promote the chosen slot data into the primary quote fields (same logic as admin endpoint)
+      // Render a confirmation page with a POST form — no state is changed on GET.
+      // This ensures mail scanners, prefetch, and accidental link clicks cannot trigger the choice.
+      const brandGreen = '#8bc440';
+      res.send(chooseOptionHtmlPage(
+        `Confirm Option ${option}`,
+        `Confirm your choice`,
+        `<p>You are about to select <strong>Option ${option}</strong> as your preferred quote.</p>
+        <p>Please click the button below to confirm. Our team will be notified immediately.</p>
+        <form method="POST" action="/api/quotes/${req.params.id}/choose-option">
+          <input type="hidden" name="option" value="${option}">
+          <input type="hidden" name="token" value="${String(chooseToken)}">
+          <button type="submit" class="confirm-btn">Confirm — I choose Option ${option}</button>
+        </form>
+        <p style="margin-top:16px;font-size:13px;color:#9ca3af;">If you did not request this, please ignore this page or call us on <span class="phone" style="color:#374151;font-weight:bold">0151 203 8500</span>.</p>`,
+      ));
+    } catch (error) {
+      console.error('Error rendering option choice page:', error);
+      res.status(500).send(chooseOptionHtmlPage('Error', 'Something went wrong', '<p>We were unable to load this page at this time. Please call us on <span class="phone">0151 203 8500</span> and we\'ll sort it out for you.</p>', true));
+    }
+  });
+
+  // Public: customer submits the confirmation form to register their option choice.
+  // Validates the token, performs the state change, then invalidates the token.
+  app.post("/api/quotes/:id/choose-option", async (req, res) => {
+    try {
+      const option = req.body.option;
+      const chooseToken = req.body.token;
+
+      if (option !== 'A' && option !== 'B') {
+        res.status(400).send(chooseOptionHtmlPage('Invalid Request', 'Invalid request', '<p>The request was not valid. Please use the link from your email and try again.</p>', true));
+        return;
+      }
+
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        res.status(404).send(chooseOptionHtmlPage('Not Found', 'Quote not found', '<p>We could not find your quote. Please contact us and we\'ll be happy to help.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        return;
+      }
+
+      // Validate token — reject if missing, expired (cleared after prior selection), or mismatched.
+      const storedToken = quote.chooseOptionToken;
+      if (!storedToken || !chooseToken || chooseToken !== storedToken) {
+        res.status(400).send(chooseOptionHtmlPage('Invalid Link', 'This link is no longer valid', '<p>This selection link has expired or is invalid. Please use the link from the most recent email we sent you, or call us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        return;
+      }
+
+      if (!quote.comparisonConfig?.slotA || !quote.comparisonConfig?.slotB) {
+        res.status(400).send(chooseOptionHtmlPage('Not Available', 'Option selection not available', '<p>This quote does not have two options to choose from. Please contact us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>', true));
+        return;
+      }
+
+      if (quote.chosenOption) {
+        const alreadyOption = quote.chosenOption;
+        const sameChoice = alreadyOption === option;
+        res.send(chooseOptionHtmlPage(
+          'Already Selected',
+          sameChoice ? 'Choice already recorded' : 'An option has already been selected',
+          sameChoice
+            ? `<p class="badge">Option ${alreadyOption}</p><p>We already have your preference for <strong>Option ${alreadyOption}</strong> on record. Our team will be in touch shortly.</p><p>Call us on <span class="phone">0151 203 8500</span> if you have any questions.</p>`
+            : `<p>You have already selected <strong>Option ${alreadyOption}</strong> for this quote. If you'd like to change your preference, please call us directly.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>`,
+        ));
+        return;
+      }
+
+      if (quote.buildStage != null) {
+        res.send(chooseOptionHtmlPage('Selection Closed', 'Selection period has closed', '<p>Your build has already started so we\'re unable to accept a new option selection via this link. Please call us if you have any queries.</p><p>Call us on <span class="phone">0151 203 8500</span>.</p>'));
+        return;
+      }
+
+      // Promote the chosen slot data into the primary quote fields (same logic as admin endpoint).
+      // Also clear chooseOptionToken so the link cannot be reused.
       const slotData = option === 'B' ? quote.comparisonConfig.slotB : quote.comparisonConfig.slotA;
-      const updateData: any = { chosenOption: option };
+      const updateData: any = {
+        chosenOption: option,
+        chooseOptionToken: null, // Invalidate token after successful selection
+      };
 
       if (slotData) {
         updateData.vanId = slotData.vanId ?? null;
@@ -2540,17 +2635,17 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       }
 
       const ref = quote.id.slice(0, 8).toUpperCase();
-      res.send(htmlPage(
+      res.send(chooseOptionHtmlPage(
         `Option ${option} Selected`,
         `Thank you — Option ${option} confirmed!`,
         `<p class="badge">Option ${option} Selected</p>
         <p>We've recorded your choice and our team has been notified. We'll be in touch shortly to discuss the next steps.</p>
         <p>Your reference is <strong>#${ref}</strong>.</p>
-        <p>If you have any questions in the meantime, please call us on <span class="phone">0151 203 8500</span> or email <a href="mailto:info@mobiletyrevancity.co.uk" style="color:${brandGreen}">info@mobiletyrevancity.co.uk</a>.</p>`,
+        <p>If you have any questions in the meantime, please call us on <span class="phone">0151 203 8500</span> or email <a href="mailto:info@mobiletyrevancity.co.uk" style="color:#8bc440">info@mobiletyrevancity.co.uk</a>.</p>`,
       ));
     } catch (error) {
       console.error('Error processing customer option choice:', error);
-      res.status(500).send(htmlPage('Error', 'Something went wrong', '<p>We were unable to record your choice at this time. Please call us on <span class="phone">0151 203 8500</span> and we\'ll sort it out for you.</p>', true));
+      res.status(500).send(chooseOptionHtmlPage('Error', 'Something went wrong', '<p>We were unable to record your choice at this time. Please call us on <span class="phone">0151 203 8500</span> and we\'ll sort it out for you.</p>', true));
     }
   });
 
@@ -2832,6 +2927,14 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         return `${proto}://${host}`;
       })();
 
+      // For comparison quotes, regenerate the choose-option token so old email links are
+      // invalidated and only the freshly sent email's links will work.
+      let chooseOptionToken: string | undefined;
+      if (comparisonSlotBEmail) {
+        const { randomBytes } = await import('crypto');
+        chooseOptionToken = randomBytes(32).toString('hex');
+      }
+
       const { sendQuoteSpecSummaryEmail } = await import('./email.js');
       await sendQuoteSpecSummaryEmail({
         to: quote.email,
@@ -2852,6 +2955,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         financeInfo: specFinanceInfo,
         comparisonSlotB: comparisonSlotBEmail,
         chosenOption: ((quote as any).chosenOption as 'A' | 'B' | null) ?? null,
+        chooseOptionToken,
       });
 
       // Record specSentAt, store approval token (resets prior approval), add auto-audit note
@@ -2863,6 +2967,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         approvalToken,
         specApprovalStatus: null,
         specApprovalComments: null,
+        ...(chooseOptionToken ? { chooseOptionToken } : {}),
         adminNotesHistory: [
           ...(quote.adminNotesHistory || []),
           { text: specNoteText, timestamp: new Date().toISOString(), author: specAuthor }

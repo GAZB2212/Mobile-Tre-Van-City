@@ -193,6 +193,9 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS staff_name TEXT`)
         .then(() => log("✅ Quote staff name column ready"))
         .catch((err: Error) => console.error("Quote staff name migration:", err.message));
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS choose_option_token TEXT`)
+        .then(() => log("✅ Quote choose-option token column ready"))
+        .catch((err: Error) => console.error("Quote choose-option token migration:", err.message));
       pool.query(`ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE`)
         .then(() => log("✅ Gallery featured column ready"))
         .catch((err: Error) => console.error("Gallery featured migration:", err.message));

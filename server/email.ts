@@ -247,6 +247,7 @@ export async function sendQuoteSpecSummaryEmail({
   comparisonSlotB,
   chosenOption,
   customExtras = [],
+  chooseOptionToken,
 }: {
   to: string;
   customerName: string;
@@ -283,6 +284,7 @@ export async function sendQuoteSpecSummaryEmail({
   } | null;
   chosenOption?: 'A' | 'B' | null;
   customExtras?: Array<{ id: string; description: string; pricePence: number }>;
+  chooseOptionToken?: string;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
   const ref = quoteId.slice(0, 8).toUpperCase();
@@ -343,9 +345,9 @@ export async function sendQuoteSpecSummaryEmail({
     const optionBlock = (opt: 'A' | 'B', oVanTitle: string | null | undefined, oKitName: string | null | undefined, oUpgradeNames: string[] | undefined, oSubtotal: number, oVAT: number, oTotal: number, oFinance: typeof financeInfo) => {
       const isChosen = chosenOption === opt;
       const borderStyle = isChosen ? `border:2px solid ${BRAND_GREEN};` : 'border:1px solid #e5e7eb;';
-      const chooseBtn = !chosenOption
+      const chooseBtn = !chosenOption && chooseOptionToken
         ? `<div style="text-align:center; margin-top:16px;">
-            <a href="${siteBase}/api/quotes/${quoteId}/choose-option?option=${opt}"
+            <a href="${siteBase}/api/quotes/${quoteId}/choose-option?option=${opt}&token=${chooseOptionToken}"
                style="display:block;max-width:240px;margin:0 auto;background:${BRAND_GREEN};color:${BRAND_DARK};font-weight:bold;font-size:15px;padding:13px 24px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">
               I choose Option ${opt}
             </a>
@@ -395,7 +397,8 @@ export async function sendQuoteSpecSummaryEmail({
       <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
     `;
 
-    const textBody = `Hi ${customerName},\n\n${chosenOption ? `You have selected Option ${chosenOption}.` : 'We have prepared two options for you to compare. Please choose the one you prefer using the links below.'}\n\nReference: #${ref}\n\nOPTION A\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}Subtotal: ${fmt(subtotal)}\nVAT: ${fmt(vat)}\nTotal: ${fmt(totalAfterDiscount)}\n${!chosenOption ? `\nChoose Option A: ${siteBase}/api/quotes/${quoteId}/choose-option?option=A\n` : ''}\nOPTION B\n${slotB.vanTitle ? `Van: ${slotB.vanTitle}\n` : ''}${slotB.kitName ? `Pack: ${slotB.kitName}\n` : ''}${slotB.upgradeNames && slotB.upgradeNames.length > 0 ? `Upgrades:\n${slotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}${slotB.estSubtotal != null ? `Subtotal: ${fmt(slotB.estSubtotal)}\n` : ''}${slotB.estVAT != null ? `VAT: ${fmt(slotB.estVAT)}\n` : ''}${slotB.estTotal != null ? `Total: ${fmt(slotB.estTotal)}\n` : ''}${!chosenOption ? `\nChoose Option B: ${siteBase}/api/quotes/${quoteId}/choose-option?option=B\n` : ''}\n${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`;
+    const tokenSuffix = chooseOptionToken ? `&token=${chooseOptionToken}` : '';
+    const textBody = `Hi ${customerName},\n\n${chosenOption ? `You have selected Option ${chosenOption}.` : 'We have prepared two options for you to compare. Please choose the one you prefer using the links below.'}\n\nReference: #${ref}\n\nOPTION A\n${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}Subtotal: ${fmt(subtotal)}\nVAT: ${fmt(vat)}\nTotal: ${fmt(totalAfterDiscount)}\n${!chosenOption && chooseOptionToken ? `\nChoose Option A: ${siteBase}/api/quotes/${quoteId}/choose-option?option=A${tokenSuffix}\n` : ''}\nOPTION B\n${slotB.vanTitle ? `Van: ${slotB.vanTitle}\n` : ''}${slotB.kitName ? `Pack: ${slotB.kitName}\n` : ''}${slotB.upgradeNames && slotB.upgradeNames.length > 0 ? `Upgrades:\n${slotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${extrasTextBlock}${slotB.estSubtotal != null ? `Subtotal: ${fmt(slotB.estSubtotal)}\n` : ''}${slotB.estVAT != null ? `VAT: ${fmt(slotB.estVAT)}\n` : ''}${slotB.estTotal != null ? `Total: ${fmt(slotB.estTotal)}\n` : ''}${!chosenOption && chooseOptionToken ? `\nChoose Option B: ${siteBase}/api/quotes/${quoteId}/choose-option?option=B${tokenSuffix}\n` : ''}\n${customerNote ? `\nNote from our team: ${customerNote}\n` : ''}\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`;
 
     await client.emails.send({
       to,
@@ -650,6 +653,7 @@ export async function sendQuoteReceivedEmails({
   chosenOption,
   baseUrl,
   testMode,
+  chooseOptionToken,
 }: {
   quote: {
     id: string;
@@ -689,6 +693,7 @@ export async function sendQuoteReceivedEmails({
   chosenOption?: 'A' | 'B' | null;
   baseUrl?: string;
   testMode?: { variant: 'customer' | 'admin'; testAddress: string };
+  chooseOptionToken?: string;
 }) {
   const { client, fromEmail } = await getUncachableResendClient();
 
@@ -752,9 +757,9 @@ export async function sendQuoteReceivedEmails({
       <tr><td style="color:#6b7280;">Est. Weekly</td><td>£${(financeInfoA.weeklyPayment / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}/week (approx.)</td></tr>
       ` : ''}
     </table>
-    ${comparisonSlotB && !chosenOption && baseUrl ? `
+    ${comparisonSlotB && !chosenOption && baseUrl && chooseOptionToken ? `
     <div style="text-align:center;margin:12px 0 24px;">
-      <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=A" style="display:block;max-width:260px;margin:0 auto;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:14px 28px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">I choose Option A</a>
+      <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=A&token=${chooseOptionToken}" style="display:block;max-width:260px;margin:0 auto;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:14px 28px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">I choose Option A</a>
     </div>` : ''}
     ${comparisonSlotB ? `
     <p style="font-weight:bold;font-size:14px;margin-top:20px;margin-bottom:4px;color:#191919;">Option B${chosenOption === 'B' ? ' <span style="background:#8bc440;color:#191919;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:bold;vertical-align:middle;">CHOSEN</span>' : ''}</p>
@@ -774,9 +779,9 @@ export async function sendQuoteReceivedEmails({
       <tr><td style="color:#6b7280;">Est. Weekly</td><td>£${(financeInfoB.weeklyPayment / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}/week (approx.)</td></tr>
       ` : ''}
     </table>
-    ${!chosenOption && baseUrl ? `
+    ${!chosenOption && baseUrl && chooseOptionToken ? `
     <div style="text-align:center;margin:12px 0 24px;">
-      <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=B" style="display:block;max-width:260px;margin:0 auto;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:14px 28px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">I choose Option B</a>
+      <a href="${baseUrl}/api/quotes/${quote.id}/choose-option?option=B&token=${chooseOptionToken}" style="display:block;max-width:260px;margin:0 auto;background:#8bc440;color:#191919;font-weight:bold;font-size:15px;padding:14px 28px;border-radius:4px;text-decoration:none;text-align:center;box-sizing:border-box;">I choose Option B</a>
     </div>` : ''}
     ` : ''}
     <p>If you have any questions in the meantime, please call us on <strong>${PHONE}</strong> or reply to this email.</p>

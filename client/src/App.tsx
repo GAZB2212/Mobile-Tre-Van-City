@@ -153,7 +153,7 @@ function AIWidget() {
 
 function ConditionalLoadingScreen() {
   const [location] = useLocation();
-  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.includes("/build-progress")) {
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/")) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("hasLoadedBefore", "true");
     }
