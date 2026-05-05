@@ -76,14 +76,16 @@ async function bootstrapAdmin() {
         log(`✅ Admin role corrected to "full" for: ${resolvedUsername}`);
       }
 
-      // If ADMIN_PASSWORD env var is explicitly set, sync the password hash
+      // Always sync the password hash so it stays consistent with resolvedPassword.
+      // In production resolvedPassword comes from ADMIN_PASSWORD; in dev it falls
+      // back to "admin123". This prevents stale hashes from blocking login.
+      const bcrypt = await import("bcryptjs");
+      const newHash = await bcrypt.hash(resolvedPassword, 10);
+      await storage.updateUser(existingAdmin.id, { passwordHash: newHash });
       if (adminPassword) {
-        const bcrypt = await import("bcryptjs");
-        const newHash = await bcrypt.hash(resolvedPassword, 10);
-        await storage.updateUser(existingAdmin.id, { passwordHash: newHash });
         log(`✅ Admin password updated from ADMIN_PASSWORD env var`);
       } else {
-        log(`✅ Admin user exists: ${resolvedUsername}`);
+        log(`✅ Admin user exists: ${resolvedUsername} (password synced to dev default)`);
       }
     }
   } catch (error) {
