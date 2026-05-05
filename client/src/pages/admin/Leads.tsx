@@ -817,19 +817,22 @@ export default function AdminLeads() {
                       </div>
 
                       {/* Reassignment history */}
-                      {Array.isArray((lead as any).reassignmentHistory) && (lead as any).reassignmentHistory.length > 0 && (
+                      {Array.isArray((lead as any).reassignmentHistory) && (lead as any).reassignmentHistory.length > 1 && (
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
                             <History className="w-3.5 h-3.5" /> Reassignment History
                           </p>
-                          <div className="space-y-1" data-testid={`text-reassignment-history-lead-${lead.id}`}>
-                            {(lead as any).reassignmentHistory.map((entry: { customerName: string; timestamp: string; staffName?: string }, i: number) => (
-                              <p key={i} className="text-xs text-amber-500 dark:text-amber-400">
-                                Previously: {entry.customerName}
-                                <span className="text-muted-foreground ml-1">
-                                  ({new Date(entry.timestamp).toLocaleDateString()}{entry.staffName ? ` · ${entry.staffName}` : ""})
+                          <div className="space-y-1.5" data-testid={`text-reassignment-history-lead-${lead.id}`}>
+                            {(lead as any).reassignmentHistory.map((entry: { fromCustomerName: string; fromCustomerId: string; toCustomerName: string; toCustomerId: string; reassignedAt: string }, i: number) => (
+                              <div key={i} className="flex items-center gap-1.5 text-xs">
+                                <span className="text-muted-foreground">{entry.fromCustomerName}</span>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="text-foreground font-medium">{entry.toCustomerName}</span>
+                                <span className="text-muted-foreground ml-auto">
+                                  {new Date(entry.reassignedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}{" "}
+                                  {new Date(entry.reassignedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                                 </span>
-                              </p>
+                              </div>
                             ))}
                           </div>
                         </div>
