@@ -6886,6 +6886,22 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     try {
       let mergedCount = 0;
       const errors: string[] = [];
+      // Track surviving customers and how many duplicates each absorbed
+      const mergedCustomerMap = new Map<string, { id: string; name: string; duplicatesAbsorbed: number }>();
+
+      async function fetchCustomerName(id: string): Promise<string> {
+        const r = await pool.query<{ name: string }>(`SELECT name FROM customers WHERE id = $1 LIMIT 1`, [id]);
+        return r.rows[0]?.name ?? "Unknown";
+      }
+
+      function recordMerge(keepId: string, keepName: string) {
+        const existing = mergedCustomerMap.get(keepId);
+        if (existing) {
+          existing.duplicatesAbsorbed++;
+        } else {
+          mergedCustomerMap.set(keepId, { id: keepId, name: keepName, duplicatesAbsorbed: 1 });
+        }
+      }
 
       // --- Step 1: Merge customers that share the same non-null email ---
       const dupEmails = await pool.query<{ email: string }>(`
@@ -6899,14 +6915,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       for (const { email } of dupEmails.rows) {
         try {
           // Fetch all customers with this email, oldest first (keep the oldest).
-          const { rows } = await pool.query<{ id: string }>(
-            `SELECT id FROM customers WHERE email = $1 ORDER BY created_at ASC`,
+          const { rows } = await pool.query<{ id: string; name: string }>(
+            `SELECT id, name FROM customers WHERE email = $1 ORDER BY created_at ASC`,
             [email]
           );
           const [keep, ...duplicates] = rows;
           for (const dup of duplicates) {
             await storage.mergeCustomers(keep.id, dup.id);
             mergedCount++;
+            recordMerge(keep.id, keep.name ?? "Unknown");
           }
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -6927,14 +6944,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       for (const { phone } of dupPhones.rows) {
         try {
-          const { rows } = await pool.query<{ id: string }>(
-            `SELECT id FROM customers WHERE phone = $1 ORDER BY created_at ASC`,
+          const { rows } = await pool.query<{ id: string; name: string }>(
+            `SELECT id, name FROM customers WHERE phone = $1 ORDER BY created_at ASC`,
             [phone]
           );
           const [keep, ...duplicates] = rows;
           for (const dup of duplicates) {
             await storage.mergeCustomers(keep.id, dup.id);
             mergedCount++;
+            recordMerge(keep.id, keep.name ?? "Unknown");
           }
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -6988,8 +7006,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         );
         if (stillExists.rows.length === 0) continue;
         try {
+          const keepName = mergedCustomerMap.get(keep_id)?.name ?? await fetchCustomerName(keep_id);
           await storage.mergeCustomers(keep_id, merge_id);
           mergedCount++;
+          recordMerge(keep_id, keepName);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Dedup error (split-pair keep=${keep_id} merge=${merge_id}):`, msg);
@@ -6997,7 +7017,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
-      res.json({ ok: true, mergedCount, failedCount: errors.length, errors });
+      const mergedCustomers = Array.from(mergedCustomerMap.values());
+      res.json({ ok: true, mergedCount, failedCount: errors.length, errors, mergedCustomers });
     } catch (error) {
       console.error("Customer dedup error:", error);
       res.status(500).json({ error: "Deduplication failed" });

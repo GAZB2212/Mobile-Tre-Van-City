@@ -345,11 +345,18 @@ interface BackfillResult {
   linkedCustomers: LinkedCustomerSummary[];
 }
 
+interface MergedCustomerEntry {
+  id: string;
+  name: string;
+  duplicatesAbsorbed: number;
+}
+
 interface DeduplicateResult {
   ok: boolean;
   mergedCount: number;
   failedCount: number;
   errors: string[];
+  mergedCustomers: MergedCustomerEntry[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -395,6 +402,9 @@ export default function AdminCustomers() {
   const [syncSummary, setSyncSummary] = useState<BackfillResult | null>(null);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [showAllSyncedCustomers, setShowAllSyncedCustomers] = useState(false);
+  const [mergeSummary, setMergeSummary] = useState<DeduplicateResult | null>(null);
+  const [mergeSummaryExpanded, setMergeSummaryExpanded] = useState(false);
+  const [showAllMergedCustomers, setShowAllMergedCustomers] = useState(false);
   const [reviewCustomerId, setReviewCustomerId] = useState<string | null>(null);
 
   const NEW_CUSTOMERS_KEY = "new-customers-count";
@@ -426,16 +436,20 @@ export default function AdminCustomers() {
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
+  const MERGE_LIST_CAP = 20;
+
   const deduplicateMutation = useMutation<DeduplicateResult, Error>({
     mutationFn: () =>
       apiRequest("POST", "/api/admin/customers/deduplicate").then((res) => res.json() as Promise<DeduplicateResult>),
     onSuccess: (data) => {
-      if (data.mergedCount === 0) {
-        toast({ title: "No duplicates found", description: "All customer records are already unique." });
-      } else {
+      setMergeSummary(data);
+      setMergeSummaryExpanded(true);
+      setShowAllMergedCustomers(false);
+      if (data.failedCount > 0) {
         toast({
-          title: "Duplicates merged",
-          description: `${data.mergedCount} duplicate record${data.mergedCount !== 1 ? "s" : ""} merged successfully.${data.failedCount > 0 ? ` ${data.failedCount} failed.` : ""}`,
+          title: "Merge complete with errors",
+          description: `${data.failedCount} record${data.failedCount !== 1 ? "s" : ""} could not be merged (see summary below).`,
+          variant: "destructive",
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
@@ -592,6 +606,108 @@ export default function AdminCustomers() {
               </Button>
             </div>
           </div>
+
+          {/* Merge duplicates summary panel */}
+          {mergeSummary && (
+            <Card data-testid="panel-merge-summary">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {mergeSummary.failedCount > 0 && mergeSummary.mergedCount === 0
+                      ? <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                      : <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    }
+                    <span className="text-sm font-medium">
+                      {mergeSummary.mergedCount === 0 && mergeSummary.failedCount === 0
+                        ? "No duplicates found"
+                        : mergeSummary.mergedCount === 0 && mergeSummary.failedCount > 0
+                        ? "Merge failed"
+                        : "Merge complete"}
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {mergeSummary.mergedCount > 0 && (
+                        <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate">
+                          {mergeSummary.mergedCount} duplicate{mergeSummary.mergedCount !== 1 ? "s" : ""} merged
+                        </Badge>
+                      )}
+                      {mergeSummary.failedCount > 0 && (
+                        <Badge className="text-[10px] bg-red-500/15 text-red-400 border-red-500/25 no-default-active-elevate">
+                          <AlertCircle className="w-2.5 h-2.5 mr-1" />
+                          {mergeSummary.failedCount} failed
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {mergeSummary.mergedCustomers?.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMergeSummaryExpanded(v => !v)}
+                        data-testid="button-toggle-merge-summary"
+                      >
+                        {mergeSummaryExpanded ? <ChevronUp className="w-3.5 h-3.5 mr-1" /> : <ChevronDown className="w-3.5 h-3.5 mr-1" />}
+                        {mergeSummaryExpanded ? "Hide" : "Show"} details
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setMergeSummary(null)}
+                      data-testid="button-dismiss-merge-summary"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {mergeSummaryExpanded && mergeSummary.mergedCustomers?.length > 0 && (
+                  <div className="mt-3 border-t pt-3 space-y-1.5">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Customer profiles that absorbed duplicates:
+                    </p>
+                    {(showAllMergedCustomers
+                      ? mergeSummary.mergedCustomers
+                      : mergeSummary.mergedCustomers.slice(0, MERGE_LIST_CAP)
+                    ).map(c => (
+                      <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap py-1" data-testid={`row-merged-customer-${c.id}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium truncate">{c.name}</span>
+                          <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/25 no-default-active-elevate shrink-0">
+                            absorbed {c.duplicatesAbsorbed} duplicate{c.duplicatesAbsorbed !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setReviewCustomerId(c.id)}
+                          data-testid={`button-review-merged-customer-${c.id}`}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Review
+                        </Button>
+                      </div>
+                    ))}
+                    {mergeSummary.mergedCustomers.length > MERGE_LIST_CAP && (
+                      <button
+                        className="mt-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                        onClick={() => setShowAllMergedCustomers(v => !v)}
+                        data-testid="button-toggle-show-all-merged"
+                      >
+                        {showAllMergedCustomers
+                          ? "Show fewer"
+                          : `Show all ${mergeSummary.mergedCustomers.length} customers`}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {mergeSummary.mergedCount === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">All customer records are already unique.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Sync summary panel */}
           {syncSummary && (
