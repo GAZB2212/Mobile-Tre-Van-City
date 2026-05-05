@@ -5781,6 +5781,18 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
             const resolvedEmail = (savedCfg.contactEmail ?? "").trim() || null;
             const resolvedPhone = (savedCfg.contactPhone ?? saved.contact_phone ?? "").trim() || null;
             const resolvedName = (savedCfg.contactName ?? saved.contact_name ?? "").trim() || "AI Chat Contact";
+
+            // Patch the quote's user_name if it was left as the placeholder because
+            // the name was persisted in an earlier save but not re-sent in the
+            // final "completed" payload.
+            const realName = (savedCfg.contactName ?? saved.contact_name ?? "").trim();
+            if (realName) {
+              await pool.query(
+                `UPDATE quotes SET user_name = $1 WHERE ai_session_id = $2 AND user_name = $3`,
+                [realName, sessionId, "Via Max (name pending)"]
+              );
+            }
+
             if (resolvedEmail || resolvedPhone) {
               const customer = await storage.findOrCreateCustomer(resolvedEmail, resolvedPhone, resolvedName);
               await storage.linkConversationBySessionToCustomer(sessionId, customer.id);

@@ -374,7 +374,16 @@ export default function AIChatWidget() {
 
       const assistantMsg: AIMessage = { role: "assistant", content: data.message ?? "" };
       setMessages(prev => [...prev, assistantMsg]);
-      const newConfig = data.config ? { ...config, ...data.config } : config;
+      const rawMerged = data.config ? { ...config, ...data.config } : config;
+      // Never let an AI response null out already-captured contact info — the AI
+      // sometimes omits or clears contactName/contactPhone in later messages, which
+      // would cause the quote to be saved as "Via Max (name pending)" even after a
+      // real name was captured.
+      const newConfig: typeof config = {
+        ...rawMerged,
+        contactName: rawMerged.contactName || config.contactName || null,
+        contactPhone: rawMerged.contactPhone || config.contactPhone || null,
+      };
       const newTrackers = data.trackers ? { ...trackers, ...data.trackers } : trackers;
       if (data.config) setConfig(newConfig);
       if (data.trackers) setTrackers(newTrackers);
