@@ -108,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Avatar upload — any authenticated user can update their own avatar
   app.post("/api/user/avatar", isAuthenticated, async (req, res) => {
     const multer = await import("multer");
-    const upload = multer.default({ storage: multer.memoryStorage() });
+    const upload = multer.default({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
     upload.single("file")(req, res, async (err: any) => {
       if (err) return res.status(400).json({ error: "File upload failed" });
       try {
@@ -4244,7 +4244,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // The endpoint for getting the upload URL for public product images (kits)
-  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+  app.post("/api/objects/upload", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { filename, contentType } = req.body;
       
@@ -4274,9 +4274,9 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   });
 
   // Backend proxy endpoint for upgrade image uploads (no CORS issues)
-  app.post("/api/upgrades/upload-image", isAuthenticated, async (req, res) => {
+  app.post("/api/upgrades/upload-image", isAuthenticated, isBasicAdmin, async (req, res) => {
     const multer = await import("multer");
-    const upload = multer.default({ storage: multer.memoryStorage() });
+    const upload = multer.default({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }); // 20 MB
     
     upload.single("file")(req, res, async (err: any) => {
       if (err) {
@@ -4317,7 +4317,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // Admin endpoint for temporary image upload (for create forms)
   app.post("/api/admin/temp-upload", isAuthenticated, isBasicAdmin, async (req, res) => {
     const multer = await import("multer");
-    const upload = multer.default({ storage: multer.memoryStorage() });
+    const upload = multer.default({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }); // 20 MB
     
     upload.single("file")(req, res, async (err: any) => {
       if (err) {
@@ -4356,7 +4356,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   // Admin endpoint for van image upload - BACKEND PROXY (no CORS issues)
   app.post("/api/admin/vans/:id/upload-image", isAuthenticated, isBasicAdmin, async (req, res) => {
     const multer = await import("multer");
-    const upload = multer.default({ storage: multer.memoryStorage() });
+    const upload = multer.default({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }); // 20 MB
     
     upload.single("file")(req, res, async (err: any) => {
       if (err) {
