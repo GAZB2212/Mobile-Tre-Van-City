@@ -753,7 +753,7 @@ export default function AdminCustomers() {
         description="Unified customer profiles across leads, quotes, and conversations"
       />
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="w-full px-4 py-6">
         <AdminBackButton />
 
         <div className="space-y-5">

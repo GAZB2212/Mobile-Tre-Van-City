@@ -281,7 +281,7 @@ export default function CustomerProfile() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card/50 px-4 py-4">
-        <div className="container mx-auto max-w-5xl">
+        <div className="w-full">
           <Link href="/admin/customers">
             <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3" data-testid="button-back-customers">
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -315,7 +315,7 @@ export default function CustomerProfile() {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-5xl px-4 py-6">
+      <div className="w-full px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column: contact info + handoff card + notes form */}
           <div className="space-y-5">
