@@ -3,6 +3,7 @@ import { useIdlePolling } from "@/hooks/useIdlePolling";
 import type { User, Lead } from "@shared/schema";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
@@ -260,6 +261,11 @@ export default function AdminLeads() {
       toast({
         title: "Profile created",
         description: `A customer profile for ${customer.name} has been created and linked to this lead.`,
+        action: (
+          <ToastAction altText="View profile" onClick={() => navigate(`/admin/customers/${customer.id}`)}>
+            View profile
+          </ToastAction>
+        ),
       });
     },
     onError: () => {
