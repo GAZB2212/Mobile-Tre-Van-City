@@ -25,11 +25,16 @@ export function getSession() {
   
   // Detect if running in production (Replit deployments or NODE_ENV=production)
   const isProduction = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
-  
-  // Use memory store for development, database for production
+
+  // Detect any Replit environment (dev or prod) — the app preview is always served
+  // inside a cross-origin iframe on replit.dev, so sameSite:'lax' causes the browser
+  // to silently drop the session cookie on every subsequent request.
+  const isReplit = !!process.env.REPL_ID;
+
+  // Always use PostgreSQL when available — persists sessions across server restarts
   let sessionStore;
-  if (isProduction && process.env.DATABASE_URL) {
-    console.log('🗄️ Using PostgreSQL session store for production');
+  if (process.env.DATABASE_URL) {
+    console.log('🗄️ Using PostgreSQL session store');
     const pgStore = connectPg(session);
     sessionStore = new pgStore({
       conString: process.env.DATABASE_URL,
@@ -38,24 +43,29 @@ export function getSession() {
       tableName: "sessions",
     });
   } else {
-    console.log('💾 Using memory session store for development');
-    // Use memorystore for development (more reliable than default MemoryStore)
+    console.log('💾 Using memory session store');
     const MemoryStore = createMemoryStore(session);
     sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+      checkPeriod: 86400000,
     });
   }
+
+  // On Replit the preview runs inside a cross-origin iframe (replit.com embeds
+  // picard.replit.dev). Browsers block sameSite:'lax' cookies in that context,
+  // so we must use sameSite:'none' + secure:true whenever we're on Replit.
+  const cookieSameSite: 'none' | 'lax' = isReplit ? 'none' : 'lax';
+  const cookieSecure: boolean = isReplit ? true : isProduction;
   
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
-    rolling: true, // Refresh session expiry on every active request
+    rolling: true,
     cookie: {
       httpOnly: true,
-      secure: isProduction, // Use secure cookies in production
-      sameSite: 'lax',
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
       maxAge: sessionTtl,
     },
   });
