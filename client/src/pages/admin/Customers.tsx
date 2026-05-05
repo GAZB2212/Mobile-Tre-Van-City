@@ -1097,7 +1097,7 @@ export default function AdminCustomers() {
                                   {recordCount} record{recordCount !== 1 ? "s" : ""} re-linked
                                 </span>
                               )}
-                              {entry.triggeredBy && (() => {
+                              {entry.triggeredBy ? (() => {
                                 const staff = staffList.find(s => s.id === entry.triggeredBy);
                                 const name = staff?.displayName ?? staff?.username ?? entry.triggeredBy;
                                 return (
@@ -1106,7 +1106,12 @@ export default function AdminCustomers() {
                                     {name}
                                   </span>
                                 );
-                              })()}
+                              })() : (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60 italic" data-testid={`text-merge-triggered-by-${entry.id}`}>
+                                  <UserCircle className="w-3 h-3 shrink-0" />
+                                  system / automated
+                                </span>
+                              )}
                               {entry.mergedAt && (
                                 <span className="text-[11px] text-muted-foreground">
                                   {formatDate(entry.mergedAt)}
