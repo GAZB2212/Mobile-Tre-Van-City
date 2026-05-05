@@ -40,7 +40,9 @@ import {
   History,
   ArrowRightLeft,
   UserCircle,
+  HelpCircle,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StaffMember {
   id: string;
@@ -1138,20 +1140,33 @@ export default function AdminCustomers() {
                                 </span>
                               )}
                               {alreadySplit && (() => {
+                                const splitTimestamp = entry.splitAt
+                                  ? ` · ${formatDate(entry.splitAt)}`
+                                  : null;
+                                const missingTimestamp = !entry.splitAt ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="w-3 h-3 shrink-0 cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Split timestamp not recorded</TooltipContent>
+                                  </Tooltip>
+                                ) : null;
                                 if (entry.splitBy) {
                                   const staff = staffList.find(s => s.id === entry.splitBy);
                                   const name = staff?.displayName ?? staff?.username ?? entry.splitBy;
                                   return (
                                     <span className="flex items-center gap-1 text-[11px] text-muted-foreground" data-testid={`text-merge-split-by-${entry.id}`}>
                                       <Scissors className="w-3 h-3 shrink-0" />
-                                      split by {name}{entry.splitAt ? ` · ${formatDate(entry.splitAt)}` : ""}
+                                      split by {name}{splitTimestamp}
+                                      {missingTimestamp}
                                     </span>
                                   );
                                 }
                                 return (
                                   <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60 italic" data-testid={`text-merge-split-by-${entry.id}`}>
                                     <Scissors className="w-3 h-3 shrink-0" />
-                                    split by system / automated{entry.splitAt ? ` · ${formatDate(entry.splitAt)}` : ""}
+                                    split by system / automated{splitTimestamp}
+                                    {missingTimestamp}
                                   </span>
                                 );
                               })()}
