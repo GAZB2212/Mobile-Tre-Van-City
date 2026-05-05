@@ -464,7 +464,7 @@ app.use((req, res, next) => {
             .then(() => log("✅ Lead status_changed_at column ready"))
             .catch((err: Error) => console.error("Lead status_changed_at migration:", err.message));
 
-          // Add previous_customer_name provenance columns for reassignment tracking
+          // Add previous_customer_name provenance columns for reassignment tracking (legacy — kept for backward compat)
           await pool.query(`
             ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_customer_name TEXT;
             ALTER TABLE quotes ADD COLUMN IF NOT EXISTS previous_customer_name TEXT;
@@ -482,6 +482,43 @@ app.use((req, res, next) => {
             ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassigned_at TIMESTAMP;
           `).then(() => log("✅ Reassignment audit columns ready"))
             .catch((err: Error) => console.error("Reassignment audit migration:", err.message));
+
+          // Add reassignment_history JSONB column for full history log
+          await pool.query(`
+            ALTER TABLE leads ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]';
+            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]';
+            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]';
+          `).then(() => log("✅ Reassignment history columns ready"))
+            .catch((err: Error) => console.error("Reassignment history migration:", err.message));
+
+          // One-time backfill: seed reassignment_history from legacy previous_customer_name
+          // where the new history array is still empty but the old field has a value
+          await pool.query(`
+            UPDATE leads
+            SET reassignment_history = jsonb_build_array(
+              jsonb_build_object('customerName', previous_customer_name, 'timestamp', created_at)
+            )
+            WHERE previous_customer_name IS NOT NULL
+              AND previous_customer_name != ''
+              AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb);
+
+            UPDATE quotes
+            SET reassignment_history = jsonb_build_array(
+              jsonb_build_object('customerName', previous_customer_name, 'timestamp', created_at)
+            )
+            WHERE previous_customer_name IS NOT NULL
+              AND previous_customer_name != ''
+              AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb);
+
+            UPDATE ai_conversations
+            SET reassignment_history = jsonb_build_array(
+              jsonb_build_object('customerName', previous_customer_name, 'timestamp', created_at)
+            )
+            WHERE previous_customer_name IS NOT NULL
+              AND previous_customer_name != ''
+              AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb);
+          `).then(() => log("✅ Reassignment history backfill from legacy field complete"))
+            .catch((err: Error) => console.error("Reassignment history backfill:", err.message));
 
           // Unique partial indexes on customers.email and customers.phone to prevent
           // future duplicate records at the DB level. Only create them if the data

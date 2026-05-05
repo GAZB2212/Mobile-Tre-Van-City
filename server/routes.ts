@@ -6569,9 +6569,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       // Fetch all linked records in parallel (also fetch records that were moved away from this customer)
       const [notes, leadsRows, quotesRows, convosRows, followUpsRows, movedLeadsRows, movedQuotesRows, movedConvosRows] = await Promise.all([
         storage.getCustomerNotes(id),
-        pool.query(`SELECT *, previous_customer_name, previous_customer_id, reassigned_at FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, previous_customer_name, previous_customer_id, reassigned_at FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT * FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, reassignment_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, reassignment_history FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
         // Records that were previously owned by this customer but moved to another
         pool.query(`SELECT l.id, l.reassigned_at, c.name AS target_customer_name FROM leads l JOIN customers c ON c.id = l.customer_id WHERE l.previous_customer_id = $1 AND l.reassigned_at IS NOT NULL`, [id]),

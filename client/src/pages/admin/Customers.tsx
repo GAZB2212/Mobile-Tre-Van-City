@@ -95,9 +95,9 @@ interface CustomerProfileData {
     primaryStaffName?: string | null;
     createdAt?: string | null;
   };
-  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null; previous_customer_name?: string | null }>;
-  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null; previous_customer_name?: string | null }>;
-  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null; previous_customer_name?: string | null }>;
+  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string}> | null }>;
+  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string}> | null }>;
+  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null; reassignment_history?: Array<{customerName: string; timestamp: string}> | null }>;
   notes: CustomerNote[];
 }
 
@@ -483,10 +483,17 @@ function CustomerReviewSheet({
                               </Badge>
                             )}
                           </div>
-                          {lead.previous_customer_name && (
-                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-0.5" data-testid={`text-prev-customer-lead-${lead.id}`}>
-                              Previously: {lead.previous_customer_name}
-                            </p>
+                          {Array.isArray(lead.reassignment_history) && lead.reassignment_history.length > 0 && (
+                            <div className="mt-0.5 space-y-0.5" data-testid={`text-reassignment-history-lead-${lead.id}`}>
+                              {lead.reassignment_history.map((entry, i) => (
+                                <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
+                                  Previously: {entry.customerName}
+                                  <span className="text-muted-foreground ml-1">
+                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                  </span>
+                                </p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -520,10 +527,17 @@ function CustomerReviewSheet({
                               </Badge>
                             )}
                           </div>
-                          {quote.previous_customer_name && (
-                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-0.5" data-testid={`text-prev-customer-quote-${quote.id}`}>
-                              Previously: {quote.previous_customer_name}
-                            </p>
+                          {Array.isArray(quote.reassignment_history) && quote.reassignment_history.length > 0 && (
+                            <div className="mt-0.5 space-y-0.5" data-testid={`text-reassignment-history-quote-${quote.id}`}>
+                              {quote.reassignment_history.map((entry, i) => (
+                                <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
+                                  Previously: {entry.customerName}
+                                  <span className="text-muted-foreground ml-1">
+                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                  </span>
+                                </p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -557,10 +571,17 @@ function CustomerReviewSheet({
                               </Badge>
                             )}
                           </div>
-                          {convo.previous_customer_name && (
-                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-0.5" data-testid={`text-prev-customer-convo-${convo.id}`}>
-                              Previously: {convo.previous_customer_name}
-                            </p>
+                          {Array.isArray(convo.reassignment_history) && convo.reassignment_history.length > 0 && (
+                            <div className="mt-0.5 space-y-0.5" data-testid={`text-reassignment-history-convo-${convo.id}`}>
+                              {convo.reassignment_history.map((entry, i) => (
+                                <p key={i} className="text-[10px] text-amber-500 dark:text-amber-400">
+                                  Previously: {entry.customerName}
+                                  <span className="text-muted-foreground ml-1">
+                                    ({new Date(entry.timestamp).toLocaleDateString()})
+                                  </span>
+                                </p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
