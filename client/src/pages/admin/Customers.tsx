@@ -651,7 +651,11 @@ export default function AdminCustomers() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setSyncSummary(null)}
+                      onClick={() => {
+                        setSyncSummary(null);
+                        sessionStorage.removeItem(NEW_CUSTOMERS_KEY);
+                        window.dispatchEvent(new Event("new-customers-updated"));
+                      }}
                       data-testid="button-dismiss-sync-summary"
                     >
                       <X className="w-3.5 h-3.5" />
