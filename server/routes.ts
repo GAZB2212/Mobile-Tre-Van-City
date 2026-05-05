@@ -6675,6 +6675,11 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         phone: data.phone || undefined,
         company: data.company || undefined,
       });
+
+      // Backfill any existing unlinked leads/quotes that match by email or phone
+      storage.backfillLeadsAndQuotesForCustomer(customer.id, customer.email, customer.phone)
+        .catch(err => console.error("Customer backfill (create) error:", err?.message));
+
       res.status(201).json(customer);
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
@@ -6706,6 +6711,13 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       const customer = await storage.updateCustomer(id, data);
       if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      // If email or phone was updated, backfill any unlinked leads/quotes matching the new values
+      if (data.email !== undefined || data.phone !== undefined) {
+        storage.backfillLeadsAndQuotesForCustomer(customer.id, customer.email, customer.phone)
+          .catch(err => console.error("Customer backfill (update) error:", err?.message));
+      }
+
       res.json(customer);
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });

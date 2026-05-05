@@ -2311,6 +2311,34 @@ export class DbStorage implements IStorage {
     await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, quoteId]);
   }
 
+  async backfillLeadsAndQuotesForCustomer(customerId: string, email: string | null | undefined, phone: string | null | undefined): Promise<void> {
+    const emailVal = email || null;
+    const phoneVal = phone || null;
+    if (!emailVal && !phoneVal) return;
+
+    const conditions: string[] = [];
+    const params: (string)[] = [customerId];
+
+    if (emailVal) {
+      params.push(emailVal);
+      conditions.push(`email = $${params.length}`);
+    }
+    if (phoneVal) {
+      params.push(phoneVal);
+      conditions.push(`phone = $${params.length}`);
+    }
+
+    const whereClause = conditions.join(" OR ");
+    await pool.query(
+      `UPDATE leads SET customer_id = $1 WHERE customer_id IS NULL AND (${whereClause})`,
+      params
+    );
+    await pool.query(
+      `UPDATE quotes SET customer_id = $1 WHERE customer_id IS NULL AND (${whereClause})`,
+      params
+    );
+  }
+
   async linkConversationToCustomer(conversationId: string, customerId: string): Promise<void> {
     await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, conversationId]);
   }
