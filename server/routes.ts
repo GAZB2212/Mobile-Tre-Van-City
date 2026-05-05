@@ -7017,8 +7017,28 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
+      // Now that duplicates are resolved, apply the unique partial indexes.
+      // These guard against future duplicate inserts at the DB level.
+      // Surface any failure in the response — a non-null indexError means
+      // duplicates may still exist and the admin should investigate.
+      let indexError: string | null = null;
+      try {
+        await pool.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_email_unique
+            ON customers (email)
+            WHERE email IS NOT NULL AND email != '';
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_unique
+            ON customers (phone)
+            WHERE phone IS NOT NULL AND phone != '';
+        `);
+        console.log("✅ Customer unique indexes confirmed after dedup");
+      } catch (err: unknown) {
+        indexError = err instanceof Error ? err.message : String(err);
+        console.error("Unique index creation after dedup:", indexError);
+      }
+
       const mergedCustomers = Array.from(mergedCustomerMap.values());
-      res.json({ ok: true, mergedCount, failedCount: errors.length, errors, mergedCustomers });
+      res.json({ ok: true, mergedCount, failedCount: errors.length, errors, mergedCustomers, indexError });
     } catch (error) {
       console.error("Customer dedup error:", error);
       res.status(500).json({ error: "Deduplication failed" });

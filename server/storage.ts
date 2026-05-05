@@ -1780,9 +1780,15 @@ export class MemStorage implements IStorage {
 }
 
 // Database Storage Implementation
-import { db } from "./db";
+import { db, pool } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, gte, lte, asc, isNull, or, ilike, desc } from "drizzle-orm";
+import { eq, and, gte, lte, asc, isNull, or, ilike, desc, sql } from "drizzle-orm";
+
+/** Returns true when the error is a PostgreSQL unique_violation (SQLSTATE 23505). */
+function isUniqueViolation(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  return (err as { code?: string }).code === "23505";
+}
 
 export class DbStorage implements IStorage {
   // Users
@@ -2312,8 +2318,71 @@ export class DbStorage implements IStorage {
       return byPhone;
     }
 
-    // Case 4: no existing record found — create one with all known contact details.
-    return this.createCustomer({ name, email: email ?? undefined, phone: phone ?? undefined });
+    // Case 4: no existing record found — use an upsert keyed on the available unique
+    // contact field so a concurrent request racing us to insert the same customer is
+    // handled by the DB constraint rather than producing a duplicate row or throwing.
+    //
+    // If the upsert itself triggers the *other* unique constraint (e.g. we conflict on
+    // email but then the coalesced phone clashes with a different row), PostgreSQL raises
+    // a 23505 unique violation. We catch that and re-run the full lookup so Cases 1–3
+    // can detect and merge the conflicting rows before retrying the insert.
+    if (email && email !== '') {
+      try {
+        const result = await db.insert(schema.customers)
+          .values({ id: randomUUID(), name, email, phone: phone ?? undefined })
+          .onConflictDoUpdate({
+            target: schema.customers.email,
+            targetWhere: sql`email IS NOT NULL AND email != ''`,
+            set: {
+              phone: sql`COALESCE(customers.phone, EXCLUDED.phone)`,
+              name: sql`CASE
+                WHEN customers.name IS NULL OR customers.name = '' OR customers.name = 'AI Chat Contact'
+                THEN COALESCE(NULLIF(EXCLUDED.name, 'AI Chat Contact'), customers.name)
+                ELSE customers.name
+              END`,
+              updatedAt: new Date(),
+            },
+          })
+          .returning();
+        return result[0];
+      } catch (err: unknown) {
+        // 23505 = unique_violation — phone clashed with a different row; re-run the full
+        // lookup so the merge logic in Cases 1–3 can reconcile them, then retry once.
+        if (isUniqueViolation(err)) {
+          return this.findOrCreateCustomer(email, phone, name);
+        }
+        throw err;
+      }
+    }
+
+    if (phone && phone !== '') {
+      try {
+        const result = await db.insert(schema.customers)
+          .values({ id: randomUUID(), name, phone })
+          .onConflictDoUpdate({
+            target: schema.customers.phone,
+            targetWhere: sql`phone IS NOT NULL AND phone != ''`,
+            set: {
+              name: sql`CASE
+                WHEN customers.name IS NULL OR customers.name = '' OR customers.name = 'AI Chat Contact'
+                THEN COALESCE(NULLIF(EXCLUDED.name, 'AI Chat Contact'), customers.name)
+                ELSE customers.name
+              END`,
+              updatedAt: new Date(),
+            },
+          })
+          .returning();
+        return result[0];
+      } catch (err: unknown) {
+        if (isUniqueViolation(err)) {
+          return this.findOrCreateCustomer(null, phone, name);
+        }
+        throw err;
+      }
+    }
+
+    // No email or phone — plain insert (no unique constraint applies).
+    return this.createCustomer({ name });
   }
 
   /**

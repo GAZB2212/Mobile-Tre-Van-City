@@ -465,17 +465,46 @@ app.use((req, res, next) => {
             .catch((err: Error) => console.error("Lead status_changed_at migration:", err.message));
 
           // Unique partial indexes on customers.email and customers.phone to prevent
-          // future duplicate records at the DB level. Partial (WHERE NOT NULL / NOT empty)
-          // so NULL is still allowed (multi-customers without email/phone can co-exist).
-          await pool.query(`
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_email_unique
-              ON customers (email)
-              WHERE email IS NOT NULL AND email != '';
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_unique
-              ON customers (phone)
-              WHERE phone IS NOT NULL AND phone != '';
-          `).then(() => log("✅ Customer unique indexes ready"))
-            .catch((err: Error) => console.error("Customer unique indexes migration:", err.message));
+          // future duplicate records at the DB level. Only create them if the data
+          // is already clean — if duplicates exist, warn and defer to dedup endpoint.
+          await (async () => {
+            try {
+              const dupCheck = await pool.query<{ email_dups: string; phone_dups: string }>(`
+                SELECT
+                  (SELECT COUNT(*) FROM (
+                    SELECT email FROM customers
+                    WHERE email IS NOT NULL AND email != ''
+                    GROUP BY email HAVING COUNT(*) > 1
+                  ) e) AS email_dups,
+                  (SELECT COUNT(*) FROM (
+                    SELECT phone FROM customers
+                    WHERE phone IS NOT NULL AND phone != ''
+                    GROUP BY phone HAVING COUNT(*) > 1
+                  ) p) AS phone_dups
+              `);
+              const { email_dups, phone_dups } = dupCheck.rows[0];
+              if (Number(email_dups) > 0 || Number(phone_dups) > 0) {
+                console.warn(
+                  `⚠️  Skipping customer unique index creation: ` +
+                  `${email_dups} email duplicate group(s) and ` +
+                  `${phone_dups} phone duplicate group(s) still exist. ` +
+                  `Run POST /api/admin/customers/deduplicate to clean up, then indexes will be applied.`
+                );
+                return;
+              }
+              await pool.query(`
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_email_unique
+                  ON customers (email)
+                  WHERE email IS NOT NULL AND email != '';
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_unique
+                  ON customers (phone)
+                  WHERE phone IS NOT NULL AND phone != '';
+              `);
+              log("✅ Customer unique indexes ready");
+            } catch (err: unknown) {
+              console.error("Customer unique indexes migration:", err instanceof Error ? err.message : err);
+            }
+          })();
 
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
