@@ -111,6 +111,7 @@ function MoveRecordDialog({
   recordId,
   recordLabel,
   sourceCustomerId,
+  sourceCustomerName,
   onMoved,
   onClose,
 }: {
@@ -118,6 +119,7 @@ function MoveRecordDialog({
   recordId: string;
   recordLabel: string;
   sourceCustomerId: string;
+  sourceCustomerName: string;
   onMoved: (targetCustomerId: string) => void;
   onClose: () => void;
 }) {
@@ -191,14 +193,22 @@ function MoveRecordDialog({
 
         {pendingCustomer ? (
           <div className="p-4 space-y-4" data-testid="section-move-confirm">
-            <p className="text-sm text-muted-foreground">
-              Move this record to:
-            </p>
-            <div className="rounded-md border px-3 py-2.5">
-              <p className="text-sm font-medium">{pendingCustomer.name}</p>
-              {(pendingCustomer.email || pendingCustomer.company) && (
-                <p className="text-xs text-muted-foreground mt-0.5">{pendingCustomer.company ?? pendingCustomer.email}</p>
-              )}
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-8 shrink-0 pt-0.5">From:</span>
+                <div className="rounded-md border px-3 py-2 flex-1 bg-muted/40">
+                  <p className="text-sm font-medium" data-testid="text-move-source-customer">{sourceCustomerName}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-xs text-muted-foreground w-8 shrink-0 pt-0.5">To:</span>
+                <div className="rounded-md border px-3 py-2 flex-1">
+                  <p className="text-sm font-medium" data-testid="text-move-target-customer">{pendingCustomer.name}</p>
+                  {(pendingCustomer.email || pendingCustomer.company) && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{pendingCustomer.company ?? pendingCustomer.email}</p>
+                  )}
+                </div>
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">This cannot be undone from this screen. Are you sure?</p>
             <div className="flex gap-2">
@@ -587,6 +597,7 @@ function CustomerReviewSheet({
           recordId={moveTarget.id}
           recordLabel={moveTarget.label}
           sourceCustomerId={customerId}
+          sourceCustomerName={customer?.name ?? "Unknown"}
           onMoved={() => setMoveTarget(null)}
           onClose={() => setMoveTarget(null)}
         />
