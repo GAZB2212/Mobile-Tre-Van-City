@@ -41,6 +41,7 @@ import {
   AlertCircle,
   Loader2,
   Settings,
+  Mail,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -150,6 +151,11 @@ export default function AdminAIConversations() {
   const [contactNoteText, setContactNoteText] = useState("");
   const [editNoteDialogConv, setEditNoteDialogConv] = useState<AiConversationRow | null>(null);
   const [editNoteText, setEditNoteText] = useState("");
+  const [editContactDialogConv, setEditContactDialogConv] = useState<AiConversationRow | null>(null);
+  const [editContactName, setEditContactName] = useState("");
+  const [editContactPhone, setEditContactPhone] = useState("");
+  const [editContactEmail, setEditContactEmail] = useState("");
+  const [editContactLoading, setEditContactLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -403,6 +409,78 @@ export default function AdminAIConversations() {
   const handleSubmitEditNote = () => {
     if (!editNoteDialogConv) return;
     editNoteMutation.mutate({ id: editNoteDialogConv.id, note: editNoteText });
+  };
+
+  const openEditContactDialog = async (conv: AiConversationRow) => {
+    setEditContactLoading(true);
+    setEditContactDialogConv(conv);
+    try {
+      const r = await apiRequest("GET", `/api/admin/ai-conversations/${conv.id}`);
+      const detail: AiConversationRow = await r.json();
+      const cfg =
+        detail.mapped_config && typeof detail.mapped_config === "string"
+          ? JSON.parse(detail.mapped_config)
+          : (detail.mapped_config as Record<string, unknown> | null) ?? {};
+      setEditContactName(detail.contact_name ?? conv.contact_name ?? "");
+      setEditContactPhone(detail.contact_phone ?? conv.contact_phone ?? "");
+      setEditContactEmail((cfg.contactEmail as string | null | undefined) ?? "");
+    } catch {
+      setEditContactName(conv.contact_name ?? "");
+      setEditContactPhone(conv.contact_phone ?? "");
+      setEditContactEmail("");
+    } finally {
+      setEditContactLoading(false);
+    }
+  };
+
+  const editContactMutation = useMutation({
+    mutationFn: ({ id, name, phone, email }: { id: string; name: string; phone: string; email: string }) =>
+      apiRequest("PATCH", `/api/admin/ai-conversations/${id}/contact`, { name: name || null, phone: phone || null, email: email || null }),
+    onMutate: async ({ id, name, phone }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/ai-conversations"] });
+      const previousEntries = queryClient.getQueriesData<AiConversationsResponse>({
+        queryKey: ["/api/admin/ai-conversations"],
+      });
+      queryClient.setQueriesData<AiConversationsResponse>(
+        { queryKey: ["/api/admin/ai-conversations"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            conversations: old.conversations.map((c) =>
+              c.id === id
+                ? { ...c, contact_name: name || c.contact_name, contact_phone: phone || c.contact_phone }
+                : c
+            ),
+          };
+        }
+      );
+      return { previousEntries };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousEntries) {
+        for (const [queryKey, data] of context.previousEntries) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      toast({ title: "Error", description: "Failed to update contact details.", variant: "destructive" });
+    },
+    onSuccess: () => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ai-conversations"] });
+      toast({ title: "Contact details updated" });
+      setEditContactDialogConv(null);
+    },
+  });
+
+  const handleSubmitEditContact = () => {
+    if (!editContactDialogConv) return;
+    editContactMutation.mutate({
+      id: editContactDialogConv.id,
+      name: editContactName,
+      phone: editContactPhone,
+      email: editContactEmail,
+    });
   };
 
   const exportMutation = useMutation({
@@ -947,6 +1025,15 @@ export default function AdminAIConversations() {
                             </Button>
                           </Link>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditContactDialog(conv)}
+                          data-testid={`button-edit-contact-${conv.id}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5 mr-1" />
+                          Edit contact
+                        </Button>
                         {!conv.marked_contacted && conv.contact_phone && (
                           <Button
                             size="sm"
@@ -1186,6 +1273,85 @@ export default function AdminAIConversations() {
             >
               <Pencil className="w-4 h-4 mr-2" />
               {editNoteMutation.isPending ? "Saving..." : "Save note"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit contact details dialog */}
+      <Dialog
+        open={!!editContactDialogConv}
+        onOpenChange={(open) => !open && setEditContactDialogConv(null)}
+      >
+        <DialogContent className="max-w-md" data-testid="dialog-edit-contact">
+          <DialogHeader>
+            <DialogTitle>Edit contact details</DialogTitle>
+            <DialogDescription>
+              Update the contact information for this conversation. The customer link will be refreshed automatically.
+            </DialogDescription>
+          </DialogHeader>
+          {editContactLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4 py-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact-name">Name</Label>
+                <Input
+                  id="edit-contact-name"
+                  placeholder="Customer name"
+                  value={editContactName}
+                  onChange={(e) => setEditContactName(e.target.value)}
+                  data-testid="input-edit-contact-name"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact-phone">Phone</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    id="edit-contact-phone"
+                    placeholder="Phone number"
+                    value={editContactPhone}
+                    onChange={(e) => setEditContactPhone(e.target.value)}
+                    className="pl-8"
+                    data-testid="input-edit-contact-phone"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact-email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    id="edit-contact-email"
+                    type="email"
+                    placeholder="Email address"
+                    value={editContactEmail}
+                    onChange={(e) => setEditContactEmail(e.target.value)}
+                    className="pl-8"
+                    data-testid="input-edit-contact-email"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditContactDialogConv(null)}
+              data-testid="button-cancel-edit-contact"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitEditContact}
+              disabled={editContactMutation.isPending || editContactLoading}
+              data-testid="button-confirm-edit-contact"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              {editContactMutation.isPending ? "Saving..." : "Save contact"}
             </Button>
           </DialogFooter>
         </DialogContent>

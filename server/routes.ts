@@ -5957,6 +5957,70 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  app.patch("/api/admin/ai-conversations/:id/contact", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const schema_z = z.object({
+        name: z.string().optional().nullable(),
+        phone: z.string().optional().nullable(),
+        email: z.string().email().optional().nullable().or(z.literal("").transform(() => null)),
+      });
+      const data = schema_z.parse(req.body);
+
+      const { rows } = await pool.query(
+        "SELECT id, session_id, contact_name, contact_phone, mapped_config FROM ai_conversations WHERE id = $1",
+        [id]
+      );
+      if (!rows[0]) return res.status(404).json({ error: "Not found" });
+
+      const existing = rows[0];
+      const updatedName = data.name !== undefined ? (data.name ?? null) : existing.contact_name;
+      const updatedPhone = data.phone !== undefined ? (data.phone ?? null) : existing.contact_phone;
+
+      let cfg: Record<string, unknown> | null = null;
+      if (existing.mapped_config) {
+        cfg = typeof existing.mapped_config === "string"
+          ? JSON.parse(existing.mapped_config)
+          : { ...existing.mapped_config };
+      }
+      if (data.email !== undefined) {
+        cfg = cfg ?? {};
+        cfg.contactEmail = data.email ?? null;
+      }
+      const updatedEmail = ((cfg?.contactEmail) as string | null | undefined) ?? null;
+
+      await pool.query(
+        `UPDATE ai_conversations
+         SET contact_name = $2,
+             contact_phone = $3,
+             mapped_config = CASE WHEN $4::text IS NULL THEN mapped_config ELSE $4::jsonb END
+         WHERE id = $1`,
+        [id, updatedName, updatedPhone, cfg !== null ? JSON.stringify(cfg) : null]
+      );
+
+      if (updatedEmail || updatedPhone) {
+        try {
+          const effectiveName = (updatedName ?? "").trim() || "AI Chat Contact";
+          const customer = await storage.findOrCreateCustomer(updatedEmail || null, updatedPhone || null, effectiveName);
+          if (existing.session_id) {
+            await storage.linkConversationBySessionToCustomer(existing.session_id, customer.id);
+          } else {
+            console.warn("[AI conv contact edit] no session_id — falling back to id-based link for conv", id);
+            await storage.linkConversationToCustomer(id, customer.id);
+          }
+        } catch (linkErr) {
+          console.error("[AI conv contact edit] re-link error:", (linkErr as Error).message);
+        }
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("AI conversation update contact error:", error);
+      res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
   app.patch("/api/admin/ai-conversations/:id/contacted", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const note = typeof req.body?.note === "string" ? req.body.note.trim() : null;
