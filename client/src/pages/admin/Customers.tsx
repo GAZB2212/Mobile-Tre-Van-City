@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getAuthToken } from "@/lib/queryClient";
@@ -34,6 +34,8 @@ import {
   PhoneCall,
   Coffee,
   CalendarDays,
+  MoveRight,
+  Loader2,
 } from "lucide-react";
 
 interface StaffMember {
@@ -89,9 +91,9 @@ interface CustomerProfileData {
     primaryStaffName?: string | null;
     createdAt?: string | null;
   };
-  leads: Array<{ id: string; status?: string | null }>;
-  quotes: Array<{ id: string; status?: string | null }>;
-  conversations: Array<{ id: string }>;
+  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null }>;
+  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null }>;
+  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null }>;
   notes: CustomerNote[];
 }
 
@@ -101,6 +103,141 @@ const NOTE_TYPE_ICONS: Record<string, React.ElementType> = {
   meeting: Coffee,
   general: StickyNote,
 };
+
+type RecordType = "lead" | "quote" | "conversation";
+
+function MoveRecordDialog({
+  recordType,
+  recordId,
+  recordLabel,
+  sourceCustomerId,
+  onMoved,
+  onClose,
+}: {
+  recordType: RecordType;
+  recordId: string;
+  recordLabel: string;
+  sourceCustomerId: string;
+  onMoved: (targetCustomerId: string) => void;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const { data: customers = [], isLoading: searchLoading } = useQuery<CustomerListItem[]>({
+    queryKey: ["/api/admin/customers", debouncedSearch],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const params = debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : "";
+      const r = await fetch(`/api/admin/customers${params}`, { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
+    enabled: debouncedSearch.length >= 2,
+  });
+
+  const reassignMutation = useMutation({
+    mutationFn: (targetCustomerId: string) =>
+      apiRequest("PATCH", `/api/admin/records/${recordType}/${recordId}/reassign`, { targetCustomerId }).then(r => r.json()),
+    onSuccess: (_data: unknown, targetCustomerId: string) => {
+      toast({ title: "Record moved", description: `${recordLabel} has been reassigned.` });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", sourceCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", targetCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      onMoved(targetCustomerId);
+    },
+    onError: () => {
+      toast({ title: "Failed to move record", description: "Please try again.", variant: "destructive" });
+    },
+  });
+
+  const filteredCandidates = customers.filter(c => c.id !== sourceCustomerId);
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/60 z-[60]"
+        onClick={onClose}
+        aria-hidden="true"
+        data-testid="backdrop-move-dialog"
+      />
+      <div
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-full max-w-sm bg-background border rounded-md shadow-xl flex flex-col"
+        role="dialog"
+        aria-label="Move record to customer"
+        data-testid="dialog-move-record"
+      >
+        <div className="flex items-start justify-between gap-3 p-4 border-b">
+          <div>
+            <p className="text-sm font-semibold">Move to another customer</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[240px]">{recordLabel}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} data-testid="button-close-move-dialog">
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+
+        <div className="p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              placeholder="Search customers…"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9"
+              data-testid="input-move-customer-search"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto max-h-64 px-3 pb-3 space-y-1">
+          {debouncedSearch.length < 2 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">Type at least 2 characters to search</p>
+          ) : searchLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredCandidates.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">No customers found</p>
+          ) : (
+            filteredCandidates.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                className="w-full text-left rounded-md px-3 py-2 hover-elevate active-elevate-2 transition-colors"
+                onClick={() => reassignMutation.mutate(c.id)}
+                disabled={reassignMutation.isPending}
+                data-testid={`button-move-to-customer-${c.id}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    {(c.email || c.company) && (
+                      <p className="text-xs text-muted-foreground truncate">{c.company ?? c.email}</p>
+                    )}
+                  </div>
+                  {reassignMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />
+                  ) : (
+                    <MoveRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
 function formatReviewDate(date: string | null | undefined) {
   if (!date) return "—";
@@ -117,6 +254,7 @@ function CustomerReviewSheet({
   onClose: () => void;
 }) {
   const [, navigate] = useLocation();
+  const [moveTarget, setMoveTarget] = useState<{ type: RecordType; id: string; label: string } | null>(null);
 
   const { data, isLoading } = useQuery<CustomerProfileData>({
     queryKey: ["/api/admin/customers", customerId],
@@ -130,8 +268,11 @@ function CustomerReviewSheet({
   });
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") onClose();
-  }, [onClose]);
+    if (e.key === "Escape") {
+      if (moveTarget) { setMoveTarget(null); return; }
+      onClose();
+    }
+  }, [onClose, moveTarget]);
 
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
@@ -259,27 +400,94 @@ function CustomerReviewSheet({
                 <CardHeader className="pb-2 pt-3 px-3">
                   <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Linked Records</CardTitle>
                 </CardHeader>
-                <CardContent className="px-3 pb-3">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-1.5 text-sm" data-testid="text-review-lead-count">
-                      <Users className="w-3.5 h-3.5 text-blue-400" />
-                      <span className="font-medium">{leads.length}</span>
-                      <span className="text-muted-foreground">lead{leads.length !== 1 ? "s" : ""}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-sm" data-testid="text-review-quote-count">
-                      <FileText className="w-3.5 h-3.5 text-purple-400" />
-                      <span className="font-medium">{quotes.length}</span>
-                      <span className="text-muted-foreground">quote{quotes.length !== 1 ? "s" : ""}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-sm" data-testid="text-review-convo-count">
-                      <Bot className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="font-medium">{conversations.length}</span>
-                      <span className="text-muted-foreground">chat{conversations.length !== 1 ? "s" : ""}</span>
-                    </div>
-                  </div>
+                <CardContent className="px-3 pb-3 space-y-1">
                   {leads.length === 0 && quotes.length === 0 && conversations.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic mt-1">No linked records yet</p>
+                    <p className="text-xs text-muted-foreground italic">No linked records yet</p>
                   )}
+
+                  {leads.map(lead => (
+                    <div
+                      key={lead.id}
+                      className="flex items-center justify-between gap-2 py-1"
+                      data-testid={`row-review-lead-${lead.id}`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span className="text-sm truncate">{lead.name ?? "Lead"}</span>
+                        {lead.status && (
+                          <Badge className="text-[10px] shrink-0 no-default-active-elevate">
+                            {lead.status.replace(/_/g, " ")}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-xs h-7 px-2"
+                        onClick={() => setMoveTarget({ type: "lead", id: lead.id, label: `Lead — ${lead.name ?? lead.id}` })}
+                        data-testid={`button-move-lead-${lead.id}`}
+                      >
+                        <MoveRight className="w-3 h-3 mr-1" />
+                        Move to…
+                      </Button>
+                    </div>
+                  ))}
+
+                  {quotes.map(quote => (
+                    <div
+                      key={quote.id}
+                      className="flex items-center justify-between gap-2 py-1"
+                      data-testid={`row-review-quote-${quote.id}`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                        <span className="text-sm truncate">{quote.user_name ?? "Quote"}</span>
+                        {quote.status && (
+                          <Badge className="text-[10px] shrink-0 no-default-active-elevate">
+                            {quote.status.replace(/_/g, " ")}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-xs h-7 px-2"
+                        onClick={() => setMoveTarget({ type: "quote", id: quote.id, label: `Quote — ${quote.user_name ?? quote.id}` })}
+                        data-testid={`button-move-quote-${quote.id}`}
+                      >
+                        <MoveRight className="w-3 h-3 mr-1" />
+                        Move to…
+                      </Button>
+                    </div>
+                  ))}
+
+                  {conversations.map(convo => (
+                    <div
+                      key={convo.id}
+                      className="flex items-center justify-between gap-2 py-1"
+                      data-testid={`row-review-convo-${convo.id}`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Bot className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="text-sm truncate">{convo.contact_name ?? "AI chat"}</span>
+                        {convo.status && (
+                          <Badge className="text-[10px] shrink-0 no-default-active-elevate">
+                            {convo.status.replace(/_/g, " ")}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-xs h-7 px-2"
+                        onClick={() => setMoveTarget({ type: "conversation", id: convo.id, label: `Chat — ${convo.contact_name ?? convo.id}` })}
+                        data-testid={`button-move-convo-${convo.id}`}
+                      >
+                        <MoveRight className="w-3 h-3 mr-1" />
+                        Move to…
+                      </Button>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
@@ -331,6 +539,18 @@ function CustomerReviewSheet({
           </Button>
         </div>
       </div>
+
+      {/* Move record dialog — rendered outside the side panel so it stacks above z-50 */}
+      {moveTarget && (
+        <MoveRecordDialog
+          recordType={moveTarget.type}
+          recordId={moveTarget.id}
+          recordLabel={moveTarget.label}
+          sourceCustomerId={customerId}
+          onMoved={() => setMoveTarget(null)}
+          onClose={() => setMoveTarget(null)}
+        />
+      )}
     </>
   );
 }

@@ -7156,6 +7156,36 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Reassign a linked record (lead / quote / conversation) to a different customer
+  app.patch("/api/admin/records/:type/:id/reassign", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { type, id } = req.params;
+      if (!["lead", "quote", "conversation"].includes(type)) {
+        return res.status(400).json({ error: "Invalid record type. Must be lead, quote, or conversation." });
+      }
+
+      const schema_z = z.object({ targetCustomerId: z.string().min(1) });
+      const { targetCustomerId } = schema_z.parse(req.body);
+
+      const targetCustomer = await storage.getCustomer(targetCustomerId);
+      if (!targetCustomer) return res.status(404).json({ error: "Target customer not found" });
+
+      if (type === "lead") {
+        await storage.linkLeadToCustomer(id, targetCustomerId);
+      } else if (type === "quote") {
+        await storage.linkQuoteToCustomer(id, targetCustomerId);
+      } else {
+        await storage.linkConversationToCustomer(id, targetCustomerId);
+      }
+
+      res.json({ ok: true, targetCustomerId });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Reassign record error:", error);
+      res.status(500).json({ error: "Failed to reassign record" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
