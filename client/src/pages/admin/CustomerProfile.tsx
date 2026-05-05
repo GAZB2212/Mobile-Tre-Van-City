@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
@@ -192,6 +192,16 @@ export default function CustomerProfile() {
   const [noteType, setNoteType] = useState<NoteType>("general");
   const [noteText, setNoteText] = useState("");
 
+  const mergeRedirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mergeRedirectTimer.current !== null) {
+        clearTimeout(mergeRedirectTimer.current);
+      }
+    };
+  }, []);
+
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
   const [mergeSearch, setMergeSearch] = useState("");
@@ -249,16 +259,25 @@ export default function CustomerProfile() {
     onSuccess: (result: { ok: boolean; survivingId: string }) => {
       setShowMergeConfirm(false);
       setShowMergePanel(false);
+      const isCurrentRemoved = result.survivingId !== id;
+      const survivingName = isCurrentRemoved ? selectedMergeTarget?.name : null;
       setSelectedMergeTarget(null);
       setMergeSearchInput("");
       setMergeSearch("");
       setMergeKeepId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
-      toast({ title: "Customers merged", description: "The merge has been logged and can be reversed from the Merge History panel." });
-      if (result.survivingId !== id) {
-        navigate(`/admin/customers/${result.survivingId}`);
+      if (isCurrentRemoved) {
+        toast({
+          title: "Profile merged",
+          description: `This profile has been merged into ${survivingName ?? "the other customer"} — redirecting…`,
+        });
+        mergeRedirectTimer.current = setTimeout(() => {
+          mergeRedirectTimer.current = null;
+          navigate(`/admin/customers/${result.survivingId}`);
+        }, 1500);
       } else {
+        toast({ title: "Customers merged", description: "The merge has been logged and can be reversed from the Merge History panel." });
         queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", id] });
       }
     },
