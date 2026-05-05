@@ -118,6 +118,7 @@ function MoveRecordDialog({
   sourceCustomerName,
   sourceCustomerCompany,
   sourceCustomerEmail,
+  sourceCustomerPhone,
   onMoved,
   onClose,
 }: {
@@ -128,6 +129,7 @@ function MoveRecordDialog({
   sourceCustomerName: string;
   sourceCustomerCompany?: string | null;
   sourceCustomerEmail?: string | null;
+  sourceCustomerPhone?: string | null;
   onMoved: (targetCustomerId: string) => void;
   onClose: () => void;
 }) {
@@ -135,7 +137,7 @@ function MoveRecordDialog({
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [pendingCustomer, setPendingCustomer] = useState<{ id: string; name: string; email?: string | null; company?: string | null } | null>(null);
+  const [pendingCustomer, setPendingCustomer] = useState<{ id: string; name: string; email?: string | null; company?: string | null; phone?: string | null } | null>(null);
 
   useEffect(() => {
     if (!pendingCustomer) {
@@ -206,8 +208,8 @@ function MoveRecordDialog({
                 <span className="text-xs text-muted-foreground w-8 shrink-0 pt-0.5">From:</span>
                 <div className="rounded-md border px-3 py-2 flex-1 bg-muted/40">
                   <p className="text-sm font-medium" data-testid="text-move-source-customer">{sourceCustomerName}</p>
-                  {(sourceCustomerCompany || sourceCustomerEmail) && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{sourceCustomerCompany ?? sourceCustomerEmail}</p>
+                  {(sourceCustomerCompany || sourceCustomerEmail || sourceCustomerPhone) && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{sourceCustomerCompany ?? sourceCustomerEmail ?? sourceCustomerPhone}</p>
                   )}
                 </div>
               </div>
@@ -215,8 +217,8 @@ function MoveRecordDialog({
                 <span className="text-xs text-muted-foreground w-8 shrink-0 pt-0.5">To:</span>
                 <div className="rounded-md border px-3 py-2 flex-1">
                   <p className="text-sm font-medium" data-testid="text-move-target-customer">{pendingCustomer.name}</p>
-                  {(pendingCustomer.email || pendingCustomer.company) && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{pendingCustomer.company ?? pendingCustomer.email}</p>
+                  {(pendingCustomer.company || pendingCustomer.email || pendingCustomer.phone) && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{pendingCustomer.company ?? pendingCustomer.email ?? pendingCustomer.phone}</p>
                   )}
                 </div>
               </div>
@@ -277,14 +279,14 @@ function MoveRecordDialog({
                     key={c.id}
                     type="button"
                     className="w-full text-left rounded-md px-3 py-2 hover-elevate active-elevate-2 transition-colors"
-                    onClick={() => setPendingCustomer({ id: c.id, name: c.name, email: c.email, company: c.company })}
+                    onClick={() => setPendingCustomer({ id: c.id, name: c.name, email: c.email, company: c.company, phone: c.phone })}
                     data-testid={`button-move-to-customer-${c.id}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{c.name}</p>
-                        {(c.email || c.company) && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.company ?? c.email}</p>
+                        {(c.company || c.email || c.phone) && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.company ?? c.email ?? c.phone}</p>
                         )}
                       </div>
                       <MoveRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -659,6 +661,7 @@ function CustomerReviewSheet({
           sourceCustomerName={customer?.name ?? "Unknown"}
           sourceCustomerCompany={customer?.company}
           sourceCustomerEmail={customer?.email}
+          sourceCustomerPhone={customer?.phone}
           onMoved={() => setMoveTarget(null)}
           onClose={() => setMoveTarget(null)}
         />
