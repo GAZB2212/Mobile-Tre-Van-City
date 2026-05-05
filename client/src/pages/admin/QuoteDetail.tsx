@@ -1388,6 +1388,25 @@ export default function AdminQuoteDetail() {
                   </div>
                   {!editingCustomer && (
                     <div className="flex items-center gap-2 flex-wrap">
+                      {quote.customerId ? (
+                        <Link href={`/admin/customers/${quote.customerId}`}>
+                          <span
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+                            data-testid="text-profile-linked"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                            Linked: {quote.userName || "Customer"}
+                          </span>
+                        </Link>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                          data-testid="text-no-profile-linked"
+                        >
+                          <XCircle className="w-3.5 h-3.5 shrink-0" />
+                          No profile linked
+                        </span>
+                      )}
                       {quote.customerId && (
                         <Link href={`/admin/customers/${quote.customerId}`}>
                           <Button
