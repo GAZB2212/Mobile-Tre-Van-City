@@ -6603,25 +6603,25 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (!customer) return res.status(404).json({ error: "Customer not found" });
 
       // Fetch all linked records in parallel (also fetch records that were moved away from this customer)
-      const [notes, leadsRows, quotesRows, convosRows, followUpsRows, movedLeadsRows, movedQuotesRows, movedConvosRows] = await Promise.all([
+      const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows] = await Promise.all([
         storage.getCustomerNotes(id),
-        pool.query(`SELECT * FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, reassignment_history, previous_customer_name, previous_customer_id, reassigned_at FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, reassignment_history, previous_customer_name, previous_customer_id, reassigned_at FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT *, reassignment_history FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
-        // Records that were previously owned by this customer but moved to another
-        pool.query(`SELECT l.id, l.reassigned_at, l.customer_id AS target_customer_id, c.name AS target_customer_name FROM leads l JOIN customers c ON c.id = l.customer_id WHERE l.previous_customer_id = $1 AND l.reassigned_at IS NOT NULL`, [id]),
-        pool.query(`SELECT q.id, q.reassigned_at, q.customer_id AS target_customer_id, c.name AS target_customer_name FROM quotes q JOIN customers c ON c.id = q.customer_id WHERE q.previous_customer_id = $1 AND q.reassigned_at IS NOT NULL`, [id]),
-        pool.query(`SELECT a.id, a.reassigned_at, a.customer_id AS target_customer_id, c.name AS target_customer_name FROM ai_conversations a JOIN customers c ON c.id = a.customer_id WHERE a.previous_customer_id = $1 AND a.reassigned_at IS NOT NULL`, [id]),
+        // Records NOT currently owned by this customer but with any history entry mentioning them
+        pool.query(`SELECT l.id, l.reassignment_history FROM leads l WHERE l.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(l.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
+        pool.query(`SELECT q.id, q.reassignment_history FROM quotes q WHERE q.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(q.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
+        pool.query(`SELECT a.id, a.reassignment_history FROM ai_conversations a WHERE a.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(a.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
       ]);
 
       const leads = leadsRows.rows;
       const quotes = quotesRows.rows;
       const convos = convosRows.rows;
       const followUps = followUpsRows.rows;
-      const movedLeads = movedLeadsRows.rows;
-      const movedQuotes = movedQuotesRows.rows;
-      const movedConvos = movedConvosRows.rows;
+      const externalLeads = externalLeadsRows.rows;
+      const externalQuotes = externalQuotesRows.rows;
+      const externalConvos = externalConvosRows.rows;
 
       // Build unified activity timeline
       type TimelineEvent = {
@@ -6788,17 +6788,50 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
-      // Reassignment events — records moved TO this customer from another.
-      // Uses the structured reassignment_history array (migrated from the legacy
-      // previous_customer_name TEXT column on startup).
-      for (const lead of leads) {
-        const history: Array<{customerName: string; timestamp: string; staffName?: string}> = lead.reassignment_history ?? [];
+      // Helper: emit timeline events from a reassignment_history array for a given record
+      const emitHistoryEvents = (
+        history: Array<{ fromCustomerName: string; fromCustomerId: string; toCustomerName: string; toCustomerId: string; reassignedAt: string }>,
+        recordId: string,
+        entityType: string,
+        entityLabel: string,
+      ) => {
         for (const entry of history) {
+          if (entry.toCustomerId === id) {
+            timeline.push({
+              id: `${entityType}-reassigned-in-${recordId}-${entry.reassignedAt}`,
+              type: "record_reassigned_in",
+              title: `${entityLabel} moved from ${entry.fromCustomerName}`,
+              timestamp: entry.reassignedAt,
+              entityId: recordId,
+              entityType,
+              relatedCustomerName: entry.fromCustomerName,
+            });
+          } else if (entry.fromCustomerId === id) {
+            timeline.push({
+              id: `${entityType}-reassigned-out-${recordId}-${entry.reassignedAt}`,
+              type: "record_reassigned_out",
+              title: `${entityLabel} moved to ${entry.toCustomerName}`,
+              timestamp: entry.reassignedAt,
+              entityId: recordId,
+              entityType,
+              relatedCustomerName: entry.toCustomerName,
+            });
+          }
+        }
+      };
+
+      // Reassignment events from currently-owned records
+      for (const lead of leads) {
+        const history = lead.reassignment_history ?? [];
+        if (history.length > 0) {
+          emitHistoryEvents(history, lead.id, "lead", "Lead");
+        } else if (lead.previous_customer_name && lead.reassigned_at) {
+          // Fallback for records that predate the history column and weren't backfilled
           timeline.push({
-            id: `lead-reassigned-in-${lead.id}-${entry.timestamp}`,
+            id: `lead-reassigned-in-${lead.id}-${lead.reassigned_at}`,
             type: "record_reassigned_in",
-            title: `Lead moved from ${entry.customerName}`,
-            timestamp: entry.timestamp,
+            title: `Lead moved from ${lead.previous_customer_name}`,
+            timestamp: lead.reassigned_at,
             entityId: lead.id,
             entityType: "lead",
             relatedCustomerId: lead.previous_customer_id,
@@ -6807,13 +6840,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
       for (const quote of quotes) {
-        const history: Array<{customerName: string; timestamp: string; staffName?: string}> = quote.reassignment_history ?? [];
-        for (const entry of history) {
+        const history = quote.reassignment_history ?? [];
+        if (history.length > 0) {
+          emitHistoryEvents(history, quote.id, "quote", "Quote");
+        } else if (quote.previous_customer_name && quote.reassigned_at) {
           timeline.push({
-            id: `quote-reassigned-in-${quote.id}-${entry.timestamp}`,
+            id: `quote-reassigned-in-${quote.id}-${quote.reassigned_at}`,
             type: "record_reassigned_in",
-            title: `Quote moved from ${entry.customerName}`,
-            timestamp: entry.timestamp,
+            title: `Quote moved from ${quote.previous_customer_name}`,
+            timestamp: quote.reassigned_at,
             entityId: quote.id,
             entityType: "quote",
             relatedCustomerId: quote.previous_customer_id,
@@ -6822,13 +6857,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
       for (const convo of convos) {
-        const history: Array<{customerName: string; timestamp: string; staffName?: string}> = convo.reassignment_history ?? [];
-        for (const entry of history) {
+        const history = convo.reassignment_history ?? [];
+        if (history.length > 0) {
+          emitHistoryEvents(history, convo.id, "conversation", "AI chat");
+        } else if (convo.previous_customer_name && convo.reassigned_at) {
           timeline.push({
-            id: `convo-reassigned-in-${convo.id}-${entry.timestamp}`,
+            id: `convo-reassigned-in-${convo.id}-${convo.reassigned_at}`,
             type: "record_reassigned_in",
-            title: `AI chat moved from ${entry.customerName}`,
-            timestamp: entry.timestamp,
+            title: `AI chat moved from ${convo.previous_customer_name}`,
+            timestamp: convo.reassigned_at,
             entityId: convo.id,
             entityType: "conversation",
             relatedCustomerId: convo.previous_customer_id,
@@ -6837,42 +6874,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
-      // Reassignment events — records moved FROM this customer to another
-      for (const lead of movedLeads) {
-        timeline.push({
-          id: `lead-reassigned-out-${lead.id}`,
-          type: "record_reassigned_out",
-          title: `Lead moved to ${lead.target_customer_name}`,
-          timestamp: lead.reassigned_at,
-          entityId: lead.id,
-          entityType: "lead",
-          relatedCustomerId: lead.target_customer_id,
-          relatedCustomerName: lead.target_customer_name,
-        });
+      // Reassignment events from records no longer owned by this customer
+      for (const lead of externalLeads) {
+        emitHistoryEvents(lead.reassignment_history ?? [], lead.id, "lead", "Lead");
       }
-      for (const quote of movedQuotes) {
-        timeline.push({
-          id: `quote-reassigned-out-${quote.id}`,
-          type: "record_reassigned_out",
-          title: `Quote moved to ${quote.target_customer_name}`,
-          timestamp: quote.reassigned_at,
-          entityId: quote.id,
-          entityType: "quote",
-          relatedCustomerId: quote.target_customer_id,
-          relatedCustomerName: quote.target_customer_name,
-        });
+      for (const quote of externalQuotes) {
+        emitHistoryEvents(quote.reassignment_history ?? [], quote.id, "quote", "Quote");
       }
-      for (const convo of movedConvos) {
-        timeline.push({
-          id: `convo-reassigned-out-${convo.id}`,
-          type: "record_reassigned_out",
-          title: `AI chat moved to ${convo.target_customer_name}`,
-          timestamp: convo.reassigned_at,
-          entityId: convo.id,
-          entityType: "conversation",
-          relatedCustomerId: convo.target_customer_id,
-          relatedCustomerName: convo.target_customer_name,
-        });
+      for (const convo of externalConvos) {
+        emitHistoryEvents(convo.reassignment_history ?? [], convo.id, "conversation", "AI chat");
       }
 
       // Sort timeline newest-first

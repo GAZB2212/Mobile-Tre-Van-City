@@ -253,7 +253,16 @@ export const quotes = pgTable("quotes", {
 
   // CRM customer link
   customerId: varchar("customer_id"),
-  reassignmentHistory: jsonb("reassignment_history").$type<Array<{customerName: string; timestamp: string; staffName?: string}>>().notNull().default([]), // History of every prior customer assignment
+  previousCustomerName: text("previous_customer_name"), // Name of prior customer if this quote was reassigned
+  previousCustomerId: varchar("previous_customer_id"),   // ID of prior customer if this quote was reassigned
+  reassignedAt: timestamp("reassigned_at"),              // When the quote was last reassigned to a different customer
+  reassignmentHistory: json("reassignment_history").$type<Array<{
+    fromCustomerName: string;
+    fromCustomerId: string;
+    toCustomerName: string;
+    toCustomerId: string;
+    reassignedAt: string;
+  }>>().notNull().default([]),                           // Full audit chain of all reassignments
 
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -274,7 +283,16 @@ export const leads = pgTable("leads", {
   crmNotes: json("crm_notes").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]),
   quoteId: varchar("quote_id").references(() => quotes.id), // Linked quote ID for converted leads
   customerId: varchar("customer_id"), // FK to customers — set after customers table is created
-  reassignmentHistory: jsonb("reassignment_history").$type<Array<{customerName: string; timestamp: string; staffName?: string}>>().notNull().default([]), // History of every prior customer assignment
+  previousCustomerName: text("previous_customer_name"), // Name of prior customer if this lead was reassigned
+  previousCustomerId: varchar("previous_customer_id"),   // ID of prior customer if this lead was reassigned
+  reassignedAt: timestamp("reassigned_at"),              // When the lead was last reassigned to a different customer
+  reassignmentHistory: json("reassignment_history").$type<Array<{
+    fromCustomerName: string;
+    fromCustomerId: string;
+    toCustomerName: string;
+    toCustomerId: string;
+    reassignedAt: string;
+  }>>().notNull().default([]),                           // Full audit chain of all reassignments
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -680,7 +698,16 @@ export const aiConversations = pgTable("ai_conversations", {
   markedContacted: boolean("marked_contacted").notNull().default(false),
   contactedNote: text("contacted_note"),
   customerId: varchar("customer_id"),
-  reassignmentHistory: jsonb("reassignment_history").$type<Array<{customerName: string; timestamp: string; staffName?: string}>>().notNull().default([]), // History of every prior customer assignment
+  previousCustomerName: text("previous_customer_name"), // Name of prior customer if this conversation was reassigned
+  previousCustomerId: varchar("previous_customer_id"),   // ID of prior customer if this conversation was reassigned
+  reassignedAt: timestamp("reassigned_at"),              // When the conversation was last reassigned to a different customer
+  reassignmentHistory: json("reassignment_history").$type<Array<{
+    fromCustomerName: string;
+    fromCustomerId: string;
+    toCustomerName: string;
+    toCustomerId: string;
+    reassignedAt: string;
+  }>>().notNull().default([]),                           // Full audit chain of all reassignments
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 });

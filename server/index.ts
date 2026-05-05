@@ -475,104 +475,50 @@ app.use((req, res, next) => {
           `).then(() => log("✅ Reassignment audit columns ready"))
             .catch((err: Error) => console.error("Reassignment audit migration:", err.message));
 
-          // Add reassignment_history JSONB column for full history log
+          // Add reassignment_history JSONB column for full multi-hop audit chain
           await pool.query(`
-            ALTER TABLE leads ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]';
-            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]';
-            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]';
+            ALTER TABLE leads ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]'::jsonb;
+            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]'::jsonb;
+            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS reassignment_history JSONB NOT NULL DEFAULT '[]'::jsonb;
           `).then(() => log("✅ Reassignment history columns ready"))
             .catch((err: Error) => console.error("Reassignment history migration:", err.message));
 
-          // One-time backfill + column drop: migrate legacy previous_customer_name TEXT
-          // into the structured reassignment_history JSONB array, then drop the old column.
-          // Checks column existence per table so partial-migration states are handled safely.
-          // Backfill and DROP run in a single transaction — if any UPDATE fails the DROP is
-          // rolled back and legacy data is preserved intact.
-          await (async () => {
-            // Discover which tables still carry the legacy column.
-            const { rows: colRows } = await pool.query<{ table_name: string }>(`
-              SELECT table_name FROM information_schema.columns
-              WHERE column_name = 'previous_customer_name'
-                AND table_name IN ('leads', 'quotes', 'ai_conversations')
-            `);
-            const tablesWithCol = new Set(colRows.map((r) => r.table_name));
+          // Backfill reassignment_history from single-column data for existing records
+          await pool.query(`
+            UPDATE leads SET reassignment_history = jsonb_build_array(jsonb_build_object(
+              'fromCustomerName', previous_customer_name,
+              'fromCustomerId', previous_customer_id,
+              'toCustomerName', (SELECT name FROM customers WHERE id = leads.customer_id),
+              'toCustomerId', leads.customer_id,
+              'reassignedAt', to_char(reassigned_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+            ))
+            WHERE previous_customer_id IS NOT NULL
+              AND reassigned_at IS NOT NULL
+              AND reassignment_history = '[]'::jsonb;
 
-            if (tablesWithCol.size === 0) {
-              log("✅ Legacy previous_customer_name columns already removed");
-              return;
-            }
+            UPDATE quotes SET reassignment_history = jsonb_build_array(jsonb_build_object(
+              'fromCustomerName', previous_customer_name,
+              'fromCustomerId', previous_customer_id,
+              'toCustomerName', (SELECT name FROM customers WHERE id = quotes.customer_id),
+              'toCustomerId', quotes.customer_id,
+              'reassignedAt', to_char(reassigned_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+            ))
+            WHERE previous_customer_id IS NOT NULL
+              AND reassigned_at IS NOT NULL
+              AND reassignment_history = '[]'::jsonb;
 
-            // Count rows per table that need migrating (only for tables that have the column).
-            const countSql = [
-              tablesWithCol.has("leads")
-                ? `(SELECT COUNT(*) FROM leads WHERE previous_customer_name IS NOT NULL AND previous_customer_name != '' AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb))`
-                : `0`,
-              tablesWithCol.has("quotes")
-                ? `(SELECT COUNT(*) FROM quotes WHERE previous_customer_name IS NOT NULL AND previous_customer_name != '' AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb))`
-                : `0`,
-              tablesWithCol.has("ai_conversations")
-                ? `(SELECT COUNT(*) FROM ai_conversations WHERE previous_customer_name IS NOT NULL AND previous_customer_name != '' AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb))`
-                : `0`,
-            ];
-            const { rows: [counts] } = await pool.query<{
-              leads_count: string; quotes_count: string; convos_count: string;
-            }>(`SELECT ${countSql[0]} AS leads_count, ${countSql[1]} AS quotes_count, ${countSql[2]} AS convos_count`);
-            log(`Backfilling reassignment_history: ${counts.leads_count} lead(s), ${counts.quotes_count} quote(s), ${counts.convos_count} conversation(s) to migrate`);
-
-            // Run backfill + drop atomically — DROP only executes if all UPDATEs succeed.
-            const client = await pool.connect();
-            try {
-              await client.query("BEGIN");
-
-              if (tablesWithCol.has("leads")) {
-                await client.query(`
-                  UPDATE leads
-                  SET reassignment_history = jsonb_build_array(
-                    jsonb_build_object('customerName', previous_customer_name, 'timestamp', created_at)
-                  )
-                  WHERE previous_customer_name IS NOT NULL
-                    AND previous_customer_name != ''
-                    AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb)
-                `);
-              }
-              if (tablesWithCol.has("quotes")) {
-                await client.query(`
-                  UPDATE quotes
-                  SET reassignment_history = jsonb_build_array(
-                    jsonb_build_object('customerName', previous_customer_name, 'timestamp', created_at)
-                  )
-                  WHERE previous_customer_name IS NOT NULL
-                    AND previous_customer_name != ''
-                    AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb)
-                `);
-              }
-              if (tablesWithCol.has("ai_conversations")) {
-                await client.query(`
-                  UPDATE ai_conversations
-                  SET reassignment_history = jsonb_build_array(
-                    jsonb_build_object('customerName', previous_customer_name, 'timestamp', created_at)
-                  )
-                  WHERE previous_customer_name IS NOT NULL
-                    AND previous_customer_name != ''
-                    AND (reassignment_history IS NULL OR reassignment_history = '[]'::jsonb)
-                `);
-              }
-
-              // Use IF EXISTS on each DROP so that a partially-migrated DB state
-              // (some tables already dropped) doesn't block the transaction.
-              await client.query(`ALTER TABLE leads DROP COLUMN IF EXISTS previous_customer_name`);
-              await client.query(`ALTER TABLE quotes DROP COLUMN IF EXISTS previous_customer_name`);
-              await client.query(`ALTER TABLE ai_conversations DROP COLUMN IF EXISTS previous_customer_name`);
-
-              await client.query("COMMIT");
-              log("✅ Reassignment history backfill complete and legacy columns dropped");
-            } catch (err) {
-              await client.query("ROLLBACK");
-              throw err;
-            } finally {
-              client.release();
-            }
-          })().catch((err: Error) => console.error("Reassignment history backfill/drop failed:", err.message));
+            UPDATE ai_conversations SET reassignment_history = jsonb_build_array(jsonb_build_object(
+              'fromCustomerName', previous_customer_name,
+              'fromCustomerId', previous_customer_id,
+              'toCustomerName', (SELECT name FROM customers WHERE id = ai_conversations.customer_id),
+              'toCustomerId', ai_conversations.customer_id,
+              'reassignedAt', to_char(reassigned_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+            ))
+            WHERE previous_customer_id IS NOT NULL
+              AND reassigned_at IS NOT NULL
+              AND reassignment_history = '[]'::jsonb;
+          `).then(() => log("✅ Reassignment history backfill complete"))
+            .catch((err: Error) => console.error("Reassignment history backfill:", err.message));
 
           // Unique partial indexes on customers.email and customers.phone to prevent
           // future duplicate records at the DB level. Only create them if the data

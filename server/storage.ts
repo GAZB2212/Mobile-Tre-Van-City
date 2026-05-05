@@ -2661,14 +2661,23 @@ export class DbStorage implements IStorage {
     );
     const prev = existing.rows[0];
     const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    const previousId = prev?.customer_id && prev.customer_id !== customerId ? prev.customer_id : null;
     if (previousName) {
-      const currentHistory: Array<{customerName: string; timestamp: string; staffName?: string}> = prev.reassignment_history ?? [];
-      const entry: {customerName: string; timestamp: string; staffName?: string} = { customerName: previousName, timestamp: new Date().toISOString() };
-      if (staffName) entry.staffName = staffName;
-      const updatedHistory = [...currentHistory, entry];
+      const newCustomer = await pool.query(`SELECT name FROM customers WHERE id = $1`, [customerId]);
+      const toName = newCustomer.rows[0]?.name ?? customerId;
+      const history: any[] = prev.reassignment_history ?? [];
+      const newEntry: any = {
+        fromCustomerName: previousName,
+        fromCustomerId: previousId,
+        toCustomerName: toName,
+        toCustomerId: customerId,
+        reassignedAt: new Date().toISOString(),
+      };
+      if (staffName) newEntry.staffName = staffName;
+      const updatedHistory = JSON.stringify([...history, newEntry]);
       await pool.query(
-        `UPDATE leads SET customer_id = $1, reassignment_history = $2::jsonb WHERE id = $3`,
-        [customerId, JSON.stringify(updatedHistory), leadId]
+        `UPDATE leads SET customer_id = $1, previous_customer_name = $2, previous_customer_id = $3, reassigned_at = NOW(), reassignment_history = $5::jsonb WHERE id = $4`,
+        [customerId, previousName, previousId, leadId, updatedHistory]
       );
     } else {
       await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, leadId]);
@@ -2682,14 +2691,23 @@ export class DbStorage implements IStorage {
     );
     const prev = existing.rows[0];
     const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    const previousId = prev?.customer_id && prev.customer_id !== customerId ? prev.customer_id : null;
     if (previousName) {
-      const currentHistory: Array<{customerName: string; timestamp: string; staffName?: string}> = prev.reassignment_history ?? [];
-      const entry: {customerName: string; timestamp: string; staffName?: string} = { customerName: previousName, timestamp: new Date().toISOString() };
-      if (staffName) entry.staffName = staffName;
-      const updatedHistory = [...currentHistory, entry];
+      const newCustomer = await pool.query(`SELECT name FROM customers WHERE id = $1`, [customerId]);
+      const toName = newCustomer.rows[0]?.name ?? customerId;
+      const history: any[] = prev.reassignment_history ?? [];
+      const newEntry: any = {
+        fromCustomerName: previousName,
+        fromCustomerId: previousId,
+        toCustomerName: toName,
+        toCustomerId: customerId,
+        reassignedAt: new Date().toISOString(),
+      };
+      if (staffName) newEntry.staffName = staffName;
+      const updatedHistory = JSON.stringify([...history, newEntry]);
       await pool.query(
-        `UPDATE quotes SET customer_id = $1, reassignment_history = $2::jsonb WHERE id = $3`,
-        [customerId, JSON.stringify(updatedHistory), quoteId]
+        `UPDATE quotes SET customer_id = $1, previous_customer_name = $2, previous_customer_id = $3, reassigned_at = NOW(), reassignment_history = $5::jsonb WHERE id = $4`,
+        [customerId, previousName, previousId, quoteId, updatedHistory]
       );
     } else {
       await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, quoteId]);
@@ -2750,14 +2768,23 @@ export class DbStorage implements IStorage {
     );
     const prev = existing.rows[0];
     const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    const previousId = prev?.customer_id && prev.customer_id !== customerId ? prev.customer_id : null;
     if (previousName) {
-      const currentHistory: Array<{customerName: string; timestamp: string; staffName?: string}> = prev.reassignment_history ?? [];
-      const entry: {customerName: string; timestamp: string; staffName?: string} = { customerName: previousName, timestamp: new Date().toISOString() };
-      if (staffName) entry.staffName = staffName;
-      const updatedHistory = [...currentHistory, entry];
+      const newCustomer = await pool.query(`SELECT name FROM customers WHERE id = $1`, [customerId]);
+      const toName = newCustomer.rows[0]?.name ?? customerId;
+      const history: any[] = prev.reassignment_history ?? [];
+      const newEntry: any = {
+        fromCustomerName: previousName,
+        fromCustomerId: previousId,
+        toCustomerName: toName,
+        toCustomerId: customerId,
+        reassignedAt: new Date().toISOString(),
+      };
+      if (staffName) newEntry.staffName = staffName;
+      const updatedHistory = JSON.stringify([...history, newEntry]);
       await pool.query(
-        `UPDATE ai_conversations SET customer_id = $1, reassignment_history = $2::jsonb WHERE id = $3`,
-        [customerId, JSON.stringify(updatedHistory), conversationId]
+        `UPDATE ai_conversations SET customer_id = $1, previous_customer_name = $2, previous_customer_id = $3, reassigned_at = NOW(), reassignment_history = $5::jsonb WHERE id = $4`,
+        [customerId, previousName, previousId, conversationId, updatedHistory]
       );
     } else {
       await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, conversationId]);
