@@ -284,7 +284,7 @@ function MoveRecordDialog({
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{c.name}</p>
                         {(c.email || c.company) && (
-                          <p className="text-xs text-muted-foreground truncate">{c.company ?? c.email}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.company ?? c.email}</p>
                         )}
                       </div>
                       <MoveRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
