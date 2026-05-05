@@ -775,7 +775,7 @@ export default function AdminLeads() {
                           >
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
                               <CheckCircle2 className="w-3 h-3 shrink-0" />
-                              Linked
+                              View profile
                             </span>
                           </Link>
                         ) : (
@@ -852,7 +852,7 @@ export default function AdminLeads() {
                               data-testid={`text-profile-linked-${lead.id}`}
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                              Linked: {lead.name}
+                              Profile linked
                             </span>
                           </Link>
                         ) : (
