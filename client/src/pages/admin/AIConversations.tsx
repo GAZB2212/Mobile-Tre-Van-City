@@ -42,6 +42,7 @@ import {
   Loader2,
   Settings,
   Mail,
+  History,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -51,6 +52,14 @@ interface ConversationStats {
   fortyEightVConversionRate: number;
   leadCaptureRate: number;
   leadsCapturedThisMonth: number;
+}
+
+interface ReassignmentHistoryEntry {
+  fromCustomerName: string;
+  fromCustomerId: string;
+  toCustomerName: string;
+  toCustomerId: string;
+  reassignedAt: string;
 }
 
 interface AiConversationRow {
@@ -74,6 +83,7 @@ interface AiConversationRow {
   linked_quote_id?: string;
   messages?: Array<{ role: string; content: string }>;
   mapped_config?: Record<string, unknown> | string;
+  reassignment_history?: ReassignmentHistoryEntry[];
 }
 
 interface AiConversationsResponse {
@@ -1412,6 +1422,33 @@ export default function AdminAIConversations() {
             >
               <span className="font-medium not-italic text-foreground">Call note:</span>{" "}
               {transcriptConv.contacted_note}
+            </div>
+          )}
+
+          {/* Reassignment history */}
+          {Array.isArray(transcriptConv?.reassignment_history) && transcriptConv.reassignment_history.length > 0 && (
+            <div className="px-5 py-3 bg-muted/20 border-b shrink-0" data-testid={`text-reassignment-history-conv-${transcriptConv.id}`}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                <History className="w-3.5 h-3.5" /> Reassignment History
+              </p>
+              <div className="space-y-1.5">
+                {transcriptConv.reassignment_history.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-xs">
+                    <span className="text-muted-foreground">{entry.fromCustomerName}</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="text-foreground font-medium">{entry.toCustomerName}</span>
+                    <span className="text-muted-foreground ml-auto">
+                      {new Date(entry.reassignedAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
