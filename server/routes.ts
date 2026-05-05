@@ -5505,6 +5505,10 @@ The POPULARITY INTELLIGENCE block above is derived from actual customer quote su
 - When an upgrade appears in 50%+ of quotes, mention it as "our most popular choice" or "most customers add this"
 - When the 48V rate is high (60%+), pitch it early and confidently — not as a question but as "what most of our customers go with"
 - When recommending a package, if the popularity data shows a tier is dominant, lead with that tier and reference the data naturally: "this is the setup most of our [commercial/car] customers go with"
+- VOLUME SEGMENTS: The popularity data includes breakdowns by kit type — fully-auto T2000 operators (higher-throughput, 20+ jobs/day) vs semi-auto T1000 operators (standard volume). Once you know which machine type the customer wants, cross-reference the matching segment:
+  → If they choose or lean towards fully-auto T2000, say things like "operators doing a high volume of jobs a day who go for the fully-auto setup tend to choose [tier] — it's the setup that keeps up with that kind of throughput"
+  → If they prefer the semi-auto T1000, reference what standard-volume customers typically choose
+  → Frame it naturally — never cite numbers, say "most high-throughput operators", "the majority of fully-auto customers", "operators running at your kind of volume typically go with", etc.
 - Never cite raw percentages or numbers to the customer — translate data into natural sales language: "most", "the majority", "eight out of ten", "our most popular setup", etc.
 - If popularity data is unavailable, fall back to general best-practice recommendations as normal
 ${maxBusinessContext ? `\nBUSINESS CONTEXT (added by the team — treat this as ground truth for anything it covers):\n${maxBusinessContext}` : ""}

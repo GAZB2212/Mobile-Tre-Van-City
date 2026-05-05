@@ -23,6 +23,14 @@ export interface KitSelectionStat {
   pct: number;
 }
 
+export interface VolumeSegmentStats {
+  segment: "high" | "standard";
+  label: string;
+  totalQuotes: number;
+  packageTierDistribution: PackageTierStats[];
+  dominantPackageTier: PackageTierStats | null;
+}
+
 export interface PopularityIntelligence {
   totalMeaningfulQuotes: number;
   /** All upgrades that appear in at least one quote, sorted by selection frequency descending */
@@ -38,6 +46,7 @@ export interface PopularityIntelligence {
   popularUpgradeIds: string[];
   packageTierDistribution: PackageTierStats[];
   dominantPackageTier: PackageTierStats | null;
+  volumeSegments: VolumeSegmentStats[];
 }
 
 // In-memory guard: only sync the popular flag once per hour
@@ -48,6 +57,22 @@ const POPULAR_SYNC_INTERVAL_MS = 60 * 60 * 1000;
 let cachedIntel: PopularityIntelligence | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Derive job-volume segment from kit_id.
+ * Kit IDs containing "t2000" are fully-automatic (higher throughput) and
+ * map to the "high" volume segment (20+ jobs/day).
+ * Kit IDs containing "t1000" are semi-auto and map to "standard".
+ * Returns null when volume cannot be determined (no kit_id or unrecognised pattern),
+ * so those quotes are excluded from segment statistics rather than skewing results.
+ */
+function deriveVolumeSegment(kitId: string | null): "high" | "standard" | null {
+  if (!kitId) return null;
+  const lower = kitId.toLowerCase();
+  if (lower.includes("t2000")) return "high";
+  if (lower.includes("t1000")) return "standard";
+  return null;
+}
 
 export async function computePopularityIntelligence(): Promise<PopularityIntelligence> {
   const now = Date.now();
@@ -114,6 +139,7 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
       popularUpgradeIds: [],
       packageTierDistribution: [],
       dominantPackageTier: null,
+      volumeSegments: [],
     };
     cachedIntel = emptyResult;
     cacheTimestamp = Date.now();
@@ -125,6 +151,14 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
   const byServiceType: Record<string, Record<string, number>> = {};
   const kitCounts: Record<string, number> = {};
   const packageTierCounts: Record<string, number> = {};
+
+  // Volume segment tracking: high (t2000 fully-auto) vs standard (t1000 semi-auto).
+  // Quotes with no recognisable kit pattern are excluded from these counts (see deriveVolumeSegment).
+  const volumePackageCounts: Record<"high" | "standard", Record<string, number>> = {
+    high: {},
+    standard: {},
+  };
+  const volumeTotals: Record<"high" | "standard", number> = { high: 0, standard: 0 };
 
   for (const row of rows) {
     const ids = parseIds(row.selected_upgrade_ids);
@@ -150,10 +184,11 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     // Package tier classification: find which package best matches this quote's upgrades.
     // Score = containment (how many of the package's upgrade IDs are present in the quote).
     // A quote is classified as a package if at least 50% of that package's upgrades are present.
-    if (ids.length > 0 && packages.length > 0) {
-      let bestPackage: typeof packages[0] | null = null;
-      let bestScore = 0;
+    // Prefer higher tier on ties (more capable = more likely intentional).
+    let bestPackage: typeof packages[0] | null = null;
+    let bestScore = 0;
 
+    if (ids.length > 0 && packages.length > 0) {
       for (const pkg of packages) {
         if (pkg.upgradeIds.length === 0) continue;
         const intersection = pkg.upgradeIds.filter(uid => idSet.has(uid)).length;
@@ -166,6 +201,17 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
 
       if (bestPackage && bestScore >= 0.5) {
         packageTierCounts[bestPackage.id] = (packageTierCounts[bestPackage.id] ?? 0) + 1;
+      }
+    }
+
+    // Volume segment: derived from kit_id — t2000 = fully-auto = high volume.
+    // Quotes with no derivable segment are excluded from segment stats.
+    const volSeg = deriveVolumeSegment(row.kit_id);
+    if (volSeg !== null) {
+      volumeTotals[volSeg]++;
+      if (bestPackage && bestScore >= 0.5) {
+        volumePackageCounts[volSeg][bestPackage.id] =
+          (volumePackageCounts[volSeg][bestPackage.id] ?? 0) + 1;
       }
     }
   }
@@ -257,6 +303,42 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
 
   const dominantPackageTier = packageTierDistribution.find(p => p.count > 0) ?? null;
 
+  // Volume segment stats builder
+  const buildSegmentStats = (
+    seg: "high" | "standard",
+    label: string
+  ): VolumeSegmentStats => {
+    const segTotal = volumeTotals[seg];
+    const counts = volumePackageCounts[seg];
+    const segClassifiedTotal = Object.values(counts).reduce((s, c) => s + c, 0);
+
+    const dist: PackageTierStats[] = packages
+      .map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        tier: pkg.tier,
+        count: counts[pkg.id] ?? 0,
+        pct:
+          segClassifiedTotal > 0
+            ? Math.round(((counts[pkg.id] ?? 0) / segClassifiedTotal) * 100)
+            : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      segment: seg,
+      label,
+      totalQuotes: segTotal,
+      packageTierDistribution: dist,
+      dominantPackageTier: dist.find(p => p.count > 0) ?? null,
+    };
+  };
+
+  const volumeSegments: VolumeSegmentStats[] = [
+    buildSegmentStats("high", "high-volume operators who chose the fully-auto T2000 kit"),
+    buildSegmentStats("standard", "standard-volume operators who chose the semi-auto T1000 kit"),
+  ].filter(s => s.totalQuotes > 0);
+
   // Top 5 upgrade IDs by count — used only for the DB popular-flag sync
   const popularUpgradeIds = allUpgradesOverall.slice(0, 5).map(u => u.id);
 
@@ -290,11 +372,11 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     popularUpgradeIds,
     packageTierDistribution,
     dominantPackageTier,
+    volumeSegments,
   };
 
   cachedIntel = intel;
   cacheTimestamp = Date.now();
-
   return intel;
 }
 
@@ -364,6 +446,23 @@ export function formatPopularityBlock(intel: PopularityIntelligence): string {
     }
   }
 
+  // --- Volume segment breakdowns ---
+  if (intel.volumeSegments.length > 0) {
+    lines.push(`\nPackage tier breakdown by job volume (derived from kit choice):`)
+    for (const seg of intel.volumeSegments) {
+      if (seg.packageTierDistribution.some(p => p.count > 0)) {
+        const tierLine = seg.packageTierDistribution
+          .filter(p => p.count > 0)
+          .map(p => `${p.name} ${p.pct}%`)
+          .join(", ");
+        lines.push(`  • ${seg.label} (${seg.totalQuotes} quotes): ${tierLine}`);
+        if (seg.dominantPackageTier && seg.dominantPackageTier.pct >= 60) {
+          lines.push(`    → ${seg.dominantPackageTier.name} strongly dominates in this segment — reference it when the customer's volume profile matches`);
+        }
+      }
+    }
+  }
+
   // --- Service-type breakdowns ---
   const serviceLabels: Record<string, string> = {
     car: "car/light-van",
@@ -377,7 +476,7 @@ export function formatPopularityBlock(intel: PopularityIntelligence): string {
       const upgrades = intel.allUpgradesByServiceType[st];
       if (!upgrades || upgrades.length === 0) continue;
       const label = serviceLabels[st] ?? st;
-      const stTotal = upgrades.reduce((max, u) => Math.max(max, u.count), 0); // just for context
+      const stTotal = upgrades.reduce((max, u) => Math.max(max, u.count), 0);
       lines.push(`  ${label} customers (${stTotal > 0 ? upgrades.length + " products selected" : ""}):`);
       for (const u of upgrades) {
         lines.push(`    "${u.name}" — ${u.pct}%`);
@@ -393,6 +492,7 @@ export function formatPopularityBlock(intel: PopularityIntelligence): string {
     `- ★ (30–49%): Say "a lot of customers add this" / "commonly chosen"`,
     `- Under 30%: Mention if relevant, but don't lead with popularity`,
     `- Service-type data: use it to say "most commercial operators go for X" or "car customers typically choose Y"`,
+    `- Volume segments: once you know the customer wants a fully-auto T2000 kit (or mentions doing a high number of jobs per day), cross-reference the high-volume segment data — say "operators doing a high volume of jobs a day who go for the fully-auto setup tend to choose [tier]" or "most high-throughput operators go with [tier]"`,
     `- NEVER quote raw percentages to the customer — always translate into natural sales language`,
   );
 
