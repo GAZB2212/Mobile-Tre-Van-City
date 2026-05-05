@@ -3347,6 +3347,29 @@ export default function AdminQuoteDetail() {
               </CardContent>
             </Card>
 
+            {/* Send Config to Customer */}
+            <Card>
+              <CardContent className="pt-4 pb-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => sendConfirmationMutation.mutate()}
+                  disabled={sendConfirmationMutation.isPending || !quote.email}
+                  data-testid="button-send-config-to-customer"
+                >
+                  <Mail className="w-3.5 h-3.5 mr-1.5" />
+                  {sendConfirmationMutation.isPending ? "Sending..." : "Send Config to Customer"}
+                </Button>
+                {quote.email ? (
+                  <p className="text-xs text-muted-foreground truncate">→ {quote.email}</p>
+                ) : (
+                  <p className="text-xs text-destructive">No email address on record</p>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Push to Sage */}
             {canEdit && (
               <Card>
