@@ -3,6 +3,7 @@ import type { User } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { getAuthToken } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -121,10 +122,16 @@ export default function AdminCustomers() {
 
   const { data: customers = [], isLoading: customersLoading } = useQuery<CustomerListItem[]>({
     queryKey,
-    queryFn: () =>
-      fetch(`/api/admin/customers${queryString ? `?${queryString}` : ""}`, {
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers${queryString ? `?${queryString}` : ""}`, {
         credentials: "include",
-      }).then(r => r.json()),
+        headers,
+      });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     staleTime: 0,
     refetchOnMount: "always",
