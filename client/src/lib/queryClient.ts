@@ -1,5 +1,24 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// ---------------------------------------------------------------------------
+// Bearer token helpers — stored in localStorage so they survive page navigation
+// inside Replit's cross-origin iframe (where session cookies are blocked).
+// ---------------------------------------------------------------------------
+export function getAuthToken(): string | null {
+  try { return localStorage.getItem("_authToken"); } catch { return null; }
+}
+export function setAuthToken(token: string): void {
+  try { localStorage.setItem("_authToken", token); } catch {}
+}
+export function clearAuthToken(): void {
+  try { localStorage.removeItem("_authToken"); } catch {}
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -12,7 +31,10 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  const headers: Record<string, string> = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...authHeaders(),
+  };
   
   const res = await fetch(url, {
     method,
@@ -33,6 +55,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
+      headers: authHeaders(),
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

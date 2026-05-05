@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { loginSchema, type LoginCredentials } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, setAuthToken } from "@/lib/queryClient";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,14 +46,17 @@ export default function Login() {
       return res.json();
     },
     onSuccess: (data) => {
+      // Store the bearer token so subsequent requests work even if the session
+      // cookie is blocked (e.g. inside Replit's cross-origin iframe preview).
+      if (data._authToken) {
+        setAuthToken(data._authToken);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
-      // Force a small delay to ensure session is settled before redirect
       setTimeout(() => {
-        // Redirect based on user role - basic and full admins go to admin panel
         if (data.adminRole && data.adminRole !== "none") {
           window.location.href = "/admin";
         } else {

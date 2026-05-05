@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, clearAuthToken } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import mtvcLogoWide from "@assets/Untitled_design-36_1773155683674.png";
 import mtvcLogoRound from "@assets/Untitled design-47_1759231860895.png";
@@ -268,6 +268,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     try { await apiRequest("POST", "/api/auth/logout"); } catch {}
+    clearAuthToken();
     window.location.href = "/login";
   };
 

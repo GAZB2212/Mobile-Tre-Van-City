@@ -4,7 +4,7 @@ import { Menu, X, LogOut, Shield, Phone, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, clearAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/Untitled design-51_1759240381746.webp";
 
@@ -55,9 +55,11 @@ export default function Header() {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      clearAuthToken();
       window.location.href = "/login";
     },
     onError: () => {
+      clearAuthToken();
       window.location.href = "/login";
     },
   });

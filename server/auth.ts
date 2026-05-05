@@ -20,6 +20,58 @@ declare module 'express-session' {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Bearer token store — used as a cookie-independent auth fallback.
+// The Replit workspace embeds the app preview inside a cross-origin iframe,
+// which causes browsers to block session cookies even with SameSite=None.
+// Storing an auth token in localStorage and sending it as Authorization:Bearer
+// completely bypasses this iframe cookie restriction.
+// ---------------------------------------------------------------------------
+interface TokenEntry { userId: string; expiresAt: number; }
+const authTokens = new Map<string, TokenEntry>();
+
+export function createAuthToken(userId: string): string {
+  const token = randomBytes(32).toString('hex');
+  authTokens.set(token, { userId, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+  return token;
+}
+
+export function revokeAuthToken(token: string): void {
+  authTokens.delete(token);
+}
+
+type SessionUser = { id: string; username: string; isAdmin: boolean; adminRole: string };
+
+async function getUserFromBearer(req: any): Promise<SessionUser | null> {
+  const auth = (req.headers['authorization'] as string) || '';
+  if (!auth.startsWith('Bearer ')) return null;
+  const token = auth.slice(7);
+  const entry = authTokens.get(token);
+  if (!entry || entry.expiresAt < Date.now()) { authTokens.delete(token); return null; }
+  try {
+    const user = await storage.getUser(entry.userId);
+    if (!user) return null;
+    return { id: user.id, username: user.username, isAdmin: user.isAdmin, adminRole: user.adminRole };
+  } catch { return null; }
+}
+
+// Returns the authenticated user from session OR bearer token, always fresh from DB.
+async function getCurrentUser(req: any): Promise<SessionUser | null> {
+  if (req.session?.user?.id) {
+    try {
+      const user = await storage.getUser(req.session.user.id);
+      if (!user) return null;
+      if (req.session.user.adminRole !== user.adminRole || req.session.user.isAdmin !== user.isAdmin) {
+        req.session.user.adminRole = user.adminRole;
+        req.session.user.isAdmin = user.isAdmin;
+        req.session.save(() => {});
+      }
+      return { id: user.id, username: user.username, isAdmin: user.isAdmin, adminRole: user.adminRole };
+    } catch { return null; }
+  }
+  return getUserFromBearer(req);
+}
+
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
@@ -159,6 +211,10 @@ export async function setupAuth(app: Express) {
       }
 
       console.log('✅ Password valid, creating session for:', username);
+
+      // Create a bearer token — works regardless of whether session cookies are blocked
+      // (e.g. inside Replit's cross-origin iframe preview).
+      const authToken = createAuthToken(user.id);
       
       // Store user in session
       req.session.user = {
@@ -170,16 +226,13 @@ export async function setupAuth(app: Express) {
 
       // Save session explicitly
       req.session.save((err) => {
-        if (err) {
-          console.error("❌ Session save error:", err);
-          return res.status(500).json({ message: "Could not create session" });
-        }
+        if (err) console.warn("⚠️ Session save warning:", err?.message);
 
-        console.log('✅ Session saved successfully for:', username);
+        console.log('✅ Login complete for:', username);
         
-        // Return user without password hash
+        // Return user without password hash + the bearer token for localStorage storage
         const { passwordHash, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
+        res.json({ ...userWithoutPassword, _authToken: authToken });
       });
     } catch (error) {
       console.error("❌ Login error (FULL):", error);
@@ -293,30 +346,23 @@ export async function setupAuth(app: Express) {
 
   // Logout endpoint
   app.post("/api/auth/logout", (req, res) => {
+    // Revoke bearer token if present
+    const auth = (req.headers['authorization'] as string) || '';
+    if (auth.startsWith('Bearer ')) revokeAuthToken(auth.slice(7));
+
     req.session.destroy((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Could not logout" });
-      }
+      if (err) console.warn("Logout session destroy warning:", err?.message);
       res.clearCookie("connect.sid");
       res.json({ message: "Logged out successfully" });
     });
   });
 
-  // Get current user endpoint
+  // Get current user endpoint — accepts session cookie OR Authorization: Bearer token
   app.get("/api/auth/user", async (req, res) => {
-    if (!req.session.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
     try {
-      const user = await storage.getUser(req.session.user.id);
-      if (!user) {
-        req.session.destroy(() => {});
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const { passwordHash, ...userWithoutPassword } = user;
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const { passwordHash, ...userWithoutPassword } = await storage.getUser(user.id) as User;
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Get user error:", error);
@@ -325,65 +371,34 @@ export async function setupAuth(app: Express) {
   });
 }
 
-// Middleware to check if user is authenticated
-export const isAuthenticated: RequestHandler = (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
+// Middleware to check if user is authenticated (session cookie OR Bearer token)
+export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  const user = await getCurrentUser(req);
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
   next();
 };
 
-// Helper: refresh session role from DB and update session if it changed
-async function refreshSessionRole(req: any): Promise<{ id: string; adminRole: string; isAdmin: boolean } | null> {
-  try {
-    const user = await storage.getUser(req.session.user.id);
-    if (!user) return null;
-    // Update session if role has changed so subsequent requests use fresh data
-    if (req.session.user.adminRole !== user.adminRole || req.session.user.isAdmin !== user.isAdmin) {
-      req.session.user.adminRole = user.adminRole;
-      req.session.user.isAdmin = user.isAdmin;
-      req.session.save(() => {}); // fire-and-forget save
-    }
-    return { id: user.id, adminRole: user.adminRole, isAdmin: user.isAdmin };
-  } catch {
-    return null;
-  }
-}
-
 // Middleware to check if user is admin (full admin only) — always validates against DB
 export const isAdmin: RequestHandler = async (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  const fresh = await refreshSessionRole(req);
-  if (!fresh || fresh.adminRole !== "full") {
-    return res.status(403).json({ message: "Forbidden - Full admin access required" });
-  }
+  const user = await getCurrentUser(req);
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
+  if (user.adminRole !== "full") return res.status(403).json({ message: "Forbidden - Full admin access required" });
   next();
 };
 
 // Middleware to check if user has at least basic admin role — always validates against DB
 export const isBasicAdmin: RequestHandler = async (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  const fresh = await refreshSessionRole(req);
-  const allowedRoles = ["basic", "full"];
-  if (!fresh || !allowedRoles.includes(fresh.adminRole)) {
-    return res.status(403).json({ message: "Forbidden - Admin access required" });
-  }
+  const user = await getCurrentUser(req);
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
+  if (!["basic", "full"].includes(user.adminRole)) return res.status(403).json({ message: "Forbidden - Admin access required" });
   next();
 };
 
 // Middleware to check if user has full admin role (alias of isAdmin)
 export const isFullAdmin: RequestHandler = async (req, res, next) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  const fresh = await refreshSessionRole(req);
-  if (!fresh || fresh.adminRole !== "full") {
-    return res.status(403).json({ message: "Forbidden - Full admin access required" });
-  }
+  const user = await getCurrentUser(req);
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
+  if (user.adminRole !== "full") return res.status(403).json({ message: "Forbidden - Full admin access required" });
   next();
 };
 
