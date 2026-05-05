@@ -363,14 +363,14 @@ export default function VanDetails() {
                       <Phone className="w-5 h-5 text-accent" />
                       <div>
                         <p className="text-sm text-muted-foreground">Call us</p>
-                        <p className="font-medium">0800 123 4567</p>
+                        <p className="font-medium">0151 203 8500</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-card/50 rounded-md border">
                       <Mail className="w-5 h-5 text-accent" />
                       <div>
                         <p className="text-sm text-muted-foreground">Email us</p>
-                        <p className="font-medium">sales@example.com</p>
+                        <p className="font-medium">info@mobiletyrevancity.co.uk</p>
                       </div>
                     </div>
                   </CardContent>
