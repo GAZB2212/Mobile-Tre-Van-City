@@ -118,6 +118,9 @@ export default function AdminCustomers() {
   const [staffFilter, setStaffFilter] = useState<string>("");
   const [syncSummary, setSyncSummary] = useState<BackfillResult | null>(null);
   const [summaryExpanded, setSummaryExpanded] = useState(true);
+  const [showAllSyncedCustomers, setShowAllSyncedCustomers] = useState(false);
+
+  const SYNC_LIST_CAP = 20;
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
@@ -153,6 +156,7 @@ export default function AdminCustomers() {
       }
       setSyncSummary(data);
       setSummaryExpanded(true);
+      setShowAllSyncedCustomers(false);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
     },
     onError: () => {
@@ -341,7 +345,10 @@ export default function AdminCustomers() {
                     <p className="text-xs text-muted-foreground mb-2">
                       Customer profiles updated by this sync:
                     </p>
-                    {syncSummary.linkedCustomers.map(c => (
+                    {(showAllSyncedCustomers
+                      ? syncSummary.linkedCustomers
+                      : syncSummary.linkedCustomers.slice(0, SYNC_LIST_CAP)
+                    ).map(c => (
                       <div key={c.id} className="flex items-center justify-between gap-3 flex-wrap py-1" data-testid={`row-synced-customer-${c.id}`}>
                         <div className="flex items-center gap-2">
                           <Link href={`/admin/customers/${c.id}`}>
@@ -375,6 +382,17 @@ export default function AdminCustomers() {
                         </div>
                       </div>
                     ))}
+                    {syncSummary.linkedCustomers.length > SYNC_LIST_CAP && (
+                      <button
+                        className="mt-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                        onClick={() => setShowAllSyncedCustomers(v => !v)}
+                        data-testid="button-toggle-show-all-synced"
+                      >
+                        {showAllSyncedCustomers
+                          ? "Show fewer"
+                          : `Show all ${syncSummary.linkedCustomers.length} customers`}
+                      </button>
+                    )}
                   </div>
                 )}
 
