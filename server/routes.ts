@@ -5286,7 +5286,7 @@ ${blogEntries}
       const popularityBlock = popularityIntel
         ? formatPopularityBlock(popularityIntel)
         : "POPULARITY INTELLIGENCE: Temporarily unavailable — use general best-practice recommendations.";
-      console.debug(`[ai-chat] Popularity intel: ${popularityIntel?.totalMeaningfulQuotes ?? 0} quotes, 48V rate: ${popularityIntel?.rate48v ?? 0}%, top upgrades: ${popularityIntel?.topUpgradesOverall?.slice(0, 3).map(u => u.name).join(", ") ?? "none"}`);
+      console.debug(`[ai-chat] Popularity intel: ${popularityIntel?.totalMeaningfulQuotes ?? 0} quotes, 48V rate: ${popularityIntel?.rate48v ?? 0}%, top upgrades: ${popularityIntel?.allUpgradesOverall?.slice(0, 3).map(u => u.name).join(", ") ?? "none"}`);
 
       const systemPrompt = `You are Max, the AI van builder for Mobile Tyre Van City, the UK's leading mobile tyre van conversion specialists based in Bromborough, Wirral. Phone: 0151 203 8500. Website: www.mobiletyrevancity.co.uk
 

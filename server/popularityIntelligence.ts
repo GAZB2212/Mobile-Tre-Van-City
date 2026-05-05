@@ -8,12 +8,33 @@ export interface PackageTierStats {
   pct: number;
 }
 
+export interface UpgradeSelectionStat {
+  id: string;
+  name: string;
+  category: string;
+  count: number;
+  pct: number;
+}
+
+export interface KitSelectionStat {
+  id: string;
+  name: string;
+  count: number;
+  pct: number;
+}
+
 export interface PopularityIntelligence {
   totalMeaningfulQuotes: number;
-  topUpgradesOverall: Array<{ id: string; name: string; count: number; pct: number }>;
-  topUpgradesByServiceType: Record<string, Array<{ id: string; name: string; count: number; pct: number }>>;
-  mostChosenKit: { id: string; name: string; pct: number } | null;
+  /** All upgrades that appear in at least one quote, sorted by selection frequency descending */
+  allUpgradesOverall: UpgradeSelectionStat[];
+  /** Same data segmented by service_type — every selected upgrade per segment, no cap */
+  allUpgradesByServiceType: Record<string, UpgradeSelectionStat[]>;
+  /** Every kit that appears in at least one quote, sorted by selection frequency descending */
+  allKits: KitSelectionStat[];
+  /** Convenience alias — first entry of allKits */
+  mostChosenKit: KitSelectionStat | null;
   rate48v: number;
+  /** Top 5 IDs used only for the DB popular-flag sync — not for the AI prompt */
   popularUpgradeIds: string[];
   packageTierDistribution: PackageTierStats[];
   dominantPackageTier: PackageTierStats | null;
@@ -33,8 +54,8 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
   if (cachedIntel !== null && now - cacheTimestamp < CACHE_TTL_MS) {
     return cachedIntel;
   }
-  // Fetch the last 200 meaningful quotes (not cancelled, has at least a kit or upgrade)
-  // and fetch active packages in parallel
+
+  // Fetch the last 200 meaningful quotes, active packages, and 48V upgrade IDs in parallel
   const [result, packagesResult, all48vResult] = await Promise.all([
     pool.query<{
       kit_id: string | null;
@@ -85,8 +106,9 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
   if (total === 0) {
     const emptyResult: PopularityIntelligence = {
       totalMeaningfulQuotes: 0,
-      topUpgradesOverall: [],
-      topUpgradesByServiceType: {},
+      allUpgradesOverall: [],
+      allUpgradesByServiceType: {},
+      allKits: [],
       mostChosenKit: null,
       rate48v: 0,
       popularUpgradeIds: [],
@@ -98,7 +120,7 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     return emptyResult;
   }
 
-  // Count upgrade frequencies overall and by service type
+  // Count upgrade and kit frequencies overall and by service type
   const overallCounts: Record<string, number> = {};
   const byServiceType: Record<string, Record<string, number>> = {};
   const kitCounts: Record<string, number> = {};
@@ -126,9 +148,8 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     }
 
     // Package tier classification: find which package best matches this quote's upgrades.
-    // Score = how many of the package's upgrade IDs are present in the quote (containment).
+    // Score = containment (how many of the package's upgrade IDs are present in the quote).
     // A quote is classified as a package if at least 50% of that package's upgrades are present.
-    // Prefer higher tier on ties (more capable = more likely intentional).
     if (ids.length > 0 && packages.length > 0) {
       let bestPackage: typeof packages[0] | null = null;
       let bestScore = 0;
@@ -149,20 +170,22 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     }
   }
 
-  // Fetch upgrade names so we can label them
+  // Fetch name AND category for every upgrade that appears in at least one quote
   const upgradeIdsNeeded = Object.keys(overallCounts);
   let upgradeNames: Record<string, string> = {};
+  let upgradeCategories: Record<string, string> = {};
   if (upgradeIdsNeeded.length > 0) {
-    const upResult = await pool.query<{ id: string; name: string }>(
-      `SELECT id, name FROM upgrades WHERE id = ANY($1)`,
+    const upResult = await pool.query<{ id: string; name: string; category: string }>(
+      `SELECT id, name, category FROM upgrades WHERE id = ANY($1)`,
       [upgradeIdsNeeded]
     );
     for (const r of upResult.rows) {
       upgradeNames[r.id] = r.name;
+      upgradeCategories[r.id] = r.category;
     }
   }
 
-  // Fetch kit names
+  // Fetch kit names for every kit that appears in at least one quote
   const kitIdsNeeded = Object.keys(kitCounts);
   let kitNames: Record<string, string> = {};
   if (kitIdsNeeded.length > 0) {
@@ -175,43 +198,43 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
     }
   }
 
-  // Top upgrades overall (top 8)
-  const topUpgradesOverall = Object.entries(overallCounts)
+  // ALL upgrades that appear in at least one quote, sorted by frequency descending — no cap
+  const allUpgradesOverall: UpgradeSelectionStat[] = Object.entries(overallCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
     .map(([id, count]) => ({
       id,
       name: upgradeNames[id] ?? id,
+      category: upgradeCategories[id] ?? "Other",
       count,
       pct: Math.round((count / total) * 100),
     }));
 
-  // Top upgrades by service type (top 5 each)
-  const topUpgradesByServiceType: Record<string, Array<{ id: string; name: string; count: number; pct: number }>> = {};
+  // ALL upgrades by service type, sorted by frequency — no cap
+  const allUpgradesByServiceType: Record<string, UpgradeSelectionStat[]> = {};
   for (const [st, counts] of Object.entries(byServiceType)) {
     const stTotal = rows.filter(r => (r.service_type ?? "unknown") === st).length;
-    topUpgradesByServiceType[st] = Object.entries(counts)
+    allUpgradesByServiceType[st] = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
       .map(([id, count]) => ({
         id,
         name: upgradeNames[id] ?? id,
+        category: upgradeCategories[id] ?? "Other",
         count,
         pct: Math.round((count / stTotal) * 100),
       }));
   }
 
-  // Most chosen kit
-  let mostChosenKit: { id: string; name: string; pct: number } | null = null;
-  const kitEntries = Object.entries(kitCounts).sort((a, b) => b[1] - a[1]);
-  if (kitEntries.length > 0) {
-    const [topKitId, topKitCount] = kitEntries[0];
-    mostChosenKit = {
-      id: topKitId,
-      name: kitNames[topKitId] ?? topKitId,
-      pct: Math.round((topKitCount / total) * 100),
-    };
-  }
+  // ALL kits sorted by frequency descending
+  const allKits: KitSelectionStat[] = Object.entries(kitCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, count]) => ({
+      id,
+      name: kitNames[id] ?? id,
+      count,
+      pct: Math.round((count / total) * 100),
+    }));
+
+  const mostChosenKit = allKits[0] ?? null;
 
   // 48V selection rate
   const quotesWithAny48v = rows.filter(row => {
@@ -234,15 +257,10 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
 
   const dominantPackageTier = packageTierDistribution.find(p => p.count > 0) ?? null;
 
-  // Top 5 upgrade IDs by count (for popular flag sync)
-  const popularUpgradeIds = Object.entries(overallCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([id]) => id);
+  // Top 5 upgrade IDs by count — used only for the DB popular-flag sync
+  const popularUpgradeIds = allUpgradesOverall.slice(0, 5).map(u => u.id);
 
-  // Sync popular flag on upgrades (throttled to once per hour).
-  // Always runs the update — clears stale popular flags even if no upgrades were
-  // selected in the recent window (popularUpgradeIds will be empty in that case).
+  // Sync popular flag on upgrades (throttled to once per hour)
   const syncNow = Date.now();
   if (syncNow - lastPopularSyncAt >= POPULAR_SYNC_INTERVAL_MS) {
     lastPopularSyncAt = syncNow;
@@ -254,7 +272,6 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
         );
         console.log(`[popularity] Synced popular flag — top upgrades: ${popularUpgradeIds.join(", ")}`);
       } else {
-        // No upgrade data in recent window — clear all popular flags to avoid stale state
         await pool.query(`UPDATE upgrades SET popular = false`);
         console.log(`[popularity] Cleared all popular flags (no upgrade data in recent window)`);
       }
@@ -265,8 +282,9 @@ export async function computePopularityIntelligence(): Promise<PopularityIntelli
 
   const intel: PopularityIntelligence = {
     totalMeaningfulQuotes: total,
-    topUpgradesOverall,
-    topUpgradesByServiceType,
+    allUpgradesOverall,
+    allUpgradesByServiceType,
+    allKits,
     mostChosenKit,
     rate48v,
     popularUpgradeIds,
@@ -286,52 +304,96 @@ export function formatPopularityBlock(intel: PopularityIntelligence): string {
   }
 
   const lines: string[] = [
-    `POPULARITY INTELLIGENCE (based on ${intel.totalMeaningfulQuotes} real customer quotes — use this to nudge recommendations with confidence):`,
+    `REAL CUSTOMER PRODUCT SELECTION DATA (based on ${intel.totalMeaningfulQuotes} quotes — use this to inform every recommendation):`,
   ];
 
-  if (intel.mostChosenKit) {
-    lines.push(`- Most chosen kit: "${intel.mostChosenKit.name}" (selected by ${intel.mostChosenKit.pct}% of customers)`);
+  // --- Kits ---
+  if (intel.allKits.length > 0) {
+    lines.push(`\nKITS chosen by customers:`);
+    for (const k of intel.allKits) {
+      lines.push(`  "${k.name}" — ${k.pct}% of customers chose this kit`);
+    }
   }
 
-  // Package tier distribution
+  // --- All upgrades, grouped by category ---
+  if (intel.allUpgradesOverall.length > 0) {
+    // Group by category, preserving overall frequency sort within each group
+    const byCategory: Record<string, UpgradeSelectionStat[]> = {};
+    for (const u of intel.allUpgradesOverall) {
+      if (!byCategory[u.category]) byCategory[u.category] = [];
+      byCategory[u.category].push(u);
+    }
+
+    // Sort categories by the highest-frequency upgrade in each group (most popular category first)
+    const sortedCategories = Object.entries(byCategory)
+      .sort((a, b) => b[1][0].pct - a[1][0].pct);
+
+    lines.push(`\nUPGRADES chosen by customers (every upgrade that has ever appeared in a quote):`);
+    for (const [category, upgrades] of sortedCategories) {
+      lines.push(`  [${category}]`);
+      for (const u of upgrades) {
+        const popularity =
+          u.pct >= 70 ? " ★★★ very popular" :
+          u.pct >= 50 ? " ★★ popular" :
+          u.pct >= 30 ? " ★ commonly chosen" :
+          "";
+        lines.push(`    "${u.name}" — ${u.pct}% of quotes include this${popularity}`);
+      }
+    }
+  }
+
+  // --- 48V signal ---
+  if (intel.rate48v > 0) {
+    lines.push(`\n48V silent compressor system: chosen by ${intel.rate48v}% of recent customers`);
+    if (intel.rate48v >= 60) {
+      lines.push(`  → STRONG signal: majority choose 48V — pitch it confidently and early`);
+    } else if (intel.rate48v >= 40) {
+      lines.push(`  → Solid majority — recommend proactively, frame as the standard choice`);
+    }
+  }
+
+  // --- Package tier distribution ---
   if (intel.packageTierDistribution.some(p => p.count > 0)) {
     const tierLine = intel.packageTierDistribution
       .filter(p => p.count > 0)
       .map(p => `${p.name} ${p.pct}%`)
       .join(", ");
-    lines.push(`- Package tier distribution: ${tierLine}`);
+    lines.push(`\nPackage tier distribution (% of classified quotes): ${tierLine}`);
     if (intel.dominantPackageTier && intel.dominantPackageTier.pct >= 50) {
       lines.push(`  → ${intel.dominantPackageTier.name} is the dominant tier — lead with it in recommendations`);
     }
   }
 
-  if (intel.rate48v > 0) {
-    lines.push(`- 48V silent compressor system: chosen by ${intel.rate48v}% of recent customers`);
-    if (intel.rate48v >= 60) {
-      lines.push(`  → STRONG signal: majority choose 48V — pitch it confidently and early`);
-    } else if (intel.rate48v >= 40) {
-      lines.push(`  → Solid majority — recommend it proactively, frame as standard choice`);
-    }
-  }
-
-  if (intel.topUpgradesOverall.length > 0) {
-    const topNames = intel.topUpgradesOverall.slice(0, 5).map(u => `"${u.name}" (${u.pct}%)`).join(", ");
-    lines.push(`- Top upgrades overall (% of quotes that include them): ${topNames}`);
-  }
-
-  const serviceTypes = ["car", "commercial", "hybrid"];
-  for (const st of serviceTypes) {
-    const top = intel.topUpgradesByServiceType[st];
-    if (top && top.length > 0) {
-      const label = st === "car" ? "car/light-van" : st === "commercial" ? "commercial/HGV" : "hybrid/mixed";
-      const names = top.slice(0, 3).map(u => `"${u.name}" (${u.pct}%)`).join(", ");
-      lines.push(`- Top upgrades among ${label} customers: ${names}`);
+  // --- Service-type breakdowns ---
+  const serviceLabels: Record<string, string> = {
+    car: "car/light-van",
+    commercial: "commercial/HGV",
+    hybrid: "hybrid/mixed",
+  };
+  const serviceTypes = Object.keys(intel.allUpgradesByServiceType);
+  if (serviceTypes.length > 0) {
+    lines.push(`\nUpgrade popularity by customer service type:`);
+    for (const st of serviceTypes) {
+      const upgrades = intel.allUpgradesByServiceType[st];
+      if (!upgrades || upgrades.length === 0) continue;
+      const label = serviceLabels[st] ?? st;
+      const stTotal = upgrades.reduce((max, u) => Math.max(max, u.count), 0); // just for context
+      lines.push(`  ${label} customers (${stTotal > 0 ? upgrades.length + " products selected" : ""}):`);
+      for (const u of upgrades) {
+        lines.push(`    "${u.name}" — ${u.pct}%`);
+      }
     }
   }
 
   lines.push(
     ``,
-    `USING THIS DATA: When an upgrade appears in 50%+ of quotes, mention it proactively as "our most popular choice". When 70%+ of a customer's service-type segment chooses something, say "most [commercial/car] operators go for this". For package tiers, if one tier dominates, lead with it and reference real patterns: "most of our customers go with [tier]". Never cite raw percentages to the customer — translate into natural sales language: "most", "the majority", "eight out of ten", "our most popular setup".`
+    `HOW TO USE THIS DATA: You now have real selection rates for every product customers choose.`,
+    `- ★★★ (70%+): Say "our most popular choice" / "eight out of ten customers add this"`,
+    `- ★★ (50–69%): Say "the majority of customers go for this" / "very popular add-on"`,
+    `- ★ (30–49%): Say "a lot of customers add this" / "commonly chosen"`,
+    `- Under 30%: Mention if relevant, but don't lead with popularity`,
+    `- Service-type data: use it to say "most commercial operators go for X" or "car customers typically choose Y"`,
+    `- NEVER quote raw percentages to the customer — always translate into natural sales language`,
   );
 
   return lines.join("\n");
