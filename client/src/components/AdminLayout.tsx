@@ -47,6 +47,7 @@ import {
   Menu,
   RefreshCw,
   Mail,
+  Settings,
 } from "lucide-react";
 
 interface NavItem {
@@ -88,6 +89,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
       { title: "AI Packages", href: "/admin/ai-packages", icon: Layers, requiredRole: "full" },
       { title: "Users", href: "/admin/users", icon: Shield, requiredRole: "full" },
       { title: "Email Templates", href: "/admin/email-preview", icon: Mail, requiredRole: "full" },
+      { title: "Settings", href: "/admin/settings", icon: Settings, requiredRole: "full" },
     ],
   },
 ];
@@ -180,7 +182,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     location.startsWith("/admin/training-options") || location.startsWith("/admin/gallery-items") ||
     location.startsWith("/admin/videos") || location.startsWith("/admin/blog") ||
     location.startsWith("/admin/ai-packages") || location.startsWith("/admin/users") ||
-    location.startsWith("/admin/email-preview");
+    location.startsWith("/admin/email-preview") || location.startsWith("/admin/settings");
 
   const CONTENT_GROUP_KEY = "adminSidebar_Content_collapsed";
 

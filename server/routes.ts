@@ -6153,10 +6153,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     try {
       const { exchangeCodeForTokens } = await import("./sage.js");
       await exchangeCodeForTokens(code);
-      res.redirect("/admin?sage=connected");
+      res.redirect("/admin/settings?sage=connected");
     } catch (err: any) {
       console.error("[Sage] OAuth callback error:", err);
-      res.redirect("/admin?sage=error");
+      res.redirect("/admin/settings?sage=error");
     }
   });
 

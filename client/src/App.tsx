@@ -71,6 +71,7 @@ const AdminFinanceCalculator = lazy(() => import("@/pages/admin/FinanceCalculato
 const AdminAIConversations = lazy(() => import("@/pages/admin/AIConversations"));
 const AdminTestimonials = lazy(() => import("@/pages/admin/Testimonials"));
 const AdminEmailPreview = lazy(() => import("@/pages/admin/EmailPreview"));
+const AdminSettings = lazy(() => import("@/pages/admin/Settings"));
 
 function Router() {
   return (
@@ -134,6 +135,7 @@ function Router() {
       <Route path="/admin/ai-conversations">{() => <AdminLayout><AdminAIConversations /></AdminLayout>}</Route>
       <Route path="/admin/testimonials">{() => <AdminLayout><AdminTestimonials /></AdminLayout>}</Route>
       <Route path="/admin/email-preview">{() => <AdminLayout><AdminEmailPreview /></AdminLayout>}</Route>
+      <Route path="/admin/settings">{() => <AdminLayout><AdminSettings /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
   );
