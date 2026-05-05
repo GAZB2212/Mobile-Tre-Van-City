@@ -46,12 +46,6 @@ export default function Login() {
       return res.json();
     },
     onSuccess: (data) => {
-      // Store session ID in localStorage as fallback since cookies aren't working
-      console.log('🔐 Login success, storing sessionId:', data.sessionId ? 'YES' : 'NO');
-      if (data.sessionId) {
-        localStorage.setItem('sessionId', data.sessionId);
-        console.log('✅ SessionId stored in localStorage');
-      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Success",

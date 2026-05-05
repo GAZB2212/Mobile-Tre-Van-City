@@ -229,10 +229,7 @@ export default function AdminAIConversations() {
       if (filters.dateFrom) params.set(QP_DATE_FROM, filters.dateFrom);
       if (filters.dateTo) params.set(QP_DATE_TO, filters.dateTo);
       const url = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
-      const sessionId = localStorage.getItem("sessionId");
-      const headers: Record<string, string> = {};
-      if (sessionId) headers["Authorization"] = `Bearer ${sessionId}`;
-      const res = await fetch(url, { headers, credentials: "include" });
+      const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
       return res.json();
     },

@@ -266,7 +266,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     try { await apiRequest("POST", "/api/auth/logout"); } catch {}
-    localStorage.removeItem("sessionId");
     window.location.href = "/login";
   };
 

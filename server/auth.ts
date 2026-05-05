@@ -107,10 +107,7 @@ export async function setupAuth(app: Express) {
 
         // Return user without password hash
         const { passwordHash, ...userWithoutPassword } = user;
-        res.status(201).json({
-          ...userWithoutPassword,
-          sessionId: req.sessionID
-        });
+        res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -161,7 +158,7 @@ export async function setupAuth(app: Express) {
         adminRole: user.adminRole,
       };
 
-      // Save session explicitly and also return session ID in response
+      // Save session explicitly
       req.session.save((err) => {
         if (err) {
           console.error("❌ Session save error:", err);
@@ -170,12 +167,9 @@ export async function setupAuth(app: Express) {
 
         console.log('✅ Session saved successfully for:', username);
         
-        // Return user without password hash AND include session ID
+        // Return user without password hash
         const { passwordHash, ...userWithoutPassword } = user;
-        res.json({
-          ...userWithoutPassword,
-          sessionId: req.sessionID // Send session ID in response body as fallback
-        });
+        res.json(userWithoutPassword);
       });
     } catch (error) {
       console.error("❌ Login error (FULL):", error);
@@ -301,23 +295,6 @@ export async function setupAuth(app: Express) {
 
   // Get current user endpoint
   app.get("/api/auth/user", async (req, res) => {
-    // Try to get session ID from Authorization header as fallback when cookies don't work
-    const sessionIdFromHeader = req.headers.authorization?.replace('Bearer ', '');
-    
-    // If no session user but we have a session ID from header, try to load the session
-    if (!req.session.user && sessionIdFromHeader) {
-      // Manually load session from store using the session ID from Authorization header
-      const sessionStore = req.sessionStore;
-      await new Promise<void>((resolve) => {
-        sessionStore.get(sessionIdFromHeader, (err, sessionData) => {
-          if (!err && sessionData?.user) {
-            req.session.user = sessionData.user;
-          }
-          resolve();
-        });
-      });
-    }
-    
     if (!req.session.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -339,41 +316,10 @@ export async function setupAuth(app: Express) {
 }
 
 // Middleware to check if user is authenticated
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // Try to get session ID from Authorization header as fallback when cookies don't work
-  const sessionIdFromHeader = req.headers.authorization?.replace('Bearer ', '');
-  
-  console.log('🔐 isAuthenticated middleware:', {
-    path: req.path,
-    hasSessionUser: !!req.session.user,
-    hasAuthHeader: !!sessionIdFromHeader,
-    sessionId: sessionIdFromHeader ? `${sessionIdFromHeader.substring(0, 10)}...` : 'none'
-  });
-  
-  // If no session user but we have a session ID from header, try to load the session
-  if (!req.session.user && sessionIdFromHeader) {
-    // Manually load session from store using the session ID from Authorization header
-    const sessionStore = req.sessionStore;
-    await new Promise<void>((resolve) => {
-      sessionStore.get(sessionIdFromHeader, (err, sessionData) => {
-        console.log('📦 Session store lookup:', {
-          err: err?.message,
-          foundSession: !!sessionData,
-          hasUser: !!sessionData?.user
-        });
-        if (!err && sessionData?.user) {
-          req.session.user = sessionData.user;
-        }
-        resolve();
-      });
-    });
-  }
-  
+export const isAuthenticated: RequestHandler = (req, res, next) => {
   if (!req.session.user) {
-    console.log('❌ No session user found, returning 401');
     return res.status(401).json({ message: "Unauthorized" });
   }
-  console.log('✅ User authenticated:', req.session.user.username);
   next();
 };
 

@@ -59,10 +59,9 @@ export function AdminProfileModal({ user, open, onOpenChange }: AdminProfileModa
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const sessionId = localStorage.getItem("sessionId");
       const res = await fetch("/api/user/avatar", {
         method: "POST",
-        headers: sessionId ? { Authorization: `Bearer ${sessionId}` } : {},
+        credentials: "include",
         body: formData,
       });
       if (!res.ok) {

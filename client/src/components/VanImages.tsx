@@ -141,25 +141,13 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
 
     try {
       const file = files[0]; // Upload one at a time
-      const sessionId = localStorage.getItem('sessionId');
-
-      if (!sessionId) {
-        toast({
-          title: "Not authenticated",
-          description: "Please log in again",
-          variant: "destructive",
-        });
-        return;
-      }
 
       const formData = new FormData();
       formData.append('file', file);
 
       const response = await fetch(`/api/admin/vans/${vanId}/upload-image`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${sessionId}`,
-        },
+        credentials: 'include',
         body: formData,
       });
 
@@ -189,16 +177,13 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
   };
 
   const handleDelete = async (imageUrl: string) => {
-    const sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) return;
-
     try {
       const response = await fetch(`/api/admin/vans/${vanId}/images`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ objectPath: imageUrl }),
       });
 
@@ -220,9 +205,6 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
   };
 
   const handleSetHero = async (imageUrl: string) => {
-    const sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) return;
-
     // Update local state immediately for instant feedback
     setLocalHero(imageUrl);
 
@@ -231,8 +213,8 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ objectPath: imageUrl }),
       });
 
@@ -273,16 +255,13 @@ export function VanImages({ vanId, images, heroImage }: VanImagesProps) {
   };
 
   const saveReorder = async (reordered: string[]) => {
-    const sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) return;
-
     try {
       const response = await fetch(`/api/admin/vans/${vanId}/images/reorder`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ images: reordered }),
       });
 

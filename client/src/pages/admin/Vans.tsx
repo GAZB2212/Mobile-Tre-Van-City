@@ -128,24 +128,7 @@ export default function AdminVans() {
   });
 
   const handleCreateVan = async (formData: FormData, selectedFiles?: File[]) => {
-    // Get files from the component state (passed as parameter)
     const files = selectedFiles;
-    
-    // Debug: Log FormData contents
-    console.log("📝 FormData entries:");
-    Array.from(formData.entries()).forEach(([key, value]) => {
-      console.log(`  ${key}:`, value);
-    });
-    
-    const sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) {
-      toast({
-        title: "Not authenticated",
-        description: "Please log in again",
-        variant: "destructive",
-      });
-      return;
-    }
 
     // Upload images first if any (max 10)
     let imageUrls: string[] = [];
@@ -162,9 +145,7 @@ export default function AdminVans() {
 
           const response = await fetch(`/api/admin/temp-upload`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${sessionId}`,
-            },
+            credentials: 'include',
             body: uploadFormData,
           });
 
@@ -215,16 +196,6 @@ export default function AdminVans() {
   const handleUpdateVan = async (formData: FormData, selectedFiles?: File[]) => {
     if (!editingVan) return;
 
-    const sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) {
-      toast({
-        title: "Not authenticated",
-        description: "Please log in again",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Upload new images if any
     let newImageUrls: string[] = [];
     if (selectedFiles && selectedFiles.length > 0) {
@@ -240,9 +211,7 @@ export default function AdminVans() {
 
           const response = await fetch('/api/admin/temp-upload', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${sessionId}`,
-            },
+            credentials: 'include',
             body: uploadFormData,
           });
 

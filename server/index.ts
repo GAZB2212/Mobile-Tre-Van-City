@@ -42,37 +42,48 @@ app.use(express.urlencoded({ extended: false }));
 
 // Bootstrap admin user on startup
 async function bootstrapAdmin() {
-  const adminUsername = process.env.ADMIN_USERNAME || "admin";
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-  const explicitPassword = !!process.env.ADMIN_PASSWORD;
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  // In production, require explicit credentials — never fall back to defaults
+  if (isProduction && (!adminUsername || !adminPassword)) {
+    console.error("❌ CRITICAL: ADMIN_USERNAME and ADMIN_PASSWORD environment variables must be set in production.");
+    console.error("❌ Admin account will NOT be created. Set these variables and restart to bootstrap the admin.");
+    return;
+  }
+
+  // In development fall back to safe local defaults only
+  const resolvedUsername = adminUsername || "admin";
+  const resolvedPassword = adminPassword || "admin123";
 
   try {
-    const existingAdmin = await storage.getUserByUsername(adminUsername);
+    const existingAdmin = await storage.getUserByUsername(resolvedUsername);
     if (!existingAdmin) {
       await createUser({
-        username: adminUsername,
-        password: adminPassword,
+        username: resolvedUsername,
+        password: resolvedPassword,
         email: "admin@mtvc.example.com",
         firstName: "Admin",
         lastName: "User",
         isAdmin: true,
       });
-      log(`✅ Admin user created: ${adminUsername}`);
+      log(`✅ Admin user created: ${resolvedUsername}`);
     } else {
       // Ensure the admin user always has the correct role
       if (existingAdmin.adminRole !== "full") {
         await storage.updateUser(existingAdmin.id, { adminRole: "full", isAdmin: true });
-        log(`✅ Admin role corrected to "full" for: ${adminUsername}`);
+        log(`✅ Admin role corrected to "full" for: ${resolvedUsername}`);
       }
 
       // If ADMIN_PASSWORD env var is explicitly set, sync the password hash
-      if (explicitPassword) {
+      if (adminPassword) {
         const bcrypt = await import("bcryptjs");
-        const newHash = await bcrypt.hash(adminPassword, 10);
+        const newHash = await bcrypt.hash(resolvedPassword, 10);
         await storage.updateUser(existingAdmin.id, { passwordHash: newHash });
         log(`✅ Admin password updated from ADMIN_PASSWORD env var`);
       } else {
-        log(`✅ Admin user exists: ${adminUsername}`);
+        log(`✅ Admin user exists: ${resolvedUsername}`);
       }
     }
   } catch (error) {

@@ -55,11 +55,9 @@ export default function Header() {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      localStorage.removeItem('sessionId');
       window.location.href = "/login";
     },
     onError: () => {
-      localStorage.removeItem('sessionId');
       window.location.href = "/login";
     },
   });

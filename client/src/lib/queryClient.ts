@@ -14,13 +14,6 @@ export async function apiRequest(
 ): Promise<Response> {
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   
-  // Add session ID from localStorage as fallback since cookies aren't working
-  const sessionId = localStorage.getItem('sessionId');
-  console.log('📤 apiRequest:', method, url, '| sessionId:', sessionId ? `${sessionId.substring(0, 10)}...` : 'MISSING');
-  if (sessionId) {
-    headers['Authorization'] = `Bearer ${sessionId}`;
-  }
-  
   const res = await fetch(url, {
     method,
     headers,
@@ -28,7 +21,6 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  console.log('📥 apiRequest response:', res.status, res.statusText);
   await throwIfResNotOk(res);
   return res;
 }
@@ -39,16 +31,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const headers: Record<string, string> = {};
-    
-    // Add session ID from localStorage as fallback since cookies aren't working in Replit
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId) {
-      headers['Authorization'] = `Bearer ${sessionId}`;
-    }
-    
     const res = await fetch(queryKey.join("/") as string, {
-      headers,
       credentials: "include",
     });
 
