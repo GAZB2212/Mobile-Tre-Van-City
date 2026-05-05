@@ -5,6 +5,7 @@ import {
   type Upgrade, type InsertUpgrade,
   type Quote, type InsertQuote,
   type Lead, type InsertLead,
+  type FollowUp, type InsertFollowUp,
   type FinancePlan, type InsertFinancePlan,
   type TrainingOption, type InsertTrainingOption,
   type GalleryItem, type InsertGalleryItem,
@@ -63,6 +64,15 @@ export interface IStorage {
   getLead(id: string): Promise<Lead | undefined>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: string, data: Partial<Lead>): Promise<Lead | undefined>;
+
+  // Follow-ups
+  getFollowUps(): Promise<FollowUp[]>;
+  getTodayFollowUps(): Promise<FollowUp[]>;
+  getFollowUpsNeedingReminder(date: string): Promise<FollowUp[]>;
+  getFollowUp(id: string): Promise<FollowUp | undefined>;
+  createFollowUp(followUp: InsertFollowUp): Promise<FollowUp>;
+  updateFollowUp(id: string, data: Partial<FollowUp>): Promise<FollowUp | undefined>;
+  deleteFollowUp(id: string): Promise<boolean>;
 
   // Finance Plans
   getFinancePlans(): Promise<FinancePlan[]>;
@@ -2127,6 +2137,49 @@ export class DbStorage implements IStorage {
 
   async markTestimonialTokenUsed(token: string): Promise<void> {
     await db.update(schema.testimonialTokens).set({ usedAt: new Date() }).where(eq(schema.testimonialTokens.token, token));
+  }
+
+  // Follow-ups
+  async getFollowUps(): Promise<FollowUp[]> {
+    return db.select().from(schema.followUps).orderBy(asc(schema.followUps.scheduledDate));
+  }
+
+  async getTodayFollowUps(): Promise<FollowUp[]> {
+    const today = new Date().toISOString().split('T')[0];
+    return db.select().from(schema.followUps)
+      .where(eq(schema.followUps.scheduledDate, today))
+      .orderBy(asc(schema.followUps.createdAt));
+  }
+
+  async getFollowUpsNeedingReminder(date: string): Promise<FollowUp[]> {
+    return db.select().from(schema.followUps)
+      .where(
+        and(
+          eq(schema.followUps.scheduledDate, date),
+          eq(schema.followUps.completed, false),
+          isNull(schema.followUps.reminderSentAt)
+        )
+      );
+  }
+
+  async getFollowUp(id: string): Promise<FollowUp | undefined> {
+    const results = await db.select().from(schema.followUps).where(eq(schema.followUps.id, id));
+    return results[0];
+  }
+
+  async createFollowUp(followUp: InsertFollowUp): Promise<FollowUp> {
+    const results = await db.insert(schema.followUps).values(followUp).returning();
+    return results[0];
+  }
+
+  async updateFollowUp(id: string, data: Partial<FollowUp>): Promise<FollowUp | undefined> {
+    const results = await db.update(schema.followUps).set(data).where(eq(schema.followUps.id, id)).returning();
+    return results[0];
+  }
+
+  async deleteFollowUp(id: string): Promise<boolean> {
+    const result = await db.delete(schema.followUps).where(eq(schema.followUps.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

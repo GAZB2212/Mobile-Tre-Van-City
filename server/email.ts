@@ -1378,6 +1378,69 @@ export async function sendTestimonialRequestEmail({
 
 // ── Email preview (admin design sign-off) ────────────────────────────────────
 
+// ── Follow-up reminder email (sent to assigned staff on the day) ──────────────
+export async function sendFollowUpReminderEmail({
+  to,
+  assignedToName,
+  customerName,
+  customerPhone,
+  customerEmail,
+  scheduledDate,
+  notes,
+  leadId,
+  quoteId,
+  baseUrl,
+}: {
+  to: string;
+  assignedToName: string;
+  customerName: string;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  scheduledDate: string;
+  notes?: string | null;
+  leadId?: string | null;
+  quoteId?: string | null;
+  baseUrl: string;
+}): Promise<void> {
+  const { client, fromEmail } = await getUncachableResendClient();
+
+  const formattedDate = new Date(scheduledDate + 'T12:00:00').toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+
+  const linkRow = leadId
+    ? `<tr><td style="color:#6b7280;padding:6px 0;">Lead</td><td><a href="${baseUrl}/admin/leads" style="color:${BRAND_GREEN};">View lead record</a></td></tr>`
+    : quoteId
+    ? `<tr><td style="color:#6b7280;padding:6px 0;">Configurator</td><td><a href="${baseUrl}/admin/quotes/${quoteId}" style="color:${BRAND_GREEN};">View configurator</a></td></tr>`
+    : '';
+
+  const body = `
+    <p>Hi ${assignedToName},</p>
+    <p>You have a customer follow-up scheduled for <strong>today (${formattedDate})</strong>.</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+      <tbody>
+        <tr>
+          <td style="color:#6b7280;padding:10px 16px;width:40%;border-bottom:1px solid #e5e7eb;">Customer</td>
+          <td style="padding:10px 16px;font-weight:600;border-bottom:1px solid #e5e7eb;">${customerName}</td>
+        </tr>
+        ${customerPhone ? `<tr><td style="color:#6b7280;padding:10px 16px;border-bottom:1px solid #e5e7eb;">Phone</td><td style="padding:10px 16px;font-weight:600;border-bottom:1px solid #e5e7eb;"><a href="tel:${customerPhone}" style="color:${BRAND_GREEN};">${customerPhone}</a></td></tr>` : ''}
+        ${customerEmail ? `<tr><td style="color:#6b7280;padding:10px 16px;border-bottom:1px solid #e5e7eb;">Email</td><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;"><a href="mailto:${customerEmail}" style="color:${BRAND_GREEN};">${customerEmail}</a></td></tr>` : ''}
+        ${notes ? `<tr><td style="color:#6b7280;padding:10px 16px;border-bottom:1px solid #e5e7eb;">Notes</td><td style="padding:10px 16px;font-style:italic;border-bottom:1px solid #e5e7eb;">${notes}</td></tr>` : ''}
+        ${linkRow ? `<tr><td style="color:#6b7280;padding:10px 16px;">${linkRow.match(/<td[^>]*>([^<]*)<\/td>/)?.[1] ?? 'Link'}</td><td style="padding:10px 16px;">${linkRow.match(/<a[^>]*>.*?<\/a>/)?.[0] ?? ''}</td></tr>` : ''}
+      </tbody>
+    </table>
+    <a href="${baseUrl}/admin/calendar" style="display:inline-block;background:${BRAND_GREEN};color:${BRAND_DARK};padding:12px 28px;text-decoration:none;border-radius:5px;font-weight:bold;margin-top:8px;">View Calendar</a>
+    <p style="color:#6b7280;font-size:13px;margin-top:20px;">Log in to the admin panel to mark this follow-up as complete or reschedule it.</p>
+  `;
+
+  await client.emails.send({
+    from: fromEmail,
+    to,
+    subject: `Follow-up reminder: ${customerName} — ${formattedDate}`,
+    html: emailLayout(body),
+  });
+}
+
 export const EMAIL_PREVIEW_TYPES = [
   { type: 'quote-confirmation',        label: 'Quote Confirmation',              description: 'Sent to a customer when admin manually confirms their quote is ready.' },
   { type: 'quote-spec-summary',        label: 'Quote Spec Summary',              description: 'Full specification summary sent to the customer after admin discussion (supports single-van and A/B comparison modes).' },

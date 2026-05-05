@@ -271,6 +271,32 @@ export const leads = pgTable("leads", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const followUps = pgTable("follow_ups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").references(() => leads.id),
+  quoteId: varchar("quote_id").references(() => quotes.id),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  customerEmail: text("customer_email"),
+  scheduledDate: text("scheduled_date").notNull(), // YYYY-MM-DD
+  notes: text("notes"),
+  assignedToUserId: varchar("assigned_to_user_id").references(() => users.id),
+  assignedToName: text("assigned_to_name"),
+  assignedToEmail: text("assigned_to_email"),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  reminderSentAt: timestamp("reminder_sent_at"),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertFollowUpSchema = createInsertSchema(followUps).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
+export type FollowUp = typeof followUps.$inferSelect;
+
 export const financePlans = pgTable("finance_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),

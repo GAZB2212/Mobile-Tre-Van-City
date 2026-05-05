@@ -3635,6 +3635,61 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ── Follow-ups ────────────────────────────────────────────────────────────────
+  app.get("/api/admin/follow-ups/today", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const followUps = await storage.getTodayFollowUps();
+      res.json(followUps);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch today's follow-ups" });
+    }
+  });
+
+  app.get("/api/admin/follow-ups", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const followUps = await storage.getFollowUps();
+      res.json(followUps);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch follow-ups" });
+    }
+  });
+
+  app.post("/api/admin/follow-ups", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { customerName, scheduledDate } = req.body;
+      if (!customerName || !scheduledDate) {
+        return res.status(400).json({ error: "customerName and scheduledDate are required" });
+      }
+      const followUp = await storage.createFollowUp(req.body);
+      res.json(followUp);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create follow-up" });
+    }
+  });
+
+  app.patch("/api/admin/follow-ups/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const data = req.body;
+      if (data.completed === true && !data.completedAt) {
+        data.completedAt = new Date();
+      }
+      const followUp = await storage.updateFollowUp(req.params.id, data);
+      if (!followUp) return res.status(404).json({ error: "Follow-up not found" });
+      res.json(followUp);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update follow-up" });
+    }
+  });
+
+  app.delete("/api/admin/follow-ups/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      await storage.deleteFollowUp(req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete follow-up" });
+    }
+  });
+
   // Analytics endpoint
   app.get("/api/admin/analytics", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

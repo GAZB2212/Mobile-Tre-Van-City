@@ -5,15 +5,24 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,6 +104,7 @@ export default function AdminLeads() {
     isLoading: boolean;
   };
 
+  const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -105,6 +115,22 @@ export default function AdminLeads() {
   // CRM expansion state
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
+
+  // Follow-up scheduling prompt
+  const [fuDialogOpen, setFuDialogOpen] = useState(false);
+  const [fuLead, setFuLead] = useState<Lead | null>(null);
+  const [fuDate, setFuDate] = useState(new Date().toISOString().split("T")[0]);
+  const [fuNotes, setFuNotes] = useState("");
+
+  const scheduleFollowUpMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"] });
+      setFuDialogOpen(false);
+      toast({ title: "Follow-up scheduled", description: "You can view it in the Calendar." });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to schedule follow-up" }),
+  });
 
   const toggleExpand = (id: string) =>
     setExpandedLeads((prev) => {
@@ -149,6 +175,12 @@ export default function AdminLeads() {
 
   const handleStatusChange = (lead: Lead, status: LeadStatus) => {
     updateLeadMutation.mutate({ id: lead.id, data: { status } });
+    if (status === "contacted") {
+      setFuLead(lead);
+      setFuDate(new Date().toISOString().split("T")[0]);
+      setFuNotes("");
+      setFuDialogOpen(true);
+    }
   };
 
   const handleAddNote = (lead: Lead) => {
@@ -713,6 +745,68 @@ export default function AdminLeads() {
         </div>
       </div>
 
+      {/* Schedule follow-up dialog — shown when a lead is marked as "Contacted" */}
+      {fuLead && (
+        <Dialog open={fuDialogOpen} onOpenChange={setFuDialogOpen}>
+          <DialogContent className="max-w-sm" data-testid="modal-schedule-followup">
+            <DialogHeader>
+              <DialogTitle>Schedule a follow-up?</DialogTitle>
+              <DialogDescription>
+                You marked <strong>{(fuLead as any).name || (fuLead as any).email}</strong> as Contacted. Would you like to schedule a follow-up call?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 py-1">
+              <div>
+                <Label htmlFor="fu-date-lead">Follow-up date</Label>
+                <Input
+                  id="fu-date-lead"
+                  type="date"
+                  value={fuDate}
+                  onChange={(e) => setFuDate(e.target.value)}
+                  data-testid="input-followup-date"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fu-notes-lead">Notes (optional)</Label>
+                <Textarea
+                  id="fu-notes-lead"
+                  value={fuNotes}
+                  onChange={(e) => setFuNotes(e.target.value)}
+                  placeholder="What to follow up on..."
+                  rows={2}
+                  data-testid="textarea-followup-notes"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setFuDialogOpen(false)} data-testid="button-skip-followup">
+                Skip
+              </Button>
+              <Button
+                onClick={() => {
+                  scheduleFollowUpMutation.mutate({
+                    customerName: (fuLead as any).name || (fuLead as any).email || "Unknown",
+                    customerPhone: (fuLead as any).phone || null,
+                    customerEmail: (fuLead as any).email || null,
+                    scheduledDate: fuDate,
+                    notes: fuNotes || null,
+                    leadId: fuLead.id,
+                    assignedToUserId: user?.id || null,
+                    assignedToName: user ? `${(user as any).firstName || ""} ${(user as any).lastName || ""}`.trim() || user.username : null,
+                    assignedToEmail: user?.email || null,
+                    createdBy: user?.username || "admin",
+                  });
+                }}
+                disabled={!fuDate || scheduleFollowUpMutation.isPending}
+                data-testid="button-confirm-followup"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Schedule follow-up
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

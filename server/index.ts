@@ -157,6 +157,48 @@ app.use((req, res, next) => {
     
     // Bootstrap admin user and run DB migrations AFTER server is listening
     // This prevents blocking deployment initialization
+    // Schedule daily follow-up reminder emails at 9am London time
+    cron.schedule("0 9 * * *", async () => {
+      const today = new Date().toISOString().split('T')[0];
+      log(`[Follow-up] Checking for follow-ups on ${today}...`);
+      try {
+        const followUps = await storage.getFollowUpsNeedingReminder(today);
+        if (followUps.length === 0) {
+          log("[Follow-up] No reminders to send today.");
+          return;
+        }
+        const { sendFollowUpReminderEmail } = await import('./email.js');
+        const baseUrl = process.env.SITE_URL
+          || (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0].trim()}` : 'https://www.mobiletyrevancity.co.uk');
+        let sent = 0;
+        for (const fu of followUps) {
+          const toEmail = fu.assignedToEmail;
+          if (!toEmail) continue;
+          try {
+            await sendFollowUpReminderEmail({
+              to: toEmail,
+              assignedToName: fu.assignedToName || 'Team',
+              customerName: fu.customerName,
+              customerPhone: fu.customerPhone,
+              customerEmail: fu.customerEmail,
+              scheduledDate: fu.scheduledDate,
+              notes: fu.notes,
+              leadId: fu.leadId,
+              quoteId: fu.quoteId,
+              baseUrl,
+            });
+            await storage.updateFollowUp(fu.id, { reminderSentAt: new Date() });
+            sent++;
+          } catch (err: any) {
+            console.error(`[Follow-up] Failed to send reminder for ${fu.id}:`, err.message);
+          }
+        }
+        log(`[Follow-up] Sent ${sent} reminder email(s).`);
+      } catch (err: any) {
+        console.error("[Follow-up] Cron error:", err.message);
+      }
+    }, { timezone: "Europe/London" });
+
     // Schedule automatic AI blog post generation every Monday at 8am London time
     cron.schedule("0 8 * * 1", async () => {
       log("[Blog AI] Scheduled run — generating post...");
@@ -208,6 +250,28 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sage_invoice_id TEXT`)
         .then(() => log("✅ Sage invoice ID column ready"))
         .catch((err: Error) => console.error("Sage invoice_id migration:", err.message));
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS follow_ups (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          lead_id VARCHAR REFERENCES leads(id),
+          quote_id VARCHAR REFERENCES quotes(id),
+          customer_name TEXT NOT NULL,
+          customer_phone TEXT,
+          customer_email TEXT,
+          scheduled_date TEXT NOT NULL,
+          notes TEXT,
+          assigned_to_user_id VARCHAR REFERENCES users(id),
+          assigned_to_name TEXT,
+          assigned_to_email TEXT,
+          completed BOOLEAN NOT NULL DEFAULT FALSE,
+          completed_at TIMESTAMP,
+          reminder_sent_at TIMESTAMP,
+          created_by TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `)
+        .then(() => log("✅ Follow-ups table ready"))
+        .catch((err: Error) => console.error("Follow-ups migration:", err.message));
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sage_pushed_at TIMESTAMP`)
         .then(() => log("✅ Sage pushed_at column ready"))
         .catch((err: Error) => console.error("Sage pushed_at migration:", err.message));

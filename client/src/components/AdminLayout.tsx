@@ -48,6 +48,9 @@ import {
   RefreshCw,
   Mail,
   Settings,
+  Calendar,
+  Phone,
+  Clock,
 } from "lucide-react";
 
 interface NavItem {
@@ -71,6 +74,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
     items: [
       { title: "Configurators", href: "/admin/quotes", icon: FileText, requiredRole: "basic" },
       { title: "Leads", href: "/admin/leads", icon: Users, requiredRole: "basic" },
+      { title: "Calendar", href: "/admin/calendar", icon: Calendar, requiredRole: "basic" },
       { title: "AI Conversations", href: "/admin/ai-conversations", icon: Bot, requiredRole: "basic" },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3, requiredRole: "basic" },
     ],
@@ -211,6 +215,26 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   // and still works in production where the page doesn't auto-reload.
   const ADMIN_VERSION_KEY = "admin-initial-version";
   const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  // Today's follow-up reminder modal
+  const TODAY_MODAL_KEY = `followup-shown-${new Date().toISOString().split("T")[0]}`;
+  const [todayModalOpen, setTodayModalOpen] = useState(false);
+  const { data: todayFollowUps = [] } = useQuery<{
+    id: string; customerName: string; customerPhone?: string | null;
+    assignedToName?: string | null; notes?: string | null;
+    completed?: boolean; leadId?: string | null; quoteId?: string | null;
+  }[]>({
+    queryKey: ["/api/admin/follow-ups/today"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+  const pendingTodayFus = todayFollowUps.filter((f) => !f.completed);
+
+  useEffect(() => {
+    if (pendingTodayFus.length > 0 && !sessionStorage.getItem(TODAY_MODAL_KEY)) {
+      setTodayModalOpen(true);
+      sessionStorage.setItem(TODAY_MODAL_KEY, "1");
+    }
+  }, [pendingTodayFus.length]);
 
   const { data: versionData } = useQuery<{ version: string }>({
     queryKey: ["/api/version"],
@@ -475,6 +499,57 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {user?.email}
           </span>
         </header>
+
+        {/* Today's follow-up reminder modal */}
+        <Dialog open={todayModalOpen} onOpenChange={setTodayModalOpen}>
+          <DialogContent className="max-w-sm" data-testid="modal-today-followups">
+            <DialogHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <DialogTitle>Follow-ups due today</DialogTitle>
+              </div>
+              <DialogDescription>
+                You have {pendingTodayFus.length} customer follow-up{pendingTodayFus.length !== 1 ? "s" : ""} scheduled for today.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+              {pendingTodayFus.map((fu) => (
+                <div key={fu.id} className="flex items-start gap-2 p-2.5 rounded-md bg-muted/50 border border-border/60">
+                  <Phone className="w-3.5 h-3.5 mt-0.5 text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{fu.customerName}</p>
+                    {fu.customerPhone && (
+                      <a href={`tel:${fu.customerPhone}`} className="text-xs text-muted-foreground hover:text-foreground">
+                        {fu.customerPhone}
+                      </a>
+                    )}
+                    {fu.assignedToName && (
+                      <p className="text-xs text-muted-foreground">Assigned: {fu.assignedToName}</p>
+                    )}
+                    {fu.notes && (
+                      <p className="text-xs text-muted-foreground italic truncate">{fu.notes}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setTodayModalOpen(false)} data-testid="button-dismiss-followups">
+                Dismiss
+              </Button>
+              <Button
+                onClick={() => {
+                  setTodayModalOpen(false);
+                  window.location.href = "/admin/calendar";
+                }}
+                data-testid="button-view-calendar"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Open Calendar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Update available modal */}
         <Dialog open={updateAvailable} onOpenChange={() => {}}>
