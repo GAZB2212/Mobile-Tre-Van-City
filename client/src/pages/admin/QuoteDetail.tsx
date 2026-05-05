@@ -238,6 +238,9 @@ export default function AdminQuoteDetail() {
   const [linkCustomerSearch, setLinkCustomerSearch] = useState("");
   const [linkCustomerSelected, setLinkCustomerSelected] = useState<{ id: string; name: string; email?: string | null } | null>(null);
 
+  // Unlink-customer confirmation state
+  const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
+
   // Active detail tab — initialised from ?tab= URL param for deep-linking
   const validTabs = ["overview", "configuration", "finance", "build", "activity"] as const;
   type TabValue = typeof validTabs[number];
@@ -415,6 +418,20 @@ export default function AdminQuoteDetail() {
     },
     onError: () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to link customer." });
+    },
+  });
+
+  const unlinkCustomerMutation = useMutation({
+    mutationFn: async () =>
+      apiRequest("PATCH", `/api/admin/quotes/${id}`, { customerId: null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      setUnlinkConfirmOpen(false);
+      toast({ title: "Customer unlinked", description: "The customer profile has been removed from this quote." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to unlink customer." });
     },
   });
 
@@ -1451,16 +1468,27 @@ export default function AdminQuoteDetail() {
                         {quote.customerId ? "Change Customer" : "Link to Customer"}
                       </Button>
                       {quote.customerId && (
-                        <Link href={`/admin/customers/${quote.customerId}`}>
+                        <>
                           <Button
                             variant="outline"
                             size="sm"
-                            data-testid="button-view-customer-profile"
+                            onClick={() => setUnlinkConfirmOpen(true)}
+                            data-testid="button-unlink-customer"
                           >
-                            <UserIcon className="w-3 h-3 mr-1" />
-                            View Customer Profile
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Unlink
                           </Button>
-                        </Link>
+                          <Link href={`/admin/customers/${quote.customerId}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              data-testid="button-view-customer-profile"
+                            >
+                              <UserIcon className="w-3 h-3 mr-1" />
+                              View Customer Profile
+                            </Button>
+                          </Link>
+                        </>
                       )}
                       {canEdit && (
                         <Button
@@ -3853,6 +3881,36 @@ export default function AdminQuoteDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Unlink customer confirmation dialog */}
+      <AlertDialog open={unlinkConfirmOpen} onOpenChange={setUnlinkConfirmOpen}>
+        <AlertDialogContent data-testid="modal-unlink-customer">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove customer profile link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear the customer profile association from this quote. The quote and the customer profile will remain unchanged — only the link between them will be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-unlink-customer">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={unlinkCustomerMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                unlinkCustomerMutation.mutate();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-unlink-customer"
+            >
+              {unlinkCustomerMutation.isPending ? (
+                <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" /> Unlinking…</span>
+              ) : (
+                "Remove Link"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Link to customer dialog */}
       <Dialog

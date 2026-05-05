@@ -122,6 +122,9 @@ export default function AdminLeads() {
   const [linkCustomerSearch, setLinkCustomerSearch] = useState("");
   const [linkCustomerSelected, setLinkCustomerSelected] = useState<{ id: string; name: string; email?: string | null } | null>(null);
 
+  // Unlink-customer confirmation state
+  const [unlinkLeadId, setUnlinkLeadId] = useState<string | null>(null);
+
   // Follow-up scheduling prompt
   const [fuDialogOpen, setFuDialogOpen] = useState(false);
   const [fuLead, setFuLead] = useState<Lead | null>(null);
@@ -191,6 +194,19 @@ export default function AdminLeads() {
     },
     onError: () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to link customer." });
+    },
+  });
+
+  const unlinkCustomerMutation = useMutation({
+    mutationFn: async (leadId: string) =>
+      apiRequest("PATCH", `/api/admin/leads/${leadId}`, { customerId: null }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
+      setUnlinkLeadId(null);
+      toast({ title: "Customer unlinked", description: "The customer profile has been removed from this lead." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Error", description: "Failed to unlink customer." });
     },
   });
 
@@ -734,6 +750,20 @@ export default function AdminLeads() {
                           <Link2 className="w-3.5 h-3.5 mr-1.5" />
                           {lead.customerId ? "Change Customer" : "Link to Customer"}
                         </Button>
+                        {lead.customerId && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUnlinkLeadId(lead.id);
+                            }}
+                            data-testid={`button-unlink-customer-${lead.id}`}
+                          >
+                            <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                            Unlink
+                          </Button>
+                        )}
 
                         <div className="ml-auto flex items-center gap-2">
                           {lead.customerId && (
@@ -826,6 +856,46 @@ export default function AdminLeads() {
         )}
         </div>
       </div>
+
+      {/* Unlink customer confirmation dialog */}
+      <Dialog
+        open={!!unlinkLeadId}
+        onOpenChange={(open) => {
+          if (!open) setUnlinkLeadId(null);
+        }}
+      >
+        <DialogContent className="max-w-sm" data-testid="modal-unlink-customer">
+          <DialogHeader>
+            <DialogTitle>Remove customer profile link?</DialogTitle>
+            <DialogDescription>
+              This will clear the customer profile association from this lead. The lead and the customer profile will remain unchanged — only the link between them will be removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setUnlinkLeadId(null)}
+              data-testid="button-cancel-unlink-customer"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={unlinkCustomerMutation.isPending}
+              onClick={() => {
+                if (unlinkLeadId) unlinkCustomerMutation.mutate(unlinkLeadId);
+              }}
+              data-testid="button-confirm-unlink-customer"
+            >
+              {unlinkCustomerMutation.isPending ? (
+                <span className="flex items-center gap-2"><span className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" /> Unlinking…</span>
+              ) : (
+                <><XCircle className="w-3.5 h-3.5 mr-1.5" />Remove Link</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Link to customer dialog */}
       <Dialog
