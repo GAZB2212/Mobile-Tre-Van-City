@@ -1140,7 +1140,7 @@ export default function AdminCustomers() {
                                 return (
                                   <span className="flex items-center gap-1 text-[11px] text-muted-foreground" data-testid={`text-merge-split-by-${entry.id}`}>
                                     <Scissors className="w-3 h-3 shrink-0" />
-                                    split by {name}
+                                    split by {name}{entry.splitAt ? ` · ${formatDate(entry.splitAt)}` : ""}
                                   </span>
                                 );
                               })()}
