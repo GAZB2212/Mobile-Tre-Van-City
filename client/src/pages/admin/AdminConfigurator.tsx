@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -192,6 +192,24 @@ export default function AdminConfigurator() {
   // ── Auth guard
   useEffect(() => { if (!isLoading && !isAuthenticated) window.location.href = "/login"; }, [isLoading, isAuthenticated]);
   useEffect(() => { if (user && (!user.adminRole || user.adminRole === "none")) navigate("/"); }, [user, navigate]);
+
+  // ── Stale session detection
+  const sessionCheckDone = useRef(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+
+  useEffect(() => {
+    if (sessionCheckDone.current || isLoading || !isAuthenticated) return;
+    sessionCheckDone.current = true;
+    const hasProgress =
+      slotA.vanId !== null ||
+      slotA.customVanDescription !== null ||
+      slotA.customVanValue !== null ||
+      slotA.serviceType !== null ||
+      slotA.kitId !== null ||
+      slotA.upgradeIds.length > 0 ||
+      compareMode;
+    if (hasProgress) setShowSessionModal(true);
+  }, [isLoading, isAuthenticated, slotA, compareMode]);
 
   // ── Sync own-van inputs when context changes (e.g. edited via ConfiguratorSummary)
   useEffect(() => { setOwnVanReg(state.vanReg ?? ""); }, [state.vanReg]);
@@ -1580,6 +1598,86 @@ export default function AdminConfigurator() {
           )}
         </DialogContent>
       </Dialog>
+      {/* ── Stale Session Dialog ─────────────────────────────── */}
+      <Dialog open={showSessionModal} onOpenChange={() => {}}>
+        <DialogContent
+          className="sm:max-w-sm"
+          onPointerDownOutside={e => e.preventDefault()}
+          onEscapeKeyDown={e => e.preventDefault()}
+          data-testid="dialog-stale-session"
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-muted-foreground" />
+              Previous configuration found
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-sm pt-1">
+                <p>You have a configuration in progress from a previous session:</p>
+                <ul className="space-y-1 text-muted-foreground pl-2">
+                  {(slotA.vanId || slotA.customVanDescription) && (
+                    <li className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                      {slotA.customVanDescription ? `Custom van: ${slotA.customVanDescription}` : "Van selected"}
+                    </li>
+                  )}
+                  {slotA.serviceType && (
+                    <li className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                      Service type: {SERVICE_OPTIONS.find(s => s.value === slotA.serviceType)?.label ?? slotA.serviceType}
+                    </li>
+                  )}
+                  {slotA.kitId && (
+                    <li className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                      Kit selected
+                    </li>
+                  )}
+                  {slotA.upgradeIds.length > 0 && (
+                    <li className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                      {slotA.upgradeIds.length} upgrade{slotA.upgradeIds.length !== 1 ? "s" : ""} selected
+                    </li>
+                  )}
+                  {compareMode && (
+                    <li className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent shrink-0" />
+                      Compare mode active
+                    </li>
+                  )}
+                </ul>
+                <p>Would you like to continue where you left off, or start fresh?</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-1">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                clearAll();
+                setFilterMake("all"); setFilterModel("all"); setFilterYear("all"); setFilterFuel("all");
+                setOwnVanReg(""); setOwnVanPrice("");
+                setUpgradeQuantities({}); setTermYears(3); setDepositAmount(""); setVatRegistered(false); setDeferVat(false);
+                setShowSessionModal(false);
+              }}
+              data-testid="button-session-start-fresh"
+            >
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              Start fresh
+            </Button>
+            <Button
+              className="w-full sm:w-auto bg-[#8bc440e6] text-[#191919] hover:bg-[#8bc440]"
+              onClick={() => setShowSessionModal(false)}
+              data-testid="button-session-continue"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Save as Quote Dialog ──────────────────────────────── */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent className="sm:max-w-md flex flex-col max-h-[90vh]">
