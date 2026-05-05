@@ -464,6 +464,14 @@ app.use((req, res, next) => {
             .then(() => log("✅ Lead status_changed_at column ready"))
             .catch((err: Error) => console.error("Lead status_changed_at migration:", err.message));
 
+          // Add previous_customer_name provenance columns for reassignment tracking
+          await pool.query(`
+            ALTER TABLE leads ADD COLUMN IF NOT EXISTS previous_customer_name TEXT;
+            ALTER TABLE quotes ADD COLUMN IF NOT EXISTS previous_customer_name TEXT;
+            ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS previous_customer_name TEXT;
+          `).then(() => log("✅ Previous customer name columns ready"))
+            .catch((err: Error) => console.error("Previous customer name migration:", err.message));
+
           // Unique partial indexes on customers.email and customers.phone to prevent
           // future duplicate records at the DB level. Only create them if the data
           // is already clean — if duplicates exist, warn and defer to dedup endpoint.

@@ -2464,11 +2464,37 @@ export class DbStorage implements IStorage {
   }
 
   async linkLeadToCustomer(leadId: string, customerId: string): Promise<void> {
-    await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, leadId]);
+    const existing = await pool.query(
+      `SELECT l.customer_id, c.name FROM leads l LEFT JOIN customers c ON c.id = l.customer_id WHERE l.id = $1`,
+      [leadId]
+    );
+    const prev = existing.rows[0];
+    const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    if (previousName) {
+      await pool.query(
+        `UPDATE leads SET customer_id = $1, previous_customer_name = $2 WHERE id = $3`,
+        [customerId, previousName, leadId]
+      );
+    } else {
+      await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, leadId]);
+    }
   }
 
   async linkQuoteToCustomer(quoteId: string, customerId: string): Promise<void> {
-    await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, quoteId]);
+    const existing = await pool.query(
+      `SELECT q.customer_id, c.name FROM quotes q LEFT JOIN customers c ON c.id = q.customer_id WHERE q.id = $1`,
+      [quoteId]
+    );
+    const prev = existing.rows[0];
+    const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    if (previousName) {
+      await pool.query(
+        `UPDATE quotes SET customer_id = $1, previous_customer_name = $2 WHERE id = $3`,
+        [customerId, previousName, quoteId]
+      );
+    } else {
+      await pool.query(`UPDATE quotes SET customer_id = $1 WHERE id = $2`, [customerId, quoteId]);
+    }
   }
 
   async backfillLeadsAndQuotesForCustomer(customerId: string, email: string | null | undefined, phone: string | null | undefined): Promise<void> {
@@ -2519,7 +2545,20 @@ export class DbStorage implements IStorage {
   }
 
   async linkConversationToCustomer(conversationId: string, customerId: string): Promise<void> {
-    await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, conversationId]);
+    const existing = await pool.query(
+      `SELECT a.customer_id, c.name FROM ai_conversations a LEFT JOIN customers c ON c.id = a.customer_id WHERE a.id = $1`,
+      [conversationId]
+    );
+    const prev = existing.rows[0];
+    const previousName = prev?.customer_id && prev.customer_id !== customerId ? prev.name : null;
+    if (previousName) {
+      await pool.query(
+        `UPDATE ai_conversations SET customer_id = $1, previous_customer_name = $2 WHERE id = $3`,
+        [customerId, previousName, conversationId]
+      );
+    } else {
+      await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE id = $2`, [customerId, conversationId]);
+    }
   }
 
   async linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void> {

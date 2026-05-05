@@ -6541,8 +6541,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const [notes, leadsRows, quotesRows, convosRows, followUpsRows] = await Promise.all([
         storage.getCustomerNotes(id),
         pool.query(`SELECT * FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, previous_customer_name FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
       ]);
 

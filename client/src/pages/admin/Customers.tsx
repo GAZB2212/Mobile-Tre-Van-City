@@ -91,9 +91,9 @@ interface CustomerProfileData {
     primaryStaffName?: string | null;
     createdAt?: string | null;
   };
-  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null }>;
-  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null }>;
-  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null }>;
+  leads: Array<{ id: string; name?: string | null; status?: string | null; source?: string | null; created_at?: string | null; previous_customer_name?: string | null }>;
+  quotes: Array<{ id: string; user_name?: string | null; status?: string | null; created_at?: string | null; previous_customer_name?: string | null }>;
+  conversations: Array<{ id: string; contact_name?: string | null; status?: string | null; created_at?: string | null; previous_customer_name?: string | null }>;
   notes: CustomerNote[];
 }
 
@@ -458,17 +458,26 @@ function CustomerReviewSheet({
                   {leads.map(lead => (
                     <div
                       key={lead.id}
-                      className="flex items-center justify-between gap-2 py-1"
+                      className="flex items-start justify-between gap-2 py-1"
                       data-testid={`row-review-lead-${lead.id}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                        <span className="text-sm truncate">{lead.name ?? "Lead"}</span>
-                        {lead.status && (
-                          <Badge className="text-[10px] shrink-0 no-default-active-elevate">
-                            {lead.status.replace(/_/g, " ")}
-                          </Badge>
-                        )}
+                      <div className="flex items-start gap-2 min-w-0">
+                        <Users className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm truncate">{lead.name ?? "Lead"}</span>
+                            {lead.status && (
+                              <Badge className="text-[10px] shrink-0 no-default-active-elevate">
+                                {lead.status.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                          </div>
+                          {lead.previous_customer_name && (
+                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-0.5" data-testid={`text-prev-customer-lead-${lead.id}`}>
+                              Previously: {lead.previous_customer_name}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -486,17 +495,26 @@ function CustomerReviewSheet({
                   {quotes.map(quote => (
                     <div
                       key={quote.id}
-                      className="flex items-center justify-between gap-2 py-1"
+                      className="flex items-start justify-between gap-2 py-1"
                       data-testid={`row-review-quote-${quote.id}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                        <span className="text-sm truncate">{quote.user_name ?? "Quote"}</span>
-                        {quote.status && (
-                          <Badge className="text-[10px] shrink-0 no-default-active-elevate">
-                            {quote.status.replace(/_/g, " ")}
-                          </Badge>
-                        )}
+                      <div className="flex items-start gap-2 min-w-0">
+                        <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm truncate">{quote.user_name ?? "Quote"}</span>
+                            {quote.status && (
+                              <Badge className="text-[10px] shrink-0 no-default-active-elevate">
+                                {quote.status.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                          </div>
+                          {quote.previous_customer_name && (
+                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-0.5" data-testid={`text-prev-customer-quote-${quote.id}`}>
+                              Previously: {quote.previous_customer_name}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -514,17 +532,26 @@ function CustomerReviewSheet({
                   {conversations.map(convo => (
                     <div
                       key={convo.id}
-                      className="flex items-center justify-between gap-2 py-1"
+                      className="flex items-start justify-between gap-2 py-1"
                       data-testid={`row-review-convo-${convo.id}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Bot className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="text-sm truncate">{convo.contact_name ?? "AI chat"}</span>
-                        {convo.status && (
-                          <Badge className="text-[10px] shrink-0 no-default-active-elevate">
-                            {convo.status.replace(/_/g, " ")}
-                          </Badge>
-                        )}
+                      <div className="flex items-start gap-2 min-w-0">
+                        <Bot className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm truncate">{convo.contact_name ?? "AI chat"}</span>
+                            {convo.status && (
+                              <Badge className="text-[10px] shrink-0 no-default-active-elevate">
+                                {convo.status.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                          </div>
+                          {convo.previous_customer_name && (
+                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-0.5" data-testid={`text-prev-customer-convo-${convo.id}`}>
+                              Previously: {convo.previous_customer_name}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"

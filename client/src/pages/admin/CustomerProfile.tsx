@@ -571,6 +571,11 @@ export default function CustomerProfile() {
                         <div>
                           <p className="text-xs font-medium">Lead · {l.source?.replace(/_/g, " ")}</p>
                           <p className="text-[10px] text-muted-foreground">{formatDateShort(l.created_at)}</p>
+                          {l.previous_customer_name && (
+                            <p className="text-[10px] text-amber-500 dark:text-amber-400" data-testid={`text-prev-customer-lead-${l.id}`}>
+                              Previously: {l.previous_customer_name}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -588,6 +593,11 @@ export default function CustomerProfile() {
                         <div>
                           <p className="text-xs font-medium">Quote · £{Math.round((q.est_total ?? 0) / 100).toLocaleString()}</p>
                           <p className="text-[10px] text-muted-foreground">{formatDateShort(q.created_at)}</p>
+                          {q.previous_customer_name && (
+                            <p className="text-[10px] text-amber-500 dark:text-amber-400" data-testid={`text-prev-customer-quote-${q.id}`}>
+                              Previously: {q.previous_customer_name}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -605,6 +615,11 @@ export default function CustomerProfile() {
                         <div>
                           <p className="text-xs font-medium">AI Chat · {c.status?.replace(/_/g, " ")}</p>
                           <p className="text-[10px] text-muted-foreground">{formatDateShort(c.created_at)}</p>
+                          {c.previous_customer_name && (
+                            <p className="text-[10px] text-amber-500 dark:text-amber-400" data-testid={`text-prev-customer-convo-${c.id}`}>
+                              Previously: {c.previous_customer_name}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <ChevronRight className="w-3 h-3 text-muted-foreground" />
