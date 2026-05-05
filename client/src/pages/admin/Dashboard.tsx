@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User, Quote, Testimonial } from "@shared/schema";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -104,6 +104,9 @@ export default function AdminDashboard() {
     enabled: !!(user?.adminRole && user.adminRole === "full"),
   });
 
+  // The polling and toast/browser notification logic is handled globally by
+  // useEnquiryNotifications inside AdminLayout.  Here we just read the cached
+  // data (same query key) for display purposes — no extra refetch interval needed.
   const { data: recentEnquiries } = useQuery<{
     leads: EnquiryLead[];
     quotes: EnquiryQuote[];
@@ -112,8 +115,6 @@ export default function AdminDashboard() {
   }>({
     queryKey: ["/api/admin/enquiries/recent"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: true,
   });
 
   const enquiryLeads = recentEnquiries?.leads ?? [];
@@ -121,68 +122,6 @@ export default function AdminDashboard() {
 
   // Use server-computed counts (covers all items, not just the limited feed page)
   const unreadCount = (recentEnquiries?.todayNewLeadCount ?? 0) + (recentEnquiries?.todayNewQuoteCount ?? 0);
-
-  // ── New-enquiry notifications ──────────────────────────────────────────────
-  const prevUnreadRef = useRef<number | null>(null);
-
-  // Request browser notification permission once, after the first successful
-  // data load — only if the user hasn't been asked yet.
-  useEffect(() => {
-    if (!recentEnquiries) return;
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission === "default") {
-      const alreadyAsked = localStorage.getItem("enquiry-notif-asked");
-      if (!alreadyAsked) {
-        localStorage.setItem("enquiry-notif-asked", "1");
-        Notification.requestPermission();
-      }
-    }
-  }, [!!recentEnquiries]);
-
-  // Fire a toast (and optionally a browser notification) whenever the unread
-  // count grows since the last poll.  The very first data load just sets the
-  // baseline — no alert on page load.
-  useEffect(() => {
-    if (!recentEnquiries) return;
-    const current = (recentEnquiries.todayNewLeadCount ?? 0) + (recentEnquiries.todayNewQuoteCount ?? 0);
-
-    if (prevUnreadRef.current === null) {
-      // First load — establish baseline silently
-      prevUnreadRef.current = current;
-      return;
-    }
-
-    const delta = current - prevUnreadRef.current;
-    if (delta > 0) {
-      prevUnreadRef.current = current;
-
-      const title = delta === 1 ? "New enquiry received" : `${delta} new enquiries received`;
-      const body  = delta === 1
-        ? "A new lead or quote has just come in."
-        : `${delta} new leads or quotes have just come in.`;
-
-      toast({
-        title,
-        description: body,
-      });
-
-      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-        try {
-          new Notification(title, {
-            body,
-            icon: "/favicon.ico",
-            tag: "new-enquiry",
-          });
-        } catch {
-          // silently ignore — browser may block notifications in certain contexts
-        }
-      }
-    } else {
-      // Count stayed same or decreased (e.g. items aged out) — update baseline
-      prevUnreadRef.current = current;
-    }
-  }, [recentEnquiries, toast]);
-  // ──────────────────────────────────────────────────────────────────────────
 
   const publishedTestimonialsCount = testimonials.filter(t => t.published).length;
 

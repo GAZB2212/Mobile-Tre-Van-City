@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import mtvcLogoWide from "@assets/Untitled_design-36_1773155683674.png";
 import mtvcLogoRound from "@assets/Untitled design-47_1759231860895.png";
 import { useState, useEffect, useRef } from "react";
+import { useEnquiryNotifications } from "@/hooks/useEnquiryNotifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -181,6 +182,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user } = useAuth() as { user: User | undefined };
+
+  // Global enquiry polling — fires toast/browser notifications on any admin page
+  useEnquiryNotifications();
 
   // Track which collapsible nav groups are open (keyed by label)
   // Content group starts collapsed; auto-expand if current route is inside it
