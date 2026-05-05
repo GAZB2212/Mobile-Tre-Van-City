@@ -627,6 +627,36 @@ export type Customer = typeof customers.$inferSelect;
 export type InsertCustomerNote = z.infer<typeof insertCustomerNoteSchema>;
 export type CustomerNote = typeof customerNotes.$inferSelect;
 
+// ─── Customer Merge History ──────────────────────────────────────────────────
+// Logged every time mergeCustomers() runs so merges can be undone (split apart).
+export const customerMergeHistory = pgTable("customer_merge_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Surviving customer
+  keepId: varchar("keep_id").notNull(),
+  keepSnapshotName: text("keep_snapshot_name"),
+  keepSnapshotEmail: text("keep_snapshot_email"),
+  keepSnapshotPhone: text("keep_snapshot_phone"),
+  keepSnapshotCompany: text("keep_snapshot_company"),
+  // Deleted (absorbed) customer — snapshot taken before deletion
+  removedId: varchar("removed_id").notNull(),
+  removedSnapshotName: text("removed_snapshot_name"),
+  removedSnapshotEmail: text("removed_snapshot_email"),
+  removedSnapshotPhone: text("removed_snapshot_phone"),
+  removedSnapshotCompany: text("removed_snapshot_company"),
+  // Which child records were re-pointed from removedId → keepId
+  leadsRelinked: json("leads_relinked").$type<string[]>().notNull().default([]),
+  quotesRelinked: json("quotes_relinked").$type<string[]>().notNull().default([]),
+  conversationsRelinked: json("conversations_relinked").$type<string[]>().notNull().default([]),
+  notesRelinked: json("notes_relinked").$type<string[]>().notNull().default([]),
+  mergedAt: timestamp("merged_at").defaultNow(),
+  splitAt: timestamp("split_at"), // null until the merge is undone
+}, (table) => [
+  index("idx_merge_history_keep").on(table.keepId),
+  index("idx_merge_history_merged_at").on(table.mergedAt),
+]);
+
+export type CustomerMergeHistory = typeof customerMergeHistory.$inferSelect;
+
 export const aiConversations = pgTable("ai_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sessionId: varchar("session_id").notNull().unique(),

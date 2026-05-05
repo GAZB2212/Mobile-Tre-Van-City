@@ -15,6 +15,7 @@ import {
   type TestimonialToken,
   type Customer, type InsertCustomer,
   type CustomerNote, type InsertCustomerNote,
+  type CustomerMergeHistory,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -140,6 +141,8 @@ export interface IStorage {
   linkConversationToCustomer(conversationId: string, customerId: string): Promise<void>;
   linkConversationBySessionToCustomer(sessionId: string, customerId: string): Promise<void>;
   mergeCustomers(keepId: string, mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }>;
+  getMergeHistory(limit?: number): Promise<CustomerMergeHistory[]>;
+  splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
 }
 
 export class MemStorage implements IStorage {
@@ -1779,6 +1782,8 @@ export class MemStorage implements IStorage {
   async mergeCustomers(_keepId: string, _mergeId: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number }> {
     return { leadsRepointed: 0, quotesRepointed: 0, convosRepointed: 0 };
   }
+  async getMergeHistory(_limit?: number): Promise<CustomerMergeHistory[]> { return []; }
+  async splitMerge(_historyId: string): Promise<{ newCustomerId: string }> { return { newCustomerId: "" }; }
 }
 
 // Database Storage Implementation
@@ -2400,6 +2405,20 @@ export class DbStorage implements IStorage {
     try {
       await client.query("BEGIN");
 
+      // Snapshot both customers before any changes.
+      const keepBefore = await client.query<{ name: string; email: string | null; phone: string | null; company: string | null }>(
+        `SELECT name, email, phone, company FROM customers WHERE id = $1`, [keepId]
+      );
+      const removedBefore = await client.query<{ name: string; email: string | null; phone: string | null; company: string | null }>(
+        `SELECT name, email, phone, company FROM customers WHERE id = $1`, [mergeId]
+      );
+
+      // Snapshot which child records currently belong to the removed customer.
+      const leadsRows = await client.query<{ id: string }>(`SELECT id FROM leads WHERE customer_id = $1`, [mergeId]);
+      const quotesRows = await client.query<{ id: string }>(`SELECT id FROM quotes WHERE customer_id = $1`, [mergeId]);
+      const convosRows = await client.query<{ id: string }>(`SELECT id FROM ai_conversations WHERE customer_id = $1`, [mergeId]);
+      const notesRows = await client.query<{ id: string }>(`SELECT id FROM customer_notes WHERE customer_id = $1`, [mergeId]);
+
       // Coalesce non-null fields from the duplicate into the survivor so no
       // contact data (email, phone, company, name) is silently discarded.
       await client.query(`
@@ -2425,12 +2444,154 @@ export class DbStorage implements IStorage {
       // Delete the duplicate.
       await client.query(`DELETE FROM customers WHERE id = $1`, [mergeId]);
 
+      // Log the merge history so it can be undone.
+      const keepRow = keepBefore.rows[0];
+      const removedRow = removedBefore.rows[0];
+      await client.query(`
+        INSERT INTO customer_merge_history
+          (keep_id, keep_snapshot_name, keep_snapshot_email, keep_snapshot_phone, keep_snapshot_company,
+           removed_id, removed_snapshot_name, removed_snapshot_email, removed_snapshot_phone, removed_snapshot_company,
+           leads_relinked, quotes_relinked, conversations_relinked, notes_relinked)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      `, [
+        keepId, keepRow?.name ?? null, keepRow?.email ?? null, keepRow?.phone ?? null, keepRow?.company ?? null,
+        mergeId, removedRow?.name ?? null, removedRow?.email ?? null, removedRow?.phone ?? null, removedRow?.company ?? null,
+        JSON.stringify(leadsRows.rows.map(r => r.id)),
+        JSON.stringify(quotesRows.rows.map(r => r.id)),
+        JSON.stringify(convosRows.rows.map(r => r.id)),
+        JSON.stringify(notesRows.rows.map(r => r.id)),
+      ]);
+
       await client.query("COMMIT");
       return {
         leadsRepointed: leadsResult.rowCount ?? 0,
         quotesRepointed: quotesResult.rowCount ?? 0,
         convosRepointed: convosResult.rowCount ?? 0,
       };
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getMergeHistory(limit = 50): Promise<CustomerMergeHistory[]> {
+    const result = await pool.query<CustomerMergeHistory>(`
+      SELECT
+        id, keep_id AS "keepId",
+        keep_snapshot_name AS "keepSnapshotName",
+        keep_snapshot_email AS "keepSnapshotEmail",
+        keep_snapshot_phone AS "keepSnapshotPhone",
+        keep_snapshot_company AS "keepSnapshotCompany",
+        removed_id AS "removedId",
+        removed_snapshot_name AS "removedSnapshotName",
+        removed_snapshot_email AS "removedSnapshotEmail",
+        removed_snapshot_phone AS "removedSnapshotPhone",
+        removed_snapshot_company AS "removedSnapshotCompany",
+        leads_relinked AS "leadsRelinked",
+        quotes_relinked AS "quotesRelinked",
+        conversations_relinked AS "conversationsRelinked",
+        notes_relinked AS "notesRelinked",
+        merged_at AS "mergedAt",
+        split_at AS "splitAt"
+      FROM customer_merge_history
+      ORDER BY merged_at DESC
+      LIMIT $1
+    `, [limit]);
+    return result.rows;
+  }
+
+  async splitMerge(historyId: string): Promise<{ newCustomerId: string }> {
+    const histResult = await pool.query<{
+      keepId: string;
+      removedId: string;
+      removedSnapshotName: string | null;
+      removedSnapshotEmail: string | null;
+      removedSnapshotPhone: string | null;
+      removedSnapshotCompany: string | null;
+      leadsRelinked: string[];
+      quotesRelinked: string[];
+      conversationsRelinked: string[];
+      notesRelinked: string[];
+      splitAt: Date | null;
+    }>(`
+      SELECT
+        keep_id AS "keepId",
+        removed_id AS "removedId",
+        removed_snapshot_name AS "removedSnapshotName",
+        removed_snapshot_email AS "removedSnapshotEmail",
+        removed_snapshot_phone AS "removedSnapshotPhone",
+        removed_snapshot_company AS "removedSnapshotCompany",
+        leads_relinked AS "leadsRelinked",
+        quotes_relinked AS "quotesRelinked",
+        conversations_relinked AS "conversationsRelinked",
+        notes_relinked AS "notesRelinked",
+        split_at AS "splitAt"
+      FROM customer_merge_history
+      WHERE id = $1
+    `, [historyId]);
+
+    if (histResult.rows.length === 0) throw new Error("Merge history entry not found");
+    const hist = histResult.rows[0];
+    if (hist.splitAt) throw new Error("This merge has already been split");
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Re-create the removed customer with the original snapshot data.
+      const newIdResult = await client.query<{ id: string }>(`
+        INSERT INTO customers (name, email, phone, company, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, NOW(), NOW())
+        RETURNING id
+      `, [
+        hist.removedSnapshotName ?? "Unknown Contact",
+        hist.removedSnapshotEmail ?? null,
+        hist.removedSnapshotPhone ?? null,
+        hist.removedSnapshotCompany ?? null,
+      ]);
+      const newCustomerId = newIdResult.rows[0].id;
+
+      // Re-point the records that were originally moved from the removed customer.
+      const leads: string[] = Array.isArray(hist.leadsRelinked) ? hist.leadsRelinked : [];
+      const quotes: string[] = Array.isArray(hist.quotesRelinked) ? hist.quotesRelinked : [];
+      const convos: string[] = Array.isArray(hist.conversationsRelinked) ? hist.conversationsRelinked : [];
+      const notes: string[] = Array.isArray(hist.notesRelinked) ? hist.notesRelinked : [];
+
+      if (leads.length > 0) {
+        await client.query(
+          `UPDATE leads SET customer_id = $1 WHERE id = ANY($2::text[])`,
+          [newCustomerId, leads]
+        );
+      }
+      if (quotes.length > 0) {
+        await client.query(
+          `UPDATE quotes SET customer_id = $1 WHERE id = ANY($2::text[])`,
+          [newCustomerId, quotes]
+        );
+      }
+      if (convos.length > 0) {
+        await client.query(
+          `UPDATE ai_conversations SET customer_id = $1 WHERE id = ANY($2::text[])`,
+          [newCustomerId, convos]
+        );
+      }
+      if (notes.length > 0) {
+        await client.query(
+          `UPDATE customer_notes SET customer_id = $1 WHERE id = ANY($2::text[])`,
+          [newCustomerId, notes]
+        );
+      }
+
+      // Mark the history entry as split.
+      await client.query(
+        `UPDATE customer_merge_history SET split_at = NOW() WHERE id = $1`,
+        [historyId]
+      );
+
+      await client.query("COMMIT");
+      return { newCustomerId };
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;

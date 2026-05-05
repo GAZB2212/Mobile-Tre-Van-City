@@ -6530,6 +6530,34 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Get merge history — returns the most recent merges so staff can split them.
+  // IMPORTANT: must be declared before /:id to avoid route shadowing.
+  app.get("/api/admin/customers/merge-history", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 50, 200);
+      const history = await storage.getMergeHistory(limit);
+      res.json(history);
+    } catch (error) {
+      console.error("Merge history fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch merge history" });
+    }
+  });
+
+  // Split a merge: re-create the removed customer and re-link their records.
+  app.post("/api/admin/customers/split/:historyId", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { historyId } = req.params;
+      const result = await storage.splitMerge(historyId);
+      res.json({ ok: true, newCustomerId: result.newCustomerId });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error("Split merge error:", msg);
+      if (msg === "Merge history entry not found") return res.status(404).json({ error: msg });
+      if (msg === "This merge has already been split") return res.status(409).json({ error: msg });
+      res.status(500).json({ error: "Failed to split merge" });
+    }
+  });
+
   // Get single customer with full profile
   app.get("/api/admin/customers/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

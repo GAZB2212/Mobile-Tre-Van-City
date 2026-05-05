@@ -514,6 +514,32 @@ app.use((req, res, next) => {
             }
           })();
 
+          // Merge history table — tracks every mergeCustomers() call so staff can undo merges.
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS customer_merge_history (
+              id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+              keep_id VARCHAR NOT NULL,
+              keep_snapshot_name TEXT,
+              keep_snapshot_email TEXT,
+              keep_snapshot_phone TEXT,
+              keep_snapshot_company TEXT,
+              removed_id VARCHAR NOT NULL,
+              removed_snapshot_name TEXT,
+              removed_snapshot_email TEXT,
+              removed_snapshot_phone TEXT,
+              removed_snapshot_company TEXT,
+              leads_relinked JSONB NOT NULL DEFAULT '[]',
+              quotes_relinked JSONB NOT NULL DEFAULT '[]',
+              conversations_relinked JSONB NOT NULL DEFAULT '[]',
+              notes_relinked JSONB NOT NULL DEFAULT '[]',
+              merged_at TIMESTAMP DEFAULT NOW(),
+              split_at TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_merge_history_keep ON customer_merge_history (keep_id);
+            CREATE INDEX IF NOT EXISTS idx_merge_history_merged_at ON customer_merge_history (merged_at);
+          `).then(() => log("✅ Customer merge history table ready"))
+            .catch((err: Error) => console.error("Customer merge history migration:", err.message));
+
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {

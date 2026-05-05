@@ -36,6 +36,9 @@ import {
   CalendarDays,
   MoveRight,
   Loader2,
+  Scissors,
+  History,
+  ArrowRightLeft,
 } from "lucide-react";
 
 interface StaffMember {
@@ -669,6 +672,26 @@ interface DeduplicateResult {
   mergedCustomers: MergedCustomerEntry[];
 }
 
+interface MergeHistoryEntry {
+  id: string;
+  keepId: string;
+  keepSnapshotName: string | null;
+  keepSnapshotEmail: string | null;
+  keepSnapshotPhone: string | null;
+  keepSnapshotCompany: string | null;
+  removedId: string;
+  removedSnapshotName: string | null;
+  removedSnapshotEmail: string | null;
+  removedSnapshotPhone: string | null;
+  removedSnapshotCompany: string | null;
+  leadsRelinked: string[];
+  quotesRelinked: string[];
+  conversationsRelinked: string[];
+  notesRelinked: string[];
+  mergedAt: string | null;
+  splitAt: string | null;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-blue-500/15 text-blue-400 border-blue-500/25",
   contacted: "bg-amber-500/15 text-amber-400 border-amber-500/25",
@@ -717,6 +740,8 @@ export default function AdminCustomers() {
   const [showAllMergedCustomers, setShowAllMergedCustomers] = useState(false);
   const [reviewCustomerId, setReviewCustomerId] = useState<string | null>(null);
   const [attentionFilter, setAttentionFilter] = useState(false);
+  const [showMergeHistory, setShowMergeHistory] = useState(false);
+  const [splittingId, setSplittingId] = useState<string | null>(null);
 
   const NEW_CUSTOMERS_KEY = "new-customers-count";
 
@@ -749,6 +774,40 @@ export default function AdminCustomers() {
 
   const MERGE_LIST_CAP = 20;
 
+  const { data: mergeHistory = [], isLoading: mergeHistoryLoading } = useQuery<MergeHistoryEntry[]>({
+    queryKey: ["/api/admin/customers/merge-history"],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch("/api/admin/customers/merge-history", { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
+    enabled: !!(user?.adminRole && user.adminRole !== "none") && showMergeHistory,
+  });
+
+  const splitMutation = useMutation<{ ok: boolean; newCustomerId: string }, Error, string>({
+    mutationFn: (historyId: string) =>
+      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then((res) => res.json()),
+    onSuccess: (data) => {
+      setSplittingId(null);
+      toast({
+        title: "Merge reversed",
+        description: "The customer has been recreated and their records re-linked.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
+      setReviewCustomerId(data.newCustomerId);
+    },
+    onError: (err) => {
+      setSplittingId(null);
+      const msg = err.message?.includes("already been split")
+        ? "This merge has already been reversed."
+        : "Could not reverse the merge. Please try again.";
+      toast({ title: "Split failed", description: msg, variant: "destructive" });
+    },
+  });
+
   const deduplicateMutation = useMutation<DeduplicateResult, Error>({
     mutationFn: () =>
       apiRequest("POST", "/api/admin/customers/deduplicate").then((res) => res.json() as Promise<DeduplicateResult>),
@@ -764,6 +823,7 @@ export default function AdminCustomers() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
     },
     onError: () => {
       toast({ title: "Deduplication failed", description: "Could not run deduplication. Please try again.", variant: "destructive" });
@@ -940,8 +1000,139 @@ export default function AdminCustomers() {
                 <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${backfillMutation.isPending ? "animate-spin" : ""}`} />
                 {backfillMutation.isPending ? "Syncing..." : "Sync Records"}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMergeHistory(v => !v)}
+                data-testid="button-toggle-merge-history"
+              >
+                <History className="w-3.5 h-3.5 mr-1.5" />
+                Merge History
+              </Button>
             </div>
           </div>
+
+          {/* Merge history panel */}
+          {showMergeHistory && (
+            <Card data-testid="panel-merge-history">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Merge History</CardTitle>
+                    <span className="text-xs text-muted-foreground">(most recent first)</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMergeHistory(false)}
+                    data-testid="button-close-merge-history"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                {mergeHistoryLoading ? (
+                  <div className="flex items-center gap-2 py-4 justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                    <span className="text-sm text-muted-foreground">Loading history...</span>
+                  </div>
+                ) : mergeHistory.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-3 text-center">
+                    No merges recorded yet. Merge history will appear here after running "Merge Duplicates".
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {mergeHistory.map((entry) => {
+                      const recordCount =
+                        (entry.leadsRelinked?.length ?? 0) +
+                        (entry.quotesRelinked?.length ?? 0) +
+                        (entry.conversationsRelinked?.length ?? 0) +
+                        (entry.notesRelinked?.length ?? 0);
+                      const alreadySplit = !!entry.splitAt;
+                      const isSplitting = splittingId === entry.id;
+                      return (
+                        <div
+                          key={entry.id}
+                          className="flex items-start gap-3 py-3 border-t first:border-t-0 flex-wrap"
+                          data-testid={`row-merge-history-${entry.id}`}
+                        >
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium truncate" data-testid={`text-merge-keep-${entry.id}`}>
+                                {entry.keepSnapshotName ?? "Unknown"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">absorbed</span>
+                              <span className="text-sm font-medium truncate" data-testid={`text-merge-removed-${entry.id}`}>
+                                {entry.removedSnapshotName ?? "Unknown"}
+                              </span>
+                              {alreadySplit && (
+                                <Badge className="text-[10px] bg-amber-500/15 text-amber-400 border-amber-500/25 no-default-active-elevate shrink-0">
+                                  <Scissors className="w-2.5 h-2.5 mr-1" />
+                                  split
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {entry.removedSnapshotEmail && (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Mail className="w-3 h-3 shrink-0" />
+                                  {entry.removedSnapshotEmail}
+                                </span>
+                              )}
+                              {entry.removedSnapshotPhone && (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Phone className="w-3 h-3 shrink-0" />
+                                  {entry.removedSnapshotPhone}
+                                </span>
+                              )}
+                              {recordCount > 0 && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {recordCount} record{recordCount !== 1 ? "s" : ""} re-linked
+                                </span>
+                              )}
+                              {entry.mergedAt && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  {formatDate(entry.mergedAt)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setReviewCustomerId(entry.keepId)}
+                              data-testid={`button-review-keep-${entry.id}`}
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                            {!alreadySplit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSplittingId(entry.id);
+                                  splitMutation.mutate(entry.id);
+                                }}
+                                disabled={isSplitting || splitMutation.isPending}
+                                data-testid={`button-split-merge-${entry.id}`}
+                              >
+                                <Scissors className={`w-3 h-3 mr-1 ${isSplitting ? "animate-pulse" : ""}`} />
+                                {isSplitting ? "Splitting..." : "Split"}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Merge duplicates summary panel */}
           {mergeSummary && (
