@@ -666,6 +666,7 @@ export default function AdminCustomers() {
   const [mergeSummaryExpanded, setMergeSummaryExpanded] = useState(false);
   const [showAllMergedCustomers, setShowAllMergedCustomers] = useState(false);
   const [reviewCustomerId, setReviewCustomerId] = useState<string | null>(null);
+  const [attentionFilter, setAttentionFilter] = useState(false);
 
   const NEW_CUSTOMERS_KEY = "new-customers-count";
 
@@ -769,12 +770,19 @@ export default function AdminCustomers() {
     refetchOnMount: "always",
   });
 
-  const hasFilters = !!debouncedSearch || !!staffFilter;
+  const hasFilters = !!debouncedSearch || !!staffFilter || attentionFilter;
 
   const clearFilters = () => {
     setSearchTerm("");
     setStaffFilter("");
+    setAttentionFilter(false);
   };
+
+  const filteredCustomers = attentionFilter
+    ? customers.filter(c => c.openFollowUpCount > 0)
+    : customers;
+
+  const attentionCount = customers.filter(c => c.openFollowUpCount > 0).length;
 
   if (isLoading) {
     return (
@@ -835,12 +843,30 @@ export default function AdminCustomers() {
             )}
           </div>
 
+          {/* Quick filter row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant={attentionFilter ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAttentionFilter(v => !v)}
+              data-testid="button-filter-needs-attention"
+            >
+              <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+              Needs attention
+              {attentionCount > 0 && (
+                <Badge className="ml-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30 no-default-active-elevate">
+                  {attentionCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+
           {/* Stats row */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />
               <span>
-                {customersLoading ? "Loading..." : `${customers.length} customer${customers.length !== 1 ? "s" : ""}${hasFilters ? " found" : " total"}`}
+                {customersLoading ? "Loading..." : `${filteredCustomers.length} customer${filteredCustomers.length !== 1 ? "s" : ""}${hasFilters ? " found" : " total"}`}
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -1117,13 +1143,15 @@ export default function AdminCustomers() {
                 <p className="text-muted-foreground">Loading customers...</p>
               </CardContent>
             </Card>
-          ) : customers.length === 0 ? (
+          ) : filteredCustomers.length === 0 ? (
             <Card>
               <CardContent className="p-10 text-center">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No customers found</h3>
                 <p className="text-muted-foreground text-sm">
-                  {hasFilters
+                  {attentionFilter
+                    ? "No customers currently need attention — great work."
+                    : hasFilters
                     ? "Try adjusting the filters."
                     : "Customers are created automatically when leads, quotes, or AI conversations are linked by email or phone."}
                 </p>
@@ -1131,7 +1159,7 @@ export default function AdminCustomers() {
             </Card>
           ) : (
             <div className="space-y-2">
-              {customers.map(c => (
+              {filteredCustomers.map(c => (
                 <Link key={c.id} href={`/admin/customers/${c.id}`} data-testid={`link-customer-${c.id}`}>
                   <Card className="hover-elevate cursor-pointer transition-colors">
                     <CardContent className="p-4">

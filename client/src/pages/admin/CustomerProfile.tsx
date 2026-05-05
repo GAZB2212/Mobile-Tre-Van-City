@@ -315,6 +315,62 @@ export default function CustomerProfile() {
         </div>
       </div>
 
+      {/* Status summary bar */}
+      <div className="border-b bg-card/30 px-4 py-3">
+        <div className="w-full flex items-center gap-5 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Status</span>
+            <StatusBadge status={handoff.currentStatus} />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <UserCheck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs text-muted-foreground">Owner:</span>
+            <span className="text-xs font-medium" data-testid="text-status-bar-owner">
+              {customer.primaryStaffName ?? "Unassigned"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs text-muted-foreground">Last contact:</span>
+            <span className="text-xs font-medium" data-testid="text-status-bar-last-contact">
+              {handoff.lastContactAt ? formatDate(handoff.lastContactAt) : "Never"}
+            </span>
+          </div>
+          {handoff.openFollowUps.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-xs text-muted-foreground">Next action:</span>
+              <span className="text-xs font-medium text-amber-400" data-testid="text-status-bar-next-action">
+                {formatDateShort(handoff.openFollowUps[0].scheduledDate)}
+              </span>
+              {handoff.openFollowUps[0].notes && (
+                <span className="text-xs text-muted-foreground truncate max-w-[180px] hidden sm:inline">
+                  — {handoff.openFollowUps[0].notes}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {customer.phone && (
+              <Button variant="outline" size="sm" asChild data-testid="button-quick-call">
+                <a href={`tel:${customer.phone}`}>
+                  <Phone className="w-3.5 h-3.5 mr-1.5" />
+                  Call
+                </a>
+              </Button>
+            )}
+            {customer.email && (
+              <Button variant="outline" size="sm" asChild data-testid="button-quick-email">
+                <a href={`mailto:${customer.email}`}>
+                  <Mail className="w-3.5 h-3.5 mr-1.5" />
+                  Email
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="w-full px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column: contact info + handoff card + notes form */}
