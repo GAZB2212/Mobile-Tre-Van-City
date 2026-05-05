@@ -2912,9 +2912,10 @@ export default function AdminQuoteDetail() {
                                           value={editingNote.text}
                                           onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
                                           rows={3}
+                                          disabled={editNoteMutation.isPending}
                                           data-testid="textarea-edit-admin-note"
                                         />
-                                        <div className="flex gap-2">
+                                        <div className="flex items-center gap-2">
                                           <Button
                                             size="sm"
                                             onClick={() => {
@@ -2922,12 +2923,20 @@ export default function AdminQuoteDetail() {
                                                 editNoteMutation.mutate({ noteType: 'admin', timestamp: editingNote.timestamp, text: editingNote.text });
                                               }
                                             }}
-                                            disabled={!editingNote.text.trim()}
+                                            disabled={!editingNote.text.trim() || editNoteMutation.isPending}
                                             data-testid="button-save-admin-note"
                                           >
-                                            <Check className="h-4 w-4 mr-1" />Save
+                                            {editNoteMutation.isPending ? (
+                                              <>
+                                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />Saving...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Check className="h-4 w-4 mr-1" />Save
+                                              </>
+                                            )}
                                           </Button>
-                                          <Button size="sm" variant="outline" onClick={() => setEditingNote(null)} data-testid="button-cancel-admin-note">
+                                          <Button size="sm" variant="outline" onClick={() => setEditingNote(null)} disabled={editNoteMutation.isPending} data-testid="button-cancel-admin-note">
                                             <XCircle className="h-4 w-4 mr-1" />Cancel
                                           </Button>
                                         </div>
