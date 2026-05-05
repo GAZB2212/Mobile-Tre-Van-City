@@ -67,6 +67,7 @@ export interface IStorage {
 
   // Follow-ups
   getFollowUps(): Promise<FollowUp[]>;
+  getFollowUpsByQuote(quoteId: string): Promise<FollowUp[]>;
   getTodayFollowUps(): Promise<FollowUp[]>;
   getFollowUpsNeedingReminder(date: string): Promise<FollowUp[]>;
   getFollowUp(id: string): Promise<FollowUp | undefined>;
@@ -2142,6 +2143,12 @@ export class DbStorage implements IStorage {
   // Follow-ups
   async getFollowUps(): Promise<FollowUp[]> {
     return db.select().from(schema.followUps).orderBy(asc(schema.followUps.scheduledDate));
+  }
+
+  async getFollowUpsByQuote(quoteId: string): Promise<FollowUp[]> {
+    return db.select().from(schema.followUps)
+      .where(eq(schema.followUps.quoteId, quoteId))
+      .orderBy(asc(schema.followUps.createdAt));
   }
 
   async getTodayFollowUps(): Promise<FollowUp[]> {

@@ -3647,7 +3647,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
 
   app.get("/api/admin/follow-ups", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const followUps = await storage.getFollowUps();
+      const { quoteId } = req.query;
+      const followUps = quoteId
+        ? await storage.getFollowUpsByQuote(quoteId as string)
+        : await storage.getFollowUps();
       res.json(followUps);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch follow-ups" });

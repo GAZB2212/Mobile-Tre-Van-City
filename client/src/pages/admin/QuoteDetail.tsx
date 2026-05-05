@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -55,6 +55,10 @@ import {
   Eye,
   Mail,
   Building2,
+  Clock,
+  CalendarDays,
+  Flag,
+  Circle,
 } from "lucide-react";
 import {
   Dialog,
@@ -64,7 +68,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
+import type { Quote, Van, Kit, Upgrade, FollowUp } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { upgradeCategories } from "@shared/schema";
@@ -171,10 +175,21 @@ export default function AdminQuoteDetail() {
     mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/follow-ups?quoteId=${id}`], refetchType: "all" });
       setFuDialogOpen(false);
       toast({ title: "Follow-up scheduled", description: "Added to your calendar." });
     },
     onError: () => toast({ variant: "destructive", title: "Failed to schedule follow-up" }),
+  });
+
+  const completeFollowUpMutation = useMutation({
+    mutationFn: (fuId: string) => apiRequest("PATCH", `/api/admin/follow-ups/${fuId}`, { completed: true, completedAt: new Date().toISOString() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/follow-ups?quoteId=${id}`], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/follow-ups"], refetchType: "all" });
+      toast({ title: "Follow-up marked as done" });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to update follow-up" }),
   });
 
   const [stageInitials, setStageInitials] = useState<Record<string, string>>({});
@@ -216,7 +231,7 @@ export default function AdminQuoteDetail() {
   const [editCustomerCompany, setEditCustomerCompany] = useState("");
 
   // Active detail tab — initialised from ?tab= URL param for deep-linking
-  const validTabs = ["overview", "configuration", "finance", "build", "notes"] as const;
+  const validTabs = ["overview", "configuration", "finance", "build", "activity"] as const;
   type TabValue = typeof validTabs[number];
   const initialTab: TabValue =
     tabParam && (validTabs as readonly string[]).includes(tabParam)
@@ -292,6 +307,13 @@ export default function AdminQuoteDetail() {
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
   const sageConnected = sageStatus?.connected ?? false;
+
+  const { data: quoteFollowUps = [] } = useQuery<FollowUp[]>({
+    queryKey: [`/api/admin/follow-ups?quoteId=${id}`],
+    enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
 
   // Initialize form fields when quote loads
   useEffect(() => {
@@ -1274,7 +1296,7 @@ export default function AdminQuoteDetail() {
               <TabsTrigger value="configuration" data-testid="tab-configuration" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Config</TabsTrigger>
               <TabsTrigger value="finance" data-testid="tab-finance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Finance</TabsTrigger>
               <TabsTrigger value="build" data-testid="tab-build" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Build</TabsTrigger>
-              <TabsTrigger value="notes" data-testid="tab-notes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Notes</TabsTrigger>
+              <TabsTrigger value="activity" data-testid="tab-activity" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[hsl(86_53%_51%)] data-[state=active]:text-[hsl(86_53%_60%)] data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground hover:text-foreground transition-colors text-sm font-medium h-10">Activity</TabsTrigger>
             </TabsList>
           </div>
 
@@ -2709,155 +2731,265 @@ export default function AdminQuoteDetail() {
             )}
 
             {/* Internal Notes — Notes tab */}
-            {activeTab === "notes" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
-                    Internal Notes
-                  </CardTitle>
-                  <CardDescription>Only visible to staff — never shown to customers</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Note History */}
-                  {quote?.adminNotesHistory && quote.adminNotesHistory.length > 0 ? (
-                    <div className="space-y-3">
-                      {quote.adminNotesHistory.map((note, index) => {
-                        const isCustomerEntry = note.author === 'Customer';
-                        const isApprovedEntry = isCustomerEntry && note.text.toLowerCase().includes('confirmed');
-                        const isEditing = !isCustomerEntry && editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
-                        return (
-                          <div
-                            key={index}
-                            className={`p-3 rounded-lg border ${isCustomerEntry
-                              ? isApprovedEntry
-                                ? 'bg-accent/5 border-accent/30'
-                                : 'bg-orange-500/5 border-orange-500/30'
-                              : 'bg-muted/50'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <div className="flex items-center gap-1.5">
-                                {isCustomerEntry && (
-                                  isApprovedEntry
-                                    ? <CheckCircle className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-                                    : <XCircle className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
-                                )}
-                                <span className={`text-xs font-medium ${isCustomerEntry ? (isApprovedEntry ? 'text-accent' : 'text-orange-500') : 'text-muted-foreground'}`}>
-                                  {note.author || 'Admin'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(note.timestamp).toLocaleString('en-GB', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                                {!isCustomerEntry && !isEditing && (
-                                  <div className="flex gap-1">
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-6 w-6"
-                                      onClick={() => setEditingNote({ noteType: 'admin', timestamp: note.timestamp, text: note.text })}
-                                      data-testid={`button-edit-admin-note-${index}`}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-6 w-6 text-destructive"
-                                      onClick={() => {
-                                        if (confirm('Are you sure you want to delete this note?')) {
-                                          deleteNoteMutation.mutate({ noteType: 'admin', timestamp: note.timestamp });
-                                        }
-                                      }}
-                                      data-testid={`button-delete-admin-note-${index}`}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            {isEditing ? (
-                              <div className="space-y-2">
-                                <Textarea
-                                  value={editingNote.text}
-                                  onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
-                                  rows={4}
-                                  data-testid="textarea-edit-admin-note"
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      if (editingNote.text.trim()) {
-                                        editNoteMutation.mutate({
-                                          noteType: 'admin',
-                                          timestamp: editingNote.timestamp,
-                                          text: editingNote.text
-                                        });
-                                      }
-                                    }}
-                                    disabled={!editingNote.text.trim()}
-                                    data-testid="button-save-admin-note"
-                                  >
-                                    <Check className="h-4 w-4 mr-1" />
-                                    Save
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setEditingNote(null)}
-                                    data-testid="button-cancel-admin-note"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="text-sm whitespace-pre-wrap">{note.text}</p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-6">No notes yet — add the first one below.</p>
-                  )}
+            {activeTab === "activity" && (() => {
+              const timelineEvents = (() => {
+                const events: Array<{
+                  kind: 'submitted' | 'note' | 'followup' | 'status';
+                  ts: number;
+                  note?: { text: string; timestamp: string; author?: string };
+                  noteIndex?: number;
+                  fu?: FollowUp;
+                  status?: string;
+                }> = [];
 
-                  {/* Add New Note */}
-                  <div className="space-y-2 pt-2 border-t">
-                    <Label htmlFor="new-admin-note-tab">Add Note</Label>
-                    <Textarea
-                      id="new-admin-note-tab"
-                      value={newAdminNote}
-                      onChange={(e) => setNewAdminNote(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          if (newAdminNote.trim()) {
-                            handleSave();
-                            setNewAdminNote("");
+                if (quote?.createdAt) {
+                  events.push({ kind: 'submitted', ts: new Date(quote.createdAt).getTime() });
+                }
+
+                (quote?.adminNotesHistory || []).forEach((note, index) => {
+                  events.push({ kind: 'note', ts: new Date(note.timestamp).getTime(), note, noteIndex: index });
+                });
+
+                quoteFollowUps.forEach(fu => {
+                  const ts = fu.createdAt ? new Date(fu.createdAt as unknown as string).getTime() : new Date(fu.scheduledDate).getTime();
+                  events.push({ kind: 'followup', ts, fu });
+                });
+
+                if (quote?.statusChangedAt && quote.status && quote.status !== 'new') {
+                  events.push({ kind: 'status', ts: new Date(quote.statusChangedAt as unknown as string).getTime(), status: quote.status });
+                }
+
+                return events.sort((a, b) => a.ts - b.ts);
+              })();
+
+              const fmtDate = (ts: number | string | Date) =>
+                new Date(ts).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+              const today = new Date().toISOString().split('T')[0];
+
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Customer Activity
+                    </CardTitle>
+                    <CardDescription>Full timeline of this enquiry — only visible to staff</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-0">
+
+                    {/* Timeline */}
+                    {timelineEvents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">No activity yet.</p>
+                    ) : (
+                      <div className="relative mb-6">
+                        {timelineEvents.length > 1 && (
+                          <div className="absolute left-[15px] top-6 bottom-0 w-px bg-border" />
+                        )}
+                        <div className="space-y-5">
+                          {timelineEvents.map((event, i) => {
+                            if (event.kind === 'submitted') {
+                              return (
+                                <div key={i} className="relative flex gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0 z-10 border border-accent/20">
+                                    <Circle className="w-3 h-3 text-accent fill-accent" />
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-1">
+                                    <p className="text-sm font-medium">Enquiry submitted</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(event.ts)}</p>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (event.kind === 'status' && event.status) {
+                              return (
+                                <div key={i} className="relative flex gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 z-10 border border-border">
+                                    <Flag className="w-3 h-3 text-muted-foreground" />
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-1">
+                                    <p className="text-sm font-medium">Status changed</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      Moved to <span className="font-medium text-foreground">{STATUS_LABELS[event.status] ?? event.status}</span> · {fmtDate(event.ts)}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (event.kind === 'note' && event.note) {
+                              const note = event.note;
+                              const idx = event.noteIndex ?? 0;
+                              const isCustomerEntry = note.author === 'Customer';
+                              const isApprovedEntry = isCustomerEntry && note.text.toLowerCase().includes('confirmed');
+                              const isEditing = !isCustomerEntry && editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
+                              return (
+                                <div key={i} className="relative flex gap-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 border ${
+                                    isCustomerEntry
+                                      ? isApprovedEntry
+                                        ? 'bg-accent/10 border-accent/20'
+                                        : 'bg-orange-500/10 border-orange-500/20'
+                                      : 'bg-muted border-border'
+                                  }`}>
+                                    {isCustomerEntry
+                                      ? isApprovedEntry
+                                        ? <CheckCircle className="w-3 h-3 text-accent" />
+                                        : <XCircle className="w-3 h-3 text-orange-500" />
+                                      : <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                    }
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-1">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={`text-xs font-medium ${
+                                          isCustomerEntry ? (isApprovedEntry ? 'text-accent' : 'text-orange-500') : 'text-muted-foreground'
+                                        }`}>
+                                          {note.author || 'Staff'}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">· {fmtDate(event.ts)}</span>
+                                      </div>
+                                      {!isCustomerEntry && !isEditing && (
+                                        <div className="flex gap-1 shrink-0" style={{ visibility: 'visible' }}>
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-6 w-6"
+                                            onClick={() => setEditingNote({ noteType: 'admin', timestamp: note.timestamp, text: note.text })}
+                                            data-testid={`button-edit-admin-note-${idx}`}
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-6 w-6 text-destructive"
+                                            onClick={() => {
+                                              if (confirm('Delete this note?')) {
+                                                deleteNoteMutation.mutate({ noteType: 'admin', timestamp: note.timestamp });
+                                              }
+                                            }}
+                                            data-testid={`button-delete-admin-note-${idx}`}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {isEditing ? (
+                                      <div className="space-y-2">
+                                        <Textarea
+                                          value={editingNote.text}
+                                          onChange={(e) => setEditingNote({ ...editingNote, text: e.target.value })}
+                                          rows={3}
+                                          data-testid="textarea-edit-admin-note"
+                                        />
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingNote.text.trim()) {
+                                                editNoteMutation.mutate({ noteType: 'admin', timestamp: editingNote.timestamp, text: editingNote.text });
+                                              }
+                                            }}
+                                            disabled={!editingNote.text.trim()}
+                                            data-testid="button-save-admin-note"
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />Save
+                                          </Button>
+                                          <Button size="sm" variant="outline" onClick={() => setEditingNote(null)} data-testid="button-cancel-admin-note">
+                                            <XCircle className="h-4 w-4 mr-1" />Cancel
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (event.kind === 'followup' && event.fu) {
+                              const fu = event.fu;
+                              const isOverdue = !fu.completed && fu.scheduledDate < today;
+                              const isToday = fu.scheduledDate === today;
+                              return (
+                                <div key={i} className="relative flex gap-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 border ${
+                                    fu.completed ? 'bg-accent/10 border-accent/20' : isOverdue ? 'bg-destructive/10 border-destructive/20' : 'bg-blue-500/10 border-blue-500/20'
+                                  }`}>
+                                    <CalendarDays className={`w-3 h-3 ${fu.completed ? 'text-accent' : isOverdue ? 'text-destructive' : 'text-blue-500'}`} />
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-1">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                      <p className="text-sm font-medium">Follow-up scheduled</p>
+                                      {fu.completed ? (
+                                        <Badge variant="outline" className="text-accent border-accent/30 text-xs">Done</Badge>
+                                      ) : isOverdue ? (
+                                        <Badge variant="outline" className="text-destructive border-destructive/30 text-xs">Overdue</Badge>
+                                      ) : isToday ? (
+                                        <Badge variant="outline" className="text-blue-500 border-blue-500/30 text-xs">Today</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-muted-foreground text-xs">Upcoming</Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      For <span className="font-medium text-foreground">{new Date(fu.scheduledDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                      {fu.assignedTo && <> · {fu.assignedTo}</>}
+                                    </p>
+                                    {fu.notes && <p className="text-sm text-muted-foreground mt-1">{fu.notes}</p>}
+                                    {!fu.completed && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="mt-2"
+                                        onClick={() => completeFollowUpMutation.mutate(fu.id)}
+                                        disabled={completeFollowUpMutation.isPending}
+                                        data-testid={`button-complete-followup-${fu.id}`}
+                                      >
+                                        <Check className="w-3 h-3 mr-1.5" />Mark done
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add Note */}
+                    <div className="space-y-2 pt-4 border-t">
+                      <Label htmlFor="new-admin-note-tab">Add Note</Label>
+                      <Textarea
+                        id="new-admin-note-tab"
+                        value={newAdminNote}
+                        onChange={(e) => setNewAdminNote(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (newAdminNote.trim()) {
+                              handleSave();
+                              setNewAdminNote("");
+                            }
                           }
-                        }
-                      }}
-                      placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
-                      rows={3}
-                      data-testid="textarea-new-admin-note"
-                    />
-                    <p className="text-xs text-muted-foreground">Press Enter to save · Shift+Enter for new line</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                        }}
+                        placeholder="Type a note and press Enter to save (Shift+Enter for new line)..."
+                        rows={3}
+                        data-testid="textarea-new-admin-note"
+                      />
+                      <p className="text-xs text-muted-foreground">Press Enter to save · Shift+Enter for new line</p>
+                    </div>
+
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* ── Max AI Chat Transcript ── shown in overview when quote came via AI */}
             {activeTab === "overview" && (quote as any).aiConversation && (() => {
