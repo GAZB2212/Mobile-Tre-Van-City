@@ -639,7 +639,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerPhone = validatedData.phone ?? null;
       if (customerName || customerEmail || customerPhone) {
         storage.findOrCreateCustomer(customerEmail, customerPhone, customerName as string)
-          .then(customer => storage.linkQuoteToCustomer(quote.id, customer.id))
+          .then(customer =>
+            storage.linkQuoteToCustomer(quote.id, customer.id)
+              .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, customerEmail, customerPhone))
+          )
           .catch(err => console.error("Customer auto-link (quote) error:", err?.message));
       }
 
@@ -774,7 +777,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const leadCustomerPhone = validatedData.phone ?? null;
       if (leadCustomerName || leadCustomerEmail || leadCustomerPhone) {
         storage.findOrCreateCustomer(leadCustomerEmail, leadCustomerPhone, leadCustomerName as string)
-          .then(customer => storage.linkLeadToCustomer(lead.id, customer.id))
+          .then(customer =>
+            storage.linkLeadToCustomer(lead.id, customer.id)
+              .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, leadCustomerEmail, leadCustomerPhone))
+          )
           .catch(err => console.error("Customer auto-link (lead) error:", err?.message));
       }
 
@@ -2295,7 +2301,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         const effectiveName = patchedUserName ?? updated.userName ?? "Unknown";
         if (effectiveEmail || effectivePhone) {
           storage.findOrCreateCustomer(effectiveEmail, effectivePhone, effectiveName)
-            .then(customer => storage.linkQuoteToCustomer(updated.id, customer.id))
+            .then(customer =>
+              storage.linkQuoteToCustomer(updated.id, customer.id)
+                .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, effectiveEmail, effectivePhone))
+            )
             .catch(err => console.error("Customer re-link (quote update):", err?.message));
         }
       }
@@ -3708,7 +3717,10 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         const effectiveName = (name ?? updated.name ?? "Unknown") as string;
         if (effectiveEmail || effectivePhone) {
           storage.findOrCreateCustomer(effectiveEmail, effectivePhone, effectiveName)
-            .then(customer => storage.linkLeadToCustomer(updated.id, customer.id))
+            .then(customer =>
+              storage.linkLeadToCustomer(updated.id, customer.id)
+                .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, effectiveEmail, effectivePhone))
+            )
             .catch(err => console.error("Customer re-link (lead update):", err?.message));
         }
       }
@@ -5731,7 +5743,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const aiContactPhone = (contactPhone ?? cfg.contactPhone ?? "").trim() || null;
       if (aiContactEmail || aiContactPhone) {
         storage.findOrCreateCustomer(aiContactEmail, aiContactPhone, aiContactName)
-          .then(customer => storage.linkConversationBySessionToCustomer(sessionId, customer.id))
+          .then(customer =>
+            storage.linkConversationBySessionToCustomer(sessionId, customer.id)
+              .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, aiContactEmail, aiContactPhone))
+          )
           .catch(err => console.error("Customer auto-link (ai-conversation) error:", err?.message));
       }
 
