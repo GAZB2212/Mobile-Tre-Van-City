@@ -279,6 +279,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
+  const NEW_CUSTOMERS_KEY = "new-customers-count";
+  const [newCustomersCount, setNewCustomersCount] = useState<number>(() => {
+    const val = sessionStorage.getItem(NEW_CUSTOMERS_KEY);
+    return val ? parseInt(val, 10) : 0;
+  });
+
+  useEffect(() => {
+    const handler = () => {
+      const val = sessionStorage.getItem(NEW_CUSTOMERS_KEY);
+      setNewCustomersCount(val ? parseInt(val, 10) : 0);
+    };
+    window.addEventListener("new-customers-updated", handler);
+    return () => window.removeEventListener("new-customers-updated", handler);
+  }, []);
+
   const uncontactedCount = aiConversationsData?.conversations
     ? aiConversationsData.conversations.filter(
         (s) => s.contact_phone && !s.marked_contacted
@@ -395,6 +410,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                         item.href === "/admin/ai-conversations" ? uncontactedCount :
                         item.href === "/admin/quotes" ? newQuotesCount :
                         item.href === "/admin/leads" ? newLeadsCount :
+                        item.href === "/admin/customers" ? newCustomersCount :
                         undefined
                       }
                     />

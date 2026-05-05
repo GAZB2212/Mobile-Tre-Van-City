@@ -393,8 +393,16 @@ export default function AdminCustomers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [staffFilter, setStaffFilter] = useState<string>("");
   const [syncSummary, setSyncSummary] = useState<BackfillResult | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [showAllSyncedCustomers, setShowAllSyncedCustomers] = useState(false);
   const [reviewCustomerId, setReviewCustomerId] = useState<string | null>(null);
+
+  const NEW_CUSTOMERS_KEY = "new-customers-count";
+
+  useEffect(() => {
+    sessionStorage.removeItem(NEW_CUSTOMERS_KEY);
+    window.dispatchEvent(new Event("new-customers-updated"));
+  }, []);
 
   const SYNC_LIST_CAP = 20;
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -453,6 +461,10 @@ export default function AdminCustomers() {
       setSummaryExpanded(true);
       setShowAllSyncedCustomers(false);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      if (data.customersCreated > 0) {
+        sessionStorage.setItem(NEW_CUSTOMERS_KEY, String(data.customersCreated));
+        window.dispatchEvent(new Event("new-customers-updated"));
+      }
     },
     onError: () => {
       toast({ title: "Sync failed", description: "Could not run the backfill. Please try again.", variant: "destructive" });
