@@ -148,6 +148,17 @@ export default function AdminDashboard() {
     return localStorage.getItem("enquiry-notif-muted") === "1";
   });
 
+  // Keep the bell icon in sync when the mute flag is toggled in another tab.
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === "enquiry-notif-muted") {
+        setNotifMuted(e.newValue === "1");
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
   // Re-read the permission whenever the tab becomes visible (e.g. after the
   // user opens browser settings and comes back).
   useEffect(() => {

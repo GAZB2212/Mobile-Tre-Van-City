@@ -13,6 +13,11 @@ export interface RecentEnquiriesData {
 }
 
 const SNOOZE_KEY = "enquiry-snooze-until";
+const MUTE_KEY = "enquiry-notif-muted";
+
+function readMuted(): boolean {
+  return localStorage.getItem(MUTE_KEY) === "1";
+}
 
 function readSnoozeUntil(): number | null {
   const val = localStorage.getItem(SNOOZE_KEY);
@@ -30,6 +35,20 @@ export function useEnquiryNotifications() {
   const { toast } = useToast();
   const { user } = useAuth() as { user: User | undefined };
   const isAdmin = !!(user?.adminRole && user.adminRole !== "none");
+
+  // Mute state — initialised from localStorage and kept in sync across tabs
+  // via the `storage` event so changes in one tab propagate to all others.
+  const [isMuted, setIsMuted] = useState<boolean>(readMuted);
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === MUTE_KEY) {
+        setIsMuted(e.newValue === "1");
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
 
   // Snooze state — initialised from localStorage so it survives page reloads
   const [snoozeUntil, setSnoozeUntilState] = useState<number | null>(readSnoozeUntil);
@@ -114,9 +133,10 @@ export function useEnquiryNotifications() {
         return;
       }
 
-      // Respect the in-app mute preference set from the dashboard bell.
-      const isMuted = localStorage.getItem("enquiry-notif-muted") === "1";
-      if (isMuted) return;
+      // Respect the in-app mute preference. Read directly from localStorage at
+      // decision time so same-tab toggles take effect immediately (storage
+      // events don't fire in the tab that wrote the value).
+      if (readMuted()) return;
 
       const title =
         delta === 1 ? "New enquiry received" : `${delta} new enquiries received`;
@@ -146,5 +166,5 @@ export function useEnquiryNotifications() {
     }
   }, [recentEnquiries, toast]);
 
-  return { recentEnquiries, unreadCount, isSnoozed, snoozeUntil, snooze, cancelSnooze };
+  return { recentEnquiries, unreadCount, isSnoozed, snoozeUntil, snooze, cancelSnooze, isMuted };
 }
