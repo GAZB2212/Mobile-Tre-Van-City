@@ -228,24 +228,6 @@ export default function AdminAnalytics() {
 
   if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
 
-  if (businessError || aiAnalyticsError || webError) {
-    const retryAll = () => {
-      if (businessError) refetchBusiness();
-      if (aiAnalyticsError) refetchAi();
-      if (webError) refetchWeb();
-    };
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
-          <Button variant="outline" size="sm" onClick={retryAll} data-testid="button-retry-analytics">
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const isWebLoading = webLoading;
 
@@ -356,6 +338,16 @@ export default function AdminAnalytics() {
               <div className="flex items-center justify-center py-20">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
+            ) : webError ? (
+              <Card>
+                <CardContent className="py-16 text-center space-y-3">
+                  <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+                  <Button variant="outline" size="sm" onClick={() => refetchWeb()} data-testid="button-retry-web-analytics">
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
             ) : !webAnalytics || webAnalytics.overview.totalSessions === 0 ? (
               <Card>
                 <CardContent className="py-16 text-center">
@@ -811,6 +803,16 @@ export default function AdminAnalytics() {
               <div className="flex items-center justify-center py-20">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
+            ) : businessError ? (
+              <Card>
+                <CardContent className="py-16 text-center space-y-3">
+                  <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+                  <Button variant="outline" size="sm" onClick={() => refetchBusiness()} data-testid="button-retry-business-analytics">
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
             ) : (
               <>
                 {/* Overview Stats */}
@@ -1473,6 +1475,16 @@ export default function AdminAnalytics() {
                   <p className="mt-2 text-muted-foreground">Loading Max AI data...</p>
                 </div>
               </div>
+            ) : aiAnalyticsError ? (
+              <Card>
+                <CardContent className="py-16 text-center space-y-3">
+                  <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+                  <Button variant="outline" size="sm" onClick={() => refetchAi()} data-testid="button-retry-ai-analytics">
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
             ) : !aiAnalytics ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">No AI analytics data available.</CardContent>
