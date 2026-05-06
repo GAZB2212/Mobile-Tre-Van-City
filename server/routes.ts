@@ -7681,8 +7681,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
-  // Send artwork proof email to customer (full admin only — same policy as quote confirmation emails)
-  app.post("/api/admin/artwork-proofs/:id/send", isAuthenticated, isFullAdmin, async (req, res) => {
+  // Send artwork proof email to customer (any admin can send artwork proofs)
+  app.post("/api/admin/artwork-proofs/:id/send", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const { rows: proofRows } = await pool.query(`SELECT * FROM artwork_proofs WHERE id = $1`, [id]);

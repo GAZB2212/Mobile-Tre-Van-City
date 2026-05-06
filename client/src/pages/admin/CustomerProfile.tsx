@@ -1516,8 +1516,45 @@ export default function CustomerProfile() {
 
                           {isExpanded && (
                             <div className="px-3 pb-3 space-y-3 border-t">
+                              {/* Send to customer — primary action, shown at the top */}
+                              <div className="pt-3 flex items-center gap-2 flex-wrap">
+                                <Button
+                                  size="sm"
+                                  onClick={() => sendProofEmailMutation.mutate(proof.id)}
+                                  disabled={!customer.email || sendProofEmailMutation.isPending}
+                                  title={!customer.email ? "Customer has no email address — add one to their profile first" : undefined}
+                                  data-testid={`button-send-proof-email-${proof.id}`}
+                                >
+                                  {sendProofEmailMutation.isPending ? (
+                                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                                  ) : (
+                                    <Send className="w-3.5 h-3.5 mr-1.5" />
+                                  )}
+                                  {proof.sentAt ? "Resend to customer" : "Send to customer"}
+                                </Button>
+                                {proof.sentAt && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    Last sent {formatDate(proof.sentAt)}
+                                  </span>
+                                )}
+                                {!customer.email && (
+                                  <span className="text-[11px] text-amber-400">
+                                    No email address on record
+                                  </span>
+                                )}
+                                <a
+                                  href={`/artwork-approval/${proof.token}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] text-[hsl(86_53%_60%)] hover:underline ml-auto"
+                                  data-testid={`link-proof-preview-${proof.id}`}
+                                >
+                                  Preview customer view <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              </div>
+
                               {/* Thumbnail strip */}
-                              <div className="flex flex-wrap gap-2 pt-3">
+                              <div className="flex flex-wrap gap-2">
                                 {proof.files.map((file, fi) => {
                                   const isPdf = file.name.toLowerCase().endsWith(".pdf");
                                   return (
@@ -1573,7 +1610,7 @@ export default function CustomerProfile() {
 
                               {/* Admin notes */}
                               <div className="space-y-1.5">
-                                <Label className="text-xs text-muted-foreground">Admin notes</Label>
+                                <Label className="text-xs text-muted-foreground">Admin notes (internal only)</Label>
                                 <Textarea
                                   className="resize-none text-xs min-h-[60px]"
                                   placeholder="Internal notes for this proof round..."
@@ -1581,48 +1618,16 @@ export default function CustomerProfile() {
                                   onChange={e => setArtworkAdminNotes(prev => ({ ...prev, [proof.id]: e.target.value }))}
                                   data-testid={`textarea-proof-notes-${proof.id}`}
                                 />
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => updateProofNotesMutation.mutate({ proofId: proof.id, adminNotes: artworkAdminNotes[proof.id] ?? "" })}
-                                    disabled={updateProofNotesMutation.isPending}
-                                    data-testid={`button-save-proof-notes-${proof.id}`}
-                                  >
-                                    <Save className="w-3.5 h-3.5 mr-1.5" />
-                                    Save notes
-                                  </Button>
-                                  {user?.adminRole === "full" && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => sendProofEmailMutation.mutate(proof.id)}
-                                      disabled={!customer.email || sendProofEmailMutation.isPending}
-                                      title={!customer.email ? "Customer has no email address" : undefined}
-                                      data-testid={`button-send-proof-email-${proof.id}`}
-                                    >
-                                      {sendProofEmailMutation.isPending ? (
-                                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
-                                      ) : (
-                                        <Send className="w-3.5 h-3.5 mr-1.5" />
-                                      )}
-                                      {proof.sentAt ? "Resend to customer" : "Send to customer"}
-                                    </Button>
-                                  )}
-                                  {proof.sentAt && (
-                                    <span className="text-[11px] text-muted-foreground">
-                                      Last sent {formatDate(proof.sentAt)}
-                                    </span>
-                                  )}
-                                  <a
-                                    href={`/artwork-approval/${proof.token}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1 text-[11px] text-[hsl(86_53%_60%)] hover:underline ml-auto"
-                                    data-testid={`link-proof-preview-${proof.id}`}
-                                  >
-                                    Preview customer view <ExternalLink className="w-2.5 h-2.5" />
-                                  </a>
-                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateProofNotesMutation.mutate({ proofId: proof.id, adminNotes: artworkAdminNotes[proof.id] ?? "" })}
+                                  disabled={updateProofNotesMutation.isPending}
+                                  data-testid={`button-save-proof-notes-${proof.id}`}
+                                >
+                                  <Save className="w-3.5 h-3.5 mr-1.5" />
+                                  Save notes
+                                </Button>
                               </div>
                             </div>
                           )}
