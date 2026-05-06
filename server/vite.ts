@@ -144,7 +144,7 @@ async function buildSsrBundle(distPath: string): Promise<string | null> {
       platform: "node",
       format: "esm",
       outfile: ssrBundlePath,
-      external: ["react", "react-dom", "react-dom/server", "wouter", "@tanstack/react-query"],
+      packages: "external",
       alias: {
         "@": clientSrcPath,
         "@shared": sharedPath,
