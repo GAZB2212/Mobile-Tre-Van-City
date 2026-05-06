@@ -194,6 +194,28 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   // Global enquiry polling — fires toast/browser notifications on any admin page
   const { isSnoozed, snoozeUntil, snooze, cancelSnooze } = useEnquiryNotifications();
 
+  // In-app mute toggle — mirrors the dashboard bell; stored in localStorage
+  const MUTE_KEY = "enquiry-notif-muted";
+  const MUTE_EVENT = "enquiry-mute-changed";
+  const [notifMuted, setNotifMuted] = useState<boolean>(() => localStorage.getItem(MUTE_KEY) === "1");
+
+  // Keep state in sync when Dashboard (or another tab opener) toggles mute
+  useEffect(() => {
+    const sync = () => setNotifMuted(localStorage.getItem(MUTE_KEY) === "1");
+    window.addEventListener(MUTE_EVENT, sync);
+    return () => window.removeEventListener(MUTE_EVENT, sync);
+  }, []);
+
+  const toggleMute = () => {
+    if (notifMuted) {
+      localStorage.removeItem(MUTE_KEY);
+    } else {
+      localStorage.setItem(MUTE_KEY, "1");
+    }
+    setNotifMuted((m) => !m);
+    window.dispatchEvent(new Event(MUTE_EVENT));
+  };
+
   // Force a re-render every 30 s while snoozed so the remaining-time label updates
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -563,20 +585,22 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 <TooltipTrigger asChild>
                   <PopoverTrigger asChild>
                     <button
-                      className="text-zinc-500 hover:text-zinc-200 transition-colors p-1 rounded-md"
+                      className={`transition-colors p-1 rounded-md ${notifMuted ? "text-amber-400 hover:text-amber-300" : "text-zinc-500 hover:text-zinc-200"}`}
                       data-testid="button-snooze-notifications"
-                      aria-label="Snooze new-enquiry alerts"
+                      aria-label={notifMuted ? "Notifications muted" : "Snooze new-enquiry alerts"}
                     >
-                      <Bell size={14} />
+                      {notifMuted ? <BellOff size={14} /> : <Bell size={14} />}
                     </button>
                   </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Snooze alerts</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">
+                  {notifMuted ? "Notifications muted — click to manage" : "Snooze or mute alerts"}
+                </TooltipContent>
               </Tooltip>
               <PopoverContent
                 side="bottom"
                 align="end"
-                className="w-48 p-1.5 space-y-0.5"
+                className="w-52 p-1.5 space-y-0.5"
                 data-testid="popover-snooze-options"
               >
                 <p className="text-[10px] font-medium text-zinc-500 px-2 py-1 uppercase tracking-wide">
@@ -596,6 +620,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     {label}
                   </button>
                 ))}
+                <div className="border-t border-white/[0.08] my-1" />
+                <button
+                  onClick={toggleMute}
+                  className="w-full flex items-center gap-2 text-left text-[13px] px-2 py-1.5 rounded-md text-zinc-300 hover:bg-white/[0.07] transition-colors"
+                  data-testid="button-toggle-mute-notifications"
+                >
+                  {notifMuted ? <Bell size={13} className="shrink-0 text-zinc-400" /> : <BellOff size={13} className="shrink-0 text-zinc-400" />}
+                  {notifMuted ? "Unmute notifications" : "Mute notifications"}
+                </button>
               </PopoverContent>
             </Popover>
           )}

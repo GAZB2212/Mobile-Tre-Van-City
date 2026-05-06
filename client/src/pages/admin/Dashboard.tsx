@@ -144,9 +144,16 @@ export default function AdminDashboard() {
 
   // In-app mute toggle — stored in localStorage so it persists across sessions.
   // When muted, useEnquiryNotifications skips firing toasts and browser alerts.
-  const [notifMuted, setNotifMuted] = useState<boolean>(() => {
-    return localStorage.getItem("enquiry-notif-muted") === "1";
-  });
+  const MUTE_KEY = "enquiry-notif-muted";
+  const MUTE_EVENT = "enquiry-mute-changed";
+  const [notifMuted, setNotifMuted] = useState<boolean>(() => localStorage.getItem(MUTE_KEY) === "1");
+
+  // Keep mute state in sync when AdminLayout (or the header bell) toggles it
+  useEffect(() => {
+    const sync = () => setNotifMuted(localStorage.getItem(MUTE_KEY) === "1");
+    window.addEventListener(MUTE_EVENT, sync);
+    return () => window.removeEventListener(MUTE_EVENT, sync);
+  }, []);
 
   // Keep the bell icon in sync when the mute flag is toggled in another tab.
   useEffect(() => {
@@ -186,14 +193,16 @@ export default function AdminDashboard() {
       return;
     }
     if (Notification.permission === "granted") {
-      // Toggle the in-app mute preference.
+      // Toggle the in-app mute preference; notify sibling components via event.
       if (notifMuted) {
-        localStorage.removeItem("enquiry-notif-muted");
+        localStorage.removeItem(MUTE_KEY);
         setNotifMuted(false);
+        window.dispatchEvent(new Event(MUTE_EVENT));
         toast({ title: "Notifications unmuted", description: "You will receive alerts when new enquiries arrive." });
       } else {
-        localStorage.setItem("enquiry-notif-muted", "1");
+        localStorage.setItem(MUTE_KEY, "1");
         setNotifMuted(true);
+        window.dispatchEvent(new Event(MUTE_EVENT));
         toast({ title: "Notifications muted", description: "Alerts are paused. Click the bell again to re-enable them." });
       }
       return;
