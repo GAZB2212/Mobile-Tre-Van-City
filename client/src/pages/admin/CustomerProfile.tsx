@@ -5,8 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, fetchJson, getAuthToken, parseMutationJson } from "@/lib/queryClient";
-import { ObjectUploader } from "@/components/ObjectUploader";
-import type { UploadResult } from "@uppy/core";
 import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -371,8 +369,9 @@ export default function CustomerProfile() {
   const [artworkExpanded, setArtworkExpanded] = useState<Record<string, boolean>>({});
   const [artworkAdminNotes, setArtworkAdminNotes] = useState<Record<string, string>>({});
   const [artworkLightbox, setArtworkLightbox] = useState<string | null>(null);
-  // Tracks objectPaths gathered during ObjectUploader upload (one entry per file)
-  const pendingArtworkFilesRef = useRef<Array<{ url: string; name: string }>>([]);
+  const [artworkSelectedFiles, setArtworkSelectedFiles] = useState<File[]>([]);
+  const [artworkUploading, setArtworkUploading] = useState(false);
+  const artworkInputRef = useRef<HTMLInputElement>(null);
 
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
@@ -577,40 +576,49 @@ export default function CustomerProfile() {
     onError: () => toast({ variant: "destructive", title: "Failed to save notes" }),
   });
 
-  const handleArtworkGetUploadParameters = async (file: { name: string; type: string }) => {
-    const token = getAuthToken();
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    const r = await fetch("/api/admin/artwork-proofs/upload-url", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify({ filename: file.name, contentType: file.type }),
-    });
-    if (!r.ok) throw new Error("Failed to get upload URL");
-    const { uploadURL, objectPath } = await r.json();
-    pendingArtworkFilesRef.current.push({ url: objectPath, name: file.name });
-    return { method: "PUT" as const, url: uploadURL, objectPath };
-  };
-
-  const handleArtworkUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    if (!result.successful || result.successful.length === 0) return;
-    const files = [...pendingArtworkFilesRef.current];
-    pendingArtworkFilesRef.current = [];
-    if (files.length === 0) return;
+  const handleArtworkCreateProof = async () => {
+    if (artworkSelectedFiles.length === 0) return;
+    setArtworkUploading(true);
     try {
+      const uploadedFiles: Array<{ url: string; name: string }> = [];
       const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`/api/admin/customers/${id}/artwork-proofs`, {
+      const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+      for (const file of artworkSelectedFiles) {
+        const urlRes = await fetch("/api/admin/artwork-proofs/upload-url", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+        });
+        if (!urlRes.ok) throw new Error("Failed to get upload URL");
+        const { uploadURL, objectPath } = await urlRes.json();
+
+        const putRes = await fetch(uploadURL, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!putRes.ok) throw new Error("Upload failed");
+        uploadedFiles.push({ url: objectPath, name: file.name });
+      }
+
+      const createRes = await fetch(`/api/admin/customers/${id}/artwork-proofs`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ files }),
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ files: uploadedFiles }),
       });
-      if (!r.ok) throw new Error("Create failed");
+      if (!createRes.ok) throw new Error("Create failed");
+
       refetchProofs();
-      toast({ title: "Artwork proof created", description: `${files.length} file${files.length !== 1 ? "s" : ""} uploaded.` });
+      setArtworkSelectedFiles([]);
+      if (artworkInputRef.current) artworkInputRef.current.value = "";
+      toast({ title: "Proof round created", description: `${uploadedFiles.length} file${uploadedFiles.length !== 1 ? "s" : ""} uploaded successfully.` });
     } catch {
-      toast({ variant: "destructive", title: "Failed to save proof", description: "Files uploaded but record could not be saved. Please try again." });
+      toast({ variant: "destructive", title: "Upload failed", description: "Could not upload artwork. Please try again." });
+    } finally {
+      setArtworkUploading(false);
     }
   };
 
@@ -1454,20 +1462,91 @@ export default function CustomerProfile() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Upload new proof */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Upload PNG or JPEG files to create a new proof round</Label>
-                  <ObjectUploader
-                    maxNumberOfFiles={20}
-                    maxFileSize={20 * 1024 * 1024}
-                    allowedFileTypes={["image/png", "image/jpeg", "image/jpg"]}
-                    onGetUploadParameters={handleArtworkGetUploadParameters}
-                    onComplete={handleArtworkUploadComplete}
-                  >
-                    <div className="flex items-center gap-1.5" data-testid="button-artwork-upload">
-                      <Upload className="w-3.5 h-3.5" />
-                      New Proof Round
+                <div className="space-y-2">
+                  <input
+                    ref={artworkInputRef}
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      setArtworkSelectedFiles(prev => {
+                        const existing = new Set(prev.map(f => f.name + f.size));
+                        return [...prev, ...files.filter(f => !existing.has(f.name + f.size))];
+                      });
+                    }}
+                    data-testid="input-artwork-files"
+                  />
+
+                  {artworkSelectedFiles.length === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => artworkInputRef.current?.click()}
+                      className="w-full flex flex-col items-center gap-2 py-5 rounded-md border-2 border-dashed border-border text-muted-foreground hover-elevate transition-colors"
+                      data-testid="button-artwork-upload"
+                    >
+                      <Upload className="w-5 h-5" />
+                      <span className="text-xs font-medium">Click to choose artwork files</span>
+                      <span className="text-[11px]">PNG or JPEG · up to 20 MB each</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{artworkSelectedFiles.length} file{artworkSelectedFiles.length !== 1 ? "s" : ""} selected</span>
+                        <button
+                          type="button"
+                          onClick={() => artworkInputRef.current?.click()}
+                          className="text-[11px] text-[hsl(86_53%_60%)] hover:underline"
+                          data-testid="button-artwork-add-more"
+                        >
+                          + Add more
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        {artworkSelectedFiles.map((file, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-md bg-muted/50 border">
+                            <ImageIcon className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span className="flex-1 truncate font-medium">{file.name}</span>
+                            <span className="text-muted-foreground shrink-0 text-[11px]">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                            <button
+                              type="button"
+                              onClick={() => setArtworkSelectedFiles(prev => prev.filter((_, j) => j !== i))}
+                              className="text-muted-foreground hover:text-foreground shrink-0"
+                              data-testid={`button-remove-artwork-file-${i}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={handleArtworkCreateProof}
+                          disabled={artworkUploading}
+                          data-testid="button-create-proof-round"
+                        >
+                          {artworkUploading ? (
+                            <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5 mr-1.5" />
+                          )}
+                          {artworkUploading ? "Uploading…" : "Create proof round"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => { setArtworkSelectedFiles([]); if (artworkInputRef.current) artworkInputRef.current.value = ""; }}
+                          disabled={artworkUploading}
+                          data-testid="button-cancel-artwork-upload"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                  </ObjectUploader>
+                  )}
                 </div>
 
                 {/* Existing proof rounds */}
