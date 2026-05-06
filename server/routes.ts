@@ -6179,10 +6179,58 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   app.patch("/api/admin/ai-conversations/:id/contacted", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const note = typeof req.body?.note === "string" ? req.body.note.trim() : null;
+
+      // Fetch conversation so we know the linked customer_id
+      const convResult = await pool.query(
+        "SELECT id, customer_id, contact_name FROM ai_conversations WHERE id = $1",
+        [req.params.id]
+      );
+      if (convResult.rows.length === 0) return res.status(404).json({ error: "Not found" });
+      const conv = convResult.rows[0];
+
       await pool.query(
         "UPDATE ai_conversations SET marked_contacted = TRUE, contacted_note = $2 WHERE id = $1",
         [req.params.id, note || null]
       );
+
+      // If a note was provided and the conversation is linked to a customer, save it to the customer timeline
+      if (note && conv.customer_id) {
+        const authorName = req.session.user?.username ?? "Admin";
+        const authorId = req.session.user?.id ?? null;
+        const timestamp = new Date().toISOString();
+        const noteEntry = { text: note, timestamp, author: authorName };
+
+        // Insert customer note (type: call)
+        await pool.query(
+          `INSERT INTO customer_notes (id, customer_id, author_id, author_name, note_type, text, created_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, 'call', $4, NOW())`,
+          [conv.customer_id, authorId, authorName, note]
+        );
+
+        // Propagate to linked leads and quotes
+        const [linkedLeads, linkedQuotes] = await Promise.all([
+          pool.query(`SELECT id, crm_notes FROM leads WHERE customer_id = $1`, [conv.customer_id]),
+          pool.query(`SELECT id, admin_notes_history FROM quotes WHERE customer_id = $1`, [conv.customer_id]),
+        ]);
+
+        await Promise.all([
+          ...linkedLeads.rows.map((lead: any) => {
+            const existing: Array<{ text: string; timestamp: string; author?: string }> = lead.crm_notes ?? [];
+            return pool.query(
+              `UPDATE leads SET crm_notes = $2 WHERE id = $1`,
+              [lead.id, JSON.stringify([...existing, noteEntry])]
+            );
+          }),
+          ...linkedQuotes.rows.map((quote: any) => {
+            const existing: Array<{ text: string; timestamp: string; author?: string }> = quote.admin_notes_history ?? [];
+            return pool.query(
+              `UPDATE quotes SET admin_notes_history = $2 WHERE id = $1`,
+              [quote.id, JSON.stringify([...existing, noteEntry])]
+            );
+          }),
+        ]);
+      }
+
       res.json({ ok: true });
     } catch (error) {
       console.error("AI conversation mark contacted error:", error);

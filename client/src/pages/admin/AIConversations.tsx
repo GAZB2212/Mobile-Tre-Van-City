@@ -1197,24 +1197,32 @@ export default function AdminAIConversations() {
       >
         <DialogContent className="max-w-md" data-testid="dialog-mark-contacted">
           <DialogHeader>
-            <DialogTitle>Mark as contacted</DialogTitle>
-            <DialogDescription>
-              Optionally add a note about what happened on the call
+            <DialogTitle>
+              What was said
               {contactNoteDialogConv?.contact_name
-                ? ` with ${contactNoteDialogConv.contact_name}`
-                : ""}.
+                ? ` — ${contactNoteDialogConv.contact_name}`
+                : ""}?
+            </DialogTitle>
+            <DialogDescription>
+              Record what happened on the call. This will be saved to the customer's timeline.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-1">
-            <Label htmlFor="contacted-note">Call note (optional)</Label>
+            <Label htmlFor="contacted-note">
+              Call note <span className="text-destructive">*</span>
+            </Label>
             <Textarea
               id="contacted-note"
-              placeholder="e.g. Left voicemail, Quoted £X, Not interested..."
+              placeholder="e.g. Left voicemail. / Spoke to customer — interested in Pack 2, calling back Thursday. / Not interested at this time."
               value={contactNoteText}
               onChange={(e) => setContactNoteText(e.target.value)}
-              rows={3}
+              rows={4}
               data-testid="textarea-contacted-note"
+              autoFocus
             />
+            <p className="text-xs text-muted-foreground">
+              Required — even a brief note helps the team follow up.
+            </p>
           </div>
           <DialogFooter>
             <Button
@@ -1226,11 +1234,11 @@ export default function AdminAIConversations() {
             </Button>
             <Button
               onClick={handleSubmitContacted}
-              disabled={contactedMutation.isPending}
+              disabled={contactedMutation.isPending || !contactNoteText.trim()}
               data-testid="button-confirm-contacted"
             >
               <PhoneCall className="w-4 h-4 mr-2" />
-              {contactedMutation.isPending ? "Saving..." : "Mark contacted"}
+              {contactedMutation.isPending ? "Saving..." : "Save & mark contacted"}
             </Button>
           </DialogFooter>
         </DialogContent>
