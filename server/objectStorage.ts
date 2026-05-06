@@ -277,6 +277,29 @@ export class ObjectStorageService {
     return `/objects/avatars/${uploadedFilename}`;
   }
 
+  // Upload artwork proof image directly to public storage
+  async uploadArtworkProofToPublicStorage(
+    fileBuffer: Buffer,
+    filename: string,
+    contentType: string
+  ): Promise<string> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+    const publicPath = publicPaths[0];
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/artwork-proofs/${objectId}-${safeFilename}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    await file.save(fileBuffer, { contentType, metadata: { contentType } });
+    const pathParts = objectName.split('/');
+    const uploadedFilename = pathParts[pathParts.length - 1];
+    return `/objects/artwork-proofs/${uploadedFilename}`;
+  }
+
   // Upload file buffer directly to public storage (backend proxy - no CORS)
   async uploadFileToPublicStorage(
     fileBuffer: Buffer,

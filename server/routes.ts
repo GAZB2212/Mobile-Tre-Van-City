@@ -7536,6 +7536,229 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── Artwork Proofs ──────────────────────────────────────────────────────────
+
+  // Upload artwork proof files (multer-based, returns URLs)
+  app.post("/api/admin/artwork-proofs/upload", isAuthenticated, isBasicAdmin, async (req, res) => {
+    const multer = await import("multer");
+    const upload = multer.default({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+    upload.array("files", 20)(req, res, async (err: any) => {
+      if (err) return res.status(400).json({ error: "File upload failed" });
+      try {
+        const files = req.files as Express.Multer.File[] | undefined;
+        if (!files || files.length === 0) return res.status(400).json({ error: "No files provided" });
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+        for (const f of files) {
+          if (!allowedTypes.includes(f.mimetype.toLowerCase())) {
+            return res.status(400).json({ error: "Only PNG, JPEG, and PDF files are allowed" });
+          }
+        }
+        const { ObjectStorageService } = await import("./objectStorage");
+        const svc = new ObjectStorageService();
+        const uploaded: Array<{ url: string; name: string }> = [];
+        for (const f of files) {
+          const url = await svc.uploadArtworkProofToPublicStorage(f.buffer, f.originalname, f.mimetype);
+          uploaded.push({ url, name: f.originalname });
+        }
+        res.json({ files: uploaded });
+      } catch (error) {
+        console.error("Artwork proof upload error:", error);
+        res.status(500).json({ error: "Upload failed" });
+      }
+    });
+  });
+
+  // List artwork proofs for a customer
+  app.get("/api/admin/customers/:id/artwork-proofs", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rows } = await pool.query(
+        `SELECT ap.*, u.username AS uploaded_by_name,
+                COALESCE(u.first_name || ' ' || u.last_name, u.username) AS uploaded_by_display
+         FROM artwork_proofs ap
+         LEFT JOIN users u ON u.id = ap.uploaded_by_id
+         WHERE ap.customer_id = $1
+         ORDER BY ap.created_at DESC`,
+        [id]
+      );
+      res.json(rows.map((r: any) => ({
+        id: r.id,
+        customerId: r.customer_id,
+        quoteId: r.quote_id,
+        uploadedById: r.uploaded_by_id,
+        uploadedByName: r.uploaded_by_display?.trim() || r.uploaded_by_name || null,
+        files: Array.isArray(r.files) ? r.files : (typeof r.files === 'string' ? JSON.parse(r.files) : []),
+        status: r.status,
+        token: r.token,
+        adminNotes: r.admin_notes,
+        customerNotes: r.customer_notes,
+        sentAt: r.sent_at,
+        respondedAt: r.responded_at,
+        createdAt: r.created_at,
+      })));
+    } catch (error) {
+      console.error("List artwork proofs error:", error);
+      res.status(500).json({ error: "Failed to fetch artwork proofs" });
+    }
+  });
+
+  // Create a new artwork proof round
+  app.post("/api/admin/customers/:id/artwork-proofs", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const customer = await storage.getCustomer(id);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      const schema = z.object({
+        files: z.array(z.object({ url: z.string(), name: z.string() })).min(1),
+        adminNotes: z.string().optional().nullable(),
+        quoteId: z.string().optional().nullable(),
+      });
+      const { files, adminNotes, quoteId } = schema.parse(req.body);
+
+      const currentUser = await getCurrentUser(req);
+      const token = crypto.randomBytes(32).toString('hex');
+
+      const { rows } = await pool.query(
+        `INSERT INTO artwork_proofs (customer_id, quote_id, uploaded_by_id, files, status, token, admin_notes)
+         VALUES ($1, $2, $3, $4, 'pending_review', $5, $6)
+         RETURNING *`,
+        [id, quoteId ?? null, currentUser?.id ?? null, JSON.stringify(files), token, adminNotes ?? null]
+      );
+      const proof = rows[0];
+      res.json({
+        id: proof.id,
+        customerId: proof.customer_id,
+        files: Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files),
+        status: proof.status,
+        token: proof.token,
+        adminNotes: proof.admin_notes,
+        createdAt: proof.created_at,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Create artwork proof error:", error);
+      res.status(500).json({ error: "Failed to create artwork proof" });
+    }
+  });
+
+  // Send artwork proof email to customer (full admin only — same policy as quote confirmation emails)
+  app.post("/api/admin/artwork-proofs/:id/send", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rows: proofRows } = await pool.query(`SELECT * FROM artwork_proofs WHERE id = $1`, [id]);
+      if (proofRows.length === 0) return res.status(404).json({ error: "Artwork proof not found" });
+      const proof = proofRows[0];
+
+      const customer = await storage.getCustomer(proof.customer_id);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+      if (!customer.email) return res.status(400).json({ error: "Customer has no email address" });
+
+      const files: Array<{ url: string; name: string }> = Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files);
+
+      const siteBase = process.env.SITE_URL ||
+        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0].trim()}` : 'https://www.mobiletyrevancity.co.uk');
+
+      const { sendArtworkProofEmail } = await import('./email.js');
+      await sendArtworkProofEmail({
+        to: customer.email,
+        customerName: customer.name,
+        proofId: proof.id,
+        token: proof.token,
+        files,
+        adminNotes: proof.admin_notes,
+        siteBaseUrl: siteBase,
+      });
+
+      await pool.query(`UPDATE artwork_proofs SET sent_at = NOW() WHERE id = $1`, [id]);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Send artwork proof email error:", error);
+      res.status(500).json({ error: "Failed to send email" });
+    }
+  });
+
+  // Update admin notes on an artwork proof
+  app.patch("/api/admin/artwork-proofs/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNotes } = z.object({ adminNotes: z.string().nullable() }).parse(req.body);
+      await pool.query(`UPDATE artwork_proofs SET admin_notes = $1 WHERE id = $2`, [adminNotes, id]);
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Update artwork proof error:", error);
+      res.status(500).json({ error: "Failed to update" });
+    }
+  });
+
+  // Public: get artwork proof info by token
+  app.get("/api/artwork-approval/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { rows } = await pool.query(
+        `SELECT ap.*, c.name AS customer_name FROM artwork_proofs ap JOIN customers c ON c.id = ap.customer_id WHERE ap.token = $1`,
+        [token]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: "Approval link not found or has expired" });
+      const proof = rows[0];
+      res.json({
+        customerName: proof.customer_name,
+        files: Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files),
+        status: proof.status,
+        customerNotes: proof.customer_notes,
+        adminNotes: proof.admin_notes,
+      });
+    } catch (error) {
+      console.error("Get artwork approval error:", error);
+      res.status(500).json({ error: "Failed to fetch approval info" });
+    }
+  });
+
+  // Public: submit artwork approval or change request
+  app.post("/api/artwork-approval/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { approved, notes } = z.object({
+        approved: z.boolean(),
+        notes: z.string().optional(),
+      }).parse(req.body);
+
+      if (!approved && (!notes || !notes.trim())) {
+        return res.status(400).json({ error: "Please describe what changes are needed" });
+      }
+
+      const { rows } = await pool.query(`SELECT * FROM artwork_proofs WHERE token = $1`, [token]);
+      if (rows.length === 0) return res.status(404).json({ error: "Approval link not found" });
+      const proof = rows[0];
+
+      const newStatus = approved ? 'approved' : 'changes_requested';
+      await pool.query(
+        `UPDATE artwork_proofs SET status = $1, customer_notes = $2, responded_at = NOW() WHERE id = $3`,
+        [newStatus, approved ? null : (notes?.trim() ?? null), proof.id]
+      );
+
+      // Notify internal team
+      try {
+        const customer = await storage.getCustomer(proof.customer_id);
+        const { sendEmail } = await import('./email.js');
+        const subject = approved
+          ? `Artwork Approved — ${customer?.name ?? 'Customer'}`
+          : `Artwork Changes Requested — ${customer?.name ?? 'Customer'}`;
+        const html = approved
+          ? `<h2>Customer approved their artwork</h2><p><strong>Customer:</strong> ${customer?.name}</p><p style="color:#166534;">The customer is happy with the artwork and has approved it.</p>`
+          : `<h2>Customer requested changes to their artwork</h2><p><strong>Customer:</strong> ${customer?.name}</p><hr/><h3>Customer's notes:</h3><p style="white-space:pre-wrap; background:#fef2f2; padding:12px; border-radius:6px; border-left:4px solid #ef4444;">${notes?.trim()}</p>`;
+        await sendEmail({ to: INTERNAL_NOTIFY_EMAILS, subject, html });
+      } catch { /* non-fatal */ }
+
+      res.json({ ok: true, status: newStatus });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Submit artwork approval error:", error);
+      res.status(500).json({ error: "Failed to submit response" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

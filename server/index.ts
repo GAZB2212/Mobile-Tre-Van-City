@@ -685,6 +685,27 @@ app.use((req, res, next) => {
         })
         .catch((err: Error) => console.error("Customers migration:", err.message));
 
+      // Artwork proofs table
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS artwork_proofs (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          customer_id VARCHAR NOT NULL,
+          quote_id VARCHAR,
+          uploaded_by_id VARCHAR,
+          files JSONB NOT NULL DEFAULT '[]',
+          status TEXT NOT NULL DEFAULT 'pending_review',
+          token VARCHAR NOT NULL UNIQUE,
+          admin_notes TEXT,
+          customer_notes TEXT,
+          sent_at TIMESTAMP,
+          responded_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_artwork_proofs_customer ON artwork_proofs (customer_id);
+        CREATE INDEX IF NOT EXISTS idx_artwork_proofs_token ON artwork_proofs (token);
+      `).then(() => log("✅ Artwork proofs table ready"))
+        .catch((err: Error) => console.error("Artwork proofs migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.

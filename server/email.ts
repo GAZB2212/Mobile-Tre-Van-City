@@ -1840,6 +1840,74 @@ export async function sendEmailTypePreview(to: string, emailType: EmailPreviewTy
   });
 }
 
+// ── Artwork proof approval email ──────────────────────────────────────────────
+export async function sendArtworkProofEmail({
+  to,
+  customerName,
+  proofId,
+  token,
+  files,
+  adminNotes,
+  siteBaseUrl,
+}: {
+  to: string;
+  customerName: string;
+  proofId: string;
+  token: string;
+  files: Array<{ url: string; name: string }>;
+  adminNotes?: string | null;
+  siteBaseUrl?: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const siteBase = siteBaseUrl || process.env.SITE_URL || `https://${SITE_DOMAIN}`;
+
+  const approveUrl = `${siteBase}/artwork-approval/${token}?status=approved`;
+  const changesUrl = `${siteBase}/artwork-approval/${token}?status=changes_requested`;
+
+  const thumbnails = files.map(f => {
+    const imgSrc = f.url.startsWith('/') ? `${siteBase}${f.url}` : f.url;
+    return `
+      <div style="display:inline-block; margin:6px; vertical-align:top; max-width:180px;">
+        <img src="${imgSrc}" alt="${f.name}" style="max-width:180px; max-height:180px; border:1px solid #e5e7eb; border-radius:6px; display:block;" />
+        <p style="font-size:11px; color:#6b7280; margin:4px 0 0; word-break:break-word;">${f.name}</p>
+      </div>
+    `;
+  }).join('');
+
+  const bodyHtml = `
+    <p>Hi ${customerName},</p>
+    <p>Your artwork proof is ready for review. Please take a moment to look over the files below and let us know if everything looks correct or if any changes are needed.</p>
+    ${adminNotes ? `<div style="background:#eff6ff; border-left:4px solid #3b82f6; padding:15px; margin:20px 0; border-radius:4px;"><strong>Note from our team:</strong><br>${adminNotes}</div>` : ''}
+    <h3 style="margin-bottom:12px;">Artwork Files</h3>
+    <div style="margin-bottom:24px; background:#f9fafb; padding:16px; border-radius:6px; border:1px solid #e5e7eb;">
+      ${thumbnails}
+    </div>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:20px;">Does the artwork look correct?</p>
+    <div style="text-align:center; margin:0 auto 24px;">
+      <a href="${approveUrl}"
+         style="display:block; max-width:280px; margin:0 auto 12px; background:${BRAND_GREEN}; color:${BRAND_DARK}; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; text-align:center; box-sizing:border-box;">
+        Yes — Approve Artwork
+      </a>
+      <a href="${changesUrl}"
+         style="display:block; max-width:280px; margin:0 auto; background:#fff; color:#374151; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; border:1px solid #d1d5db; text-align:center; box-sizing:border-box;">
+        Request Changes
+      </a>
+    </div>
+    <p style="font-size:13px; color:#6b7280;">You can also view the full-size artwork by visiting the link above. If you have any questions, please call us on <strong>${PHONE}</strong>.</p>
+    <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+  `;
+
+  await client.emails.send({
+    to,
+    from: fromEmail,
+    subject: `Artwork Proof Ready for Review — Mobile Tyre Van City`,
+    html: emailLayout(bodyHtml, {
+      footerNote: "If you did not request artwork from us, please disregard this email.",
+    }),
+    text: `Hi ${customerName},\n\nYour artwork proof is ready for review.\n\n${adminNotes ? `Note from our team: ${adminNotes}\n\n` : ''}Please visit the link below to approve the artwork or request changes:\n\nApprove: ${approveUrl}\nRequest Changes: ${changesUrl}\n\nCall us: ${PHONE}\n\nMobile Tyre Van City\n${ADDRESS}`,
+  });
+}
+
 // ── Generic pass-through email ────────────────────────────────────────────────
 export async function sendEmail({
   to,

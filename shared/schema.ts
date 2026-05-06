@@ -729,3 +729,32 @@ export const aiPackages = pgTable("ai_packages", {
 });
 
 export type AiPackage = typeof aiPackages.$inferSelect;
+
+// ─── Artwork Proofs ──────────────────────────────────────────────────────────
+export const artworkProofStatuses = ["pending_review", "approved", "changes_requested"] as const;
+export type ArtworkProofStatus = typeof artworkProofStatuses[number];
+
+export const artworkProofs = pgTable("artwork_proofs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").notNull(),
+  quoteId: varchar("quote_id"),
+  uploadedById: varchar("uploaded_by_id"),
+  files: jsonb("files").$type<Array<{ url: string; name: string }>>().notNull().default([]),
+  status: text("status").notNull().default("pending_review"),
+  token: varchar("token").notNull().unique(),
+  adminNotes: text("admin_notes"),
+  customerNotes: text("customer_notes"),
+  sentAt: timestamp("sent_at"),
+  respondedAt: timestamp("responded_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertArtworkProofSchema = createInsertSchema(artworkProofs).omit({
+  id: true,
+  token: true,
+  sentAt: true,
+  respondedAt: true,
+  createdAt: true,
+});
+export type InsertArtworkProof = z.infer<typeof insertArtworkProofSchema>;
+export type ArtworkProof = typeof artworkProofs.$inferSelect;

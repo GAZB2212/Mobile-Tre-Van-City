@@ -19,6 +19,7 @@ import {
   CalendarDays, StickyNote, PhoneCall, Coffee, ExternalLink,
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
   Merge, Search, ShieldAlert, Scissors, UserCircle,
+  ImageIcon, Upload, Send, ZoomIn, ChevronDown, ChevronUp,
 } from "lucide-react";
 import {
   Dialog,
@@ -77,6 +78,21 @@ interface CustomerNote {
   authorName?: string | null;
   noteType: string;
   text: string;
+  createdAt?: string | null;
+}
+
+interface ArtworkProof {
+  id: string;
+  customerId: string;
+  quoteId?: string | null;
+  uploadedById?: string | null;
+  files: Array<{ url: string; name: string }>;
+  status: string;
+  token: string;
+  adminNotes?: string | null;
+  customerNotes?: string | null;
+  sentAt?: string | null;
+  respondedAt?: string | null;
   createdAt?: string | null;
 }
 
@@ -225,6 +241,13 @@ export default function CustomerProfile() {
       }
     };
   }, []);
+
+  // Artwork proofs state
+  const [artworkExpanded, setArtworkExpanded] = useState<Record<string, boolean>>({});
+  const [artworkAdminNotes, setArtworkAdminNotes] = useState<Record<string, string>>({});
+  const [artworkUploadFiles, setArtworkUploadFiles] = useState<FileList | null>(null);
+  const [artworkUploading, setArtworkUploading] = useState(false);
+  const [artworkLightbox, setArtworkLightbox] = useState<string | null>(null);
 
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
@@ -395,6 +418,93 @@ export default function CustomerProfile() {
   const handleMergeConfirm = () => {
     if (!selectedMergeTarget || !mergeKeepId) return;
     mergeMutation.mutate({ mergeWithId: selectedMergeTarget.id, keepId: mergeKeepId });
+  };
+
+  // Artwork proofs query
+  const { data: artworkProofs = [], refetch: refetchProofs } = useQuery<ArtworkProof[]>({
+    queryKey: ["/api/admin/customers", id, "artwork-proofs"],
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers/${id}/artwork-proofs`, { credentials: "include", headers });
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.json();
+    },
+    enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
+  });
+
+  // Sync admin notes from loaded proofs
+  useEffect(() => {
+    if (artworkProofs.length > 0) {
+      setArtworkAdminNotes(prev => {
+        const next = { ...prev };
+        for (const proof of artworkProofs) {
+          if (!(proof.id in next)) next[proof.id] = proof.adminNotes ?? "";
+        }
+        return next;
+      });
+    }
+  }, [artworkProofs]);
+
+  const sendProofEmailMutation = useMutation({
+    mutationFn: (proofId: string) =>
+      apiRequest("POST", `/api/admin/artwork-proofs/${proofId}/send`).then(r => r.json()),
+    onSuccess: () => {
+      refetchProofs();
+      toast({ title: "Proof email sent", description: "The customer has been emailed with a link to review the artwork." });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to send email" }),
+  });
+
+  const updateProofNotesMutation = useMutation({
+    mutationFn: ({ proofId, adminNotes }: { proofId: string; adminNotes: string }) =>
+      apiRequest("PATCH", `/api/admin/artwork-proofs/${proofId}`, { adminNotes }),
+    onSuccess: () => {
+      refetchProofs();
+      toast({ title: "Notes saved" });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to save notes" }),
+  });
+
+  const handleArtworkUpload = async () => {
+    if (!artworkUploadFiles || artworkUploadFiles.length === 0) return;
+    setArtworkUploading(true);
+    try {
+      // Step 1: upload files
+      const formData = new FormData();
+      for (let i = 0; i < artworkUploadFiles.length; i++) {
+        formData.append("files", artworkUploadFiles[i]);
+      }
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const uploadRes = await fetch("/api/admin/artwork-proofs/upload", {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { files: uploadedFiles } = await uploadRes.json();
+
+      // Step 2: create proof record
+      const createRes = await fetch(`/api/admin/customers/${id}/artwork-proofs`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ files: uploadedFiles }),
+      });
+      if (!createRes.ok) throw new Error("Create failed");
+      setArtworkUploadFiles(null);
+      // reset the file input
+      const fileInput = document.getElementById("artwork-file-input") as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
+      refetchProofs();
+      toast({ title: "Artwork proof created", description: `${paths.length} file(s) uploaded.` });
+    } catch {
+      toast({ variant: "destructive", title: "Upload failed", description: "Could not upload artwork files. Please try again." });
+    } finally {
+      setArtworkUploading(false);
+    }
   };
 
   // Populate edit fields when data loads
@@ -1208,6 +1318,208 @@ export default function CustomerProfile() {
               </Card>
             )}
 
+            {/* Artwork Proofs */}
+            <Card data-testid="panel-artwork-proofs">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Artwork Proofs
+                  {artworkProofs.length > 0 && (
+                    <Badge className="ml-auto text-[10px] bg-muted text-muted-foreground no-default-active-elevate">
+                      {artworkProofs.length}
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Upload new proof */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Upload artwork files (images or PDFs)</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      id="artwork-file-input"
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf"
+                      className="text-xs text-muted-foreground file:mr-2 file:text-xs file:rounded file:border file:border-border file:bg-muted file:text-foreground file:px-2 file:py-1 cursor-pointer"
+                      onChange={e => setArtworkUploadFiles(e.target.files)}
+                      data-testid="input-artwork-files"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleArtworkUpload}
+                      disabled={!artworkUploadFiles || artworkUploadFiles.length === 0 || artworkUploading}
+                      data-testid="button-artwork-upload"
+                    >
+                      {artworkUploading ? (
+                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      {artworkUploading ? "Uploading..." : "Create Proof Round"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Existing proof rounds */}
+                {artworkProofs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No artwork proofs yet. Upload files above to create the first proof round.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {artworkProofs.map((proof, idx) => {
+                      const isExpanded = artworkExpanded[proof.id] ?? idx === 0;
+                      const proofStatusMap: Record<string, string> = {
+                        pending_review: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+                        sent: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                        approved: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+                        changes_requested: "bg-red-500/15 text-red-400 border-red-500/30",
+                      };
+                      const statusLabel: Record<string, string> = {
+                        pending_review: "Pending Review",
+                        sent: "Sent to Customer",
+                        approved: "Approved",
+                        changes_requested: "Changes Requested",
+                      };
+                      return (
+                        <div key={proof.id} className="border rounded-md" data-testid={`panel-proof-${proof.id}`}>
+                          {/* Proof header row */}
+                          <button
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover-elevate rounded-md"
+                            onClick={() => setArtworkExpanded(prev => ({ ...prev, [proof.id]: !isExpanded }))}
+                            data-testid={`button-proof-toggle-${proof.id}`}
+                          >
+                            <ImageIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs font-medium flex-1">
+                              Round {artworkProofs.length - idx} · {proof.files.length} file{proof.files.length !== 1 ? "s" : ""}
+                            </span>
+                            <Badge className={`text-[10px] border no-default-active-elevate ${proofStatusMap[proof.status] ?? "bg-muted text-muted-foreground border-border"}`}>
+                              {statusLabel[proof.status] ?? proof.status}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
+                              {formatDateShort(proof.createdAt)}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            )}
+                          </button>
+
+                          {isExpanded && (
+                            <div className="px-3 pb-3 space-y-3 border-t">
+                              {/* Thumbnail strip */}
+                              <div className="flex flex-wrap gap-2 pt-3">
+                                {proof.files.map((file, fi) => {
+                                  const isPdf = file.name.toLowerCase().endsWith(".pdf");
+                                  return (
+                                    <div key={fi} className="relative group" data-testid={`thumb-proof-${proof.id}-${fi}`}>
+                                      {isPdf ? (
+                                        <a
+                                          href={file.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          title={file.name}
+                                          className="flex flex-col items-center justify-center w-16 h-16 rounded-md border bg-muted text-muted-foreground hover-elevate gap-1"
+                                        >
+                                          <FileText className="w-5 h-5" />
+                                          <span className="text-[9px] truncate w-full text-center px-0.5">{file.name}</span>
+                                        </a>
+                                      ) : (
+                                        <button
+                                          className="relative w-16 h-16 rounded-md border overflow-hidden bg-muted focus:outline-none"
+                                          onClick={() => setArtworkLightbox(file.url)}
+                                          title={file.name}
+                                          data-testid={`button-lightbox-${proof.id}-${fi}`}
+                                        >
+                                          <img
+                                            src={file.url}
+                                            alt={file.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <ZoomIn className="w-4 h-4 text-white" />
+                                          </div>
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Customer response */}
+                              {proof.customerNotes && (
+                                <div className="rounded-md bg-muted/50 px-3 py-2 space-y-1">
+                                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Customer response</p>
+                                  <p className="text-xs leading-relaxed" data-testid={`text-customer-response-${proof.id}`}>{proof.customerNotes}</p>
+                                  {proof.respondedAt && (
+                                    <p className="text-[11px] text-muted-foreground">{formatDate(proof.respondedAt)}</p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Admin notes */}
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Admin notes</Label>
+                                <Textarea
+                                  className="resize-none text-xs min-h-[60px]"
+                                  placeholder="Internal notes for this proof round..."
+                                  value={artworkAdminNotes[proof.id] ?? ""}
+                                  onChange={e => setArtworkAdminNotes(prev => ({ ...prev, [proof.id]: e.target.value }))}
+                                  data-testid={`textarea-proof-notes-${proof.id}`}
+                                />
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateProofNotesMutation.mutate({ proofId: proof.id, adminNotes: artworkAdminNotes[proof.id] ?? "" })}
+                                    disabled={updateProofNotesMutation.isPending}
+                                    data-testid={`button-save-proof-notes-${proof.id}`}
+                                  >
+                                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                                    Save notes
+                                  </Button>
+                                  {user?.adminRole === "full" && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => sendProofEmailMutation.mutate(proof.id)}
+                                      disabled={!customer.email || sendProofEmailMutation.isPending}
+                                      title={!customer.email ? "Customer has no email address" : undefined}
+                                      data-testid={`button-send-proof-email-${proof.id}`}
+                                    >
+                                      {sendProofEmailMutation.isPending ? (
+                                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                                      ) : (
+                                        <Send className="w-3.5 h-3.5 mr-1.5" />
+                                      )}
+                                      {proof.sentAt ? "Resend to customer" : "Send to customer"}
+                                    </Button>
+                                  )}
+                                  {proof.sentAt && (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      Last sent {formatDate(proof.sentAt)}
+                                    </span>
+                                  )}
+                                  <a
+                                    href={`/artwork-approval/${proof.token}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] text-[hsl(86_53%_60%)] hover:underline ml-auto"
+                                    data-testid={`link-proof-preview-${proof.id}`}
+                                  >
+                                    Preview customer view <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Activity Timeline */}
             <Card>
               <CardHeader className="pb-3">
@@ -1287,6 +1599,31 @@ export default function CustomerProfile() {
           </div>
         </div>
       </div>
+
+      {/* Artwork lightbox */}
+      {artworkLightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setArtworkLightbox(null)}
+          data-testid="overlay-artwork-lightbox"
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <img
+              src={artworkLightbox}
+              alt="Artwork preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-md shadow-2xl"
+              data-testid="img-artwork-lightbox"
+            />
+            <button
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white hover-elevate"
+              onClick={() => setArtworkLightbox(null)}
+              data-testid="button-close-lightbox"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Merge confirmation dialog */}
       <Dialog open={showMergeConfirm} onOpenChange={setShowMergeConfirm}>
