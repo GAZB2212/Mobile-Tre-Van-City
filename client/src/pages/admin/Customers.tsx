@@ -3,7 +3,7 @@ import type { User } from "@shared/schema";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { fetchJson, apiRequest, queryClient } from "@/lib/queryClient";
+import { fetchJson, apiRequest, queryClient, parseMutationJson } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -158,7 +158,7 @@ function MoveRecordDialog({
 
   const reassignMutation = useMutation({
     mutationFn: (targetCustomerId: string) =>
-      apiRequest("PATCH", `/api/admin/records/${recordType}/${recordId}/reassign`, { targetCustomerId }).then(r => r.json()),
+      apiRequest("PATCH", `/api/admin/records/${recordType}/${recordId}/reassign`, { targetCustomerId }).then(parseMutationJson),
     onSuccess: (_data: unknown, targetCustomerId: string) => {
       toast({ title: "Record moved", description: `${recordLabel} has been reassigned.` });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", sourceCustomerId] });
@@ -803,7 +803,7 @@ export default function AdminCustomers() {
 
   const splitMutation = useMutation<{ ok: boolean; newCustomerId: string }, Error, string>({
     mutationFn: (historyId: string) =>
-      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then((res) => res.json()),
+      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then(parseMutationJson),
     onSuccess: (data) => {
       setSplittingId(null);
       toast({
@@ -828,7 +828,7 @@ export default function AdminCustomers() {
 
   const deleteCustomerMutation = useMutation<{ ok: boolean }, Error, string>({
     mutationFn: (id: string) =>
-      apiRequest("DELETE", `/api/admin/customers/${id}`).then(r => r.json()),
+      apiRequest("DELETE", `/api/admin/customers/${id}`).then(parseMutationJson),
     onSuccess: () => {
       setDeleteTarget(null);
       setDeleteConfirmText("");
@@ -842,7 +842,7 @@ export default function AdminCustomers() {
 
   const deduplicateMutation = useMutation<DeduplicateResult, Error>({
     mutationFn: () =>
-      apiRequest("POST", "/api/admin/customers/deduplicate").then((res) => res.json() as Promise<DeduplicateResult>),
+      apiRequest("POST", "/api/admin/customers/deduplicate").then(parseMutationJson<DeduplicateResult>),
     onSuccess: (data) => {
       setMergeSummary(data);
       setMergeSummaryExpanded(true);
@@ -864,7 +864,7 @@ export default function AdminCustomers() {
 
   const backfillMutation = useMutation<BackfillResult, Error>({
     mutationFn: () =>
-      apiRequest("POST", "/api/admin/customers/backfill").then((res) => res.json() as Promise<BackfillResult>),
+      apiRequest("POST", "/api/admin/customers/backfill").then(parseMutationJson<BackfillResult>),
     onSuccess: (data) => {
       const hasFailed = data.failedCount > 0;
       if (hasFailed) {

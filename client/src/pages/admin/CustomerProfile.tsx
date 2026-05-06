@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest, fetchJson, getAuthToken } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchJson, getAuthToken, parseMutationJson } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 import { useParams, Link, useLocation } from "wouter";
@@ -223,7 +223,7 @@ function ProofChatPanel({ proofId, customerName }: { proofId: string; customerNa
         body: JSON.stringify({ message: text }),
       });
       if (!r.ok) throw new Error("Failed to send");
-      return r.json();
+      return parseMutationJson(r);
     },
     onSuccess: () => { setCompose(""); refetchMessages(); },
     onError: () => toast({ variant: "destructive", title: "Failed to send message" }),
@@ -426,7 +426,7 @@ export default function CustomerProfile() {
 
   const splitMutation = useMutation<{ ok: boolean; newCustomerId: string }, Error, string>({
     mutationFn: (historyId: string) =>
-      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then((res) => res.json()),
+      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then(parseMutationJson),
     onSuccess: () => {
       setSplittingId(null);
       toast({
@@ -451,7 +451,7 @@ export default function CustomerProfile() {
 
   const undoMergeMutation = useMutation({
     mutationFn: (historyId: string) =>
-      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then(r => r.json()),
+      apiRequest("POST", `/api/admin/customers/split/${historyId}`).then(parseMutationJson),
     onSuccess: (data: { ok: boolean; newCustomerId: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers/merge-history"] });
@@ -469,7 +469,7 @@ export default function CustomerProfile() {
 
   const mergeMutation = useMutation({
     mutationFn: ({ mergeWithId, keepId }: { mergeWithId: string; keepId: string }) =>
-      apiRequest("POST", `/api/admin/customers/${id}/merge`, { mergeWithId, keepId }).then(r => r.json()),
+      apiRequest("POST", `/api/admin/customers/${id}/merge`, { mergeWithId, keepId }).then(parseMutationJson),
     onSuccess: (result: { ok: boolean; survivingId: string; historyId: string }) => {
       setShowMergeConfirm(false);
       setShowMergePanel(false);
@@ -559,7 +559,7 @@ export default function CustomerProfile() {
 
   const sendProofEmailMutation = useMutation({
     mutationFn: (proofId: string) =>
-      apiRequest("POST", `/api/admin/artwork-proofs/${proofId}/send`).then(r => r.json()),
+      apiRequest("POST", `/api/admin/artwork-proofs/${proofId}/send`).then(parseMutationJson),
     onSuccess: () => {
       refetchProofs();
       toast({ title: "Proof email sent", description: "The customer has been emailed with a link to review the artwork." });

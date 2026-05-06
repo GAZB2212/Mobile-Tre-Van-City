@@ -81,6 +81,19 @@ export async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
+/**
+ * Parses the JSON body from a mutation Response, surfacing a clear error
+ * on parse failures rather than letting an untyped runtime error propagate.
+ * Use this instead of `.then(r => r.json())` in mutation functions.
+ */
+export async function parseMutationJson<T>(res: Response): Promise<T> {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new Error("Server returned an unexpected response format.");
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
