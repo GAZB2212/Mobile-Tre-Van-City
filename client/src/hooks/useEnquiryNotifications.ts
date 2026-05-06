@@ -40,18 +40,33 @@ export function useEnquiryNotifications() {
   // via the `storage` event so changes in one tab propagate to all others.
   const [isMuted, setIsMuted] = useState<boolean>(readMuted);
 
+  // Snooze state — initialised from localStorage so it survives page reloads
+  const [snoozeUntil, setSnoozeUntilState] = useState<number | null>(readSnoozeUntil);
+
+  // Sync both mute and snooze state across tabs via the storage event.
+  // The storage event only fires in tabs *other* than the one that wrote the value,
+  // so same-tab changes are already handled by the setters above.
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === MUTE_KEY) {
         setIsMuted(e.newValue === "1");
       }
+      if (e.key === SNOOZE_KEY) {
+        if (!e.newValue) {
+          setSnoozeUntilState(null);
+        } else {
+          const ts = parseInt(e.newValue, 10);
+          if (!isNaN(ts) && Date.now() < ts) {
+            setSnoozeUntilState(ts);
+          } else {
+            setSnoozeUntilState(null);
+          }
+        }
+      }
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
-
-  // Snooze state — initialised from localStorage so it survives page reloads
-  const [snoozeUntil, setSnoozeUntilState] = useState<number | null>(readSnoozeUntil);
 
   const snooze = useCallback((durationMs: number) => {
     const until = Date.now() + durationMs;
