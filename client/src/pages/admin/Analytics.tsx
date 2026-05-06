@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   ArrowLeft, Activity, CalendarDays, Globe, Monitor,
   Smartphone, Tablet, MousePointer, Eye, Timer,
   BarChart2, RefreshCw, Zap, ChevronDown,
-  Bot, Phone, CheckCircle2, XCircle, MessageSquare, Percent, Star, Layers
+  Bot, Phone, CheckCircle2, XCircle, MessageSquare, Percent, Star, Layers, AlertTriangle
 } from "lucide-react";
 
 interface PackageTierStats {
@@ -164,7 +164,7 @@ export default function AdminAnalytics() {
   const configuratorFrom = dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : "";
   const configuratorTo = dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : "";
 
-  const { data: configuratorData, isLoading: configuratorLoading, isError: configuratorError, refetch: refetchConfigurator } = useQuery<{
+  const { data: configuratorData, isLoading: configuratorLoading, isError: configuratorError, isFetching: configuratorFetching, refetch: refetchConfigurator } = useQuery<{
     total: number;
     daily: Array<{ date: string; total: number; byStatus: Record<string, number> }>;
     statusTotals: Record<string, number>;
@@ -179,6 +179,7 @@ export default function AdminAnalytics() {
       return fetchJson(`/api/admin/analytics/configurators?${params}`);
     },
     enabled: !!user?.adminRole && user.adminRole !== "none",
+    placeholderData: keepPreviousData,
   });
 
   const { data: businessAnalytics, isLoading: businessLoading, isError: businessError, refetch: refetchBusiness } = useQuery<BusinessAnalytics>({
@@ -1302,41 +1303,65 @@ export default function AdminAnalytics() {
         {activeTab === "configurators" && (
           <div className="space-y-6">
             {/* Date Range Picker */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Configurator Activity</h2>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" data-testid="button-date-range-picker">
-                    <CalendarDays className="w-4 h-4 mr-2" />
-                    {dateRange?.from && dateRange?.to
-                      ? `${fmtDate(dateRange.from)} — ${fmtDate(dateRange.to)}`
-                      : dateRange?.from
-                      ? `From ${fmtDate(dateRange.from)}`
-                      : "Select date range"}
-                    <ChevronDown className="w-3 h-3 ml-2" />
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold">Configurator Activity</h2>
+                <div className="flex items-center gap-2">
+                  {configuratorFetching && !configuratorLoading && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted-foreground" data-testid="spinner-configurator-refetch" />
+                  )}
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" data-testid="button-date-range-picker">
+                        <CalendarDays className="w-4 h-4 mr-2" />
+                        {dateRange?.from && dateRange?.to
+                          ? `${fmtDate(dateRange.from)} — ${fmtDate(dateRange.to)}`
+                          : dateRange?.from
+                          ? `From ${fmtDate(dateRange.from)}`
+                          : "Select date range"}
+                        <ChevronDown className="w-3 h-3 ml-2" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          setDateRange(range);
+                          if (range?.from && range?.to) setCalendarOpen(false);
+                        }}
+                        numberOfMonths={2}
+                        disabled={{ after: new Date() }}
+                        data-testid="calendar-date-range"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              {configuratorError && configuratorData && (
+                <div className="flex items-center justify-end gap-2" data-testid="warning-configurator-date-range-error">
+                  <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                  <span className="text-xs text-destructive">Failed to refresh — showing previous results</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetchConfigurator()}
+                    disabled={configuratorFetching}
+                    data-testid="button-retry-configurator-date-range"
+                    className="h-7 text-xs px-2"
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${configuratorFetching ? "animate-spin" : ""}`} />
+                    Retry
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={(range) => {
-                      setDateRange(range);
-                      if (range?.from && range?.to) setCalendarOpen(false);
-                    }}
-                    numberOfMonths={2}
-                    disabled={{ after: new Date() }}
-                    data-testid="calendar-date-range"
-                  />
-                </PopoverContent>
-              </Popover>
+                </div>
+              )}
             </div>
 
             {configuratorLoading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : configuratorError ? (
+            ) : configuratorError && !configuratorData ? (
               <Card>
                 <CardContent className="py-16 text-center space-y-3">
                   <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
