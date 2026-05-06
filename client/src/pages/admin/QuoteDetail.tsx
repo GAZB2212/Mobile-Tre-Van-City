@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchJson } from "@/lib/queryClient";
 import { 
   ArrowLeft, 
   Save, 
@@ -430,14 +430,14 @@ export default function AdminQuoteDetail() {
 
   const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", linkCustomerSearch],
-    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`).then(r => r.json()),
+    queryFn: () => fetchJson(`/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
     enabled: linkCustomerDialogOpen,
     staleTime: 10_000,
   });
 
   const { data: linkedCustomerProfile, isError: linkedCustomerError } = useQuery<{ id: string; name: string; email?: string | null }>({
     queryKey: ["/api/admin/customers/profile", linkCurrentCustomerId],
-    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`).then(r => r.json()),
+    queryFn: () => fetchJson(`/api/admin/customers/${linkCurrentCustomerId}`),
     enabled: !!linkCurrentCustomerId,
     staleTime: 60_000,
   });

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchJson } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminBackButton } from "@/components/AdminBackButton";
@@ -278,7 +278,7 @@ export default function AdminLeads() {
 
   const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", linkCustomerSearch],
-    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`).then(r => r.json()),
+    queryFn: () => fetchJson(`/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
     enabled: !!linkLeadId,
     staleTime: 10_000,
   });
@@ -290,20 +290,14 @@ export default function AdminLeads() {
 
   const { data: dupEmailResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", "dup-check-email", dupEmailTerm],
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/admin/customers?search=${encodeURIComponent(dupEmailTerm)}`);
-      return res.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/customers?search=${encodeURIComponent(dupEmailTerm)}`),
     enabled: !!createProfileLead && !!dupEmailTerm,
     staleTime: 30_000,
   });
 
   const { data: dupPhoneResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", "dup-check-phone", dupPhoneTerm],
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/admin/customers?search=${encodeURIComponent(dupPhoneTerm)}`);
-      return res.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/customers?search=${encodeURIComponent(dupPhoneTerm)}`),
     enabled: !!createProfileLead && !!dupPhoneTerm,
     staleTime: 30_000,
   });
@@ -336,7 +330,7 @@ export default function AdminLeads() {
 
   const { data: linkedCustomerProfile, isError: linkedCustomerError } = useQuery<{ id: string; name: string; email?: string | null }>({
     queryKey: ["/api/admin/customers/profile", linkCurrentCustomerId],
-    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`).then(r => r.json()),
+    queryFn: () => fetchJson(`/api/admin/customers/${linkCurrentCustomerId}`),
     enabled: !!linkCurrentCustomerId,
     staleTime: 60_000,
   });

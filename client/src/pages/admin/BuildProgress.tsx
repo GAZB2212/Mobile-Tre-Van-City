@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, fetchJson } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +31,7 @@ export default function BuildProgress() {
 
   const { data, isLoading, isError } = useQuery<BuildProgressData>({
     queryKey: ["/api/build-progress", quoteId],
-    queryFn: async () => {
-      const res = await fetch(`/api/build-progress/${quoteId}`);
-      if (!res.ok) throw new Error("Not found");
-      return res.json();
-    },
+    queryFn: () => fetchJson(`/api/build-progress/${quoteId}`),
     refetchInterval: 30000,            // poll every 30s — small payload, ~2KB per request
     refetchIntervalInBackground: false, // pause when browser tab is not visible
   });

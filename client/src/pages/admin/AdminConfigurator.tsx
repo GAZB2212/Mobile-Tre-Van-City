@@ -4,7 +4,7 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, fetchJson } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User, Van, Kit, Upgrade } from "@shared/schema";
 import type { KitServiceType } from "@shared/schema";
@@ -221,7 +221,7 @@ export default function AdminConfigurator() {
 
   const { data: selectedVanData } = useQuery<Van>({
     queryKey: ["/api/vans", state.vanId],
-    queryFn: async () => { const r = await fetch(`/api/vans/${state.vanId}`); return r.json(); },
+    queryFn: () => fetchJson(`/api/vans/${state.vanId}`),
     enabled: !!state.vanId,
   });
 

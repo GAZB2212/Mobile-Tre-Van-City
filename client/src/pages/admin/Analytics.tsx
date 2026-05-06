@@ -3,7 +3,7 @@ import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { getAuthToken } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -176,11 +176,7 @@ export default function AdminAnalytics() {
       const params = new URLSearchParams();
       if (configuratorFrom) params.set("from", configuratorFrom);
       if (configuratorTo) params.set("to", configuratorTo);
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`/api/admin/analytics/configurators?${params}`, { credentials: "include", headers });
-      if (!res.ok) throw new Error("Failed to fetch configurator analytics");
-      return res.json();
+      return fetchJson(`/api/admin/analytics/configurators?${params}`);
     },
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
@@ -197,13 +193,7 @@ export default function AdminAnalytics() {
 
   const { data: webAnalytics, isLoading: webLoading, refetch: refetchWeb } = useQuery<WebAnalytics>({
     queryKey: ["/api/admin/analytics/web", days],
-    queryFn: async () => {
-      const token2 = getAuthToken();
-      const headers2: Record<string, string> = token2 ? { Authorization: `Bearer ${token2}` } : {};
-      const res = await fetch(`/api/admin/analytics/web?days=${days}`, { credentials: "include", headers: headers2 });
-      if (!res.ok) throw new Error("Failed to fetch web analytics");
-      return res.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/analytics/web?days=${days}`),
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 

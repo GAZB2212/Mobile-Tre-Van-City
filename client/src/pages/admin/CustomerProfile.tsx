@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchJson, getAuthToken } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 import { useParams, Link, useLocation } from "wouter";
@@ -391,13 +391,7 @@ export default function CustomerProfile() {
 
   const { data, isLoading: profileLoading } = useQuery<CustomerProfileData>({
     queryKey: ["/api/admin/customers", id],
-    queryFn: async () => {
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`/api/admin/customers/${id}`, { credentials: "include", headers });
-      if (!r.ok) throw new Error(`${r.status}`);
-      return r.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/customers/${id}`),
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
   });
 
@@ -416,25 +410,17 @@ export default function CustomerProfile() {
     queryKey: ["/api/admin/customers", { search: mergeSearch }],
     queryFn: async () => {
       if (!mergeSearch.trim()) return [];
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`/api/admin/customers?search=${encodeURIComponent(mergeSearch.trim())}`, { credentials: "include", headers });
-      if (!r.ok) throw new Error(`${r.status}`);
-      const all = await r.json();
-      return (all as Array<{ id: string; name: string; email?: string | null; phone?: string | null }>).filter(c => c.id !== id);
+      const all = await fetchJson<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>(
+        `/api/admin/customers?search=${encodeURIComponent(mergeSearch.trim())}`
+      );
+      return all.filter(c => c.id !== id);
     },
     enabled: !!(user?.adminRole && user.adminRole !== "none") && showMergePanel && mergeSearch.trim().length > 0,
   });
 
   const { data: mergeHistory = [], isLoading: mergeHistoryLoading } = useQuery<MergeHistoryEntry[]>({
     queryKey: ["/api/admin/customers/merge-history", id],
-    queryFn: async () => {
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`/api/admin/customers/merge-history?keepId=${encodeURIComponent(id ?? "")}`, { credentials: "include", headers });
-      if (!r.ok) throw new Error(`${r.status}`);
-      return r.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/customers/merge-history?keepId=${encodeURIComponent(id ?? "")}`),
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
   });
 

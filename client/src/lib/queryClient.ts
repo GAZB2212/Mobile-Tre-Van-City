@@ -66,6 +66,21 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+/**
+ * Shared data-fetching helper for admin queryFns.
+ * Uses apiRequest (which already adds auth headers and throws on non-ok
+ * responses) then parses JSON, surfacing a clear error on parse failures
+ * rather than silently returning broken data.
+ */
+export async function fetchJson<T>(url: string): Promise<T> {
+  const res = await apiRequest("GET", url);
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new Error(`Server returned invalid data from ${url}`);
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

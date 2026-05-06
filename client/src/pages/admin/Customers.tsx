@@ -3,7 +3,7 @@ import type { User } from "@shared/schema";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getAuthToken } from "@/lib/queryClient";
+import { fetchJson, apiRequest, queryClient } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Users,
   Search,
@@ -150,13 +149,9 @@ function MoveRecordDialog({
 
   const { data: customers = [], isLoading: searchLoading } = useQuery<CustomerListItem[]>({
     queryKey: ["/api/admin/customers", debouncedSearch],
-    queryFn: async () => {
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    queryFn: () => {
       const params = debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : "";
-      const r = await fetch(`/api/admin/customers${params}`, { credentials: "include", headers });
-      if (!r.ok) throw new Error(`${r.status}`);
-      return r.json();
+      return fetchJson(`/api/admin/customers${params}`);
     },
     enabled: debouncedSearch.length >= 2,
   });
@@ -324,13 +319,7 @@ function CustomerReviewSheet({
 
   const { data, isLoading } = useQuery<CustomerProfileData>({
     queryKey: ["/api/admin/customers", customerId],
-    queryFn: async () => {
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`/api/admin/customers/${customerId}`, { credentials: "include", headers });
-      if (!r.ok) throw new Error(`${r.status}`);
-      return r.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/customers/${customerId}`),
   });
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -808,13 +797,7 @@ export default function AdminCustomers() {
 
   const { data: mergeHistory = [], isLoading: mergeHistoryLoading } = useQuery<MergeHistoryEntry[]>({
     queryKey: ["/api/admin/customers/merge-history"],
-    queryFn: async () => {
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch("/api/admin/customers/merge-history", { credentials: "include", headers });
-      if (!r.ok) throw new Error(`${r.status}`);
-      return r.json();
-    },
+    queryFn: () => fetchJson("/api/admin/customers/merge-history"),
     enabled: !!(user?.adminRole && user.adminRole !== "none") && showMergeHistory,
   });
 
@@ -914,16 +897,7 @@ export default function AdminCustomers() {
 
   const { data: customers = [], isLoading: customersLoading } = useQuery<CustomerListItem[]>({
     queryKey,
-    queryFn: async () => {
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const r = await fetch(`/api/admin/customers${queryString ? `?${queryString}` : ""}`, {
-        credentials: "include",
-        headers,
-      });
-      if (!r.ok) throw new Error(`${r.status}`);
-      return r.json();
-    },
+    queryFn: () => fetchJson(`/api/admin/customers${queryString ? `?${queryString}` : ""}`),
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     staleTime: 0,
     refetchOnMount: "always",

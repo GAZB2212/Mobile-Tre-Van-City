@@ -5,7 +5,7 @@ import type { User } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchJson } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -215,9 +215,7 @@ export default function AdminAIConversations() {
     queryKey: ["/api/admin/ai-conversations/export/count", debouncedExportFilters],
     queryFn: async () => {
       const qs = exportCountParams.toString() ? `?${exportCountParams}` : "";
-      const res = await apiRequest("GET", `/api/admin/ai-conversations/export/count${qs}`);
-      if (!res.ok) throw new Error("Count failed");
-      return res.json();
+      return fetchJson(`/api/admin/ai-conversations/export/count${qs}`);
     },
     enabled: exportDialogOpen && !!(user?.adminRole && user.adminRole !== "none"),
   });
@@ -245,11 +243,7 @@ export default function AdminAIConversations() {
       if (filters.dateFrom) params.set(QP_DATE_FROM, filters.dateFrom);
       if (filters.dateTo) params.set(QP_DATE_TO, filters.dateTo);
       const url = `/api/admin/ai-conversations${params.toString() ? `?${params}` : ""}`;
-      const token = getAuthToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(url, { credentials: "include", headers });
-      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-      return res.json();
+      return fetchJson(url);
     },
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? 60_000 : false,
