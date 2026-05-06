@@ -7886,17 +7886,6 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       );
       const msg = msgRows[0];
 
-      // Notify internal team (non-fatal)
-      try {
-        const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
-        const { sendEmail } = await import('./email.js');
-        await sendEmail({
-          to: INTERNAL_NOTIFY_EMAILS,
-          subject: `Artwork Message from ${proof.customer_name}`,
-          html: `<h2>Customer message on artwork proof</h2><p><strong>Customer:</strong> ${proof.customer_name}</p><hr/><p style="white-space:pre-wrap; background:#f9fafb; padding:12px; border-radius:6px;">${message}</p>`,
-        });
-      } catch { /* non-fatal */ }
-
       res.json({
         id: msg.id, proofId: msg.proof_id, senderType: msg.sender_type,
         senderName: msg.sender_name, message: msg.message, createdAt: msg.created_at,
