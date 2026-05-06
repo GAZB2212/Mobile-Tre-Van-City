@@ -7728,10 +7728,33 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (!customer) return res.status(404).json({ error: "Customer not found" });
       if (!customer.email) return res.status(400).json({ error: "Customer has no email address" });
 
-      const files: Array<{ url: string; name: string }> = Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files);
+      const rawFiles: Array<{ url: string; name: string }> = Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files);
 
       const siteBase = process.env.SITE_URL ||
         (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0].trim()}` : 'https://www.mobiletyrevancity.co.uk');
+
+      // Generate presigned 7-day GET URLs so email clients can load the images
+      // without needing authentication. GCS direct URLs require signed access.
+      const { ObjectStorageService } = await import('./objectStorage.js');
+      const svc = new ObjectStorageService();
+      const emailFiles = await Promise.all(rawFiles.map(async (f) => {
+        try {
+          // Resolve the object's bucket + name regardless of what format the URL is stored in
+          const objectFile = await svc.getObjectEntityFile(
+            normalizeArtworkFileUrl(f.url).startsWith('/objects/')
+              ? normalizeArtworkFileUrl(f.url)
+              : `/objects/artwork-proofs/${f.url.split('/').pop()}`
+          );
+          const [signedUrl] = await objectFile.getSignedUrl({
+            action: 'read',
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+          });
+          return { ...f, url: signedUrl };
+        } catch {
+          // Fall back to whatever was stored — better than nothing
+          return f;
+        }
+      }));
 
       const { sendArtworkProofEmail } = await import('./email.js');
       await sendArtworkProofEmail({
@@ -7739,7 +7762,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         customerName: customer.name,
         proofId: proof.id,
         token: proof.token,
-        files,
+        files: emailFiles,
         adminNotes: proof.admin_notes,
         siteBaseUrl: siteBase,
       });

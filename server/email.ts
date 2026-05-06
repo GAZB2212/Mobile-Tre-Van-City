@@ -1863,12 +1863,16 @@ export async function sendArtworkProofEmail({
 
   const approveUrl = `${siteBase}/artwork-approval/${token}?status=approved`;
   const changesUrl = `${siteBase}/artwork-approval/${token}?status=changes_requested`;
+  const viewUrl = `${siteBase}/artwork-approval/${token}`;
 
   const thumbnails = files.map(f => {
+    // URL is already a presigned GCS URL or absolute — use as-is
     const imgSrc = f.url.startsWith('/') ? `${siteBase}${f.url}` : f.url;
     return `
       <div style="display:inline-block; margin:6px; vertical-align:top; max-width:180px;">
-        <img src="${imgSrc}" alt="${f.name}" style="max-width:180px; max-height:180px; border:1px solid #e5e7eb; border-radius:6px; display:block;" />
+        <a href="${viewUrl}" style="text-decoration:none;">
+          <img src="${imgSrc}" alt="${f.name}" style="max-width:180px; max-height:180px; border:1px solid #e5e7eb; border-radius:6px; display:block;" />
+        </a>
         <p style="font-size:11px; color:#6b7280; margin:4px 0 0; word-break:break-word;">${f.name}</p>
       </div>
     `;
@@ -1879,9 +1883,12 @@ export async function sendArtworkProofEmail({
     <p>Your artwork proof is ready for review. Please take a moment to look over the files below and let us know if everything looks correct or if any changes are needed.</p>
     ${adminNotes ? `<div style="background:#eff6ff; border-left:4px solid #3b82f6; padding:15px; margin:20px 0; border-radius:4px;"><strong>Note from our team:</strong><br>${adminNotes}</div>` : ''}
     <h3 style="margin-bottom:12px;">Artwork Files</h3>
-    <div style="margin-bottom:24px; background:#f9fafb; padding:16px; border-radius:6px; border:1px solid #e5e7eb;">
+    <div style="margin-bottom:8px; background:#f9fafb; padding:16px; border-radius:6px; border:1px solid #e5e7eb;">
       ${thumbnails}
     </div>
+    <p style="margin-bottom:24px; text-align:center;">
+      <a href="${viewUrl}" style="font-size:13px; color:#4b5563; text-decoration:underline;">View full-size artwork &rarr;</a>
+    </p>
     <p style="font-size:15px; font-weight:bold; margin-bottom:20px;">Does the artwork look correct?</p>
     <div style="text-align:center; margin:0 auto 24px;">
       <a href="${approveUrl}"
@@ -1893,7 +1900,7 @@ export async function sendArtworkProofEmail({
         Request Changes
       </a>
     </div>
-    <p style="font-size:13px; color:#6b7280;">You can also view the full-size artwork by visiting the link above. If you have any questions, please call us on <strong>${PHONE}</strong>.</p>
+    <p style="font-size:13px; color:#6b7280;">If you have any questions, please call us on <strong>${PHONE}</strong>.</p>
     <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
   `;
 
