@@ -300,6 +300,34 @@ export class ObjectStorageService {
     return `/objects/artwork-proofs/${uploadedFilename}`;
   }
 
+  // Gets a presigned 7-day GET URL for an artwork proof file so email clients can load it.
+  // Accepts the stored URL in any format (full GCS URL or /objects/... proxy path).
+  async getArtworkProofSignedReadUrl(storedUrl: string, ttlSec = 7 * 24 * 3600): Promise<string> {
+    let bucketName: string;
+    let objectName: string;
+
+    if (storedUrl.startsWith('https://storage.googleapis.com/')) {
+      // Full GCS URL: https://storage.googleapis.com/<bucket>/<objectName>
+      const parsed = new URL(storedUrl);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      bucketName = parts[0];
+      objectName = parts.slice(1).join('/');
+    } else {
+      // Proxy path: /objects/<objectName> — look up using public search path
+      const publicPaths = this.getPublicObjectSearchPaths();
+      if (!publicPaths || publicPaths.length === 0) throw new Error("No public object paths configured");
+      // Strip /objects/ prefix, then strip leading public/ if present
+      let key = storedUrl.replace(/^\/objects\//, '');
+      if (key.startsWith('public/')) key = key.slice('public/'.length);
+      const fullPath = `${publicPaths[0]}/${key}`;
+      const parsed = parseObjectPath(fullPath);
+      bucketName = parsed.bucketName;
+      objectName = parsed.objectName;
+    }
+
+    return signObjectURL({ bucketName, objectName, method: 'GET', ttlSec });
+  }
+
   // Gets a presigned upload URL for artwork proof images (client-side direct upload)
   async getArtworkProofUploadURL(filename: string): Promise<{ uploadURL: string; publicURL: string }> {
     const publicPaths = this.getPublicObjectSearchPaths();

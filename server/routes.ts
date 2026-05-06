@@ -7739,18 +7739,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const svc = new ObjectStorageService();
       const emailFiles = await Promise.all(rawFiles.map(async (f) => {
         try {
-          // Resolve the object's bucket + name regardless of what format the URL is stored in
-          const objectFile = await svc.getObjectEntityFile(
-            normalizeArtworkFileUrl(f.url).startsWith('/objects/')
-              ? normalizeArtworkFileUrl(f.url)
-              : `/objects/artwork-proofs/${f.url.split('/').pop()}`
-          );
-          const [signedUrl] = await objectFile.getSignedUrl({
-            action: 'read',
-            expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-          });
+          const signedUrl = await svc.getArtworkProofSignedReadUrl(f.url);
           return { ...f, url: signedUrl };
-        } catch {
+        } catch (err) {
+          console.error("Failed to sign artwork URL for email:", f.url, err);
           // Fall back to whatever was stored — better than nothing
           return f;
         }
