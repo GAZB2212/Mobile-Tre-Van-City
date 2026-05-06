@@ -164,7 +164,7 @@ export default function AdminAnalytics() {
   const configuratorFrom = dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : "";
   const configuratorTo = dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : "";
 
-  const { data: configuratorData, isLoading: configuratorLoading } = useQuery<{
+  const { data: configuratorData, isLoading: configuratorLoading, isError: configuratorError, refetch: refetchConfigurator } = useQuery<{
     total: number;
     daily: Array<{ date: string; total: number; byStatus: Record<string, number> }>;
     statusTotals: Record<string, number>;
@@ -1336,6 +1336,16 @@ export default function AdminAnalytics() {
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
+            ) : configuratorError ? (
+              <Card>
+                <CardContent className="py-16 text-center space-y-3">
+                  <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+                  <Button variant="outline" size="sm" onClick={() => refetchConfigurator()} data-testid="button-retry-configurator-analytics">
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
             ) : (
               <>
                 {/* Summary Cards */}
