@@ -124,6 +124,7 @@ import {
   History,
   CheckCircle2,
   XCircle,
+  RefreshCw,
 } from "lucide-react";
 
 type QuoteWithCustomer = Quote & { customerName?: string | null };
@@ -244,7 +245,7 @@ export default function AdminQuotes() {
   const isActive = useIdlePolling();
 
   // Fetch quotes data
-  const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching } = useQuery<QuoteWithCustomer[]>({
+  const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching, refetch: refetchQuotes } = useQuery<QuoteWithCustomer[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? POLL_INTERVAL_MS : false,
@@ -304,8 +305,12 @@ export default function AdminQuotes() {
   if (quotesError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive">Failed to load quotes</p>
+        <div className="text-center space-y-3">
+          <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+          <Button variant="outline" size="sm" onClick={() => refetchQuotes()} data-testid="button-retry-quotes">
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
         </div>
       </div>
     );
