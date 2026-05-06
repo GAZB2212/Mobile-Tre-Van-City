@@ -43,6 +43,7 @@ import {
   Settings,
   Mail,
   History,
+  RefreshCw,
 } from "lucide-react";
 import maxAvatarSrc from "@assets/max-avatar.png";
 
@@ -233,6 +234,7 @@ export default function AdminAIConversations() {
     data: aiData,
     isLoading: aiLoading,
     isFetching: aiFetching,
+    isError: aiError,
     refetch,
   } = useQuery<AiConversationsResponse>({
     queryKey: ["/api/admin/ai-conversations", filters],
@@ -616,6 +618,20 @@ export default function AdminAIConversations() {
   }
 
   if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
+
+  if (aiError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-retry-conversations">
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

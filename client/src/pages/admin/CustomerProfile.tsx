@@ -22,7 +22,7 @@ import {
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
   Merge, Search, ShieldAlert, Scissors, UserCircle,
   ImageIcon, Upload, Send, ZoomIn, ChevronDown, ChevronUp,
-  MessageCircle,
+  MessageCircle, RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -389,7 +389,7 @@ export default function CustomerProfile() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const { data, isLoading: profileLoading } = useQuery<CustomerProfileData>({
+  const { data, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useQuery<CustomerProfileData>({
     queryKey: ["/api/admin/customers", id],
     queryFn: () => fetchJson(`/api/admin/customers/${id}`),
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
@@ -674,6 +674,20 @@ export default function CustomerProfile() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+      </div>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+          <Button variant="outline" size="sm" onClick={() => refetchProfile()} data-testid="button-retry-profile">
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

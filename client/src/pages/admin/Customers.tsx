@@ -895,7 +895,7 @@ export default function AdminCustomers() {
 
   const queryKey = ["/api/admin/customers", debouncedSearch, staffFilter].filter(Boolean);
 
-  const { data: customers = [], isLoading: customersLoading } = useQuery<CustomerListItem[]>({
+  const { data: customers = [], isLoading: customersLoading, isError: customersError, refetch: refetchCustomers } = useQuery<CustomerListItem[]>({
     queryKey,
     queryFn: () => fetchJson(`/api/admin/customers${queryString ? `?${queryString}` : ""}`),
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
@@ -1473,6 +1473,16 @@ export default function AdminCustomers() {
               <CardContent className="p-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
                 <p className="text-muted-foreground">Loading customers...</p>
+              </CardContent>
+            </Card>
+          ) : customersError ? (
+            <Card>
+              <CardContent className="p-8 text-center space-y-3">
+                <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+                <Button variant="outline" size="sm" onClick={() => refetchCustomers()} data-testid="button-retry-customers">
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                  Retry
+                </Button>
               </CardContent>
             </Card>
           ) : filteredCustomers.length === 0 ? (

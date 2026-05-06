@@ -181,17 +181,17 @@ export default function AdminAnalytics() {
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
-  const { data: businessAnalytics, isLoading: businessLoading } = useQuery<BusinessAnalytics>({
+  const { data: businessAnalytics, isLoading: businessLoading, isError: businessError, refetch: refetchBusiness } = useQuery<BusinessAnalytics>({
     queryKey: ["/api/admin/analytics"],
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
-  const { data: aiAnalytics, isLoading: aiLoading } = useQuery<AiAnalytics>({
+  const { data: aiAnalytics, isLoading: aiLoading, isError: aiAnalyticsError, refetch: refetchAi } = useQuery<AiAnalytics>({
     queryKey: ["/api/admin/analytics/ai"],
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
-  const { data: webAnalytics, isLoading: webLoading, refetch: refetchWeb } = useQuery<WebAnalytics>({
+  const { data: webAnalytics, isLoading: webLoading, isError: webError, refetch: refetchWeb } = useQuery<WebAnalytics>({
     queryKey: ["/api/admin/analytics/web", days],
     queryFn: () => fetchJson(`/api/admin/analytics/web?days=${days}`),
     enabled: !!user?.adminRole && user.adminRole !== "none",
@@ -227,6 +227,25 @@ export default function AdminAnalytics() {
   }
 
   if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
+
+  if (businessError || aiAnalyticsError || webError) {
+    const retryAll = () => {
+      if (businessError) refetchBusiness();
+      if (aiAnalyticsError) refetchAi();
+      if (webError) refetchWeb();
+    };
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+          <Button variant="outline" size="sm" onClick={retryAll} data-testid="button-retry-analytics">
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const isWebLoading = webLoading;
 

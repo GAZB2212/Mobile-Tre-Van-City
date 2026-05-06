@@ -54,6 +54,7 @@ import {
   History,
   UserPlus,
   AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 const REDIRECT_DELAY_MS = 500;
@@ -186,7 +187,7 @@ export default function AdminLeads() {
 
   type LeadWithCustomer = Lead & { customerName?: string | null };
 
-  const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching } = useQuery<LeadWithCustomer[]>({
+  const { data: leads = [], isLoading: leadsLoading, error: leadsError, isFetching: leadsFetching, refetch: refetchLeads } = useQuery<LeadWithCustomer[]>({
     queryKey: ["/api/admin/leads"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? POLL_INTERVAL_MS : false,
@@ -446,7 +447,13 @@ export default function AdminLeads() {
   if (leadsError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-destructive">Failed to load leads</p>
+        <div className="text-center space-y-3">
+          <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
+          <Button variant="outline" size="sm" onClick={() => refetchLeads()} data-testid="button-retry-leads">
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
