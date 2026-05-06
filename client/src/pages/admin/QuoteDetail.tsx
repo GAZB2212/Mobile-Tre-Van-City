@@ -320,7 +320,7 @@ export default function AdminQuoteDetail() {
   const [newExtraPrice, setNewExtraPrice] = useState('');
 
   const { data: quote, isLoading } = useQuery<QuoteDetail>({
-    queryKey: [`/api/admin/quotes/${id}`],
+    queryKey: ["/api/admin/quotes", id],
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
     // Poll for live workshop progress — only when quote is actively being built
     // refetchIntervalInBackground: false pauses polling when the admin tab is not visible
@@ -430,14 +430,14 @@ export default function AdminQuoteDetail() {
 
   const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", linkCustomerSearch],
-    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
+    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`).then(r => r.json()),
     enabled: linkCustomerDialogOpen,
     staleTime: 10_000,
   });
 
   const { data: linkedCustomerProfile, isError: linkedCustomerError } = useQuery<{ id: string; name: string; email?: string | null }>({
     queryKey: ["/api/admin/customers/profile", linkCurrentCustomerId],
-    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`),
+    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`).then(r => r.json()),
     enabled: !!linkCurrentCustomerId,
     staleTime: 60_000,
   });
@@ -454,7 +454,7 @@ export default function AdminQuoteDetail() {
     mutationFn: async (customerId: string) =>
       apiRequest("PATCH", `/api/admin/quotes/${id}`, { customerId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       setLinkCustomerDialogOpen(false);
       setLinkCustomerSearch("");
@@ -470,7 +470,7 @@ export default function AdminQuoteDetail() {
     mutationFn: async () =>
       apiRequest("PATCH", `/api/admin/quotes/${id}`, { customerId: null }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       setUnlinkConfirmOpen(false);
       toast({ title: "Customer unlinked", description: "The customer profile has been removed from this quote." });
@@ -485,7 +485,7 @@ export default function AdminQuoteDetail() {
       return await apiRequest("PATCH", `/api/admin/quotes/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       // Clear note inputs after successful save
       setNewAdminNote("");
@@ -523,7 +523,7 @@ export default function AdminQuoteDetail() {
       return response as unknown as { emailSent: boolean };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       setShowResendDialog(false);
       toast({
         title: "Spec Summary Sent",
@@ -568,7 +568,7 @@ export default function AdminQuoteDetail() {
       });
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       toast({
         title: "Sent to Finance Company",
@@ -613,7 +613,7 @@ export default function AdminQuoteDetail() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       toast({ title: "Finance updated", description: "Finance settings saved." });
     },
     onError: () => {
@@ -627,7 +627,7 @@ export default function AdminQuoteDetail() {
     },
     onSuccess: (_, newStatus) => {
       setStatus(newStatus);
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
       toast({ title: "Status updated", description: `Moved to: ${STATUS_LABELS[newStatus] ?? newStatus}` });
     },
@@ -662,7 +662,7 @@ export default function AdminQuoteDetail() {
       return await apiRequest("PATCH", `/api/admin/quotes/${id}/notes`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       setEditingNote(null);
       toast({
         title: "Success",
@@ -683,7 +683,7 @@ export default function AdminQuoteDetail() {
       return await apiRequest("DELETE", `/api/admin/quotes/${id}/notes`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       toast({
         title: "Success",
         description: "Note deleted successfully",
@@ -702,7 +702,7 @@ export default function AdminQuoteDetail() {
     mutationFn: async (text: string) =>
       apiRequest("POST", `/api/admin/quotes/${id}/notes`, { text, author: user?.username || "Admin" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       setNewAdminNote("");
     },
     onError: () => {
@@ -715,7 +715,7 @@ export default function AdminQuoteDetail() {
       return await apiRequest("PATCH", `/api/admin/quotes/${id}/choose-option`, { option });
     },
     onSuccess: (_, option) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/quotes'] });
       toast({
         title: "Option locked in",
@@ -755,7 +755,7 @@ export default function AdminQuoteDetail() {
       return await apiRequest("POST", `/api/sage/push/${id}`);
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       toast({
         title: "Pushed to Sage",
         description: `Invoice ${data.invoiceNumber} created in Sage Business Cloud.`,
@@ -775,7 +775,7 @@ export default function AdminQuoteDetail() {
       return await apiRequest("DELETE", `/api/admin/quotes/${id}/choose-option`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/quotes/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/quotes'] });
       toast({
         title: "Choice undone",

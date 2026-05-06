@@ -278,7 +278,7 @@ export default function AdminLeads() {
 
   const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", linkCustomerSearch],
-    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`),
+    queryFn: () => apiRequest("GET", `/api/admin/customers${linkCustomerSearch ? `?search=${encodeURIComponent(linkCustomerSearch)}` : ""}`).then(r => r.json()),
     enabled: !!linkLeadId,
     staleTime: 10_000,
   });
@@ -336,7 +336,7 @@ export default function AdminLeads() {
 
   const { data: linkedCustomerProfile, isError: linkedCustomerError } = useQuery<{ id: string; name: string; email?: string | null }>({
     queryKey: ["/api/admin/customers/profile", linkCurrentCustomerId],
-    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`),
+    queryFn: () => apiRequest("GET", `/api/admin/customers/${linkCurrentCustomerId}`).then(r => r.json()),
     enabled: !!linkCurrentCustomerId,
     staleTime: 60_000,
   });
