@@ -4500,7 +4500,8 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
                       req.path.includes('/product-images/') || 
                       req.path.includes('/uploads/') || 
                       req.path.includes('/upgrade-images/') ||
-                      req.path.includes('/videos/');
+                      req.path.includes('/videos/') ||
+                      req.path.includes('/artwork-proofs/');
       
       // Perform ACL check BEFORE fetching metadata
       if (!isPublic) {
@@ -7607,6 +7608,36 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // Normalise a stored artwork file URL to a backend-proxied /objects/<path> URL.
+  // Handles full GCS URLs (https://storage.googleapis.com/<bucket>/<objectName>)
+  // and already-normalised /objects/... paths.
+  function normalizeArtworkFileUrl(url: string): string {
+    if (!url) return url;
+    // Already a proxy path — check if it has a stray public/ prefix and strip it
+    if (url.startsWith('/objects/public/artwork-proofs/')) {
+      return url.replace('/objects/public/artwork-proofs/', '/objects/artwork-proofs/');
+    }
+    if (url.startsWith('/objects/')) return url;
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'storage.googleapis.com') {
+        // pathname is /<bucket>/<objectPath>  e.g. /bucket/public/artwork-proofs/uuid-file.jpg
+        // Strip bucket + any leading public/ prefix so entityId = artwork-proofs/<file>
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        if (parts.length >= 2) {
+          // parts[0] = bucket name — drop it
+          const afterBucket = parts.slice(1).join('/');
+          // Drop a leading "public/" segment if present (added by the storage service)
+          const objectName = afterBucket.startsWith('public/')
+            ? afterBucket.slice('public/'.length)
+            : afterBucket;
+          return `/objects/${objectName}`;
+        }
+      }
+    } catch {}
+    return url;
+  }
+
   // List artwork proofs for a customer
   app.get("/api/admin/customers/:id/artwork-proofs", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
@@ -7620,21 +7651,25 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
          ORDER BY ap.created_at DESC`,
         [id]
       );
-      res.json(rows.map((r: any) => ({
-        id: r.id,
-        customerId: r.customer_id,
-        quoteId: r.quote_id,
-        uploadedById: r.uploaded_by_id,
-        uploadedByName: r.uploaded_by_display?.trim() || r.uploaded_by_name || null,
-        files: Array.isArray(r.files) ? r.files : (typeof r.files === 'string' ? JSON.parse(r.files) : []),
-        status: r.status,
-        token: r.token,
-        adminNotes: r.admin_notes,
-        customerNotes: r.customer_notes,
-        sentAt: r.sent_at,
-        respondedAt: r.responded_at,
-        createdAt: r.created_at,
-      })));
+      res.json(rows.map((r: any) => {
+        const rawFiles: Array<{ url: string; name: string }> =
+          Array.isArray(r.files) ? r.files : (typeof r.files === 'string' ? JSON.parse(r.files) : []);
+        return {
+          id: r.id,
+          customerId: r.customer_id,
+          quoteId: r.quote_id,
+          uploadedById: r.uploaded_by_id,
+          uploadedByName: r.uploaded_by_display?.trim() || r.uploaded_by_name || null,
+          files: rawFiles.map(f => ({ ...f, url: normalizeArtworkFileUrl(f.url) })),
+          status: r.status,
+          token: r.token,
+          adminNotes: r.admin_notes,
+          customerNotes: r.customer_notes,
+          sentAt: r.sent_at,
+          respondedAt: r.responded_at,
+          createdAt: r.created_at,
+        };
+      }));
     } catch (error) {
       console.error("List artwork proofs error:", error);
       res.status(500).json({ error: "Failed to fetch artwork proofs" });

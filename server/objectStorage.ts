@@ -456,8 +456,8 @@ export class ObjectStorageService {
 
     const entityId = parts.slice(1).join("/");
     
-    // Check if this is a public resource (van-images, product-images, upgrade-images, or videos directory)
-    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/") || entityId.startsWith("videos/") || entityId.startsWith("avatars/")) {
+    // Check if this is a public resource (van-images, product-images, upgrade-images, videos, or artwork-proofs)
+    if (entityId.startsWith("van-images/") || entityId.startsWith("product-images/") || entityId.startsWith("upgrade-images/") || entityId.startsWith("videos/") || entityId.startsWith("avatars/") || entityId.startsWith("artwork-proofs/")) {
       const publicPaths = this.getPublicObjectSearchPaths();
       if (publicPaths && publicPaths.length > 0) {
         const publicPath = publicPaths[0];
