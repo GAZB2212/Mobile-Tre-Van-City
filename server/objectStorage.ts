@@ -277,7 +277,7 @@ export class ObjectStorageService {
     return `/objects/avatars/${uploadedFilename}`;
   }
 
-  // Upload artwork proof image directly to public storage
+  // Upload artwork proof image directly to public storage (server-side buffer upload)
   async uploadArtworkProofToPublicStorage(
     fileBuffer: Buffer,
     filename: string,
@@ -298,6 +298,27 @@ export class ObjectStorageService {
     const pathParts = objectName.split('/');
     const uploadedFilename = pathParts[pathParts.length - 1];
     return `/objects/artwork-proofs/${uploadedFilename}`;
+  }
+
+  // Gets a presigned upload URL for artwork proof images (client-side direct upload)
+  async getArtworkProofUploadURL(filename: string): Promise<{ uploadURL: string; publicURL: string }> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error("No public object paths configured");
+    }
+    const publicPath = publicPaths[0];
+    const objectId = randomUUID();
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fullPath = `${publicPath}/artwork-proofs/${objectId}-${safeFilename}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    const publicURL = `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    return { uploadURL, publicURL };
   }
 
   // Upload file buffer directly to public storage (backend proxy - no CORS)

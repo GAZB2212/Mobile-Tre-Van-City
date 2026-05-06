@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest, getAuthToken } from "@/lib/queryClient";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -245,9 +247,9 @@ export default function CustomerProfile() {
   // Artwork proofs state
   const [artworkExpanded, setArtworkExpanded] = useState<Record<string, boolean>>({});
   const [artworkAdminNotes, setArtworkAdminNotes] = useState<Record<string, string>>({});
-  const [artworkUploadFiles, setArtworkUploadFiles] = useState<FileList | null>(null);
-  const [artworkUploading, setArtworkUploading] = useState(false);
   const [artworkLightbox, setArtworkLightbox] = useState<string | null>(null);
+  // Tracks objectPaths gathered during ObjectUploader upload (one entry per file)
+  const pendingArtworkFilesRef = useRef<Array<{ url: string; name: string }>>([]);
 
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
@@ -466,44 +468,40 @@ export default function CustomerProfile() {
     onError: () => toast({ variant: "destructive", title: "Failed to save notes" }),
   });
 
-  const handleArtworkUpload = async () => {
-    if (!artworkUploadFiles || artworkUploadFiles.length === 0) return;
-    setArtworkUploading(true);
+  const handleArtworkGetUploadParameters = async (file: { name: string; type: string }) => {
+    const token = getAuthToken();
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const r = await fetch("/api/admin/artwork-proofs/upload-url", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    });
+    if (!r.ok) throw new Error("Failed to get upload URL");
+    const { uploadURL, objectPath } = await r.json();
+    pendingArtworkFilesRef.current.push({ url: objectPath, name: file.name });
+    return { method: "PUT" as const, url: uploadURL, objectPath };
+  };
+
+  const handleArtworkUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    if (!result.successful || result.successful.length === 0) return;
+    const files = [...pendingArtworkFilesRef.current];
+    pendingArtworkFilesRef.current = [];
+    if (files.length === 0) return;
     try {
-      // Step 1: upload files
-      const formData = new FormData();
-      for (let i = 0; i < artworkUploadFiles.length; i++) {
-        formData.append("files", artworkUploadFiles[i]);
-      }
       const token = getAuthToken();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const uploadRes = await fetch("/api/admin/artwork-proofs/upload", {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: formData,
-      });
-      if (!uploadRes.ok) throw new Error("Upload failed");
-      const { files: uploadedFiles } = await uploadRes.json();
-
-      // Step 2: create proof record
-      const createRes = await fetch(`/api/admin/customers/${id}/artwork-proofs`, {
+      const r = await fetch(`/api/admin/customers/${id}/artwork-proofs`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ files: uploadedFiles }),
+        body: JSON.stringify({ files }),
       });
-      if (!createRes.ok) throw new Error("Create failed");
-      setArtworkUploadFiles(null);
-      // reset the file input
-      const fileInput = document.getElementById("artwork-file-input") as HTMLInputElement | null;
-      if (fileInput) fileInput.value = "";
+      if (!r.ok) throw new Error("Create failed");
       refetchProofs();
-      toast({ title: "Artwork proof created", description: `${paths.length} file(s) uploaded.` });
+      toast({ title: "Artwork proof created", description: `${files.length} file${files.length !== 1 ? "s" : ""} uploaded.` });
     } catch {
-      toast({ variant: "destructive", title: "Upload failed", description: "Could not upload artwork files. Please try again." });
-    } finally {
-      setArtworkUploading(false);
+      toast({ variant: "destructive", title: "Failed to save proof", description: "Files uploaded but record could not be saved. Please try again." });
     }
   };
 
@@ -1333,32 +1331,20 @@ export default function CustomerProfile() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Upload new proof */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Upload artwork files (images or PDFs)</Label>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <input
-                      id="artwork-file-input"
-                      type="file"
-                      multiple
-                      accept="image/*,.pdf"
-                      className="text-xs text-muted-foreground file:mr-2 file:text-xs file:rounded file:border file:border-border file:bg-muted file:text-foreground file:px-2 file:py-1 cursor-pointer"
-                      onChange={e => setArtworkUploadFiles(e.target.files)}
-                      data-testid="input-artwork-files"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleArtworkUpload}
-                      disabled={!artworkUploadFiles || artworkUploadFiles.length === 0 || artworkUploading}
-                      data-testid="button-artwork-upload"
-                    >
-                      {artworkUploading ? (
-                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
-                      ) : (
-                        <Upload className="w-3.5 h-3.5 mr-1.5" />
-                      )}
-                      {artworkUploading ? "Uploading..." : "Create Proof Round"}
-                    </Button>
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Upload PNG or JPEG files to create a new proof round</Label>
+                  <ObjectUploader
+                    maxNumberOfFiles={20}
+                    maxFileSize={20 * 1024 * 1024}
+                    allowedFileTypes={["image/png", "image/jpeg", "image/jpg"]}
+                    onGetUploadParameters={handleArtworkGetUploadParameters}
+                    onComplete={handleArtworkUploadComplete}
+                  >
+                    <div className="flex items-center gap-1.5" data-testid="button-artwork-upload">
+                      <Upload className="w-3.5 h-3.5" />
+                      New Proof Round
+                    </div>
+                  </ObjectUploader>
                 </div>
 
                 {/* Existing proof rounds */}

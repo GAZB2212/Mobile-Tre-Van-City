@@ -7538,34 +7538,25 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // ── Artwork Proofs ──────────────────────────────────────────────────────────
 
-  // Upload artwork proof files (multer-based, returns URLs)
-  app.post("/api/admin/artwork-proofs/upload", isAuthenticated, isBasicAdmin, async (req, res) => {
-    const multer = await import("multer");
-    const upload = multer.default({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-    upload.array("files", 20)(req, res, async (err: any) => {
-      if (err) return res.status(400).json({ error: "File upload failed" });
-      try {
-        const files = req.files as Express.Multer.File[] | undefined;
-        if (!files || files.length === 0) return res.status(400).json({ error: "No files provided" });
-        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
-        for (const f of files) {
-          if (!allowedTypes.includes(f.mimetype.toLowerCase())) {
-            return res.status(400).json({ error: "Only PNG, JPEG, and PDF files are allowed" });
-          }
-        }
-        const { ObjectStorageService } = await import("./objectStorage");
-        const svc = new ObjectStorageService();
-        const uploaded: Array<{ url: string; name: string }> = [];
-        for (const f of files) {
-          const url = await svc.uploadArtworkProofToPublicStorage(f.buffer, f.originalname, f.mimetype);
-          uploaded.push({ url, name: f.originalname });
-        }
-        res.json({ files: uploaded });
-      } catch (error) {
-        console.error("Artwork proof upload error:", error);
-        res.status(500).json({ error: "Upload failed" });
+  // Get a presigned PUT URL for an artwork proof image (client-side direct upload via ObjectUploader)
+  app.post("/api/admin/artwork-proofs/upload-url", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { filename, contentType } = req.body;
+      if (!filename || !contentType) {
+        return res.status(400).json({ error: "filename and contentType are required" });
       }
-    });
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+      if (!allowedTypes.includes(contentType.toLowerCase())) {
+        return res.status(400).json({ error: "Only PNG and JPEG files are allowed" });
+      }
+      const { ObjectStorageService } = await import("./objectStorage");
+      const svc = new ObjectStorageService();
+      const { uploadURL, publicURL } = await svc.getArtworkProofUploadURL(filename);
+      res.json({ uploadURL, objectPath: publicURL });
+    } catch (error) {
+      console.error("Artwork proof upload-url error:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
   });
 
   // List artwork proofs for a customer
