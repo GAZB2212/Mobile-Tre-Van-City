@@ -7731,6 +7731,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       // Notify internal team
       try {
+        const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
         const customer = await storage.getCustomer(proof.customer_id);
         const { sendEmail } = await import('./email.js');
         const subject = approved

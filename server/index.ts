@@ -703,7 +703,41 @@ app.use((req, res, next) => {
         );
         CREATE INDEX IF NOT EXISTS idx_artwork_proofs_customer ON artwork_proofs (customer_id);
         CREATE INDEX IF NOT EXISTS idx_artwork_proofs_token ON artwork_proofs (token);
-      `).then(() => log("✅ Artwork proofs table ready"))
+      `).then(() => {
+        // Add FK constraints idempotently (separate statement — constraints cannot be added with IF NOT EXISTS directly)
+        pool.query(`
+          DO $$ BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints
+              WHERE constraint_name = 'artwork_proofs_customer_id_fkey'
+                AND table_name = 'artwork_proofs'
+            ) THEN
+              ALTER TABLE artwork_proofs
+                ADD CONSTRAINT artwork_proofs_customer_id_fkey
+                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints
+              WHERE constraint_name = 'artwork_proofs_quote_id_fkey'
+                AND table_name = 'artwork_proofs'
+            ) THEN
+              ALTER TABLE artwork_proofs
+                ADD CONSTRAINT artwork_proofs_quote_id_fkey
+                FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE SET NULL;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints
+              WHERE constraint_name = 'artwork_proofs_uploaded_by_id_fkey'
+                AND table_name = 'artwork_proofs'
+            ) THEN
+              ALTER TABLE artwork_proofs
+                ADD CONSTRAINT artwork_proofs_uploaded_by_id_fkey
+                FOREIGN KEY (uploaded_by_id) REFERENCES users(id) ON DELETE SET NULL;
+            END IF;
+          END $$;
+        `).then(() => log("✅ Artwork proofs table ready"))
+          .catch((err: Error) => console.error("Artwork proofs FK migration:", err.message));
+      })
         .catch((err: Error) => console.error("Artwork proofs migration:", err.message));
 
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
