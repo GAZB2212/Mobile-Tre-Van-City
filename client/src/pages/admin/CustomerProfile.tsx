@@ -372,6 +372,7 @@ export default function CustomerProfile() {
   const [artworkSelectedFiles, setArtworkSelectedFiles] = useState<File[]>([]);
   const [artworkUploading, setArtworkUploading] = useState(false);
   const artworkInputRef = useRef<HTMLInputElement>(null);
+  const [showEarlierRounds, setShowEarlierRounds] = useState(false);
 
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
@@ -1554,8 +1555,8 @@ export default function CustomerProfile() {
                   <p className="text-xs text-muted-foreground italic">No artwork proofs yet. Upload files above to create the first proof round.</p>
                 ) : (
                   <div className="space-y-3">
-                    {artworkProofs.map((proof, idx) => {
-                      const isExpanded = artworkExpanded[proof.id] ?? idx === 0;
+                    {(showEarlierRounds ? artworkProofs : artworkProofs.slice(0, 1)).map((proof, idx) => {
+                      const isExpanded = artworkExpanded[proof.id] ?? (showEarlierRounds ? false : true);
                       const proofStatusMap: Record<string, string> = {
                         pending_review: "bg-amber-500/20 text-amber-400 border-amber-500/30",
                         sent: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -1644,14 +1645,14 @@ export default function CustomerProfile() {
                                           target="_blank"
                                           rel="noreferrer"
                                           title={file.name}
-                                          className="flex flex-col items-center justify-center w-16 h-16 rounded-md border bg-muted text-muted-foreground hover-elevate gap-1"
+                                          className="flex flex-col items-center justify-center w-28 h-28 rounded-md border bg-muted text-muted-foreground hover-elevate gap-1"
                                         >
-                                          <FileText className="w-5 h-5" />
-                                          <span className="text-[9px] truncate w-full text-center px-0.5">{file.name}</span>
+                                          <FileText className="w-6 h-6" />
+                                          <span className="text-[9px] truncate w-full text-center px-1">{file.name}</span>
                                         </a>
                                       ) : (
                                         <button
-                                          className="relative w-16 h-16 rounded-md border overflow-hidden bg-muted focus:outline-none"
+                                          className="relative w-28 h-28 rounded-md border overflow-hidden bg-muted focus:outline-none"
                                           onClick={() => setArtworkLightbox(file.url)}
                                           title={file.name}
                                           data-testid={`button-lightbox-${proof.id}-${fi}`}
@@ -1662,7 +1663,7 @@ export default function CustomerProfile() {
                                             className="w-full h-full object-cover"
                                           />
                                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <ZoomIn className="w-4 h-4 text-white" />
+                                            <ZoomIn className="w-5 h-5 text-white" />
                                           </div>
                                         </button>
                                       )}
@@ -1713,6 +1714,20 @@ export default function CustomerProfile() {
                         </div>
                       );
                     })}
+                    {artworkProofs.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowEarlierRounds(v => !v)}
+                        className="w-full text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5 py-1"
+                        data-testid="button-toggle-earlier-rounds"
+                      >
+                        {showEarlierRounds ? (
+                          <><ChevronUp className="w-3.5 h-3.5" /> Hide earlier rounds</>
+                        ) : (
+                          <><ChevronDown className="w-3.5 h-3.5" /> Show {artworkProofs.length - 1} earlier round{artworkProofs.length - 1 !== 1 ? "s" : ""}</>
+                        )}
+                      </button>
+                    )}
                   </div>
                 )}
               </CardContent>
