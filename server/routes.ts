@@ -7669,6 +7669,147 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── Artwork proof messages ───────────────────────────────────────────────────
+
+  // List messages for a proof (admin)
+  app.get("/api/admin/artwork-proofs/:proofId/messages", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { proofId } = req.params;
+      const { rows } = await pool.query(
+        `SELECT id, proof_id, sender_type, sender_name, message, created_at FROM artwork_proof_messages WHERE proof_id = $1 ORDER BY created_at ASC`,
+        [proofId]
+      );
+      res.json(rows.map(r => ({
+        id: r.id, proofId: r.proof_id, senderType: r.sender_type,
+        senderName: r.sender_name, message: r.message, createdAt: r.created_at,
+      })));
+    } catch (error) {
+      console.error("List artwork messages error:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // Admin sends a message (notifies customer by email if they have one)
+  app.post("/api/admin/artwork-proofs/:proofId/messages", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { proofId } = req.params;
+      const { message } = z.object({ message: z.string().min(1).max(5000) }).parse(req.body);
+      const senderName = (req.user as any)?.name || (req.user as any)?.username || "Graphics Team";
+
+      const { rows: proofRows } = await pool.query(
+        `SELECT ap.*, c.name AS customer_name, c.email AS customer_email
+         FROM artwork_proofs ap JOIN customers c ON c.id = ap.customer_id
+         WHERE ap.id = $1`,
+        [proofId]
+      );
+      if (proofRows.length === 0) return res.status(404).json({ error: "Proof not found" });
+      const proof = proofRows[0];
+
+      const { rows: msgRows } = await pool.query(
+        `INSERT INTO artwork_proof_messages (proof_id, sender_type, sender_name, message)
+         VALUES ($1, 'admin', $2, $3)
+         RETURNING id, proof_id, sender_type, sender_name, message, created_at`,
+        [proofId, senderName, message]
+      );
+      const msg = msgRows[0];
+
+      // Email the customer (non-fatal)
+      if (proof.customer_email) {
+        try {
+          const { sendArtworkMessageToCustomer } = await import('./email.js');
+          const siteBase = process.env.SITE_URL ||
+            (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0].trim()}` : 'https://www.mobiletyrevancity.co.uk');
+          await sendArtworkMessageToCustomer({
+            to: proof.customer_email,
+            customerName: proof.customer_name,
+            senderName,
+            message,
+            token: proof.token,
+            siteBaseUrl: siteBase,
+          });
+        } catch { /* non-fatal */ }
+      }
+
+      res.json({
+        id: msg.id, proofId: msg.proof_id, senderType: msg.sender_type,
+        senderName: msg.sender_name, message: msg.message, createdAt: msg.created_at,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Send artwork message error:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  // Public: list messages for a proof by token (customer view)
+  app.get("/api/artwork-approval/:token/messages", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { rows: proofRows } = await pool.query(
+        `SELECT id FROM artwork_proofs WHERE token = $1`, [token]
+      );
+      if (proofRows.length === 0) return res.status(404).json({ error: "Not found" });
+      const proofId = proofRows[0].id;
+      const { rows } = await pool.query(
+        `SELECT id, proof_id, sender_type, sender_name, message, created_at FROM artwork_proof_messages WHERE proof_id = $1 ORDER BY created_at ASC`,
+        [proofId]
+      );
+      res.json(rows.map(r => ({
+        id: r.id, proofId: r.proof_id, senderType: r.sender_type,
+        senderName: r.sender_name, message: r.message, createdAt: r.created_at,
+      })));
+    } catch (error) {
+      console.error("List artwork messages (customer) error:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // Public: customer sends a message by token (notifies internal team)
+  app.post("/api/artwork-approval/:token/messages", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { message, senderName } = z.object({
+        message: z.string().min(1).max(5000),
+        senderName: z.string().min(1).max(200),
+      }).parse(req.body);
+
+      const { rows: proofRows } = await pool.query(
+        `SELECT ap.*, c.name AS customer_name FROM artwork_proofs ap JOIN customers c ON c.id = ap.customer_id WHERE ap.token = $1`,
+        [token]
+      );
+      if (proofRows.length === 0) return res.status(404).json({ error: "Not found" });
+      const proof = proofRows[0];
+
+      const { rows: msgRows } = await pool.query(
+        `INSERT INTO artwork_proof_messages (proof_id, sender_type, sender_name, message)
+         VALUES ($1, 'customer', $2, $3)
+         RETURNING id, proof_id, sender_type, sender_name, message, created_at`,
+        [proof.id, senderName, message]
+      );
+      const msg = msgRows[0];
+
+      // Notify internal team (non-fatal)
+      try {
+        const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
+        const { sendEmail } = await import('./email.js');
+        await sendEmail({
+          to: INTERNAL_NOTIFY_EMAILS,
+          subject: `Artwork Message from ${proof.customer_name}`,
+          html: `<h2>Customer message on artwork proof</h2><p><strong>Customer:</strong> ${proof.customer_name}</p><hr/><p style="white-space:pre-wrap; background:#f9fafb; padding:12px; border-radius:6px;">${message}</p>`,
+        });
+      } catch { /* non-fatal */ }
+
+      res.json({
+        id: msg.id, proofId: msg.proof_id, senderType: msg.sender_type,
+        senderName: msg.sender_name, message: msg.message, createdAt: msg.created_at,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Customer artwork message error:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
   // Update admin notes on an artwork proof
   app.patch("/api/admin/artwork-proofs/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

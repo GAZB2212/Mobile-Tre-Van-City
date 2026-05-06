@@ -740,6 +740,20 @@ app.use((req, res, next) => {
       })
         .catch((err: Error) => console.error("Artwork proofs migration:", err.message));
 
+      // Artwork proof messages table
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS artwork_proof_messages (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          proof_id VARCHAR NOT NULL REFERENCES artwork_proofs(id) ON DELETE CASCADE,
+          sender_type TEXT NOT NULL CHECK (sender_type IN ('admin', 'customer')),
+          sender_name TEXT NOT NULL,
+          message TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_artwork_proof_messages_proof ON artwork_proof_messages (proof_id);
+      `).then(() => log("✅ Artwork proof messages table ready"))
+        .catch((err: Error) => console.error("Artwork proof messages migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.

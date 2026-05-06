@@ -22,6 +22,7 @@ import {
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
   Merge, Search, ShieldAlert, Scissors, UserCircle,
   ImageIcon, Upload, Send, ZoomIn, ChevronDown, ChevronUp,
+  MessageCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -186,6 +187,128 @@ function formatDateShort(date: string | null | undefined) {
   return new Date(date).toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
   });
+}
+
+interface ArtworkProofMessage {
+  id: string;
+  proofId: string;
+  senderType: "admin" | "customer";
+  senderName: string;
+  message: string;
+  createdAt: string;
+}
+
+function ProofChatPanel({ proofId, customerName }: { proofId: string; customerName: string }) {
+  const { toast } = useToast();
+  const [compose, setCompose] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: messages = [], refetch: refetchMessages } = useQuery<ArtworkProofMessage[]>({
+    queryKey: [`/api/admin/artwork-proofs/${proofId}/messages`],
+    refetchInterval: 30000,
+  });
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  const sendMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/artwork-proofs/${proofId}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ message: text }),
+      });
+      if (!r.ok) throw new Error("Failed to send");
+      return r.json();
+    },
+    onSuccess: () => { setCompose(""); refetchMessages(); },
+    onError: () => toast({ variant: "destructive", title: "Failed to send message" }),
+  });
+
+  const handleSend = () => {
+    if (compose.trim()) sendMutation.mutate(compose.trim());
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        <MessageCircle className="w-3.5 h-3.5" />
+        Discussion
+        {messages.length > 0 && (
+          <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5">
+            {messages.length}
+          </span>
+        )}
+      </p>
+
+      {messages.length > 0 && (
+        <div className="max-h-56 overflow-y-auto space-y-2 pr-0.5">
+          {messages.map(msg => (
+            <div
+              key={msg.id}
+              className={`flex flex-col gap-0.5 ${msg.senderType === "admin" ? "items-end" : "items-start"}`}
+            >
+              <div className={`max-w-[88%] rounded-md px-3 py-2 text-xs leading-relaxed ${
+                msg.senderType === "admin"
+                  ? "bg-[hsl(86_45%_51%/0.12)] text-foreground"
+                  : "bg-muted text-foreground"
+              }`}>
+                <p className="text-[10px] font-semibold text-muted-foreground mb-1">
+                  {msg.senderType === "admin" ? msg.senderName : customerName}
+                </p>
+                <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground px-1">
+                {new Date(msg.createdAt).toLocaleString("en-GB", {
+                  day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                })}
+              </p>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
+
+      {messages.length === 0 && (
+        <p className="text-[11px] text-muted-foreground italic">
+          No messages yet — start a discussion below. Messages are emailed to the customer.
+        </p>
+      )}
+
+      <div className="flex gap-2 items-end">
+        <Textarea
+          className="resize-none text-xs flex-1"
+          style={{ minHeight: "56px" }}
+          placeholder={`Message ${customerName}…`}
+          value={compose}
+          onChange={e => setCompose(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && compose.trim()) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          data-testid={`textarea-proof-message-${proofId}`}
+        />
+        <Button
+          size="icon"
+          onClick={handleSend}
+          disabled={!compose.trim() || sendMutation.isPending}
+          data-testid={`button-send-proof-message-${proofId}`}
+        >
+          {sendMutation.isPending
+            ? <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            : <Send className="w-3.5 h-3.5" />
+          }
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground">Ctrl+Enter to send</p>
+    </div>
+  );
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -1432,7 +1555,7 @@ export default function CustomerProfile() {
                                 })}
                               </div>
 
-                              {/* Customer response */}
+                              {/* Customer approval response */}
                               {proof.customerNotes && (
                                 <div className="rounded-md bg-muted/50 px-3 py-2 space-y-1">
                                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Customer response</p>
@@ -1442,6 +1565,11 @@ export default function CustomerProfile() {
                                   )}
                                 </div>
                               )}
+
+                              {/* Discussion thread */}
+                              <div className="border-t pt-3">
+                                <ProofChatPanel proofId={proof.id} customerName={customer.name} />
+                              </div>
 
                               {/* Admin notes */}
                               <div className="space-y-1.5">

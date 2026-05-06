@@ -1908,6 +1908,55 @@ export async function sendArtworkProofEmail({
   });
 }
 
+// ── Artwork proof message notification to customer ────────────────────────────
+export async function sendArtworkMessageToCustomer({
+  to,
+  customerName,
+  senderName,
+  message,
+  token,
+  siteBaseUrl,
+}: {
+  to: string;
+  customerName: string;
+  senderName: string;
+  message: string;
+  token: string;
+  siteBaseUrl?: string;
+}) {
+  const { client, fromEmail } = await getUncachableResendClient();
+  const siteBase = siteBaseUrl || process.env.SITE_URL || `https://${SITE_DOMAIN}`;
+  const approvalUrl = `${siteBase}/artwork-approval/${token}`;
+
+  const bodyHtml = `
+    <p>Hi ${customerName},</p>
+    <p>A member of our graphics team has sent you a message about your artwork proof.</p>
+    <div style="background:#f3f4f6; border-left:4px solid #8bc440; padding:16px; margin:20px 0; border-radius:4px;">
+      <p style="margin:0 0 6px; font-size:12px; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">${senderName} · Mobile Tyre Van City</p>
+      <p style="margin:0; white-space:pre-wrap; color:#111827;">${message}</p>
+    </div>
+    <p>You can reply and view your artwork by clicking the button below.</p>
+    <div style="text-align:center; margin:24px auto;">
+      <a href="${approvalUrl}"
+         style="display:block; max-width:280px; margin:0 auto; background:${BRAND_GREEN}; color:${BRAND_DARK}; font-weight:bold; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:4px; text-align:center; box-sizing:border-box;">
+        View Artwork &amp; Reply
+      </a>
+    </div>
+    <p style="font-size:13px; color:#6b7280;">If you'd prefer to speak to someone, call us on <strong>${PHONE}</strong>.</p>
+    <p>Best regards,<br><strong>Mobile Tyre Van City</strong></p>
+  `;
+
+  await client.emails.send({
+    to,
+    from: fromEmail,
+    subject: `Message from Mobile Tyre Van City — Artwork Discussion`,
+    html: emailLayout(bodyHtml, {
+      footerNote: "This message is regarding your artwork proof from Mobile Tyre Van City.",
+    }),
+    text: `Hi ${customerName},\n\n${senderName} from Mobile Tyre Van City says:\n\n"${message}"\n\nView your artwork and reply: ${approvalUrl}\n\nCall us: ${PHONE}\n\nMobile Tyre Van City`,
+  });
+}
+
 // ── Generic pass-through email ────────────────────────────────────────────────
 export async function sendEmail({
   to,
