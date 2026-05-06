@@ -73,6 +73,33 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Quote, Van, Kit, Upgrade, FollowUp } from "@shared/schema";
+
+interface AiConversationDetail {
+  id: string;
+  session_id: string;
+  status: string;
+  messages: unknown;
+  mapped_config: unknown;
+  contact_name: string | null;
+  contact_phone: string | null;
+  van_type: string | null;
+  van_size: string | null;
+  spec_level: string | null;
+  finance_preference: string | null;
+  includes_48v: boolean | null;
+  includes48v?: boolean | null;
+  was_48v_pitched: boolean | null;
+  response_to_48v: string | null;
+  config_completed: boolean | null;
+  marked_contacted: boolean | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+interface QuoteDetail extends Quote {
+  customerName: string | null;
+  aiConversation: AiConversationDetail | null;
+}
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { upgradeCategories } from "@shared/schema";
@@ -292,7 +319,7 @@ export default function AdminQuoteDetail() {
   const [newExtraDescription, setNewExtraDescription] = useState('');
   const [newExtraPrice, setNewExtraPrice] = useState('');
 
-  const { data: quote, isLoading } = useQuery<Quote>({
+  const { data: quote, isLoading } = useQuery<QuoteDetail>({
     queryKey: [`/api/admin/quotes/${id}`],
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
     // Poll for live workshop progress — only when quote is actively being built
@@ -1442,9 +1469,9 @@ export default function AdminQuoteDetail() {
                               {new Date(quote.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </span>
                           )}
-                          {(quote as any).staffName && (
+                          {quote.staffName && (
                             <span className="text-sm text-muted-foreground" data-testid="text-quote-staff-name">
-                              Quoted by {(quote as any).staffName}
+                              Quoted by {quote.staffName}
                             </span>
                           )}
                         </div>
@@ -1460,7 +1487,9 @@ export default function AdminQuoteDetail() {
                             data-testid="text-profile-linked"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                            Linked: {quote.userName || "Customer"}
+                            {quote.customerName
+                              ? `${quote.customerName} · Profile linked`
+                              : "Profile linked"}
                           </span>
                         </Link>
                       ) : (
@@ -3170,8 +3199,8 @@ export default function AdminQuoteDetail() {
             })()}
 
             {/* ── Max AI Chat Transcript ── shown in overview when quote came via AI */}
-            {activeTab === "overview" && (quote as any).aiConversation && (() => {
-              const conv = (quote as any).aiConversation;
+            {activeTab === "overview" && quote.aiConversation && (() => {
+              const conv = quote.aiConversation;
               const msgs: Array<{role: string; content: string}> = Array.isArray(conv.messages)
                 ? conv.messages
                 : (typeof conv.messages === "string" ? JSON.parse(conv.messages) : []);
@@ -3234,10 +3263,10 @@ export default function AdminQuoteDetail() {
             {activeTab === "overview" && <>
 
             {/* Max AI Chat link — shown when this quote originated from a Max chat */}
-            {(quote as any)?.aiConversation && (() => {
-              const ai = (quote as any).aiConversation;
+            {quote?.aiConversation && (() => {
+              const ai = quote.aiConversation;
               const msgs: Array<{role: string; content: string}> = Array.isArray(ai.messages) ? ai.messages : [];
-              const displayName = ai.contact_name || ai.contactName || quote?.userName || "Customer";
+              const displayName = ai.contact_name || quote?.userName || "Customer";
               return (
                 <Card data-testid="card-ai-conversation">
                   <CardHeader className="pb-3">
@@ -3670,10 +3699,10 @@ export default function AdminQuoteDetail() {
       </div>
 
       {/* AI Transcript Dialog */}
-      {(quote as any)?.aiConversation && (() => {
-        const ai = (quote as any).aiConversation;
+      {quote?.aiConversation && (() => {
+        const ai = quote.aiConversation;
         const msgs: Array<{role: string; content: string}> = Array.isArray(ai.messages) ? ai.messages : [];
-        const displayName = ai.contact_name || ai.contactName || quote?.userName || "Customer";
+        const displayName = ai.contact_name || quote?.userName || "Customer";
         return (
           <Dialog open={showAiTranscript} onOpenChange={(open) => { setShowAiTranscript(open); if (!open) { setEditingTranscriptNote(null); setNewTranscriptNote(""); } }}>
             <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0" data-testid="dialog-ai-transcript">

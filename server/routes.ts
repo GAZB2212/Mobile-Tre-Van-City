@@ -2043,6 +2043,15 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (!quote) {
         return res.status(404).json({ error: "Quote not found" });
       }
+      // Fetch customer name from customers table if linked
+      let customerName: string | null = null;
+      if (quote.customerId) {
+        const { rows } = await pool.query<{ name: string }>(
+          `SELECT name FROM customers WHERE id = $1`,
+          [quote.customerId]
+        );
+        if (rows[0]) customerName = rows[0].name;
+      }
       // If the quote has an AI session link, fetch the conversation too
       let aiConversation: any = null;
       const aiSessionId = (quote as any).aiSessionId || (quote as any).ai_session_id;
@@ -2057,7 +2066,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         );
         if (rows[0]) aiConversation = rows[0];
       }
-      res.json({ ...quote, aiConversation });
+      res.json({ ...quote, customerName, aiConversation });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch quote" });
     }
