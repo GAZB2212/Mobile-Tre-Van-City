@@ -7921,9 +7921,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       );
       if (rows.length === 0) return res.status(404).json({ error: "Approval link not found or has expired" });
       const proof = rows[0];
+      const rawFiles: Array<{ url: string; name: string }> = Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files);
       res.json({
         customerName: proof.customer_name,
-        files: Array.isArray(proof.files) ? proof.files : JSON.parse(proof.files),
+        files: rawFiles.map(f => ({ ...f, url: normalizeArtworkFileUrl(f.url) })),
         status: proof.status,
         customerNotes: proof.customer_notes,
         adminNotes: proof.admin_notes,
