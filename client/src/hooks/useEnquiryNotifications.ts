@@ -43,9 +43,21 @@ export function useEnquiryNotifications() {
   // Snooze state — initialised from localStorage so it survives page reloads
   const [snoozeUntil, setSnoozeUntilState] = useState<number | null>(readSnoozeUntil);
 
+  // Sync mute state within the same tab via the custom event that AdminLayout
+  // and Dashboard dispatch whenever the toggle is clicked. The storage event
+  // does NOT fire in the tab that wrote the value, so this custom event is the
+  // only way to learn about same-tab mute changes.
+  const MUTE_EVENT = "enquiry-mute-changed";
+  useEffect(() => {
+    const syncMute = () => setIsMuted(readMuted());
+    window.addEventListener(MUTE_EVENT, syncMute);
+    return () => window.removeEventListener(MUTE_EVENT, syncMute);
+  }, []);
+
   // Sync both mute and snooze state across tabs via the storage event.
-  // The storage event only fires in tabs *other* than the one that wrote the value,
-  // so same-tab changes are already handled by the setters above.
+  // The storage event only fires in tabs *other* than the one that wrote the
+  // value, so cross-tab changes are handled here while same-tab mute changes
+  // are handled by the enquiry-mute-changed listener above.
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === MUTE_KEY) {
@@ -148,10 +160,12 @@ export function useEnquiryNotifications() {
         return;
       }
 
-      // Respect the in-app mute preference. Read directly from localStorage at
-      // decision time so same-tab toggles take effect immediately (storage
-      // events don't fire in the tab that wrote the value).
-      if (readMuted()) return;
+      // Respect the in-app mute preference. Use the isMuted state value which
+      // is kept in sync for same-tab changes (via the enquiry-mute-changed
+      // custom event handler above) and for cross-tab changes (via the storage
+      // event handler above), so cancelling mute anywhere lifts suppression
+      // immediately without waiting for the next poll cycle.
+      if (isMuted) return;
 
       const title =
         delta === 1 ? "New enquiry received" : `${delta} new enquiries received`;
@@ -179,7 +193,7 @@ export function useEnquiryNotifications() {
     } else {
       prevUnreadRef.current = current;
     }
-  }, [recentEnquiries, toast]);
+  }, [recentEnquiries, toast, isMuted]);
 
   return { recentEnquiries, unreadCount, isSnoozed, snoozeUntil, snooze, cancelSnooze, isMuted };
 }
