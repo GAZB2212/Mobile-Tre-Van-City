@@ -53,7 +53,15 @@ import {
   Phone,
   Clock,
   BookUser,
+  Bell,
+  BellOff,
+  X,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface NavItem {
   title: string;
@@ -184,7 +192,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth() as { user: User | undefined };
 
   // Global enquiry polling — fires toast/browser notifications on any admin page
-  useEnquiryNotifications();
+  const { isSnoozed, snoozeUntil, snooze, cancelSnooze } = useEnquiryNotifications();
+
+  // Force a re-render every 30 s while snoozed so the remaining-time label updates
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!isSnoozed) return;
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, [isSnoozed]);
 
   // Track which collapsible nav groups are open (keyed by label)
   // Content group starts collapsed; auto-expand if current route is inside it
@@ -510,7 +526,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center h-11 px-4 border-b admin-topbar-bg admin-topbar-border shrink-0 no-print">
+        <header className="flex items-center h-11 px-4 border-b admin-topbar-bg admin-topbar-border shrink-0 no-print gap-2">
           <button
             className="md:hidden text-zinc-400 hover:text-zinc-100 mr-3"
             onClick={() => setMobileOpen(true)}
@@ -519,6 +535,71 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Menu size={18} />
           </button>
           <div className="flex-1" />
+
+          {/* Snooze / mute notifications control */}
+          {isSnoozed && snoozeUntil ? (
+            <div className="flex items-center gap-1.5" data-testid="snooze-active-indicator">
+              <BellOff size={13} className="text-amber-400 shrink-0" />
+              <span className="text-[11px] text-amber-400 hidden sm:block whitespace-nowrap">
+                Alerts snoozed until {new Date(snoozeUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={cancelSnooze}
+                    className="text-zinc-500 hover:text-zinc-200 transition-colors"
+                    data-testid="button-cancel-snooze"
+                    aria-label="Cancel snooze"
+                  >
+                    <X size={13} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Cancel snooze</TooltipContent>
+              </Tooltip>
+            </div>
+          ) : (
+            <Popover>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="text-zinc-500 hover:text-zinc-200 transition-colors p-1 rounded-md"
+                      data-testid="button-snooze-notifications"
+                      aria-label="Snooze new-enquiry alerts"
+                    >
+                      <Bell size={14} />
+                    </button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Snooze alerts</TooltipContent>
+              </Tooltip>
+              <PopoverContent
+                side="bottom"
+                align="end"
+                className="w-48 p-1.5 space-y-0.5"
+                data-testid="popover-snooze-options"
+              >
+                <p className="text-[10px] font-medium text-zinc-500 px-2 py-1 uppercase tracking-wide">
+                  Snooze alerts for…
+                </p>
+                {([
+                  { label: "30 minutes", ms: 30 * 60 * 1000 },
+                  { label: "1 hour",     ms: 60 * 60 * 1000 },
+                  { label: "4 hours",    ms: 4 * 60 * 60 * 1000 },
+                ] as const).map(({ label, ms }) => (
+                  <button
+                    key={label}
+                    onClick={() => snooze(ms)}
+                    className="w-full text-left text-[13px] px-2 py-1.5 rounded-md text-zinc-300 hover:bg-white/[0.07] transition-colors"
+                    data-testid={`button-snooze-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
+
           <span className="text-[11px] text-zinc-600 hidden sm:block">
             {user?.email}
           </span>

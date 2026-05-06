@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,10 +12,56 @@ export interface RecentEnquiriesData {
   todayNewQuoteCount: number;
 }
 
+const SNOOZE_KEY = "enquiry-snooze-until";
+
+function readSnoozeUntil(): number | null {
+  const val = localStorage.getItem(SNOOZE_KEY);
+  if (!val) return null;
+  const ts = parseInt(val, 10);
+  if (isNaN(ts)) return null;
+  if (Date.now() >= ts) {
+    localStorage.removeItem(SNOOZE_KEY);
+    return null;
+  }
+  return ts;
+}
+
 export function useEnquiryNotifications() {
   const { toast } = useToast();
   const { user } = useAuth() as { user: User | undefined };
   const isAdmin = !!(user?.adminRole && user.adminRole !== "none");
+
+  // Snooze state — initialised from localStorage so it survives page reloads
+  const [snoozeUntil, setSnoozeUntilState] = useState<number | null>(readSnoozeUntil);
+
+  const snooze = useCallback((durationMs: number) => {
+    const until = Date.now() + durationMs;
+    localStorage.setItem(SNOOZE_KEY, String(until));
+    setSnoozeUntilState(until);
+  }, []);
+
+  const cancelSnooze = useCallback(() => {
+    localStorage.removeItem(SNOOZE_KEY);
+    setSnoozeUntilState(null);
+  }, []);
+
+  const isSnoozed = snoozeUntil != null && Date.now() < snoozeUntil;
+
+  // Auto-expire the snooze when the timer runs out
+  useEffect(() => {
+    if (!snoozeUntil) return;
+    const remaining = snoozeUntil - Date.now();
+    if (remaining <= 0) {
+      localStorage.removeItem(SNOOZE_KEY);
+      setSnoozeUntilState(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      localStorage.removeItem(SNOOZE_KEY);
+      setSnoozeUntilState(null);
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [snoozeUntil]);
 
   const { data: recentEnquiries } = useQuery<RecentEnquiriesData>({
     queryKey: ["/api/admin/enquiries/recent"],
@@ -44,7 +90,7 @@ export function useEnquiryNotifications() {
 
   // Fire a toast (and optionally a browser notification) whenever the unread
   // count grows since the last poll. The very first load just sets the
-  // baseline — no alert on page load.
+  // baseline — no alert on page load. Notifications are suppressed while snoozed.
   const prevUnreadRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -61,6 +107,12 @@ export function useEnquiryNotifications() {
     const delta = current - prevUnreadRef.current;
     if (delta > 0) {
       prevUnreadRef.current = current;
+
+      // Check snooze directly from localStorage so we always use the latest value
+      const snoozedUntil = readSnoozeUntil();
+      if (snoozedUntil != null && Date.now() < snoozedUntil) {
+        return;
+      }
 
       const title =
         delta === 1 ? "New enquiry received" : `${delta} new enquiries received`;
@@ -90,5 +142,5 @@ export function useEnquiryNotifications() {
     }
   }, [recentEnquiries, toast]);
 
-  return { recentEnquiries, unreadCount };
+  return { recentEnquiries, unreadCount, isSnoozed, snoozeUntil, snooze, cancelSnooze };
 }
