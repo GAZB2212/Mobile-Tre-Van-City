@@ -403,8 +403,19 @@ export default function CustomerProfile() {
 
   const { data, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useQuery<CustomerProfileData>({
     queryKey: ["/api/admin/customers", id],
-    queryFn: () => fetchJson(`/api/admin/customers/${id}`),
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/admin/customers/${id}`, {
+        credentials: "include",
+        headers,
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json() as Promise<CustomerProfileData>;
+    },
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
+    staleTime: 0,
   });
 
   const { data: staffList = [] } = useQuery<StaffMember[]>({
