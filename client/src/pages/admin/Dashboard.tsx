@@ -132,7 +132,7 @@ export default function AdminDashboard() {
   const unreadCount = (recentEnquiries?.todayNewLeadCount ?? 0) + (recentEnquiries?.todayNewQuoteCount ?? 0);
 
 
-  // ── Notification permission bell (task-301) ─────────────────────────────────
+  // ── Notification permission bell (task-301 / task-312) ──────────────────────
   // Track the current browser notification permission state so the bell icon
   // stays in sync even when the user changes settings in the browser.
   // Polling and toast/browser-notification firing are handled globally by
@@ -140,6 +140,12 @@ export default function AdminDashboard() {
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(() => {
     if (typeof Notification === "undefined") return "unsupported";
     return Notification.permission;
+  });
+
+  // In-app mute toggle — stored in localStorage so it persists across sessions.
+  // When muted, useEnquiryNotifications skips firing toasts and browser alerts.
+  const [notifMuted, setNotifMuted] = useState<boolean>(() => {
+    return localStorage.getItem("enquiry-notif-muted") === "1";
   });
 
   // Re-read the permission whenever the tab becomes visible (e.g. after the
@@ -169,10 +175,19 @@ export default function AdminDashboard() {
       return;
     }
     if (Notification.permission === "granted") {
-      toast({ title: "Notifications are on", description: "You will receive browser alerts when new enquiries arrive." });
+      // Toggle the in-app mute preference.
+      if (notifMuted) {
+        localStorage.removeItem("enquiry-notif-muted");
+        setNotifMuted(false);
+        toast({ title: "Notifications unmuted", description: "You will receive alerts when new enquiries arrive." });
+      } else {
+        localStorage.setItem("enquiry-notif-muted", "1");
+        setNotifMuted(true);
+        toast({ title: "Notifications muted", description: "Alerts are paused. Click the bell again to re-enable them." });
+      }
       return;
     }
-    // "default" — ask again
+    // "default" — ask for permission
     localStorage.setItem("enquiry-notif-asked", "1");
     const result = await Notification.requestPermission();
     setNotifPermission(result);
@@ -576,15 +591,17 @@ export default function AdminDashboard() {
                           onClick={handleNotifBellClick}
                           data-testid="button-notif-permission"
                           className={
-                            notifPermission === "granted"
+                            notifPermission === "granted" && !notifMuted
                               ? "text-accent"
                               : notifPermission === "denied"
                               ? "text-destructive"
                               : "text-muted-foreground"
                           }
                         >
-                          {notifPermission === "granted" ? (
+                          {notifPermission === "granted" && !notifMuted ? (
                             <BellRing className="w-4 h-4" />
+                          ) : notifPermission === "granted" && notifMuted ? (
+                            <BellOff className="w-4 h-4" />
                           ) : notifPermission === "denied" ? (
                             <BellOff className="w-4 h-4" />
                           ) : (
@@ -593,8 +610,10 @@ export default function AdminDashboard() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="right">
-                        {notifPermission === "granted"
-                          ? "Browser notifications are on"
+                        {notifPermission === "granted" && !notifMuted
+                          ? "Notifications are on — click to mute"
+                          : notifPermission === "granted" && notifMuted
+                          ? "Notifications muted — click to re-enable"
                           : notifPermission === "denied"
                           ? "Notifications blocked — click for instructions"
                           : "Click to enable browser notifications"}

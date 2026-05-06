@@ -114,6 +114,10 @@ export function useEnquiryNotifications() {
         return;
       }
 
+      // Respect the in-app mute preference set from the dashboard bell.
+      const isMuted = localStorage.getItem("enquiry-notif-muted") === "1";
+      if (isMuted) return;
+
       const title =
         delta === 1 ? "New enquiry received" : `${delta} new enquiries received`;
       const body =
