@@ -344,14 +344,39 @@ export default function AdminLeads() {
     }
   }, [linkedCustomerProfile]);
 
+  // Status-change note dialog state
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ lead: Lead; status: LeadStatus } | null>(null);
+  const [statusNoteText, setStatusNoteText] = useState("");
+
   const handleStatusChange = (lead: Lead, status: LeadStatus) => {
-    updateLeadMutation.mutate({ id: lead.id, data: { status } });
+    setPendingStatusChange({ lead, status });
+    setStatusNoteText("");
+  };
+
+  const confirmStatusChange = (note: string) => {
+    if (!pendingStatusChange) return;
+    const { lead, status } = pendingStatusChange;
+    const updateData: Record<string, any> = { status };
+    if (note.trim()) {
+      const existing: Array<{ text: string; timestamp: string; author?: string }> = (lead as any).crmNotes ?? [];
+      updateData.crmNotes = [
+        ...existing,
+        {
+          text: `Status → ${STATUS_CONFIG[status]?.label ?? status}: ${note.trim()}`,
+          timestamp: new Date().toISOString(),
+          author: user?.username ?? "Admin",
+        },
+      ];
+    }
+    updateLeadMutation.mutate({ id: lead.id, data: updateData });
     if (status === "contacted") {
       setFuLead(lead);
       setFuDate(new Date().toISOString().split("T")[0]);
       setFuNotes("");
       setFuDialogOpen(true);
     }
+    setPendingStatusChange(null);
+    setStatusNoteText("");
   };
 
   const handleAddNote = (lead: Lead) => {
@@ -1342,6 +1367,49 @@ export default function AdminLeads() {
               ) : (
                 <><Link2 className="w-3.5 h-3.5 mr-1.5" />Link Customer</>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status change note dialog */}
+      <Dialog
+        open={!!pendingStatusChange}
+        onOpenChange={(open) => { if (!open) setPendingStatusChange(null); }}
+      >
+        <DialogContent className="max-w-md" data-testid="dialog-lead-status-change-note">
+          <DialogHeader>
+            <DialogTitle>
+              Moving to: {pendingStatusChange ? (STATUS_CONFIG[pendingStatusChange.status]?.label ?? pendingStatusChange.status) : ""}
+            </DialogTitle>
+            <DialogDescription>
+              Add a note to explain this status change — it will be saved to the lead's CRM notes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <Label htmlFor="lead-status-change-note">
+              Note <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="lead-status-change-note"
+              placeholder="e.g. Called customer, very interested — sending quote today."
+              value={statusNoteText}
+              onChange={(e) => setStatusNoteText(e.target.value)}
+              rows={3}
+              data-testid="textarea-lead-status-note"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingStatusChange(null)} data-testid="button-cancel-lead-status">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => confirmStatusChange(statusNoteText)}
+              disabled={updateLeadMutation.isPending}
+              data-testid="button-confirm-lead-status"
+            >
+              Update Status
             </Button>
           </DialogFooter>
         </DialogContent>

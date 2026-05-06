@@ -175,9 +175,16 @@ export default function AdminQuotes() {
     onError: () => toast({ variant: "destructive", title: "Failed to schedule follow-up" }),
   });
 
+  // Status-change note dialog state
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; newStatus: string; currentStatus: string } | null>(null);
+  const [statusNoteText, setStatusNoteText] = useState("");
+
   const statusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/quotes/${id}`, { status });
+    mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/quotes/${id}`, {
+        status,
+        ...(note?.trim() ? { newAdminNote: `Status → ${getStatusLabel(status)}: ${note.trim()}` } : {}),
+      });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed"); }
       return res.json();
     },
@@ -962,13 +969,8 @@ export default function AdminQuotes() {
                           <Select
                             value={pendingStatuses[quote.id] ?? quote.status}
                             onValueChange={(v) => {
-                              statusMutation.mutate({ id: quote.id, status: v });
-                              if (v === "contacted") {
-                                setFuPendingQuote({ id: quote.id, name: (quote as any).userName, email: (quote as any).email, phone: (quote as any).phone });
-                                setFuDate(new Date().toISOString().split("T")[0]);
-                                setFuNotes("");
-                                setFuDialogOpen(true);
-                              }
+                              setPendingStatusChange({ id: quote.id, newStatus: v, currentStatus: pendingStatuses[quote.id] ?? quote.status });
+                              setStatusNoteText("");
                             }}
                           >
                             <SelectTrigger
@@ -1245,6 +1247,63 @@ export default function AdminQuotes() {
       </div>
 
       {/* Follow-up scheduling dialog — shown when a configurator is marked Contacted */}
+      {/* Status change note dialog */}
+      <Dialog
+        open={!!pendingStatusChange}
+        onOpenChange={(open) => { if (!open) setPendingStatusChange(null); }}
+      >
+        <DialogContent className="max-w-md" data-testid="dialog-status-change-note">
+          <DialogHeader>
+            <DialogTitle>
+              Moving to: {pendingStatusChange ? getStatusLabel(pendingStatusChange.newStatus) : ""}
+            </DialogTitle>
+            <DialogDescription>
+              Add a note to explain this status change — it will be saved to the quote's notes history.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <Label htmlFor="status-change-note">
+              Note <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="status-change-note"
+              placeholder="e.g. Customer confirmed they are happy to proceed..."
+              value={statusNoteText}
+              onChange={(e) => setStatusNoteText(e.target.value)}
+              rows={3}
+              data-testid="textarea-status-change-note"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingStatusChange(null)} data-testid="button-cancel-status-change">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!pendingStatusChange) return;
+                const { id, newStatus } = pendingStatusChange;
+                statusMutation.mutate({ id, status: newStatus, note: statusNoteText });
+                if (newStatus === "contacted") {
+                  const q = quotes?.find((q: any) => q.id === id);
+                  if (q) {
+                    setFuPendingQuote({ id, name: (q as any).userName, email: (q as any).email, phone: (q as any).phone });
+                    setFuDate(new Date().toISOString().split("T")[0]);
+                    setFuNotes("");
+                    setFuDialogOpen(true);
+                  }
+                }
+                setPendingStatusChange(null);
+                setStatusNoteText("");
+              }}
+              data-testid="button-confirm-status-change"
+            >
+              Update Status
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={fuDialogOpen} onOpenChange={setFuDialogOpen}>
         <DialogContent className="max-w-sm" data-testid="modal-schedule-followup-quote">
           <DialogHeader>

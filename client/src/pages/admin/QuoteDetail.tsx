@@ -202,6 +202,12 @@ export default function AdminQuoteDetail() {
   const [fuDate, setFuDate] = useState(new Date().toISOString().split("T")[0]);
   const [fuNotes, setFuNotes] = useState("");
 
+  // Status change note dialog (shown for all other quick-status actions)
+  const [pendingQuickStatus, setPendingQuickStatus] = useState<string | null>(null);
+  const [statusNoteText, setStatusNoteText] = useState("");
+  // Note captured inside the "Mark as Contacted" / follow-up dialog
+  const [contactedNoteText, setContactedNoteText] = useState("");
+
   const scheduleFollowUpMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => apiRequest("POST", "/api/admin/follow-ups", data),
     onSuccess: () => {
@@ -622,10 +628,13 @@ export default function AdminQuoteDetail() {
   });
 
   const quickStatusMutation = useMutation({
-    mutationFn: async (newStatus: string) => {
-      return await apiRequest("PATCH", `/api/admin/quotes/${id}`, { status: newStatus });
+    mutationFn: async ({ newStatus, note }: { newStatus: string; note?: string }) => {
+      return await apiRequest("PATCH", `/api/admin/quotes/${id}`, {
+        status: newStatus,
+        ...(note?.trim() ? { newAdminNote: `Status → ${STATUS_LABELS[newStatus] ?? newStatus}: ${note.trim()}` } : {}),
+      });
     },
-    onSuccess: (_, newStatus) => {
+    onSuccess: (_, { newStatus }) => {
       setStatus(newStatus);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
@@ -1722,36 +1731,36 @@ export default function AdminQuoteDetail() {
                       )}
                       {status === "contacted" && (
                         <>
-                          <Button size="sm" onClick={() => quickStatusMutation.mutate("awaiting_deposit")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-deposit">
+                          <Button size="sm" onClick={() => { setPendingQuickStatus("awaiting_deposit"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-deposit">
                             Awaiting Deposit
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("awaiting_finance")} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-finance">
+                          <Button size="sm" variant="outline" onClick={() => { setPendingQuickStatus("awaiting_finance"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-awaiting-finance">
                             Submit to Finance
                           </Button>
                         </>
                       )}
                       {status === "awaiting_deposit" && (
-                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("deposit_taken")} disabled={quickStatusMutation.isPending} data-testid="button-deposit-taken">
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => { setPendingQuickStatus("deposit_taken"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-deposit-taken">
                           Confirm Deposit Taken
                         </Button>
                       )}
                       {status === "awaiting_finance" && (
                         <>
-                          <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("finance_approved")} disabled={quickStatusMutation.isPending} data-testid="button-finance-approved">
+                          <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => { setPendingQuickStatus("finance_approved"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-finance-approved">
                             Finance Approved
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => quickStatusMutation.mutate("finance_declined")} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
+                          <Button size="sm" variant="outline" onClick={() => { setPendingQuickStatus("finance_declined"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-finance-declined">
                             Finance Declined
                           </Button>
                         </>
                       )}
                       {(status === "deposit_taken" || status === "finance_approved") && (
-                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("in_build")} disabled={quickStatusMutation.isPending} data-testid="button-move-to-build">
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => { setPendingQuickStatus("in_build"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-move-to-build">
                           Move to Build
                         </Button>
                       )}
                       {status === "in_build" && allBuildStagesDone && (
-                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => quickStatusMutation.mutate("completed")} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
+                        <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => { setPendingQuickStatus("completed"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
                           Mark as Completed
                         </Button>
                       )}
@@ -3915,6 +3924,21 @@ export default function AdminQuoteDetail() {
           </DialogHeader>
           <div className="flex flex-col gap-3 py-1">
             <div>
+              <Label htmlFor="contacted-note-detail">
+                What was said / done? <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Textarea
+                id="contacted-note-detail"
+                value={contactedNoteText}
+                onChange={(e) => setContactedNoteText(e.target.value)}
+                placeholder="e.g. Spoke to customer — interested in Pack 2, calling back Thursday. / Left voicemail."
+                rows={2}
+                data-testid="textarea-contacted-note-detail"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground mt-1">This will be saved to the quote's notes history.</p>
+            </div>
+            <div>
               <Label htmlFor="fu-date-detail">Follow-up date</Label>
               <Input
                 id="fu-date-detail"
@@ -3925,7 +3949,7 @@ export default function AdminQuoteDetail() {
               />
             </div>
             <div>
-              <Label htmlFor="fu-notes-detail">Notes (optional)</Label>
+              <Label htmlFor="fu-notes-detail">Follow-up notes (optional)</Label>
               <Textarea
                 id="fu-notes-detail"
                 value={fuNotes}
@@ -3941,7 +3965,8 @@ export default function AdminQuoteDetail() {
               variant="outline"
               onClick={() => {
                 setFuDialogOpen(false);
-                quickStatusMutation.mutate("contacted");
+                quickStatusMutation.mutate({ newStatus: "contacted", note: contactedNoteText });
+                setContactedNoteText("");
               }}
               data-testid="button-skip-followup-detail"
             >
@@ -3949,7 +3974,8 @@ export default function AdminQuoteDetail() {
             </Button>
             <Button
               onClick={() => {
-                quickStatusMutation.mutate("contacted");
+                quickStatusMutation.mutate({ newStatus: "contacted", note: contactedNoteText });
+                setContactedNoteText("");
                 scheduleFollowUpMutation.mutate({
                   customerName: quote?.userName || quote?.email || "Unknown",
                   customerPhone: quote?.phone || null,
@@ -3968,6 +3994,58 @@ export default function AdminQuoteDetail() {
             >
               <Building2 className="w-4 h-4 mr-2" />
               Add to calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status change note dialog — for all quick-action buttons except "contacted" */}
+      <Dialog
+        open={!!pendingQuickStatus}
+        onOpenChange={(open) => { if (!open) setPendingQuickStatus(null); }}
+      >
+        <DialogContent className="max-w-md" data-testid="dialog-quick-status-note">
+          <DialogHeader>
+            <DialogTitle>
+              Moving to: {pendingQuickStatus ? (STATUS_LABELS[pendingQuickStatus] ?? pendingQuickStatus) : ""}
+            </DialogTitle>
+            <DialogDescription>
+              Add a note to explain this status change — it will be saved to the quote's notes history.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            <Label htmlFor="quick-status-note">
+              Note <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="quick-status-note"
+              placeholder="e.g. Customer confirmed deposit over the phone..."
+              value={statusNoteText}
+              onChange={(e) => setStatusNoteText(e.target.value)}
+              rows={3}
+              data-testid="textarea-quick-status-note"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPendingQuickStatus(null)}
+              data-testid="button-cancel-quick-status"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!pendingQuickStatus) return;
+                quickStatusMutation.mutate({ newStatus: pendingQuickStatus, note: statusNoteText });
+                setPendingQuickStatus(null);
+                setStatusNoteText("");
+              }}
+              disabled={quickStatusMutation.isPending}
+              data-testid="button-confirm-quick-status"
+            >
+              Update Status
             </Button>
           </DialogFooter>
         </DialogContent>
