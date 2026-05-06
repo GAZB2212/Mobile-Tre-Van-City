@@ -1372,7 +1372,11 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
             ) : (
-              <>
+              <div
+                className="transition-opacity duration-300"
+                style={{ opacity: configuratorFetching && !configuratorLoading ? 0.5 : 1 }}
+                data-testid="configurator-chart-area"
+              >
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Card>
@@ -1495,7 +1499,7 @@ export default function AdminAnalytics() {
                     </CardContent>
                   </Card>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
