@@ -192,10 +192,11 @@ export default function AdminAnalytics() {
     enabled: !!user?.adminRole && user.adminRole !== "none",
   });
 
-  const { data: webAnalytics, isLoading: webLoading, isError: webError, refetch: refetchWeb } = useQuery<WebAnalytics>({
+  const { data: webAnalytics, isLoading: webLoading, isError: webError, isFetching: webFetching, refetch: refetchWeb } = useQuery<WebAnalytics>({
     queryKey: ["/api/admin/analytics/web", days],
     queryFn: () => fetchJson(`/api/admin/analytics/web?days=${days}`),
     enabled: !!user?.adminRole && user.adminRole !== "none",
+    placeholderData: keepPreviousData,
   });
 
   const formatPrice = (pence: number): string => {
@@ -358,7 +359,11 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
             ) : (
-              <>
+              <div
+                className="transition-opacity duration-300"
+                style={{ opacity: webFetching && !webLoading ? 0.5 : 1 }}
+                data-testid="web-chart-area"
+              >
                 {/* Overview KPIs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <Card data-testid="card-sessions">
@@ -792,7 +797,7 @@ export default function AdminAnalytics() {
                     )}
                   </CardContent>
                 </Card>
-              </>
+              </div>
             )}
           </div>
         )}
