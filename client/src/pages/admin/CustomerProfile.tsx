@@ -155,6 +155,12 @@ const TIMELINE_ICONS: Record<string, React.ElementType> = {
   followup_completed: CheckCircle2,
   record_reassigned_in: ArrowRightLeft,
   record_reassigned_out: ArrowRightLeft,
+  artwork_proof_created: ImageIcon,
+  artwork_proof_sent: Send,
+  artwork_proof_approved: CheckCircle2,
+  artwork_proof_changes: RefreshCw,
+  artwork_message_admin: MessageCircle,
+  artwork_message_customer: MessageCircle,
 };
 
 const TIMELINE_COLORS: Record<string, string> = {
@@ -170,6 +176,12 @@ const TIMELINE_COLORS: Record<string, string> = {
   followup_completed: "bg-emerald-500/20 text-emerald-400",
   record_reassigned_in: "bg-violet-500/20 text-violet-400",
   record_reassigned_out: "bg-slate-500/20 text-slate-400",
+  artwork_proof_created: "bg-pink-500/20 text-pink-400",
+  artwork_proof_sent: "bg-pink-500/20 text-pink-400",
+  artwork_proof_approved: "bg-emerald-500/20 text-emerald-400",
+  artwork_proof_changes: "bg-amber-500/20 text-amber-400",
+  artwork_message_admin: "bg-pink-500/20 text-pink-400",
+  artwork_message_customer: "bg-slate-500/20 text-slate-300",
 };
 
 function formatDate(date: string | null | undefined) {

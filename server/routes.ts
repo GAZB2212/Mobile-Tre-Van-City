@@ -6807,7 +6807,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (!customer) return res.status(404).json({ error: "Customer not found" });
 
       // Fetch all linked records in parallel (also fetch records that were moved away from this customer)
-      const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows] = await Promise.all([
+      const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows, artworkProofsRows, artworkMessagesRows] = await Promise.all([
         storage.getCustomerNotes(id),
         pool.query(`SELECT *, reassignment_history FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
@@ -6817,11 +6817,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         pool.query(`SELECT l.id, l.reassignment_history FROM leads l WHERE l.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(l.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
         pool.query(`SELECT q.id, q.reassignment_history FROM quotes q WHERE q.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(q.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
         pool.query(`SELECT a.id, a.reassignment_history FROM ai_conversations a WHERE a.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(a.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
+        pool.query(`SELECT id, created_at, sent_at, responded_at, status, files, admin_notes FROM artwork_proofs WHERE customer_id = $1 ORDER BY created_at ASC`, [id]),
+        pool.query(`SELECT apm.id, apm.proof_id, apm.sender_type, apm.sender_name, apm.message, apm.created_at FROM artwork_proof_messages apm JOIN artwork_proofs ap ON ap.id = apm.proof_id WHERE ap.customer_id = $1 ORDER BY apm.created_at ASC`, [id]),
       ]);
 
       const leads = leadsRows.rows;
       const quotes = quotesRows.rows;
       const convos = convosRows.rows;
+      const artworkProofs = artworkProofsRows.rows;
+      const artworkMessages = artworkMessagesRows.rows;
       const followUps = followUpsRows.rows;
       const externalLeads = externalLeadsRows.rows;
       const externalQuotes = externalQuotesRows.rows;
@@ -7087,6 +7091,64 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
       for (const convo of externalConvos) {
         emitHistoryEvents(convo.reassignment_history ?? [], convo.id, "conversation", "AI chat");
+      }
+
+      // Artwork proof events
+      for (const proof of artworkProofs) {
+        const fileCount = Array.isArray(proof.files) ? proof.files.length : (JSON.parse(proof.files ?? '[]')).length;
+        timeline.push({
+          id: `artwork-created-${proof.id}`,
+          type: "artwork_proof_created",
+          title: `Artwork proof uploaded (${fileCount} file${fileCount !== 1 ? 's' : ''})`,
+          timestamp: proof.created_at,
+          entityId: proof.id,
+          entityType: "artwork_proof",
+        });
+        if (proof.sent_at) {
+          timeline.push({
+            id: `artwork-sent-${proof.id}`,
+            type: "artwork_proof_sent",
+            title: `Artwork proof emailed to customer`,
+            timestamp: proof.sent_at,
+            entityId: proof.id,
+            entityType: "artwork_proof",
+          });
+        }
+        if (proof.responded_at && proof.status === 'approved') {
+          timeline.push({
+            id: `artwork-approved-${proof.id}`,
+            type: "artwork_proof_approved",
+            title: `Customer approved artwork`,
+            timestamp: proof.responded_at,
+            entityId: proof.id,
+            entityType: "artwork_proof",
+          });
+        }
+        if (proof.responded_at && proof.status === 'changes_requested') {
+          timeline.push({
+            id: `artwork-changes-${proof.id}`,
+            type: "artwork_proof_changes",
+            title: `Customer requested artwork changes`,
+            timestamp: proof.responded_at,
+            entityId: proof.id,
+            entityType: "artwork_proof",
+          });
+        }
+      }
+
+      // Artwork proof messages (discussion thread)
+      for (const msg of artworkMessages) {
+        const isAdmin = msg.sender_type === 'admin';
+        timeline.push({
+          id: `artwork-msg-${msg.id}`,
+          type: isAdmin ? "artwork_message_admin" : "artwork_message_customer",
+          title: isAdmin ? `${msg.sender_name} sent a message` : `Customer replied`,
+          description: msg.message,
+          author: msg.sender_name,
+          timestamp: msg.created_at,
+          entityId: msg.proof_id,
+          entityType: "artwork_proof",
+        });
       }
 
       // Sort timeline newest-first
