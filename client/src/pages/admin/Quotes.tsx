@@ -126,6 +126,8 @@ import {
   XCircle,
 } from "lucide-react";
 
+type QuoteWithCustomer = Quote & { customerName?: string | null };
+
 export default function AdminQuotes() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -235,7 +237,7 @@ export default function AdminQuotes() {
   const isActive = useIdlePolling();
 
   // Fetch quotes data
-  const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching } = useQuery<Quote[]>({
+  const { data: quotes = [], isLoading: quotesLoading, error: quotesError, isFetching: quotesFetching } = useQuery<QuoteWithCustomer[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: isActive ? POLL_INTERVAL_MS : false,
@@ -873,7 +875,7 @@ export default function AdminQuotes() {
                                   >
                                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
                                       <CheckCircle2 className="w-3 h-3 shrink-0" />
-                                      Linked
+                                      {quote.customerName ? `${quote.customerName} · View profile` : "View profile"}
                                     </span>
                                   </Link>
                                 ) : (
@@ -1005,7 +1007,7 @@ export default function AdminQuotes() {
                           >
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline shrink-0">
                               <CheckCircle2 className="w-3 h-3 shrink-0" />
-                              Linked
+                              {quote.customerName ? `${quote.customerName} · View profile` : "View profile"}
                             </span>
                           </Link>
                         ) : (
@@ -1088,6 +1090,24 @@ export default function AdminQuotes() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                        {/* Customer Profile */}
+                        {quote.customerId && (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              Customer Profile
+                            </div>
+                            <Link
+                              href={`/admin/customers/${quote.customerId}`}
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                              data-testid={`link-profile-expanded-${quote.id}`}
+                            >
+                              <span className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+                                {quote.customerName ? `${quote.customerName} · Profile linked` : "Profile linked"}
+                              </span>
+                            </Link>
+                          </div>
+                        )}
                         {/* Van Selection */}
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm font-medium">
