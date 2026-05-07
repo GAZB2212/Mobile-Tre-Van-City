@@ -7362,16 +7362,16 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const dupEmails = await pool.query<{ email: string }>(`
         SELECT email
         FROM customers
-        WHERE email IS NOT NULL AND email != ''
+        WHERE email IS NOT NULL AND email != '' AND deleted_at IS NULL
         GROUP BY email
         HAVING COUNT(*) > 1
       `);
 
       for (const { email } of dupEmails.rows) {
         try {
-          // Fetch all customers with this email, oldest first (keep the oldest).
+          // Fetch all active customers with this email, oldest first (keep the oldest).
           const { rows } = await pool.query<{ id: string; name: string }>(
-            `SELECT id, name FROM customers WHERE email = $1 ORDER BY created_at ASC`,
+            `SELECT id, name FROM customers WHERE email = $1 AND deleted_at IS NULL ORDER BY created_at ASC`,
             [email]
           );
           const [keep, ...duplicates] = rows;
@@ -7392,7 +7392,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const dupPhones = await pool.query<{ phone: string }>(`
         SELECT phone
         FROM customers
-        WHERE phone IS NOT NULL AND phone != ''
+        WHERE phone IS NOT NULL AND phone != '' AND deleted_at IS NULL
         GROUP BY phone
         HAVING COUNT(*) > 1
       `);
@@ -7400,7 +7400,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       for (const { phone } of dupPhones.rows) {
         try {
           const { rows } = await pool.query<{ id: string; name: string }>(
-            `SELECT id, name FROM customers WHERE phone = $1 ORDER BY created_at ASC`,
+            `SELECT id, name FROM customers WHERE phone = $1 AND deleted_at IS NULL ORDER BY created_at ASC`,
             [phone]
           );
           const [keep, ...duplicates] = rows;
@@ -7426,8 +7426,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           ac.customer_id AS keep_id,
           c2.id           AS merge_id
         FROM ai_conversations ac
-        JOIN customers c1 ON c1.id = ac.customer_id
-        JOIN customers c2 ON c2.id != ac.customer_id
+        JOIN customers c1 ON c1.id = ac.customer_id AND c1.deleted_at IS NULL
+        JOIN customers c2 ON c2.id != ac.customer_id AND c2.deleted_at IS NULL
         WHERE ac.customer_id IS NOT NULL
           AND (
             -- linked customer was matched by email; orphan was created by phone
@@ -7456,7 +7456,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       for (const { keep_id, merge_id } of splitPairs.rows) {
         // Skip pairs that were already merged in steps 1 or 2.
         const stillExists = await pool.query(
-          `SELECT id FROM customers WHERE id = $1 LIMIT 1`,
+          `SELECT id FROM customers WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
           [merge_id]
         );
         if (stillExists.rows.length === 0) continue;

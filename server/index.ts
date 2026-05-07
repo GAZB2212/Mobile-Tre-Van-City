@@ -431,6 +431,10 @@ app.use((req, res, next) => {
             CREATE INDEX IF NOT EXISTS idx_customer_notes_customer ON customer_notes (customer_id);
           `).then(() => log("✅ Customer notes table ready"))
             .catch((err: Error) => console.error("Customer notes migration:", err.message));
+          // Add soft-delete column to customers
+          pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`)
+            .catch((err: Error) => console.error("Customer deleted_at migration:", err.message));
+
           // Add customer_id FK columns to leads, quotes, ai_conversations
           // Also add FK constraints for primary_staff_id (→ users) and customer_notes.author_id (→ users) if users table exists
           await pool.query(`
@@ -525,20 +529,21 @@ app.use((req, res, next) => {
             .catch((err: Error) => console.error("Reassignment history backfill:", err.message));
 
           // Unique partial indexes on customers.email and customers.phone to prevent
-          // future duplicate records at the DB level. Only create them if the data
-          // is already clean — if duplicates exist, warn and defer to dedup endpoint.
+          // future duplicate records at the DB level. Only active (non-deleted) customers
+          // are included in the uniqueness constraint. Recreate if old indexes exist without
+          // the deleted_at IS NULL condition.
           await (async () => {
             try {
               const dupCheck = await pool.query<{ email_dups: string; phone_dups: string }>(`
                 SELECT
                   (SELECT COUNT(*) FROM (
                     SELECT email FROM customers
-                    WHERE email IS NOT NULL AND email != ''
+                    WHERE email IS NOT NULL AND email != '' AND deleted_at IS NULL
                     GROUP BY email HAVING COUNT(*) > 1
                   ) e) AS email_dups,
                   (SELECT COUNT(*) FROM (
                     SELECT phone FROM customers
-                    WHERE phone IS NOT NULL AND phone != ''
+                    WHERE phone IS NOT NULL AND phone != '' AND deleted_at IS NULL
                     GROUP BY phone HAVING COUNT(*) > 1
                   ) p) AS phone_dups
               `);
@@ -552,13 +557,16 @@ app.use((req, res, next) => {
                 );
                 return;
               }
+              // Drop old indexes that don't include deleted_at IS NULL, then recreate correctly.
               await pool.query(`
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_email_unique
+                DROP INDEX IF EXISTS idx_customers_email_unique;
+                DROP INDEX IF EXISTS idx_customers_phone_unique;
+                CREATE UNIQUE INDEX idx_customers_email_unique
                   ON customers (email)
-                  WHERE email IS NOT NULL AND email != '';
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_phone_unique
+                  WHERE email IS NOT NULL AND email != '' AND deleted_at IS NULL;
+                CREATE UNIQUE INDEX idx_customers_phone_unique
                   ON customers (phone)
-                  WHERE phone IS NOT NULL AND phone != '';
+                  WHERE phone IS NOT NULL AND phone != '' AND deleted_at IS NULL;
               `);
               log("✅ Customer unique indexes ready");
             } catch (err: unknown) {
@@ -601,14 +609,14 @@ app.use((req, res, next) => {
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {
-            // Helper: find customer by email first, then phone
+            // Helper: find active (non-deleted) customer by email first, then phone
             async function findCustomerByEmailThenPhone(email: string | null, phone: string | null): Promise<string | null> {
               if (email) {
-                const { rows } = await pool.query(`SELECT id FROM customers WHERE email = $1 LIMIT 1`, [email]);
+                const { rows } = await pool.query(`SELECT id FROM customers WHERE email = $1 AND deleted_at IS NULL LIMIT 1`, [email]);
                 if (rows.length > 0) return rows[0].id;
               }
               if (phone) {
-                const { rows } = await pool.query(`SELECT id FROM customers WHERE phone = $1 LIMIT 1`, [phone]);
+                const { rows } = await pool.query(`SELECT id FROM customers WHERE phone = $1 AND deleted_at IS NULL LIMIT 1`, [phone]);
                 if (rows.length > 0) return rows[0].id;
               }
               return null;

@@ -2249,29 +2249,38 @@ export class DbStorage implements IStorage {
     if (search) {
       const term = `%${search}%`;
       return db.select().from(schema.customers).where(
-        or(
-          ilike(schema.customers.name, term),
-          ilike(schema.customers.email, term),
-          ilike(schema.customers.phone, term),
-          ilike(schema.customers.company, term)
+        and(
+          isNull(schema.customers.deletedAt),
+          or(
+            ilike(schema.customers.name, term),
+            ilike(schema.customers.email, term),
+            ilike(schema.customers.phone, term),
+            ilike(schema.customers.company, term)
+          )
         )
       ).orderBy(desc(schema.customers.updatedAt));
     }
-    return db.select().from(schema.customers).orderBy(desc(schema.customers.updatedAt));
+    return db.select().from(schema.customers).where(isNull(schema.customers.deletedAt)).orderBy(desc(schema.customers.updatedAt));
   }
 
   async getCustomer(id: string): Promise<Customer | undefined> {
-    const result = await db.select().from(schema.customers).where(eq(schema.customers.id, id));
+    const result = await db.select().from(schema.customers).where(
+      and(eq(schema.customers.id, id), isNull(schema.customers.deletedAt))
+    );
     return result[0];
   }
 
   async findCustomerByEmail(email: string): Promise<Customer | undefined> {
-    const result = await db.select().from(schema.customers).where(eq(schema.customers.email, email)).limit(1);
+    const result = await db.select().from(schema.customers).where(
+      and(eq(schema.customers.email, email), isNull(schema.customers.deletedAt))
+    ).limit(1);
     return result[0];
   }
 
   async findCustomerByPhone(phone: string): Promise<Customer | undefined> {
-    const result = await db.select().from(schema.customers).where(eq(schema.customers.phone, phone)).limit(1);
+    const result = await db.select().from(schema.customers).where(
+      and(eq(schema.customers.phone, phone), isNull(schema.customers.deletedAt))
+    ).limit(1);
     return result[0];
   }
 
@@ -2659,12 +2668,11 @@ export class DbStorage implements IStorage {
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    await db.execute(sql`UPDATE leads SET customer_id = NULL WHERE customer_id = ${id}`);
-    await db.execute(sql`UPDATE quotes SET customer_id = NULL WHERE customer_id = ${id}`);
-    await db.execute(sql`UPDATE ai_conversations SET customer_id = NULL WHERE customer_id = ${id}`);
-    await db.execute(sql`DELETE FROM customer_notes WHERE customer_id = ${id}`);
-    await db.execute(sql`DELETE FROM customer_merge_history WHERE keep_id = ${id} OR removed_id = ${id}`);
-    await db.execute(sql`DELETE FROM customers WHERE id = ${id}`);
+    // Soft-delete: mark as deleted rather than removing the row.
+    // This keeps linked leads/quotes/conversations pointing at this customer_id
+    // so the startup backfill (which only processes records WHERE customer_id IS NULL)
+    // never recreates the customer from orphaned records.
+    await db.execute(sql`UPDATE customers SET deleted_at = NOW() WHERE id = ${id}`);
   }
 
   private appendReassignmentEntry(

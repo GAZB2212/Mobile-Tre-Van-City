@@ -622,6 +622,7 @@ export const customers = pgTable("customers", {
   primaryStaffId: varchar("primary_staff_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 }, (table) => [
   index("idx_customers_email").on(table.email),
   index("idx_customers_phone").on(table.phone),
@@ -639,7 +640,7 @@ export const customerNotes = pgTable("customer_notes", {
   index("idx_customer_notes_customer").on(table.customerId),
 ]);
 
-export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export const insertCustomerNoteSchema = createInsertSchema(customerNotes).omit({ id: true, createdAt: true });
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Customer = typeof customers.$inferSelect;
