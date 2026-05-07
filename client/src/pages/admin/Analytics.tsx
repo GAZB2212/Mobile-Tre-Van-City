@@ -319,6 +319,9 @@ export default function AdminAnalytics() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Visitor Analytics</h2>
               <div className="flex items-center gap-2">
+                {webFetching && !webLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted-foreground" data-testid="spinner-web-refetch" />
+                )}
                 <Select value={days} onValueChange={setDays}>
                   <SelectTrigger className="w-36" data-testid="select-date-range">
                     <SelectValue />
