@@ -347,8 +347,8 @@ export default function AdminAnalytics() {
               <Card>
                 <CardContent className="py-16 text-center space-y-3">
                   <p className="text-destructive text-sm">Failed to load — check your connection and try again</p>
-                  <Button variant="outline" size="sm" onClick={() => refetchWeb()} data-testid="button-retry-web-analytics">
-                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                  <Button variant="outline" size="sm" onClick={() => refetchWeb()} disabled={webFetching} data-testid="button-retry-web-analytics">
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${webFetching ? "animate-spin" : ""}`} />
                     Retry
                   </Button>
                 </CardContent>
