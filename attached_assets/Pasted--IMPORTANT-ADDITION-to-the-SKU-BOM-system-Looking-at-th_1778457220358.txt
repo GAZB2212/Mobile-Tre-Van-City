@@ -1,0 +1,77 @@
+⚠️ IMPORTANT ADDITION to the SKU & BOM system.
+
+Looking at the upgrades, many parent upgrades have 
+VARIANTS (child upgrades). Each variant is a 
+completely separate product with its own SKU and 
+its own Bill of Materials.
+
+For example:
+Parent: "Accessories" (no SKU — just a group header)
+  ├── Variant: Pack 1 - Maxi Euro 8 with T5000 & Mini Spin
+  │     SKU: PKG-MAXI-T5000-MINI
+  │     BOM: T5000 Pro Tyre Machine x1
+  │          Mini Spin Balancer x1
+  │          Maxi Euro 8 Lift x1
+  │
+  ├── Variant: Pack 2 - Euro 8 with T5000 & Mini Spin  
+  │     SKU: PKG-EURO8-T5000-MINI
+  │     BOM: T5000 Pro Tyre Machine x1
+  │          Mini Spin Balancer x1
+  │          Euro 8 Lift x1
+  │
+  └── Variant: Pack 3 etc...
+        SKU: PKG-MINI-T5000-MINI
+        BOM: different components...
+
+The rules are:
+
+1. PARENT upgrades that have variants:
+   - Do NOT need a SKU (they are just group headers)
+   - Do NOT need a BOM
+   - In the SKU manager show them greyed out 
+     with label "Group — see variants"
+
+2. VARIANT upgrades (children):
+   - MUST have their own individual SKU
+   - MUST have their own individual BOM
+   - Each variant's BOM can be completely different
+   - In the SKU manager show them indented under 
+     their parent with full SKU + BOM editing
+
+3. SIMPLE upgrades (no variants):
+   - Have their own SKU
+   - Have their own BOM (or just their own SKU 
+     if they are a single component)
+
+4. When the "Push to AutoTradeOS" button is clicked 
+   on a build sheet:
+   - If the selected item is a VARIANT:
+     Push THAT variant's SKU and BOM components
+   - If the selected item is a SIMPLE upgrade:
+     Push that upgrade's SKU and BOM
+   - If the selected item is a PARENT GROUP:
+     This should never happen — customer always 
+     selects a specific variant, never the parent
+
+5. In the SKU Manager admin page:
+   Display like this:
+
+   ACCESSORIES (group — no SKU needed)
+     ├── Pack 1 Maxi Euro 8 T5000  [SKU: PKG-MAXI-T5000] [Edit BOM]
+     ├── Pack 2 Euro 8 T5000       [SKU: PKG-EURO8-T5000] [Edit BOM]
+     ├── Pack 3 Mini Euro 8        [SKU: ⚠️ No SKU] [Add SKU]
+     └── Pack 4 Maxi Euro 8 T6000  [SKU: ⚠️ No SKU] [Add SKU]
+
+   3000W INVERTER (simple — own SKU)
+     [SKU: INV-3000W] [Edit BOM]
+
+   48V SYSTEM (simple — own SKU, complex BOM)
+     [SKU: SYS-48V] [Edit BOM]
+     BOM: INV-48V x1, BAT-48V x2, BMS x1...
+
+6. The pre-flight warning before pushing to 
+   AutoTradeOS should check:
+   - Any selected VARIANT with no SKU → warn
+   - Any selected SIMPLE upgrade with no SKU → warn
+   - Parent groups → skip (not applicable)
+   - Show count: "3 of 12 items have no SKU"
