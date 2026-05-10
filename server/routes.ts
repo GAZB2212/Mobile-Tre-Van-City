@@ -1451,6 +1451,94 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ── AutoTradeOS: push build parts to warehouse ────────────────────────────
+  app.post("/api/admin/autotrade/push-build", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { quoteId } = req.body;
+      if (!quoteId || typeof quoteId !== "string") {
+        return res.status(400).json({ error: "quoteId is required" });
+      }
+
+      const quote = await storage.getQuote(quoteId);
+      if (!quote) return res.status(404).json({ error: "Quote not found" });
+
+      const kit = (quote as any).kitId ? await storage.getKit((quote as any).kitId) : null;
+      const allUpgrades = await storage.getAllUpgradesAdmin();
+      const selectedUpgrades = allUpgrades.filter((u) =>
+        ((quote as any).selectedUpgradeIds || []).includes(u.id)
+      );
+
+      type Part = { sku: string; description: string; quantity: number; source_item: string };
+      const parts: Part[] = [];
+
+      const expandItem = (
+        name: string,
+        sku: string | null | undefined,
+        bom: Array<{ sku: string; description: string; quantity: number }> | null | undefined,
+        qty: number = 1
+      ) => {
+        if (bom && bom.length > 0) {
+          for (const comp of bom) {
+            if (comp.sku) {
+              parts.push({
+                sku: comp.sku,
+                description: comp.description || comp.sku,
+                quantity: (comp.quantity || 1) * qty,
+                source_item: name,
+              });
+            }
+          }
+        } else if (sku) {
+          parts.push({ sku, description: name, quantity: qty, source_item: name });
+        }
+        // items with neither SKU nor BOM are skipped (pre-flight warns about these)
+      };
+
+      if (kit) {
+        expandItem(kit.name, (kit as any).sku, (kit as any).skuComponents);
+      }
+      for (const u of selectedUpgrades) {
+        const qty = (quote as any).upgradeQuantities?.[u.id] ?? 1;
+        expandItem(u.name, (u as any).sku, (u as any).skuComponents, qty);
+      }
+
+      const pushedBy = (req as any).user?.username || "admin";
+      const payload = {
+        source: "mtvc",
+        quote_id: quoteId,
+        van_ref: (quote as any).vanRegistration || (quote as any).vanId || "",
+        customer_name: (quote as any).userName,
+        pushed_by: pushedBy,
+        pushed_at: new Date().toISOString(),
+        parts,
+      };
+
+      const apiUrl = process.env.AUTOTRADEOS_API_URL;
+      const apiKey = process.env.AUTOTRADEOS_SYNC_KEY;
+      if (!apiUrl || !apiKey) {
+        return res.status(500).json({ error: "AutoTradeOS integration not configured on this server" });
+      }
+
+      const atResponse = await fetch(`${apiUrl}/api/admin/autotrade/receive-build`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify(payload),
+      });
+
+      if (!atResponse.ok) {
+        const text = await atResponse.text().catch(() => "");
+        console.error(`AutoTradeOS push failed: ${atResponse.status}`, text);
+        return res.status(502).json({ error: `AutoTradeOS returned HTTP ${atResponse.status}` });
+      }
+
+      const result = await atResponse.json();
+      res.json(result);
+    } catch (error: any) {
+      console.error("AutoTradeOS push error:", error);
+      res.status(500).json({ error: "Failed to push build to AutoTradeOS" });
+    }
+  });
+
   // Admin CRUD endpoints for upgrades
   app.get("/api/admin/upgrades", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

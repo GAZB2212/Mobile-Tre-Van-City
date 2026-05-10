@@ -64,6 +64,10 @@ defaultBucketID = "replit-objstore-0c1756d1-950b-4a98-a3ee-b578220f8ce4"
 [userenv.production]
 ADMIN_PASSWORD = "password123!"
 
+[userenv.shared]
+AUTOTRADEOS_API_URL = "https://autotradeos.autotradeportal.com"
+AUTOTRADEOS_SYNC_KEY = "MTVC_SYNC_2026"
+
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000

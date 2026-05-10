@@ -606,6 +606,16 @@ app.use((req, res, next) => {
             .then(() => log("✅ User dashboard tab preference column ready"))
             .catch((err: Error) => console.error("User dashboard_tab migration:", err.message));
 
+          // ── SKU / BOM columns for kits and upgrades (AutoTradeOS) ─────────
+          Promise.all([
+            pool.query(`ALTER TABLE kits ADD COLUMN IF NOT EXISTS sku TEXT`),
+            pool.query(`ALTER TABLE kits ADD COLUMN IF NOT EXISTS sku_components JSONB`),
+            pool.query(`ALTER TABLE upgrades ADD COLUMN IF NOT EXISTS sku TEXT`),
+            pool.query(`ALTER TABLE upgrades ADD COLUMN IF NOT EXISTS sku_components JSONB`),
+          ])
+            .then(() => log("✅ SKU/BOM columns ready"))
+            .catch((err: Error) => console.error("SKU/BOM migration:", err.message));
+
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {

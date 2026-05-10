@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,7 @@ import type { User } from "@shared/schema";
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
+import { apiRequest } from "@/lib/queryClient";
 
 function PrintCheckbox({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
@@ -49,6 +50,18 @@ export default function BuildSheet() {
   const quoteId = params.id;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // ── AutoTradeOS push state ──────────────────────────────────────────────
+  type PushPhase = 'idle' | 'preflight' | 'pushing' | 'done' | 'error';
+  const [pushPhase, setPushPhase] = useState<PushPhase>('idle');
+  const [pushResult, setPushResult] = useState<{
+    success: boolean;
+    build_job_id?: string;
+    parts_received?: number;
+    parts_not_found?: string[];
+    low_stock_warnings?: string[];
+  } | null>(null);
+  const [pushError, setPushError] = useState('');
 
   const { user, isAuthenticated, isLoading } = useAuth() as {
     user: User | undefined;
@@ -278,6 +291,23 @@ export default function BuildSheet() {
   const buildStageList: Array<{id: string; label: string; section?: string}> = (quote as any)?.customBuildStages ?? autoGenerateStages();
   const systemCompletedStages: string[] = (quote as any)?.completedBuildStages ?? [];
 
+  const pushMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/autotrade/push-build", { quoteId }),
+    onSuccess: (data: any) => {
+      setPushResult(data);
+      setPushPhase("done");
+    },
+    onError: (err: any) => {
+      setPushError(err?.message || err?.error || "Push failed — check server logs");
+      setPushPhase("error");
+    },
+  });
+
+  const preflightIssues: string[] = quote ? [
+    ...(kit && !(kit as any).sku && !((kit as any).skuComponents?.length > 0) ? [`Kit: ${kit.name}`] : []),
+    ...upgrades.filter(u => !(u as any).sku && !((u as any).skuComponents?.length > 0)).map(u => `Upgrade: ${u.name}`),
+  ] : [];
+
   const handlePrint = () => { window.print(); };
 
   if (isLoading || isLoadingQuotes) {
@@ -361,10 +391,118 @@ export default function BuildSheet() {
                 <Printer className="w-4 h-4 mr-2" />
                 Print Build Sheet
               </Button>
+              {user?.adminRole === "full" && (
+                <Button
+                  variant="outline"
+                  onClick={() => { setPushResult(null); setPushError(""); setPushPhase("preflight"); }}
+                  disabled={pushMutation.isPending}
+                  data-testid="button-push-autotrade"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Push to AutoTradeOS
+                </Button>
+              )}
             </>
           }
         />
       </div>
+
+      {/* ── AutoTradeOS push panel ─────────────────────────────────────────── */}
+      {pushPhase !== "idle" && user?.adminRole === "full" && (
+        <div className="no-print px-4 pb-4">
+          <div className="rounded-lg border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-semibold text-sm">
+                {pushPhase === "preflight" && "Push to AutoTradeOS"}
+                {pushPhase === "pushing" && "Pushing build…"}
+                {pushPhase === "done" && "Push complete"}
+                {pushPhase === "error" && "Push failed"}
+              </p>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={() => { setPushPhase("idle"); setPushResult(null); setPushError(""); }}
+                data-testid="button-close-push-panel"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Pre-flight confirmation */}
+            {pushPhase === "preflight" && (
+              <div className="space-y-3">
+                {preflightIssues.length > 0 && (
+                  <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 space-y-1">
+                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      {preflightIssues.length} item{preflightIssues.length !== 1 ? "s" : ""} without a SKU or Bill of Materials — these will be skipped:
+                    </div>
+                    <ul className="pl-6 text-sm text-amber-700 dark:text-amber-400 list-disc space-y-0.5">
+                      {preflightIssues.map((issue, i) => <li key={i}>{issue}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {preflightIssues.length === 0 && (
+                  <p className="text-sm text-muted-foreground">All items have SKUs or BOMs. Ready to push.</p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => { setPushPhase("pushing"); pushMutation.mutate(); }}
+                    data-testid="button-confirm-push"
+                  >
+                    <Send className="w-3.5 h-3.5 mr-1.5" />
+                    Confirm Push
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setPushPhase("idle")} data-testid="button-cancel-push">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Pushing spinner */}
+            {pushPhase === "pushing" && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                Sending parts list to AutoTradeOS…
+              </div>
+            )}
+
+            {/* Success */}
+            {pushPhase === "done" && pushResult && (
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-400 font-medium">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  {pushResult.parts_received ?? 0} part{(pushResult.parts_received ?? 0) !== 1 ? "s" : ""} received
+                  {pushResult.build_job_id && ` · Job ${pushResult.build_job_id}`}
+                </div>
+                {(pushResult.low_stock_warnings?.length ?? 0) > 0 && (
+                  <p className="text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="inline w-3.5 h-3.5 mr-1" />
+                    {pushResult.low_stock_warnings!.length} low-stock warning{pushResult.low_stock_warnings!.length !== 1 ? "s" : ""} — warehouse notified
+                  </p>
+                )}
+                {(pushResult.parts_not_found?.length ?? 0) > 0 && (
+                  <p className="text-destructive">
+                    <XCircle className="inline w-3.5 h-3.5 mr-1" />
+                    {pushResult.parts_not_found!.length} SKU{pushResult.parts_not_found!.length !== 1 ? "s" : ""} not found in AutoTradeOS — flagged for review
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Error */}
+            {pushPhase === "error" && (
+              <div className="flex items-center gap-2 text-destructive text-sm">
+                <XCircle className="w-4 h-4 flex-shrink-0" />
+                {pushError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8 max-w-4xl print:max-w-full print:px-0 print:py-4">
 

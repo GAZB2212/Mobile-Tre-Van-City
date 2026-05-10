@@ -33,6 +33,8 @@ const kitSchema = z.object({
   serviceType: z.array(z.enum(kitServiceTypes)).min(1, "Select at least one service type").default(["car", "commercial", "hybrid"]),
   images: z.array(z.string()).default([]),
   published: z.boolean().default(true),
+  sku: z.string().optional().nullable(),
+  skuComponents: z.array(z.object({ sku: z.string(), description: z.string(), quantity: z.number().min(1) })).optional().nullable(),
 });
 
 type KitFormData = z.infer<typeof kitSchema>;
@@ -62,6 +64,8 @@ export default function AdminKits() {
       serviceType: ["car", "commercial", "hybrid"] as const,
       images: [],
       published: true,
+      sku: null,
+      skuComponents: null,
     },
   });
 
@@ -216,6 +220,8 @@ export default function AdminKits() {
       serviceType: (Array.isArray(kit.serviceType) ? kit.serviceType : ["car", "commercial", "hybrid"]) as typeof kitServiceTypes[number][],
       images: kit.images || [],
       published: kit.published,
+      sku: (kit as any).sku ?? null,
+      skuComponents: (kit as any).skuComponents ?? null,
     });
   };
 
@@ -559,6 +565,99 @@ export default function AdminKits() {
                   )}
                 />
 
+                {/* ── SKU & Bill of Materials (AutoTradeOS) ─────────────── */}
+                <div className="space-y-4 pt-2 border-t">
+                  <div>
+                    <Label className="text-sm font-medium">SKU</Label>
+                    <p className="text-sm text-muted-foreground mb-1">AutoTradeOS stock-keeping unit — used when pushing this build to the warehouse.</p>
+                    <Input
+                      placeholder="e.g. ATS-KIT-001"
+                      value={form.watch("sku") ?? ""}
+                      onChange={e => form.setValue("sku", e.target.value || null)}
+                      data-testid="input-kit-sku"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium">Bill of Materials</p>
+                        <p className="text-sm text-muted-foreground">Component parts sent to the AutoTradeOS warehouse. Leave empty if this kit ships as a single unit.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const current = form.getValues("skuComponents") || [];
+                          form.setValue("skuComponents", [...current, { sku: "", description: "", quantity: 1 }]);
+                        }}
+                        data-testid="button-add-bom-row-kit"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Add Part
+                      </Button>
+                    </div>
+                    {(form.watch("skuComponents") || []).length > 0 && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
+                          <span>Part SKU</span><span>Description</span><span>Qty</span><span />
+                        </div>
+                        {(form.watch("skuComponents") || []).map((row, idx) => (
+                          <div key={idx} className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 items-center">
+                            <Input
+                              placeholder="SKU"
+                              value={row.sku}
+                              onChange={e => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                rows[idx] = { ...rows[idx], sku: e.target.value };
+                                form.setValue("skuComponents", rows);
+                              }}
+                              className="text-sm h-8"
+                              data-testid={`input-kit-bom-sku-${idx}`}
+                            />
+                            <Input
+                              placeholder="Description"
+                              value={row.description}
+                              onChange={e => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                rows[idx] = { ...rows[idx], description: e.target.value };
+                                form.setValue("skuComponents", rows);
+                              }}
+                              className="text-sm h-8"
+                              data-testid={`input-kit-bom-desc-${idx}`}
+                            />
+                            <Input
+                              type="number"
+                              min={1}
+                              value={row.quantity}
+                              onChange={e => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                rows[idx] = { ...rows[idx], quantity: parseInt(e.target.value) || 1 };
+                                form.setValue("skuComponents", rows);
+                              }}
+                              className="text-sm h-8"
+                              data-testid={`input-kit-bom-qty-${idx}`}
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                              }}
+                              data-testid={`button-kit-remove-bom-${idx}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex gap-2 justify-end">
                   <Button
                     type="button"
@@ -881,6 +980,99 @@ export default function AdminKits() {
                   </FormItem>
                 )}
               />
+
+              {/* ── SKU & Bill of Materials (AutoTradeOS) ─────────────── */}
+              <div className="space-y-4 pt-2 border-t">
+                <div>
+                  <Label className="text-sm font-medium">SKU</Label>
+                  <p className="text-sm text-muted-foreground mb-1">AutoTradeOS stock-keeping unit — used when pushing this build to the warehouse.</p>
+                  <Input
+                    placeholder="e.g. ATS-KIT-001"
+                    value={form.watch("sku") ?? ""}
+                    onChange={e => form.setValue("sku", e.target.value || null)}
+                    data-testid="input-edit-kit-sku"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">Bill of Materials</p>
+                      <p className="text-sm text-muted-foreground">Component parts sent to the AutoTradeOS warehouse. Leave empty if this kit ships as a single unit.</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const current = form.getValues("skuComponents") || [];
+                        form.setValue("skuComponents", [...current, { sku: "", description: "", quantity: 1 }]);
+                      }}
+                      data-testid="button-edit-add-bom-row-kit"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Add Part
+                    </Button>
+                  </div>
+                  {(form.watch("skuComponents") || []).length > 0 && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
+                        <span>Part SKU</span><span>Description</span><span>Qty</span><span />
+                      </div>
+                      {(form.watch("skuComponents") || []).map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 items-center">
+                          <Input
+                            placeholder="SKU"
+                            value={row.sku}
+                            onChange={e => {
+                              const rows = [...(form.getValues("skuComponents") || [])];
+                              rows[idx] = { ...rows[idx], sku: e.target.value };
+                              form.setValue("skuComponents", rows);
+                            }}
+                            className="text-sm h-8"
+                            data-testid={`input-edit-kit-bom-sku-${idx}`}
+                          />
+                          <Input
+                            placeholder="Description"
+                            value={row.description}
+                            onChange={e => {
+                              const rows = [...(form.getValues("skuComponents") || [])];
+                              rows[idx] = { ...rows[idx], description: e.target.value };
+                              form.setValue("skuComponents", rows);
+                            }}
+                            className="text-sm h-8"
+                            data-testid={`input-edit-kit-bom-desc-${idx}`}
+                          />
+                          <Input
+                            type="number"
+                            min={1}
+                            value={row.quantity}
+                            onChange={e => {
+                              const rows = [...(form.getValues("skuComponents") || [])];
+                              rows[idx] = { ...rows[idx], quantity: parseInt(e.target.value) || 1 };
+                              form.setValue("skuComponents", rows);
+                            }}
+                            className="text-sm h-8"
+                            data-testid={`input-edit-kit-bom-qty-${idx}`}
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                              form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                            }}
+                            data-testid={`button-edit-kit-remove-bom-${idx}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="flex gap-2 justify-end">
                 <Button

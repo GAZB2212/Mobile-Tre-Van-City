@@ -66,6 +66,9 @@ export const vans = pgTable("vans", {
 export const kitServiceTypes = ["car", "commercial", "hybrid"] as const;
 export type KitServiceType = typeof kitServiceTypes[number];
 
+// SKU component type — used for bill-of-materials on kits and upgrades
+export type SkuComponent = { sku: string; description: string; quantity: number };
+
 export const kits = pgTable("kits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -77,6 +80,8 @@ export const kits = pgTable("kits", {
   serviceType: json("service_type").$type<KitServiceType[]>().notNull().default(["car", "commercial", "hybrid"]), // array of applicable service types; all 3 = show to everyone
   images: json("images").$type<string[]>().notNull().default([]),
   sortOrder: integer("sort_order").notNull().default(0),
+  sku: text("sku"), // AutoTradeOS stock-keeping unit
+  skuComponents: json("sku_components").$type<SkuComponent[]>(), // Bill of materials for composite products
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),
@@ -136,6 +141,8 @@ export const upgrades = pgTable("upgrades", {
   hideForHybrid: boolean("hide_for_hybrid").notNull().default(false), // If true, hidden from hybrid customers (but still shown to commercial)
   supersedesKitItems: json("supersedes_kit_items").$type<string[]>().notNull().default([]), // Kit item strings this upgrade replaces/removes in the build sheet
   exclusiveGroup: text("exclusive_group"), // If set, only one upgrade in this group can be selected at a time
+  sku: text("sku"), // AutoTradeOS stock-keeping unit
+  skuComponents: json("sku_components").$type<SkuComponent[]>(), // Bill of materials for composite products
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),
