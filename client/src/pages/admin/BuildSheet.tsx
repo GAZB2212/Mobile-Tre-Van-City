@@ -292,7 +292,10 @@ export default function BuildSheet() {
   const systemCompletedStages: string[] = (quote as any)?.completedBuildStages ?? [];
 
   const pushMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/admin/autotrade/push-build", { quoteId }),
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/autotrade/push-build", { quoteId });
+      return res.json();
+    },
     onSuccess: (data: any) => {
       setPushResult(data);
       setPushPhase("done");
@@ -305,7 +308,10 @@ export default function BuildSheet() {
 
   const preflightIssues: string[] = quote ? [
     ...(kit && !(kit as any).sku && !((kit as any).skuComponents?.length > 0) ? [`Kit: ${kit.name}`] : []),
-    ...upgrades.filter(u => !(u as any).sku && !((u as any).skuComponents?.length > 0)).map(u => `Upgrade: ${u.name}`),
+    ...upgrades
+      .filter(u => !(u as any).hasVariants) // parent group headers are never pushed directly
+      .filter(u => !(u as any).sku && !((u as any).skuComponents?.length > 0))
+      .map(u => `${(u as any).parentId ? "Variant" : "Upgrade"}: ${u.name}`),
   ] : [];
 
   const handlePrint = () => { window.print(); };

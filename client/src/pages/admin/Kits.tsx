@@ -603,7 +603,7 @@ export default function AdminKits() {
                           <span>Part SKU</span><span>Description</span><span>Qty</span><span />
                         </div>
                         {(form.watch("skuComponents") || []).map((row, idx) => (
-                          <div key={idx} className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 items-center">
+                          <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-center">
                             <Input
                               placeholder="SKU"
                               value={row.sku}
@@ -638,19 +638,49 @@ export default function AdminKits() {
                               className="text-sm h-8"
                               data-testid={`input-kit-bom-qty-${idx}`}
                             />
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
-                                form.setValue("skuComponents", rows.length > 0 ? rows : null);
-                              }}
-                              data-testid={`button-kit-remove-bom-${idx}`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                disabled={idx === 0}
+                                onClick={() => {
+                                  const rows = [...(form.getValues("skuComponents") || [])];
+                                  if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
+                                }}
+                                data-testid={`button-kit-bom-up-${idx}`}
+                              >
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                disabled={idx === (form.watch("skuComponents") || []).length - 1}
+                                onClick={() => {
+                                  const rows = [...(form.getValues("skuComponents") || [])];
+                                  if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
+                                }}
+                                data-testid={`button-kit-bom-down-${idx}`}
+                              >
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                  form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                                }}
+                                data-testid={`button-kit-remove-bom-${idx}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1019,7 +1049,7 @@ export default function AdminKits() {
                         <span>Part SKU</span><span>Description</span><span>Qty</span><span />
                       </div>
                       {(form.watch("skuComponents") || []).map((row, idx) => (
-                        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 items-center">
+                        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-center">
                           <Input
                             placeholder="SKU"
                             value={row.sku}
@@ -1054,19 +1084,49 @@ export default function AdminKits() {
                             className="text-sm h-8"
                             data-testid={`input-edit-kit-bom-qty-${idx}`}
                           />
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
-                              form.setValue("skuComponents", rows.length > 0 ? rows : null);
-                            }}
-                            data-testid={`button-edit-kit-remove-bom-${idx}`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              disabled={idx === 0}
+                              onClick={() => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
+                              }}
+                              data-testid={`button-edit-kit-bom-up-${idx}`}
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              disabled={idx === (form.watch("skuComponents") || []).length - 1}
+                              onClick={() => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
+                              }}
+                              data-testid={`button-edit-kit-bom-down-${idx}`}
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                              }}
+                              data-testid={`button-edit-kit-remove-bom-${idx}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

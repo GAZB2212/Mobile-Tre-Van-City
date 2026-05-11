@@ -1303,9 +1303,8 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                 )}
               />
 
-              {/* BOM — only on parent/standalone upgrades, not on variant children */}
-              {!form.watch("parentId") && (
-                <div className="space-y-2">
+              {/* BOM — variants each have their own independent BOM; simple upgrades may also define one */}
+              <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-medium">Bill of Materials</p>
@@ -1329,14 +1328,14 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   </div>
                   {(form.watch("skuComponents") || []).length > 0 && (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 text-xs font-medium text-muted-foreground px-1">
+                      <div className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 text-xs font-medium text-muted-foreground px-1">
                         <span>Part SKU</span>
                         <span>Description</span>
                         <span>Qty</span>
                         <span />
                       </div>
                       {(form.watch("skuComponents") || []).map((row, idx) => (
-                        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_36px] gap-2 items-center">
+                        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-center">
                           <Input
                             placeholder="SKU"
                             value={row.sku}
@@ -1371,25 +1370,54 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                             className="text-sm h-8"
                             data-testid={`input-bom-qty-${idx}`}
                           />
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
-                              form.setValue("skuComponents", rows.length > 0 ? rows : null);
-                            }}
-                            data-testid={`button-remove-bom-row-${idx}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              disabled={idx === 0}
+                              onClick={() => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
+                              }}
+                              data-testid={`button-bom-up-${idx}`}
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              disabled={idx === (form.watch("skuComponents") || []).length - 1}
+                              onClick={() => {
+                                const rows = [...(form.getValues("skuComponents") || [])];
+                                if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
+                              }}
+                              data-testid={`button-bom-down-${idx}`}
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                              }}
+                              data-testid={`button-remove-bom-row-${idx}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
-                </div>
-              )}
+              </div>
             </div>
 
             <div className="flex justify-end space-x-2 pt-4">

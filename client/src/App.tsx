@@ -77,6 +77,7 @@ const AdminMaxSettings = lazy(() => import("@/pages/admin/MaxSettings"));
 const AdminCalendar = lazy(() => import("@/pages/admin/Calendar"));
 const AdminCustomers = lazy(() => import("@/pages/admin/Customers"));
 const AdminCustomerProfile = lazy(() => import("@/pages/admin/CustomerProfile"));
+const AdminSkuManager = lazy(() => import("@/pages/admin/SkuManager"));
 
 function Router() {
   return (
@@ -146,6 +147,7 @@ function Router() {
       <Route path="/admin/calendar">{() => <AdminLayout><AdminCalendar /></AdminLayout>}</Route>
       <Route path="/admin/customers/:id">{() => <AdminLayout><AdminCustomerProfile /></AdminLayout>}</Route>
       <Route path="/admin/customers">{() => <AdminLayout><AdminCustomers /></AdminLayout>}</Route>
+      <Route path="/admin/sku-manager">{() => <AdminLayout><AdminSkuManager /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
   );

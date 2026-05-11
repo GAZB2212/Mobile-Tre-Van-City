@@ -56,6 +56,7 @@ import {
   Bell,
   BellOff,
   X,
+  Tags,
 } from "lucide-react";
 import {
   Popover,
@@ -96,6 +97,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
       { title: "Vans", href: "/admin/vans", icon: Car, requiredRole: "basic" },
       { title: "Packs", href: "/admin/kits", icon: Package, requiredRole: "full" },
       { title: "Upgrades", href: "/admin/upgrades", icon: Wrench, requiredRole: "full" },
+      { title: "SKU Manager", href: "/admin/sku-manager", icon: Tags, requiredRole: "full" },
       { title: "Finance Plans", href: "/admin/finance-plans", icon: Calculator, requiredRole: "full" },
       { title: "Training", href: "/admin/training-options", icon: GraduationCap, requiredRole: "full" },
       { title: "Gallery", href: "/admin/gallery-items", icon: Image, requiredRole: "full" },
