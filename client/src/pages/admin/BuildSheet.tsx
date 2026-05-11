@@ -13,6 +13,33 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
+import type { SkuComponent } from "@shared/schema";
+
+function SkuBomInfo({ sku, skuComponents }: { sku?: string | null; skuComponents?: SkuComponent[] | null }) {
+  const hasSku = !!sku;
+  const hasBom = Array.isArray(skuComponents) && skuComponents.length > 0;
+  if (!hasSku && !hasBom) return null;
+  return (
+    <div className="mt-0.5 space-y-0.5">
+      {hasSku && (
+        <p className="text-xs font-mono text-muted-foreground print:text-black">
+          SKU: <span className="font-semibold">{sku}</span>
+        </p>
+      )}
+      {hasBom && skuComponents && (
+        <ul className="pl-3 space-y-0">
+          {skuComponents.map((c, i) => (
+            <li key={i} className="text-xs text-muted-foreground print:text-black font-mono">
+              {c.quantity}&times;&nbsp;{c.description}
+              {c.sku ? <span className="text-foreground print:text-black"> ({c.sku})</span> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function PrintCheckbox({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
     <label
@@ -792,6 +819,7 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
+                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -841,6 +869,7 @@ export default function BuildSheet() {
                                   (Upgraded)
                                 </span>
                               </div>
+                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} />
                             </div>
                           ) : (
                             <span
@@ -920,6 +949,7 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
+                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} />
                         </div>
                       </div>
                     );
