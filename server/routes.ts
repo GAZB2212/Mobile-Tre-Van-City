@@ -1420,6 +1420,20 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // PATCH is an alias for PUT — allows partial updates (used by SKU Manager)
+  app.patch("/api/admin/kits/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const kitData = insertKitSchema.partial().parse(req.body);
+      const kit = await storage.updateKit(req.params.id, kitData);
+      if (!kit) {
+        return res.status(404).json({ error: "Kit not found" });
+      }
+      res.json(kit);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update kit" });
+    }
+  });
+
   app.delete("/api/admin/kits/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const success = await storage.deleteKit(req.params.id);
@@ -1514,12 +1528,17 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       };
 
       const apiUrl = process.env.AUTOTRADEOS_API_URL;
-      const apiKey = process.env.AUTOTRADEOS_SYNC_KEY;
+      // Support both naming conventions for the API key
+      const apiKey = process.env.AUTOTRADE_OS_API_KEY || process.env.AUTOTRADEOS_SYNC_KEY;
       if (!apiUrl || !apiKey) {
-        return res.status(500).json({ error: "AutoTradeOS integration not configured on this server" });
+        return res.status(500).json({ error: "AutoTradeOS integration not configured — set AUTOTRADEOS_API_URL and AUTOTRADE_OS_API_KEY in secrets" });
       }
 
-      const atResponse = await fetch(`${apiUrl}/api/admin/autotrade/receive-build`, {
+      // Full endpoint URL can be overridden via AUTOTRADEOS_ENDPOINT_URL;
+      // defaults to the base URL + the standard receive-build path
+      const endpointUrl = process.env.AUTOTRADEOS_ENDPOINT_URL || `${apiUrl}/api/admin/autotrade/receive-build`;
+
+      const atResponse = await fetch(endpointUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
         body: JSON.stringify(payload),
@@ -1591,6 +1610,23 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         });
       }
       
+      const upgrade = await storage.updateUpgrade(req.params.id, upgradeData);
+      if (!upgrade) {
+        return res.status(404).json({ error: "Upgrade not found" });
+      }
+      res.json(upgrade);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid upgrade data", details: error.errors });
+      }
+      res.status(400).json({ error: "Failed to update upgrade" });
+    }
+  });
+
+  // PATCH is an alias for PUT — allows partial updates (used by SKU Manager)
+  app.patch("/api/admin/upgrades/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const upgradeData = insertUpgradeSchema.partial().parse(req.body);
       const upgrade = await storage.updateUpgrade(req.params.id, upgradeData);
       if (!upgrade) {
         return res.status(404).json({ error: "Upgrade not found" });
