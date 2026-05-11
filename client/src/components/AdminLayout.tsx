@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminProfileModal } from "@/components/AdminProfileModal";
+import { AdminHelpWidget } from "@/components/AdminHelpWidget";
 import {
   Tooltip,
   TooltipContent,
@@ -738,6 +739,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           onOpenChange={setProfileOpen}
         />
       )}
+
+      {/* Admin Help AI Assistant — floating bottom-right */}
+      <AdminHelpWidget />
     </div>
   );
 }
