@@ -13,6 +13,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: false,
+    sku: "ATS-EQP-000",
   },
   {
     id: "accessories-pack-1",
@@ -24,6 +25,12 @@ const upgrades = [
     parentId: "accessories-parent",
     variantName: "Pack 1 - Maxi Euro 8 with T5000 Pro & Mini Spin",
     published: true,
+    sku: "ATS-EQP-001",
+    skuComponents: [
+      { sku: "ATS-EQP-EURO8-MAXI", description: "Maxi Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+    ],
   },
   {
     id: "accessories-pack-2",
@@ -35,6 +42,12 @@ const upgrades = [
     parentId: "accessories-parent",
     variantName: "Pack 2 - Euro 8 with T5000 Pro & Mini Spin",
     published: true,
+    sku: "ATS-EQP-002",
+    skuComponents: [
+      { sku: "ATS-EQP-EURO8-STD", description: "Standard Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+    ],
   },
   {
     id: "accessories-pack-3",
@@ -46,6 +59,12 @@ const upgrades = [
     parentId: "accessories-parent",
     variantName: "Pack 3 - Mini Euro 8 with T5000 Pro & Mini Spin",
     published: true,
+    sku: "ATS-EQP-003",
+    skuComponents: [
+      { sku: "ATS-EQP-EURO8-MINI", description: "Mini Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+    ],
   },
   {
     id: "accessories-pack-4",
@@ -57,6 +76,12 @@ const upgrades = [
     parentId: "accessories-parent",
     variantName: "Pack 4 - Maxi Euro 8 with T6000 Pro & Mini Spin",
     published: true,
+    sku: "ATS-EQP-004",
+    skuComponents: [
+      { sku: "ATS-EQP-EURO8-MAXI", description: "Maxi Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-T6000", description: "T6000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+    ],
   },
 
   // Air System Upgrades
@@ -70,6 +95,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-AIR-001",
   },
   {
     id: "compressor-12hp-270l",
@@ -82,6 +108,7 @@ const upgrades = [
     variantName: null,
     published: true,
     popular: true,
+    sku: "ATS-AIR-002",
   },
   {
     id: "air-reel-fini",
@@ -93,6 +120,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-AIR-003",
   },
   {
     id: "compressor-reel-16m",
@@ -104,6 +132,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-AIR-004",
   },
 
   // Equipment
@@ -117,6 +146,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-EQP-005",
   },
 
   // Branding
@@ -130,6 +160,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-001",
   },
   {
     id: "half-wrap",
@@ -141,6 +172,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-002",
   },
   {
     id: "graphic-pack",
@@ -152,6 +184,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-003",
   },
   {
     id: "rear-chapter-livery",
@@ -163,6 +196,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-004",
   },
   {
     id: "branded-website",
@@ -174,6 +208,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-005",
   },
   {
     id: "full-print-package",
@@ -185,6 +220,12 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-006",
+    skuComponents: [
+      { sku: "ATS-BRD-BCARD-500", description: "Business Cards x500", quantity: 1 },
+      { sku: "ATS-BRD-LEAF-250", description: "Leaflets x250", quantity: 1 },
+      { sku: "ATS-BRD-SOCIAL-2", description: "Social Media Setup (up to 2 platforms)", quantity: 1 },
+    ],
   },
   {
     id: "garage-branding",
@@ -196,6 +237,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BRD-007",
   },
 
   // Van Interior Walls (with variations)
@@ -209,6 +251,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-CMF-000",
   },
   {
     id: "van-interior-diamond-lwb-standard",
@@ -220,6 +263,7 @@ const upgrades = [
     parentId: "van-interior-walls-parent",
     variantName: "Diamond Liner - LWB Standard",
     published: true,
+    sku: "ATS-CMF-001",
   },
   {
     id: "van-interior-diamond-lwb-branded",
@@ -231,6 +275,7 @@ const upgrades = [
     parentId: "van-interior-walls-parent",
     variantName: "Diamond Liner - LWB Branded",
     published: true,
+    sku: "ATS-CMF-002",
   },
 
   // Security
@@ -244,6 +289,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-SEC-001",
   },
   {
     id: "vehicle-immobiliser",
@@ -255,6 +301,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-SEC-002",
   },
   {
     id: "vehicle-tracker",
@@ -266,6 +313,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-SEC-003",
   },
   {
     id: "high-security-door-lock",
@@ -277,6 +325,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-SEC-004",
   },
   {
     id: "standard-reversing-camera",
@@ -288,6 +337,11 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-SEC-005",
+    skuComponents: [
+      { sku: "ATS-SEC-CAM-REV", description: "Reversing Camera", quantity: 1 },
+      { sku: "ATS-TEC-MON-7IN", description: "7\" Monitor", quantity: 1 },
+    ],
   },
 
   // Business
@@ -301,6 +355,13 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-BIZ-001",
+    skuComponents: [
+      { sku: "ATS-BRD-005", description: "Branded Website", quantity: 1 },
+      { sku: "ATS-BRD-BCARD-500", description: "Business Cards x500", quantity: 1 },
+      { sku: "ATS-BRD-LEAF-250", description: "Leaflets x250", quantity: 1 },
+      { sku: "ATS-BRD-SOCIAL-2", description: "Social Media Setup (up to 2 platforms)", quantity: 1 },
+    ],
   },
 
   // Lighting Parent (with variations)
@@ -314,6 +375,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: false,
+    sku: "ATS-LGT-000",
   },
   {
     id: "light-pack-standard",
@@ -325,6 +387,12 @@ const upgrades = [
     parentId: "light-pack-parent",
     variantName: "Standard Light Pack",
     published: true,
+    sku: "ATS-LGT-001",
+    skuComponents: [
+      { sku: "ATS-LGT-REPEATER-LED", description: "LED Flashing Repeater", quantity: 8 },
+      { sku: "ATS-LGT-BAR-ROOF", description: "LED Light Bar (Roof)", quantity: 1 },
+      { sku: "ATS-LGT-WORK-LED", description: "LED Working Light", quantity: 1 },
+    ],
   },
   {
     id: "light-pack-upgraded",
@@ -336,6 +404,14 @@ const upgrades = [
     parentId: "light-pack-parent",
     variantName: "Upgraded Light Pack - LED Scene Lights",
     published: true,
+    sku: "ATS-LGT-002",
+    skuComponents: [
+      { sku: "ATS-LGT-REPEATER-LED", description: "LED Flashing Repeater", quantity: 8 },
+      { sku: "ATS-LGT-BAR-ROOF", description: "LED Light Bar (Roof)", quantity: 1 },
+      { sku: "ATS-LGT-WORK-LED", description: "LED Working Light", quantity: 1 },
+      { sku: "ATS-LGT-SCENE-LED", description: "LED Scene Light", quantity: 1 },
+      { sku: "ATS-LGT-MARKER-SIDE", description: "Side Marker Light", quantity: 2 },
+    ],
   },
 
   // Technology
@@ -349,6 +425,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-TEC-001",
   },
   {
     id: "monitor-brake-light-camera",
@@ -360,6 +437,11 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-TEC-002",
+    skuComponents: [
+      { sku: "ATS-TEC-MON-7IN", description: "7\" In-Cab Monitor", quantity: 1 },
+      { sku: "ATS-TEC-CAM-BRAKE", description: "Brake Light Camera", quantity: 1 },
+    ],
   },
   {
     id: "apple-carplay",
@@ -371,6 +453,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-TEC-003",
   },
   {
     id: "front-facing-dash-camera",
@@ -382,6 +465,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: true,
+    sku: "ATS-TEC-004",
   },
 
   // Comfort Parent (Carpeted Ceiling with variations)
@@ -395,6 +479,7 @@ const upgrades = [
     parentId: null,
     variantName: null,
     published: false,
+    sku: "ATS-CMF-010",
   },
   {
     id: "carpeted-ceiling-lwb-led",
@@ -406,6 +491,11 @@ const upgrades = [
     parentId: "carpeted-ceiling-parent",
     variantName: "LWB with LED cabin lights",
     published: true,
+    sku: "ATS-CMF-011",
+    skuComponents: [
+      { sku: "ATS-CMF-CARPET-LWB", description: "Carpeted Ceiling (LWB)", quantity: 1 },
+      { sku: "ATS-LGT-CABIN-LED", description: "LED Cabin Light", quantity: 1 },
+    ],
   },
 ];
 

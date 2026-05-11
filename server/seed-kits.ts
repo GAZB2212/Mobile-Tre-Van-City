@@ -10,6 +10,13 @@ const kits = [
     powerKw: "3.5",
     price: 574500, // £5,745.00 in pence
     published: true,
+    sku: "ATS-KIT-001",
+    skuComponents: [
+      { sku: "ATS-EQP-T1000", description: "T1000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "ATS-AIR-COMP-STD", description: "Standard Air Compressor", quantity: 1 },
+      { sku: "ATS-EQP-TOOLS-STD", description: "Basic Tool Set", quantity: 1 },
+    ],
   },
   {
     id: "pack-2-euro6-t1000",
@@ -19,6 +26,13 @@ const kits = [
     powerKw: "3.5",
     price: 594500, // £5,945.00 in pence
     published: true,
+    sku: "ATS-KIT-002",
+    skuComponents: [
+      { sku: "ATS-EQP-T1000", description: "T1000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "ATS-AIR-COMP-E6", description: "Euro 6 Compatible Air System", quantity: 1 },
+      { sku: "ATS-EQP-TOOLS-STD", description: "Basic Tool Set", quantity: 1 },
+    ],
   },
   {
     id: "pack-3-non-euro6-t2000",
@@ -28,6 +42,13 @@ const kits = [
     powerKw: "5.0",
     price: 644500, // £6,445.00 in pence
     published: true,
+    sku: "ATS-KIT-003",
+    skuComponents: [
+      { sku: "ATS-EQP-T2000", description: "T2000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "ATS-AIR-COMP-HC", description: "High-Capacity Air Compressor", quantity: 1 },
+      { sku: "ATS-EQP-TOOLS-PRO", description: "Professional Tool Set", quantity: 1 },
+    ],
   },
   {
     id: "pack-4-euro6-t2000",
@@ -37,6 +58,13 @@ const kits = [
     powerKw: "5.0",
     price: 664500, // £6,645.00 in pence
     published: true,
+    sku: "ATS-KIT-004",
+    skuComponents: [
+      { sku: "ATS-EQP-T2000", description: "T2000 Pro Tyre Changer", quantity: 1 },
+      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "ATS-AIR-COMP-HCE6", description: "Euro 6 Compatible High-Capacity Air System", quantity: 1 },
+      { sku: "ATS-EQP-TOOLS-PRO", description: "Professional Tool Set", quantity: 1 },
+    ],
   }
 ];
 
