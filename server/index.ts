@@ -275,6 +275,12 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS sage_pushed_at TIMESTAMP`)
         .then(() => log("✅ Sage pushed_at column ready"))
         .catch((err: Error) => console.error("Sage pushed_at migration:", err.message));
+      pool.query(`
+        ALTER TABLE quotes ADD COLUMN IF NOT EXISTS autotrade_pushes jsonb NOT NULL DEFAULT '[]'::jsonb;
+        ALTER TABLE quotes ALTER COLUMN autotrade_pushes TYPE jsonb USING autotrade_pushes::jsonb;
+      `)
+        .then(() => log("✅ AutoTradeOS push history column ready"))
+        .catch((err: Error) => console.error("AutoTradeOS push history migration:", err.message));
       // Create blog_posts table if not present
       pool.query(`
         CREATE TABLE IF NOT EXISTS ai_conversations (

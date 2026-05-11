@@ -1551,6 +1551,34 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       }
 
       const result = await atResponse.json();
+
+      // Atomically append a push log entry using a single UPDATE with jsonb concatenation
+      // This avoids the race condition that a read-modify-write approach would have when
+      // two staff members push the same quote concurrently.
+      try {
+        const newEntry: {
+          pushed_at: string;
+          pushed_by: string;
+          build_job_id?: string;
+          parts_received?: number;
+        } = {
+          pushed_at: payload.pushed_at,
+          pushed_by: pushedBy,
+          ...(result.build_job_id ? { build_job_id: result.build_job_id } : {}),
+          ...(typeof result.parts_received === "number" ? { parts_received: result.parts_received } : {}),
+        };
+
+        await pool.query(
+          `UPDATE quotes
+              SET autotrade_pushes = COALESCE(autotrade_pushes, '[]'::jsonb) || $1::jsonb
+            WHERE id = $2`,
+          [JSON.stringify([newEntry]), quoteId]
+        );
+      } catch (logErr) {
+        console.error("AutoTradeOS: failed to persist push log entry:", logErr);
+        // Non-fatal — push itself succeeded; don't fail the response over logging
+      }
+
       res.json(result);
     } catch (error: any) {
       console.error("AutoTradeOS push error:", error);

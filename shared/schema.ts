@@ -253,6 +253,14 @@ export const quotes = pgTable("quotes", {
   // Stock management integration — ID returned by autotradeportal.com when build is dispatched
   stockBuildId: text("stock_build_id"),
 
+  // AutoTradeOS push history — append-only log of every successful push
+  autotradePushes: jsonb("autotrade_pushes").$type<Array<{
+    pushed_at: string;       // ISO timestamp
+    pushed_by: string;       // username of staff member who pushed
+    build_job_id?: string;   // job ID returned by AutoTradeOS
+    parts_received?: number; // count of parts received by AutoTradeOS
+  }>>().notNull().default([]),
+
   // AI session link — session ID of the Max chat that led to this quote
   aiSessionId: varchar("ai_session_id"),
 

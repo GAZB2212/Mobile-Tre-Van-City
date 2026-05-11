@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X } from "lucide-react";
+import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +11,7 @@ import type { User } from "@shared/schema";
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 function PrintCheckbox({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
@@ -291,6 +291,25 @@ export default function BuildSheet() {
   const buildStageList: Array<{id: string; label: string; section?: string}> = (quote as any)?.customBuildStages ?? autoGenerateStages();
   const systemCompletedStages: string[] = (quote as any)?.completedBuildStages ?? [];
 
+  type PushLogEntry = {
+    pushed_at: string;
+    pushed_by: string;
+    build_job_id?: string;
+    parts_received?: number;
+  };
+
+  const pushHistory: PushLogEntry[] = (quote as any)?.autotradePushes ?? [];
+  const lastPush: PushLogEntry | undefined = pushHistory.length > 0 ? pushHistory[pushHistory.length - 1] : undefined;
+
+  const formatPushDate = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return iso;
+    }
+  };
+
   const pushMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/autotrade/push-build", { quoteId });
@@ -299,6 +318,7 @@ export default function BuildSheet() {
     onSuccess: (data: any) => {
       setPushResult(data);
       setPushPhase("done");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
     },
     onError: (err: any) => {
       setPushError(err?.message || err?.error || "Push failed — check server logs");
@@ -413,6 +433,19 @@ export default function BuildSheet() {
         />
       </div>
 
+      {/* ── Last push summary — always visible to full admins when there's history ── */}
+      {user?.adminRole === "full" && lastPush && pushPhase === "idle" && (
+        <div className="no-print px-4 pb-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground" data-testid="div-last-push-summary">
+            <History className="w-3.5 h-3.5 flex-shrink-0" />
+            Last pushed {formatPushDate(lastPush.pushed_at)} by {lastPush.pushed_by}
+            {lastPush.build_job_id && <span>· Job <span className="font-mono" data-testid="text-last-push-job-id">{lastPush.build_job_id}</span></span>}
+            {typeof lastPush.parts_received === "number" && <span>· {lastPush.parts_received} part{lastPush.parts_received !== 1 ? "s" : ""}</span>}
+            {pushHistory.length > 1 && <span className="text-muted-foreground">({pushHistory.length} pushes total)</span>}
+          </div>
+        </div>
+      )}
+
       {/* ── AutoTradeOS push panel ─────────────────────────────────────────── */}
       {pushPhase !== "idle" && user?.adminRole === "full" && (
         <div className="no-print px-4 pb-4">
@@ -451,6 +484,29 @@ export default function BuildSheet() {
                 )}
                 {preflightIssues.length === 0 && (
                   <p className="text-sm text-muted-foreground">All items have SKUs or BOMs. Ready to push.</p>
+                )}
+                {/* Previous push history shown in preflight so staff can check before re-pushing */}
+                {pushHistory.length > 0 && (
+                  <div className="space-y-1" data-testid="div-push-history">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <History className="w-3.5 h-3.5" />
+                      Push history
+                    </p>
+                    <div className="rounded-md border divide-y text-xs">
+                      {[...pushHistory].reverse().map((entry, i) => (
+                        <div key={i} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-1.5" data-testid={`row-push-history-${i}`}>
+                          <span className="text-muted-foreground">{formatPushDate(entry.pushed_at)}</span>
+                          <span className="font-medium">{entry.pushed_by}</span>
+                          {entry.build_job_id && (
+                            <span className="font-mono text-muted-foreground" data-testid={`text-push-job-id-${i}`}>Job {entry.build_job_id}</span>
+                          )}
+                          {typeof entry.parts_received === "number" && (
+                            <span className="text-muted-foreground">{entry.parts_received} part{entry.parts_received !== 1 ? "s" : ""}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 <div className="flex gap-2">
                   <Button
