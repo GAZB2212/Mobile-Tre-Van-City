@@ -32,6 +32,20 @@ import {
 
 const SERVER_START_TIME = Date.now().toString();
 
+async function sortUpgradesByDisplayOrder<T extends { category: string; sortOrder: number }>(upgrades: T[]): Promise<T[]> {
+  if (upgrades.length === 0) return upgrades;
+  const { rows } = await pool.query<{ id: string; sort_order: number }>(
+    `SELECT id, sort_order FROM upgrade_categories ORDER BY sort_order ASC, label ASC`
+  );
+  const catOrder = new Map<string, number>(rows.map(r => [r.id, r.sort_order]));
+  return [...upgrades].sort((a, b) => {
+    const catA = catOrder.has(a.category) ? catOrder.get(a.category)! : 999;
+    const catB = catOrder.has(b.category) ? catOrder.get(b.category)! : 999;
+    if (catA !== catB) return catA - catB;
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
@@ -424,8 +438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!quote) return res.status(404).json({ error: "Not found" });
       const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
       const upgrades = await storage.getAllUpgradesAdmin();
-      const selectedUpgrades = upgrades.filter(u =>
-        Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id)
+      const selectedUpgrades = await sortUpgradesByDisplayOrder(
+        upgrades.filter(u => Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id))
       );
       res.json({
         id: quote.id,
@@ -698,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           comparisonSlotBEmail = {
             vanTitle: slotBVan?.title ?? (emailSlotB.vanRegistration ? `Own van (${emailSlotB.vanRegistration})` : null),
             kitName: slotBKit?.name ?? null,
-            upgradeNames: slotBUpgrades.filter(Boolean).map((u) => (u as { name: string }).name),
+            upgradeNames: (await sortUpgradesByDisplayOrder(slotBUpgrades.filter(Boolean) as any[])).map((u: any) => u.name),
             estSubtotal: emailSlotB.estSubtotal,
             estVAT: emailSlotB.estVAT,
             estTotal: emailSlotB.estTotal,
@@ -733,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quote,
           vanTitle: van?.title ?? null,
           kitName: kit?.name ?? null,
-          upgradeNames: upgrades.filter(Boolean).map((u: any) => u.name),
+          upgradeNames: (await sortUpgradesByDisplayOrder(upgrades.filter(Boolean) as any[])).map((u: any) => u.name),
           comparisonSlotB: comparisonSlotBEmail,
           financeInfoA: financeInfoA ?? undefined,
           financeInfoB: financeInfoB ?? undefined,
@@ -3207,7 +3221,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         const kit = slotData?.kitId ? await storage.getKit(slotData.kitId) : null;
         const upgradeIds: string[] = slotData?.upgradeIds ?? [];
         const upgrades = upgradeIds.length > 0
-          ? (await Promise.all(upgradeIds.map((uid) => storage.getUpgrade(uid)))).filter(Boolean)
+          ? await sortUpgradesByDisplayOrder((await Promise.all(upgradeIds.map((uid) => storage.getUpgrade(uid)))).filter(Boolean) as any[])
           : [];
 
         await sendOptionChosenAdminNotification({
@@ -3498,7 +3512,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         comparisonSlotBEmail = {
           vanTitle: (slotBVan as any)?.title ?? (slotBConfig.vanRegistration ? `Own van (${slotBConfig.vanRegistration})` : null),
           kitName: (slotBKit as any)?.name ?? null,
-          upgradeNames: slotBUpgrades.filter(Boolean).map((u: any) => u.name),
+          upgradeNames: (await sortUpgradesByDisplayOrder(slotBUpgrades.filter(Boolean) as any[])).map((u: any) => u.name),
           estSubtotal: slotBConfig.estSubtotal,
           estVAT: slotBConfig.estVAT,
           estTotal: slotBTotal,
@@ -3535,7 +3549,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         quoteId: quote.id,
         vanTitle: van?.title ?? null,
         kitName: kit?.name ?? null,
-        upgradeNames: selectedUpgrades.filter(Boolean).map((u: any) => u.name),
+        upgradeNames: (await sortUpgradesByDisplayOrder(selectedUpgrades.filter(Boolean) as any[])).map((u: any) => u.name),
         customExtras: ((quote as any).customExtras as Array<{id:string;description:string;pricePence:number}>) || [],
         subtotal: quote.estSubtotal,
         vat: quote.estVAT,
@@ -3636,7 +3650,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         customerEmail: quote.email ?? null,
         vanDetails,
         kitName: kit?.name ?? null,
-        upgradeNames: (selectedUpgrades.filter(Boolean) as DepotUpgrade[]).map(u => u.name),
+        upgradeNames: (await sortUpgradesByDisplayOrder(selectedUpgrades.filter(Boolean) as any[])).map((u: any) => u.name),
         customExtras: quoteCustomExtras,
         subtotal: quote.estSubtotal,
         vat: quote.estVAT,
@@ -3740,7 +3754,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         vanMileage: req.body.vanMileage !== undefined ? req.body.vanMileage : (quote.vanMileage ?? null),
         kitName: kit?.name ?? null,
         kitPrice: kit?.price ?? null,
-        upgrades: selectedUpgrades.filter(Boolean).map((u: any) => ({ name: u.name, price: u.price })),
+        upgrades: (await sortUpgradesByDisplayOrder(selectedUpgrades.filter(Boolean) as any[])).map((u: any) => ({ name: u.name, price: u.price })),
         customExtras: ((quote as any).customExtras as Array<{id:string;description:string;pricePence:number}>) || [],
         subtotal: quote.estSubtotal,
         vat: quote.estVAT,
@@ -3858,7 +3872,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         vanMileage: req.body.vanMileage !== undefined ? req.body.vanMileage : (quote.vanMileage ?? null),
         kitName: kit?.name ?? null,
         kitPrice: kit?.price ?? null,
-        upgrades: selectedUpgrades.filter(Boolean).map((u: any) => ({ name: u.name, price: u.price })),
+        upgrades: (await sortUpgradesByDisplayOrder(selectedUpgrades.filter(Boolean) as any[])).map((u: any) => ({ name: u.name, price: u.price })),
         customExtras: ((quote as any).customExtras as Array<{id:string;description:string;pricePence:number}>) || [],
         subtotal: quote.estSubtotal,
         vat: quote.estVAT,
@@ -3967,7 +3981,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
             vanRegistration: slot.vanRegistration ?? null,
             customVanDescription: slot.customVanDescription ?? null,
             kitName: slotKit?.name ?? null,
-            upgradeNames: slotUpgrades.filter(Boolean).map((u: any) => u.name),
+            upgradeNames: (await sortUpgradesByDisplayOrder(slotUpgrades.filter(Boolean) as any[])).map((u: any) => u.name),
             trainingOptionNames: slotTraining.filter(Boolean).map((t: any) => t.name),
             estSubtotal: slot.estSubtotal,
             estVAT: slot.estVAT,
