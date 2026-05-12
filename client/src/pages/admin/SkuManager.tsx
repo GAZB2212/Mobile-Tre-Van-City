@@ -11,6 +11,7 @@ import type { User } from "@shared/schema";
 import type { Kit, Upgrade } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SkuComponent = { sku: string; description: string; quantity: number };
 
@@ -77,15 +78,30 @@ function BomEditor({
             data-testid={`input-skumgr-bom-qty-${idx}`}
           />
           <div className="flex gap-1">
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={idx === 0} onClick={() => moveUp(idx)} data-testid={`button-skumgr-bom-up-${idx}`}>
-              <ArrowUp className="h-3.5 w-3.5" />
-            </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={idx === components.length - 1} onClick={() => moveDown(idx)} data-testid={`button-skumgr-bom-down-${idx}`}>
-              <ArrowDown className="h-3.5 w-3.5" />
-            </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(idx)} data-testid={`button-skumgr-bom-remove-${idx}`}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={idx === 0} onClick={() => moveUp(idx)} data-testid={`button-skumgr-bom-up-${idx}`}>
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Move part up</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={idx === components.length - 1} onClick={() => moveDown(idx)} data-testid={`button-skumgr-bom-down-${idx}`}>
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Move part down</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(idx)} data-testid={`button-skumgr-bom-remove-${idx}`}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove part</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       ))}

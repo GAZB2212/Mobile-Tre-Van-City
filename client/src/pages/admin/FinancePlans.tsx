@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Calculator } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import type { FinancePlan } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
@@ -380,16 +381,21 @@ export default function AdminFinancePlans() {
                     open={editingPlan?.id === plan.id} 
                     onOpenChange={(open) => !open && setEditingPlan(null)}
                   >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditPlan(plan)}
-                        data-testid={`button-edit-${plan.id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditPlan(plan)}
+                            data-testid={`button-edit-${plan.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit finance plan</TooltipContent>
+                    </Tooltip>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Edit Finance Plan</DialogTitle>
@@ -591,19 +597,24 @@ export default function AdminFinancePlans() {
                     </DialogContent>
                   </Dialog>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this finance plan?")) {
-                        deleteMutation.mutate(plan.id);
-                      }
-                    }}
-                    disabled={deleteMutation.isPending}
-                    data-testid={`button-delete-${plan.id}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this finance plan?")) {
+                            deleteMutation.mutate(plan.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-${plan.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete finance plan</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             </CardHeader>

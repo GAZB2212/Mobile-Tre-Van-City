@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Video, Eye, EyeOff, Upload, CheckCircle2, Loader2, Star } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { GalleryItem, InsertGalleryItem } from "@shared/schema";
@@ -332,41 +333,55 @@ export default function AdminGalleryItems() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleFeaturedMutation.mutate({ id: item.id, featured: !item.featured })}
-                        disabled={toggleFeaturedMutation.isPending}
-                        title={item.featured ? "Remove from homepage" : "Feature on homepage"}
-                        data-testid={`button-feature-${item.id}`}
-                      >
-                        <Star className={`w-4 h-4 ${item.featured ? "fill-accent text-accent" : "text-muted-foreground"}`} />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleFeaturedMutation.mutate({ id: item.id, featured: !item.featured })}
+                            disabled={toggleFeaturedMutation.isPending}
+                            data-testid={`button-feature-${item.id}`}
+                          >
+                            <Star className={`w-4 h-4 ${item.featured ? "fill-accent text-accent" : "text-muted-foreground"}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{item.featured ? "Remove from homepage" : "Feature on homepage"}</TooltipContent>
+                      </Tooltip>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(item)}
-                        data-testid={`button-edit-${item.id}`}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this item?")) {
-                            deleteMutation.mutate(item.id);
-                          }
-                        }}
-                        data-testid={`button-delete-${item.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(item)}
+                            data-testid={`button-edit-${item.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit gallery item</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this item?")) {
+                                deleteMutation.mutate(item.id);
+                              }
+                            }}
+                            data-testid={`button-delete-${item.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete gallery item</TooltipContent>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "wouter";
 import { ArrowLeft, Pencil, Check, Package2, Layers, ChevronDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Upgrade } from "@shared/schema";
 
 interface AiPackage {
@@ -217,14 +218,19 @@ export default function AdminAIPackages() {
                           Tier {pkg.tier}
                         </Badge>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEdit(pkg)}
-                        data-testid={`button-edit-package-${pkg.id}`}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(pkg)}
+                            data-testid={`button-edit-package-${pkg.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit package</TooltipContent>
+                      </Tooltip>
                     </CardHeader>
                     <CardContent className="flex-1 space-y-4">
                       {pkg.description && (

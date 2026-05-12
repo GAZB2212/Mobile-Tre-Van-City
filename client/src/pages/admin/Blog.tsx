@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { Plus, Pencil, Trash2, Eye, EyeOff, Upload, CheckCircle2, Loader2, Globe, FileText, Sparkles } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useFileUpload, uploadToObjectStorage } from "@/hooks/use-file-upload";
@@ -374,31 +375,45 @@ export default function AdminBlog() {
                       <TableCell className="text-sm text-muted-foreground">{dateStr}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => togglePublish(post)}
-                            title={post.published ? "Unpublish" : "Publish"}
-                            data-testid={`button-toggle-${post.id}`}
-                          >
-                            {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditPost(post)}
-                            data-testid={`button-edit-${post.id}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeleteId(post.id)}
-                            data-testid={`button-delete-${post.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => togglePublish(post)}
+                                data-testid={`button-toggle-${post.id}`}
+                              >
+                                {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{post.published ? "Unpublish post" : "Publish post"}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setEditPost(post)}
+                                data-testid={`button-edit-${post.id}`}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit post</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setDeleteId(post.id)}
+                                data-testid={`button-delete-${post.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete post</TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

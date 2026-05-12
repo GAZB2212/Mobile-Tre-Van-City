@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Eye, EyeOff, ChevronUp, ChevronDown, Star, Mail } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Testimonial, InsertTestimonial } from "@shared/schema";
@@ -269,26 +270,36 @@ export default function AdminTestimonials() {
                       {isFullAdmin && (
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              disabled={index === 0 || reorderMutation.isPending}
-                              onClick={() => handleMoveUp(item, index)}
-                              data-testid={`button-move-up-${item.id}`}
-                            >
-                              <ChevronUp className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              disabled={index === items.length - 1 || reorderMutation.isPending}
-                              onClick={() => handleMoveDown(item, index)}
-                              data-testid={`button-move-down-${item.id}`}
-                            >
-                              <ChevronDown className="w-4 h-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={index === 0 || reorderMutation.isPending}
+                                  onClick={() => handleMoveUp(item, index)}
+                                  data-testid={`button-move-up-${item.id}`}
+                                >
+                                  <ChevronUp className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move up</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={index === items.length - 1 || reorderMutation.isPending}
+                                  onClick={() => handleMoveDown(item, index)}
+                                  data-testid={`button-move-down-${item.id}`}
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move down</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       )}
@@ -341,29 +352,39 @@ export default function AdminTestimonials() {
                       </TableCell>
                       {isFullAdmin && (
                         <TableCell className="text-right">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(item)}
-                            data-testid={`button-edit-${item.id}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={deleteMutation.isPending}
-                            onClick={() => {
-                              if (confirm("Delete this testimonial?")) {
-                                deleteMutation.mutate(item.id);
-                              }
-                            }}
-                            data-testid={`button-delete-${item.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(item)}
+                                data-testid={`button-edit-${item.id}`}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit testimonial</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={deleteMutation.isPending}
+                                onClick={() => {
+                                  if (confirm("Delete this testimonial?")) {
+                                    deleteMutation.mutate(item.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-${item.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete testimonial</TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       )}
                     </TableRow>

@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check, Barcode, ChevronRight, ClipboardList, Copy } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
@@ -392,28 +393,38 @@ export default function AdminKits() {
                           {form.watch("includes").map((item, index) => (
                             <div key={index} className="flex items-center gap-2 bg-muted p-2 rounded-md">
                               <div className="flex flex-col gap-0.5">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => handleMoveIncludeUp(index)}
-                                  disabled={index === 0 || editingItemIndex !== null}
-                                  data-testid={`button-move-include-up-${index}`}
-                                >
-                                  <ChevronUp className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => handleMoveIncludeDown(index)}
-                                  disabled={index === form.watch("includes").length - 1 || editingItemIndex !== null}
-                                  data-testid={`button-move-include-down-${index}`}
-                                >
-                                  <ChevronDown className="h-3 w-3" />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5"
+                                      onClick={() => handleMoveIncludeUp(index)}
+                                      disabled={index === 0 || editingItemIndex !== null}
+                                      data-testid={`button-move-include-up-${index}`}
+                                    >
+                                      <ChevronUp className="h-3 w-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Move item up</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5"
+                                      onClick={() => handleMoveIncludeDown(index)}
+                                      disabled={index === form.watch("includes").length - 1 || editingItemIndex !== null}
+                                      data-testid={`button-move-include-down-${index}`}
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Move item down</TooltipContent>
+                                </Tooltip>
                               </div>
                               {editingItemIndex === index ? (
                                 <>
@@ -432,50 +443,70 @@ export default function AdminKits() {
                                     autoFocus
                                     data-testid={`input-edit-item-${index}`}
                                   />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={handleSaveEditItem}
-                                    data-testid={`button-save-item-${index}`}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={handleCancelEditItem}
-                                    data-testid={`button-cancel-item-${index}`}
-                                  >
-                                    ×
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={handleSaveEditItem}
+                                        data-testid={`button-save-item-${index}`}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Save item</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={handleCancelEditItem}
+                                        data-testid={`button-cancel-item-${index}`}
+                                      >
+                                        ×
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Cancel edit</TooltipContent>
+                                  </Tooltip>
                                 </>
                               ) : (
                                 <>
                                   <span className="flex-1 text-sm">{item}</span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleStartEditItem(index)}
-                                    data-testid={`button-edit-item-${index}`}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                    onClick={() => handleRemoveInclude(index)}
-                                    data-testid={`button-remove-include-${index}`}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleStartEditItem(index)}
+                                        data-testid={`button-edit-item-${index}`}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Edit item</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() => handleRemoveInclude(index)}
+                                        data-testid={`button-remove-include-${index}`}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Remove item</TooltipContent>
+                                  </Tooltip>
                                 </>
                               )}
                             </div>
@@ -702,47 +733,62 @@ export default function AdminKits() {
                               data-testid={`input-kit-bom-qty-${idx}`}
                             />
                             <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                disabled={idx === 0}
-                                onClick={() => {
-                                  const rows = [...(form.getValues("skuComponents") || [])];
-                                  if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
-                                }}
-                                data-testid={`button-kit-bom-up-${idx}`}
-                              >
-                                <ChevronUp className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                disabled={idx === (form.watch("skuComponents") || []).length - 1}
-                                onClick={() => {
-                                  const rows = [...(form.getValues("skuComponents") || [])];
-                                  if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
-                                }}
-                                data-testid={`button-kit-bom-down-${idx}`}
-                              >
-                                <ChevronDown className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => {
-                                  const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
-                                  form.setValue("skuComponents", rows.length > 0 ? rows : null);
-                                }}
-                                data-testid={`button-kit-remove-bom-${idx}`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    disabled={idx === 0}
+                                    onClick={() => {
+                                      const rows = [...(form.getValues("skuComponents") || [])];
+                                      if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
+                                    }}
+                                    data-testid={`button-kit-bom-up-${idx}`}
+                                  >
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move part up</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    disabled={idx === (form.watch("skuComponents") || []).length - 1}
+                                    onClick={() => {
+                                      const rows = [...(form.getValues("skuComponents") || [])];
+                                      if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
+                                    }}
+                                    data-testid={`button-kit-bom-down-${idx}`}
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move part down</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                      const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                      form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                                    }}
+                                    data-testid={`button-kit-remove-bom-${idx}`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Remove part</TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
                         ))}
@@ -841,28 +887,38 @@ export default function AdminKits() {
                         {form.watch("includes").map((item, index) => (
                           <div key={index} className="flex items-center gap-2 bg-muted p-2 rounded-md">
                             <div className="flex flex-col gap-0.5">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => handleMoveIncludeUp(index)}
-                                disabled={index === 0 || editingItemIndex !== null}
-                                data-testid={`button-edit-move-include-up-${index}`}
-                              >
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => handleMoveIncludeDown(index)}
-                                disabled={index === form.watch("includes").length - 1 || editingItemIndex !== null}
-                                data-testid={`button-edit-move-include-down-${index}`}
-                              >
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={() => handleMoveIncludeUp(index)}
+                                    disabled={index === 0 || editingItemIndex !== null}
+                                    data-testid={`button-edit-move-include-up-${index}`}
+                                  >
+                                    <ChevronUp className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move item up</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5"
+                                    onClick={() => handleMoveIncludeDown(index)}
+                                    disabled={index === form.watch("includes").length - 1 || editingItemIndex !== null}
+                                    data-testid={`button-edit-move-include-down-${index}`}
+                                  >
+                                    <ChevronDown className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move item down</TooltipContent>
+                              </Tooltip>
                             </div>
                             {editingItemIndex === index ? (
                               <>
@@ -881,50 +937,70 @@ export default function AdminKits() {
                                   autoFocus
                                   data-testid={`input-edit-item-edit-${index}`}
                                 />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={handleSaveEditItem}
-                                  data-testid={`button-save-item-edit-${index}`}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={handleCancelEditItem}
-                                  data-testid={`button-cancel-item-edit-${index}`}
-                                >
-                                  ×
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={handleSaveEditItem}
+                                      data-testid={`button-save-item-edit-${index}`}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Save item</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={handleCancelEditItem}
+                                      data-testid={`button-cancel-item-edit-${index}`}
+                                    >
+                                      ×
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Cancel edit</TooltipContent>
+                                </Tooltip>
                               </>
                             ) : (
                               <>
                                 <span className="flex-1 text-sm">{item}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleStartEditItem(index)}
-                                  data-testid={`button-edit-item-edit-${index}`}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => handleRemoveInclude(index)}
-                                  data-testid={`button-remove-include-edit-${index}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleStartEditItem(index)}
+                                      data-testid={`button-edit-item-edit-${index}`}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit item</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      onClick={() => handleRemoveInclude(index)}
+                                      data-testid={`button-remove-include-edit-${index}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Remove item</TooltipContent>
+                                </Tooltip>
                               </>
                             )}
                           </div>
@@ -1148,47 +1224,62 @@ export default function AdminKits() {
                             data-testid={`input-edit-kit-bom-qty-${idx}`}
                           />
                           <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              disabled={idx === 0}
-                              onClick={() => {
-                                const rows = [...(form.getValues("skuComponents") || [])];
-                                if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
-                              }}
-                              data-testid={`button-edit-kit-bom-up-${idx}`}
-                            >
-                              <ChevronUp className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              disabled={idx === (form.watch("skuComponents") || []).length - 1}
-                              onClick={() => {
-                                const rows = [...(form.getValues("skuComponents") || [])];
-                                if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
-                              }}
-                              data-testid={`button-edit-kit-bom-down-${idx}`}
-                            >
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
-                                form.setValue("skuComponents", rows.length > 0 ? rows : null);
-                              }}
-                              data-testid={`button-edit-kit-remove-bom-${idx}`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  disabled={idx === 0}
+                                  onClick={() => {
+                                    const rows = [...(form.getValues("skuComponents") || [])];
+                                    if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
+                                  }}
+                                  data-testid={`button-edit-kit-bom-up-${idx}`}
+                                >
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move part up</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  disabled={idx === (form.watch("skuComponents") || []).length - 1}
+                                  onClick={() => {
+                                    const rows = [...(form.getValues("skuComponents") || [])];
+                                    if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
+                                  }}
+                                  data-testid={`button-edit-kit-bom-down-${idx}`}
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move part down</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                    form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                                  }}
+                                  data-testid={`button-edit-kit-remove-bom-${idx}`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove part</TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       ))}
@@ -1235,26 +1326,36 @@ export default function AdminKits() {
                 </div>
               )}
               <div className="absolute top-2 right-2 flex gap-1">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-                  onClick={() => handleMoveKitUp(index)}
-                  disabled={index === 0}
-                  data-testid={`button-card-move-up-${kit.id}`}
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-                  onClick={() => handleMoveKitDown(index)}
-                  disabled={index === kits.length - 1}
-                  data-testid={`button-card-move-down-${kit.id}`}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                      onClick={() => handleMoveKitUp(index)}
+                      disabled={index === 0}
+                      data-testid={`button-card-move-up-${kit.id}`}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Move kit up</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                      onClick={() => handleMoveKitDown(index)}
+                      disabled={index === kits.length - 1}
+                      data-testid={`button-card-move-down-${kit.id}`}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Move kit down</TooltipContent>
+                </Tooltip>
               </div>
             </div>
             <CardHeader>
@@ -1422,19 +1523,24 @@ export default function AdminKits() {
                   <Edit className="w-4 h-4 mr-2" />
                   Edit
                 </Button>
-                <Button
-                  variant="outline"
-                  className="text-destructive hover:bg-destructive/10"
-                  size="icon"
-                  onClick={() => {
-                    if (confirm("Are you sure you want to delete this kit?")) {
-                      deleteMutation.mutate(kit.id);
-                    }
-                  }}
-                  data-testid={`button-delete-kit-card-${kit.id}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="text-destructive hover:bg-destructive/10"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this kit?")) {
+                          deleteMutation.mutate(kit.id);
+                        }
+                      }}
+                      data-testid={`button-delete-kit-card-${kit.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete kit</TooltipContent>
+                </Tooltip>
               </div>
             </CardContent>
           </Card>

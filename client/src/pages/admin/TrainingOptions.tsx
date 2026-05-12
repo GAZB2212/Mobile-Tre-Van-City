@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, GraduationCap, X, PoundSterling } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import type { TrainingOption } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
@@ -392,26 +393,36 @@ export default function AdminTrainingOptions() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleEditOption(option)}
-                        data-testid={`button-edit-${option.id}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this training option?")) {
-                            deleteMutation.mutate(option.id);
-                          }
-                        }}
-                        data-testid={`button-delete-${option.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditOption(option)}
+                            data-testid={`button-edit-${option.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit training option</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this training option?")) {
+                                deleteMutation.mutate(option.id);
+                              }
+                            }}
+                            data-testid={`button-delete-${option.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete training option</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </CardHeader>

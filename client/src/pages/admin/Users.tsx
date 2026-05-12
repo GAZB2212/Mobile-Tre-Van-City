@@ -20,6 +20,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -389,15 +390,20 @@ export default function AdminUsers() {
                         <SelectItem value="finance">Finance Partner</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteUser(u.id)}
-                      disabled={u.id === user.id || deleteUserMutation.isPending}
-                      data-testid={`button-delete-${u.id}`}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteUser(u.id)}
+                          disabled={u.id === user.id || deleteUserMutation.isPending}
+                          data-testid={`button-delete-${u.id}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete user</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </CardContent>
