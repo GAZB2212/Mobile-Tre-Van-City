@@ -328,11 +328,13 @@ export default function AdminQuoteDetail() {
   const { data: quote, isLoading } = useQuery<QuoteDetail>({
     queryKey: ["/api/admin/quotes", id],
     enabled: !!(user?.adminRole && user.adminRole !== "none") && !!id,
-    // Poll for live workshop progress — only when quote is actively being built
+    // Poll for live updates — when in build (workshop progress) or awaiting finance decision
     // refetchIntervalInBackground: false pauses polling when the admin tab is not visible
     refetchInterval: (query) => {
       const q = query.state.data as any;
-      return q?.status === "in_build" ? 30000 : false;
+      if (q?.status === "in_build") return 30_000;
+      if (q?.status === "awaiting_finance") return 30_000;
+      return false;
     },
     refetchIntervalInBackground: false,
   });

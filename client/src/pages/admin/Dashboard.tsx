@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import type { User, Quote, Testimonial } from "@shared/schema";
 import { useEffect, useRef, useState } from "react";
+import { useIdlePolling } from "@/hooks/useIdlePolling";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -64,8 +65,11 @@ function customerName(q: Quote): string {
   return [q.firstName, q.lastName].filter(Boolean).join(" ") || q.email || "Unknown";
 }
 
+const POLL_INTERVAL_MS = 60_000;
+
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const isActive = useIdlePolling();
   const { user, isAuthenticated, isLoading } = useAuth() as {
     user: User | undefined;
     isAuthenticated: boolean;
@@ -105,6 +109,8 @@ export default function AdminDashboard() {
   const { data: quotes = [] } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
+    refetchInterval: isActive ? POLL_INTERVAL_MS : false,
+    refetchIntervalInBackground: false,
   });
 
   const { data: testimonials = [] } = useQuery<Testimonial[]>({
