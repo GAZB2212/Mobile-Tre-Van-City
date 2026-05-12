@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check, Barcode, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check, Barcode, ChevronRight, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
@@ -47,6 +47,7 @@ export default function AdminKits() {
   const [editingItemText, setEditingItemText] = useState("");
   const [copiedKitSkuId, setCopiedKitSkuId] = useState<string | null>(null);
   const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
+  const [copiedAllBomId, setCopiedAllBomId] = useState<string | null>(null);
 
   const handleCopyKitSku = (kitId: string, sku: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,6 +67,17 @@ export default function AdminKits() {
       toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
     });
   };
+
+  const handleCopyAllBomSkus = (id: string, parts: { sku: string }[]) => {
+    const skus = parts.map(p => p.sku).filter(Boolean).join('\n');
+    navigator.clipboard.writeText(skus).then(() => {
+      setCopiedAllBomId(id);
+      setTimeout(() => setCopiedAllBomId(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
+    });
+  };
+
   const [expandedBomIds, setExpandedBomIds] = useState<Set<string>>(new Set());
 
   const toggleBom = (id: string) => {
@@ -1268,15 +1280,36 @@ export default function AdminKits() {
               </div>
               {kit.skuComponents && kit.skuComponents.length > 0 && (
                 <div>
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => toggleBom(kit.id)}
-                    data-testid={`button-kit-bom-toggle-${kit.id}`}
-                  >
-                    <ChevronRight className={`w-3 h-3 transition-transform ${expandedBomIds.has(kit.id) ? "rotate-90" : ""}`} />
-                    View BOM ({kit.skuComponents.length} {kit.skuComponents.length === 1 ? "part" : "parts"})
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => toggleBom(kit.id)}
+                      data-testid={`button-kit-bom-toggle-${kit.id}`}
+                    >
+                      <ChevronRight className={`w-3 h-3 transition-transform ${expandedBomIds.has(kit.id) ? "rotate-90" : ""}`} />
+                      View BOM ({kit.skuComponents.length} {kit.skuComponents.length === 1 ? "part" : "parts"})
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => handleCopyAllBomSkus(kit.id, kit.skuComponents!)}
+                      data-testid={`button-kit-bom-copy-all-${kit.id}`}
+                      title="Copy all part SKUs to clipboard"
+                    >
+                      {copiedAllBomId === kit.id ? (
+                        <>
+                          <Check className="w-3 h-3 text-green-600" />
+                          <span className="text-green-600">Copied {kit.skuComponents.length} SKUs!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardList className="w-3 h-3" />
+                          Copy all SKUs
+                        </>
+                      )}
+                    </button>
+                  </div>
                   {expandedBomIds.has(kit.id) && (
                     <div className="mt-2 rounded-md border bg-muted/40 overflow-hidden" data-testid={`table-kit-bom-${kit.id}`}>
                       <table className="w-full text-xs">

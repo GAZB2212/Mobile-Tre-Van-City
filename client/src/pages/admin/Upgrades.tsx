@@ -39,7 +39,7 @@ import { AdminSwitch } from "@/components/AdminSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
@@ -148,6 +148,7 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
   const [variantBomOpen, setVariantBomOpen] = useState<Set<string>>(new Set());
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
   const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
+  const [copiedAllBomKey, setCopiedAllBomKey] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -167,6 +168,16 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
       setTimeout(() => setCopiedBomPartKey(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyAllBomSkus = (key: string, parts: { sku: string }[]) => {
+    const skus = parts.map(p => p.sku).filter(Boolean).join('\n');
+    navigator.clipboard.writeText(skus).then(() => {
+      setCopiedAllBomKey(key);
+      setTimeout(() => setCopiedAllBomKey(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
     });
   };
 
@@ -300,15 +311,36 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                   </div>
                   {variant.skuComponents && variant.skuComponents.length > 0 && (
                     <div>
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => toggleVariantBom(variant.id)}
-                        data-testid={`button-variant-bom-toggle-${variant.id}`}
-                      >
-                        <ChevronDownIcon className={`w-3 h-3 transition-transform ${variantBomOpen.has(variant.id) ? "" : "-rotate-90"}`} />
-                        View BOM ({variant.skuComponents.length} {variant.skuComponents.length === 1 ? "part" : "parts"})
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => toggleVariantBom(variant.id)}
+                          data-testid={`button-variant-bom-toggle-${variant.id}`}
+                        >
+                          <ChevronDownIcon className={`w-3 h-3 transition-transform ${variantBomOpen.has(variant.id) ? "" : "-rotate-90"}`} />
+                          View BOM ({variant.skuComponents.length} {variant.skuComponents.length === 1 ? "part" : "parts"})
+                        </button>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => handleCopyAllBomSkus(`variant-all-${variant.id}`, variant.skuComponents!)}
+                          data-testid={`button-variant-bom-copy-all-${variant.id}`}
+                          title="Copy all part SKUs to clipboard"
+                        >
+                          {copiedAllBomKey === `variant-all-${variant.id}` ? (
+                            <>
+                              <Check className="w-3 h-3 text-green-600" />
+                              <span className="text-green-600">Copied {variant.skuComponents.length} SKUs!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardList className="w-3 h-3" />
+                              Copy all SKUs
+                            </>
+                          )}
+                        </button>
+                      </div>
                       {variantBomOpen.has(variant.id) && (
                         <div className="mt-1.5 rounded-md border bg-background overflow-hidden" data-testid={`table-variant-bom-${variant.id}`}>
                           <table className="w-full text-xs">
@@ -356,15 +388,36 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
           {/* BOM expansion */}
           {upgradeSkuComponents && upgradeSkuComponents.length > 0 && (
             <div>
-              <button
-                type="button"
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setBomOpen(o => !o)}
-                data-testid={`button-upgrade-bom-toggle-${upgrade.id}`}
-              >
-                <ChevronDownIcon className={`w-3 h-3 transition-transform ${bomOpen ? "" : "-rotate-90"}`} />
-                View BOM ({upgradeSkuComponents.length} {upgradeSkuComponents.length === 1 ? "part" : "parts"})
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setBomOpen(o => !o)}
+                  data-testid={`button-upgrade-bom-toggle-${upgrade.id}`}
+                >
+                  <ChevronDownIcon className={`w-3 h-3 transition-transform ${bomOpen ? "" : "-rotate-90"}`} />
+                  View BOM ({upgradeSkuComponents.length} {upgradeSkuComponents.length === 1 ? "part" : "parts"})
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => handleCopyAllBomSkus(`upgrade-all-${upgrade.id}`, upgradeSkuComponents)}
+                  data-testid={`button-upgrade-bom-copy-all-${upgrade.id}`}
+                  title="Copy all part SKUs to clipboard"
+                >
+                  {copiedAllBomKey === `upgrade-all-${upgrade.id}` ? (
+                    <>
+                      <Check className="w-3 h-3 text-green-600" />
+                      <span className="text-green-600">Copied {upgradeSkuComponents.length} SKUs!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="w-3 h-3" />
+                      Copy all SKUs
+                    </>
+                  )}
+                </button>
+              </div>
               {bomOpen && (
                 <div className="mt-2 rounded-md border bg-muted/40 overflow-hidden" data-testid={`table-upgrade-bom-${upgrade.id}`}>
                   <table className="w-full text-xs">
