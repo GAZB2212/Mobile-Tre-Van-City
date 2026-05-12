@@ -429,6 +429,14 @@ export const isFullAdmin: RequestHandler = async (req, res, next) => {
   next();
 };
 
+// Middleware to check if user has finance partner role
+export const isFinanceUser: RequestHandler = async (req, res, next) => {
+  const user = await getCurrentUser(req);
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
+  if (user.adminRole !== "finance") return res.status(403).json({ message: "Forbidden - Finance portal access required" });
+  next();
+};
+
 // Helper function to hash passwords
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);

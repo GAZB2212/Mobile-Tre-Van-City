@@ -57,7 +57,9 @@ export default function Login() {
         description: "Logged in successfully",
       });
       setTimeout(() => {
-        if (data.adminRole && data.adminRole !== "none") {
+        if (data.adminRole === "finance") {
+          window.location.href = "/finance-portal";
+        } else if (data.adminRole && data.adminRole !== "none") {
           window.location.href = "/admin";
         } else {
           window.location.href = "/";

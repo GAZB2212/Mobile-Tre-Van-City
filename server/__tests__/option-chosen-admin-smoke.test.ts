@@ -16,6 +16,7 @@ vi.mock("../auth.js", () => ({
   isAdmin: (_: any, __: any, next: any) => next(),
   isBasicAdmin: (_: any, __: any, next: any) => next(),
   isFullAdmin: (_: any, __: any, next: any) => next(),
+  isFinanceUser: (_: any, __: any, next: any) => next(),
   getSession: () => (_: any, __: any, next: any) => next(),
   createUser: vi.fn(),
 }));

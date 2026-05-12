@@ -78,6 +78,7 @@ const AdminCalendar = lazy(() => import("@/pages/admin/Calendar"));
 const AdminCustomers = lazy(() => import("@/pages/admin/Customers"));
 const AdminCustomerProfile = lazy(() => import("@/pages/admin/CustomerProfile"));
 const AdminSkuManager = lazy(() => import("@/pages/admin/SkuManager"));
+const FinancePortal = lazy(() => import("@/pages/FinancePortal"));
 
 function Router() {
   return (
@@ -119,6 +120,8 @@ function Router() {
       <Route path="/van-conversions/:slug" component={VanModelPage} />
       <Route path="/mobile-tyre-vans" component={LocationsHub} />
       <Route path="/mobile-tyre-vans/:slug" component={LocationPage} />
+      {/* Finance partner portal — standalone, no AdminLayout */}
+      <Route path="/finance-portal">{() => <FinancePortal />}</Route>
       {/* Admin routes — bypassed by SSR, loaded lazily, wrapped in AdminLayout */}
       <Route path="/admin">{() => <AdminLayout><AdminDashboard /></AdminLayout>}</Route>
       <Route path="/admin/configurator">{() => <AdminLayout><AdminConfigurator /></AdminLayout>}</Route>
@@ -155,19 +158,19 @@ function Router() {
 
 function PublicChatBubble() {
   const [location] = useLocation();
-  if (location.startsWith("/admin") || location === "/login") return null;
+  if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal")) return null;
   return <ChatBubble />;
 }
 
 function AIWidget() {
   const [location] = useLocation();
-  if (location.startsWith("/admin") || location === "/login") return null;
+  if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal")) return null;
   return <AIChatWidget />;
 }
 
 function ConditionalLoadingScreen() {
   const [location] = useLocation();
-  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.startsWith("/artwork-approval/")) {
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.startsWith("/artwork-approval/") || location.startsWith("/finance-portal")) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("hasLoadedBefore", "true");
     }

@@ -7,7 +7,7 @@ import fs from "fs";
 import { pool } from "./db";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, getCurrentUser } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, isFinanceUser, getCurrentUser } from "./auth";
 import { buildVanMeta } from "./seo";
 import { generateAiBlogPost } from "./blogGenerator";
 import { computePopularityIntelligence, formatPopularityBlock } from "./popularityIntelligence";
@@ -8468,6 +8468,175 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
       console.error("Update artwork proof error:", error);
       res.status(500).json({ error: "Failed to update" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Finance Partner Portal
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // List all quotes that have been submitted to the finance company
+  app.get("/api/finance-portal/deals", isAuthenticated, isFinanceUser, async (req, res) => {
+    try {
+      const { rows } = await pool.query(`
+        SELECT
+          q.id,
+          q.user_name,
+          q.email,
+          q.phone,
+          q.status         AS quote_status,
+          q.finance_status,
+          q.finance_notes,
+          q.finance_decision_at,
+          q.finance_sent_at,
+          q.finance_plan_id,
+          q.finance_inputs,
+          q.van_registration,
+          q.van_mileage,
+          q.est_total,
+          q.est_subtotal,
+          q.est_vat,
+          q.est_discount,
+          v.title          AS van_title,
+          k.name           AS kit_name,
+          fp.name          AS finance_plan_name
+        FROM quotes q
+        LEFT JOIN vans v          ON v.id  = q.van_id
+        LEFT JOIN kits k          ON k.id  = q.kit_id
+        LEFT JOIN finance_plans fp ON fp.id = q.finance_plan_id
+        WHERE q.finance_sent_at IS NOT NULL
+        ORDER BY
+          CASE WHEN q.finance_status = 'pending' THEN 0 ELSE 1 END,
+          q.finance_sent_at DESC
+      `);
+
+      res.json(rows.map(r => ({
+        id:                r.id,
+        userName:          r.user_name,
+        email:             r.email,
+        phone:             r.phone,
+        quoteStatus:       r.quote_status,
+        financeStatus:     r.finance_status,
+        financeNotes:      r.finance_notes,
+        financeDecisionAt: r.finance_decision_at,
+        financeSentAt:     r.finance_sent_at,
+        financePlanId:     r.finance_plan_id,
+        financePlanName:   r.finance_plan_name,
+        financeInputs:     r.finance_inputs,
+        vanRegistration:   r.van_registration,
+        vanMileage:        r.van_mileage,
+        vanTitle:          r.van_title,
+        kitName:           r.kit_name,
+        estTotal:          r.est_total,
+        estSubtotal:       r.est_subtotal,
+        estVat:            r.est_vat,
+        estDiscount:       r.est_discount,
+      })));
+    } catch (error) {
+      console.error("Finance portal GET deals error:", error);
+      res.status(500).json({ error: "Failed to fetch deals" });
+    }
+  });
+
+  // Finance partner updates their decision on a deal
+  app.patch("/api/finance-portal/deals/:id", isAuthenticated, isFinanceUser, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { financeStatus, financeNotes } = z.object({
+        financeStatus: z.enum(["pending", "approved", "declined", "more_info_needed"]),
+        financeNotes:  z.string().max(2000).optional().default(""),
+      }).parse(req.body);
+
+      // Map finance decision → overall quote status
+      const quoteStatusMap: Record<string, string> = {
+        approved:         "finance_approved",
+        declined:         "finance_declined",
+        pending:          "awaiting_finance",
+        more_info_needed: "awaiting_finance",
+      };
+
+      // Verify deal exists and was actually sent to finance
+      const { rows: existing } = await pool.query(
+        `SELECT id, user_name, finance_status FROM quotes WHERE id = $1 AND finance_sent_at IS NOT NULL`,
+        [id]
+      );
+      if (existing.length === 0) return res.status(404).json({ error: "Deal not found" });
+      const quote = existing[0];
+
+      // Update the quote
+      await pool.query(
+        `UPDATE quotes
+         SET finance_status     = $1,
+             finance_notes      = $2,
+             finance_decision_at = NOW(),
+             status             = $3,
+             status_changed_at  = NOW()
+         WHERE id = $4`,
+        [financeStatus, financeNotes || null, quoteStatusMap[financeStatus], id]
+      );
+
+      // Append a note to admin_notes_history (non-fatal)
+      try {
+        const { rows: nr } = await pool.query(`SELECT admin_notes_history FROM quotes WHERE id = $1`, [id]);
+        const history: any[] = Array.isArray(nr[0]?.admin_notes_history) ? nr[0].admin_notes_history : [];
+        const label = { pending: "In Review", approved: "Approved", declined: "Declined", more_info_needed: "More Info Needed" }[financeStatus] ?? financeStatus;
+        history.push({
+          text:      `Finance partner updated decision to "${label}"${financeNotes ? `. Notes: "${financeNotes}"` : ""}`,
+          timestamp: new Date().toISOString(),
+          author:    "Finance Portal",
+        });
+        await pool.query(`UPDATE quotes SET admin_notes_history = $1 WHERE id = $2`, [JSON.stringify(history), id]);
+      } catch { /* non-fatal */ }
+
+      // Email the MTVC team (non-fatal)
+      try {
+        const INTERNAL_NOTIFY_EMAILS = ["carl@geg.co", "graham@wirralvans.co.uk", "sharon@geg.co", "info@gfukgroup.co.uk"];
+        const { sendEmail } = await import("./email.js");
+        const statusEmoji: Record<string, string> = { pending: "🔄", approved: "✅", declined: "❌", more_info_needed: "⚠️" };
+        const statusLabel: Record<string, string> = { pending: "In Review", approved: "Approved", declined: "Declined", more_info_needed: "More Info Needed" };
+        const subject = `Finance Update — ${quote.user_name}: ${statusEmoji[financeStatus]} ${statusLabel[financeStatus]}`;
+        const notesHtml = financeNotes
+          ? `<div style="margin-top:16px;background:#f9fafb;border-left:4px solid #8bc440;padding:12px 16px;border-radius:0 4px 4px 0;">
+               <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Notes from finance partner</p>
+               <p style="margin:0;white-space:pre-wrap;color:#111827;">${financeNotes}</p>
+             </div>`
+          : "";
+        const html = `
+          <div style="font-family:Arial,sans-serif;max-width:580px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+            <div style="background:#191919;padding:16px 24px;">
+              <h1 style="margin:0;font-size:17px;color:#8bc440;">Finance Partner Portal</h1>
+              <p style="margin:3px 0 0;font-size:12px;color:rgba(255,255,255,.5);">Mobile Tyre Van City</p>
+            </div>
+            <div style="padding:24px;">
+              <h2 style="margin:0 0 16px;font-size:15px;color:#111;">Finance decision updated</h2>
+              <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:8px;">
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:8px 0;color:#6b7280;width:110px;">Customer</td>
+                  <td style="padding:8px 0;font-weight:600;">${quote.user_name}</td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:8px 0;color:#6b7280;">Quote Ref</td>
+                  <td style="padding:8px 0;font-family:monospace;">#${(id as string).slice(-6).toUpperCase()}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#6b7280;">Decision</td>
+                  <td style="padding:8px 0;font-weight:700;font-size:15px;">${statusEmoji[financeStatus]} ${statusLabel[financeStatus]}</td>
+                </tr>
+              </table>
+              ${notesHtml}
+              <p style="margin-top:24px;font-size:12px;color:#9ca3af;">Log in to the admin portal to view the full quote and take the next steps.</p>
+            </div>
+          </div>`;
+        await sendEmail({ to: INTERNAL_NOTIFY_EMAILS, subject, html });
+      } catch (emailErr) {
+        console.error("Finance portal notification email failed:", emailErr);
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
+      console.error("Finance portal PATCH deal error:", error);
+      res.status(500).json({ error: "Failed to update deal" });
     }
   });
 

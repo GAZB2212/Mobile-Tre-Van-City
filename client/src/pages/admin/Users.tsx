@@ -17,7 +17,8 @@ import {
   Shield,
   Eye,
   UserPlus,
-  Trash2
+  Trash2,
+  Wallet,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminBackButton } from "@/components/AdminBackButton";
@@ -167,9 +168,10 @@ export default function AdminUsers() {
 
   const getRoleBadge = (adminRole: string) => {
     const roleConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string, icon: any }> = {
-      "full": { variant: "default", label: "Full Admin", icon: Shield },
-      "basic": { variant: "secondary", label: "Basic Admin", icon: Eye },
-      "none": { variant: "outline", label: "User", icon: UsersIcon },
+      "full":    { variant: "default",   label: "Full Admin",       icon: Shield },
+      "basic":   { variant: "secondary", label: "Basic Admin",      icon: Eye },
+      "finance": { variant: "outline",   label: "Finance Partner",  icon: Wallet },
+      "none":    { variant: "outline",   label: "User",             icon: UsersIcon },
     };
     
     const config = roleConfig[adminRole] || roleConfig["none"];
@@ -304,6 +306,7 @@ export default function AdminUsers() {
                     <SelectItem value="none">User</SelectItem>
                     <SelectItem value="basic">Basic Admin</SelectItem>
                     <SelectItem value="full">Full Admin</SelectItem>
+                    <SelectItem value="finance">Finance Partner</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -383,6 +386,7 @@ export default function AdminUsers() {
                         <SelectItem value="none">User</SelectItem>
                         <SelectItem value="basic">Basic Admin</SelectItem>
                         <SelectItem value="full">Full Admin</SelectItem>
+                        <SelectItem value="finance">Finance Partner</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button

@@ -205,6 +205,8 @@ export const quotes = pgTable("quotes", {
   completedBuildStages: json("completed_build_stages").$type<Array<string | { id: string; initials: string }>>().notNull().default([]),
   customBuildStages: json("custom_build_stages").$type<Array<{id: string; label: string}>>(), // null = auto-generate from config
   financeStatus: text("finance_status").notNull().default("pending"),
+  financeNotes: text("finance_notes"), // Notes added by finance partner
+  financeDecisionAt: timestamp("finance_decision_at"), // When finance partner recorded their decision
   graphicsArtworkUrl: text("graphics_artwork_url"),
   graphicsArtworkApproved: boolean("graphics_artwork_approved").notNull().default(false),
   graphicsArtworkNotes: text("graphics_artwork_notes"),

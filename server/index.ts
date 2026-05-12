@@ -255,6 +255,12 @@ app.use((req, res, next) => {
         .then(() => log("✅ Sage invoice ID column ready"))
         .catch((err: Error) => console.error("Sage invoice_id migration:", err.message));
       pool.query(`
+        ALTER TABLE quotes ADD COLUMN IF NOT EXISTS finance_notes TEXT;
+        ALTER TABLE quotes ADD COLUMN IF NOT EXISTS finance_decision_at TIMESTAMPTZ;
+      `)
+        .then(() => log("✅ Finance portal columns ready"))
+        .catch((err: Error) => console.error("Finance portal migration:", err.message));
+      pool.query(`
         CREATE TABLE IF NOT EXISTS follow_ups (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
           lead_id VARCHAR REFERENCES leads(id),
