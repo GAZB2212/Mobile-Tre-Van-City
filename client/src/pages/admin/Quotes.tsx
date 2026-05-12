@@ -126,6 +126,7 @@ import {
   XCircle,
   RefreshCw,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type QuoteWithCustomer = Quote & { customerName?: string | null };
 
@@ -1054,24 +1055,32 @@ export default function AdminQuotes() {
 
                       {/* Right: quick-action icons + total + chevron */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <a
-                          href={`tel:${quote.phone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="md:hidden p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          data-testid={`icon-phone-${quote.id}`}
-                          title={`Call ${quote.phone}`}
-                        >
-                          <Phone className="w-3.5 h-3.5" />
-                        </a>
-                        <a
-                          href={`mailto:${quote.email}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="md:hidden p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          data-testid={`icon-email-${quote.id}`}
-                          title={`Email ${quote.email}`}
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                        </a>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a
+                              href={`tel:${quote.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="md:hidden p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              data-testid={`icon-phone-${quote.id}`}
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>Call {quote.phone}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a
+                              href={`mailto:${quote.email}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="md:hidden p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              data-testid={`icon-email-${quote.id}`}
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>Email {quote.email}</TooltipContent>
+                        </Tooltip>
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
