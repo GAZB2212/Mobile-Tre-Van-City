@@ -1270,40 +1270,50 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                         <div className="flex items-center gap-2">
                           {/* Reorder buttons */}
                           <div className="flex flex-col">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                if (index > 0) {
-                                  const newVariants = [...variants];
-                                  [newVariants[index - 1], newVariants[index]] = [newVariants[index], newVariants[index - 1]];
-                                  setVariants(newVariants);
-                                }
-                              }}
-                              disabled={index === 0}
-                              data-testid={`button-variant-up-${index}`}
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => {
-                                if (index < variants.length - 1) {
-                                  const newVariants = [...variants];
-                                  [newVariants[index], newVariants[index + 1]] = [newVariants[index + 1], newVariants[index]];
-                                  setVariants(newVariants);
-                                }
-                              }}
-                              disabled={index === variants.length - 1}
-                              data-testid={`button-variant-down-${index}`}
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => {
+                                    if (index > 0) {
+                                      const newVariants = [...variants];
+                                      [newVariants[index - 1], newVariants[index]] = [newVariants[index], newVariants[index - 1]];
+                                      setVariants(newVariants);
+                                    }
+                                  }}
+                                  disabled={index === 0}
+                                  data-testid={`button-variant-up-${index}`}
+                                >
+                                  <ArrowUp className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move variant up</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => {
+                                    if (index < variants.length - 1) {
+                                      const newVariants = [...variants];
+                                      [newVariants[index], newVariants[index + 1]] = [newVariants[index + 1], newVariants[index]];
+                                      setVariants(newVariants);
+                                    }
+                                  }}
+                                  disabled={index === variants.length - 1}
+                                  data-testid={`button-variant-down-${index}`}
+                                >
+                                  <ArrowDown className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move variant down</TooltipContent>
+                            </Tooltip>
                           </div>
                           <Button
                             type="button"
@@ -1733,47 +1743,62 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                             data-testid={`input-bom-qty-${idx}`}
                           />
                           <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              disabled={idx === 0}
-                              onClick={() => {
-                                const rows = [...(form.getValues("skuComponents") || [])];
-                                if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
-                              }}
-                              data-testid={`button-bom-up-${idx}`}
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              disabled={idx === (form.watch("skuComponents") || []).length - 1}
-                              onClick={() => {
-                                const rows = [...(form.getValues("skuComponents") || [])];
-                                if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
-                              }}
-                              data-testid={`button-bom-down-${idx}`}
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
-                                form.setValue("skuComponents", rows.length > 0 ? rows : null);
-                              }}
-                              data-testid={`button-remove-bom-row-${idx}`}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  disabled={idx === 0}
+                                  onClick={() => {
+                                    const rows = [...(form.getValues("skuComponents") || [])];
+                                    if (idx > 0) { [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]]; form.setValue("skuComponents", rows); }
+                                  }}
+                                  data-testid={`button-bom-up-${idx}`}
+                                >
+                                  <ArrowUp className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move part up</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  disabled={idx === (form.watch("skuComponents") || []).length - 1}
+                                  onClick={() => {
+                                    const rows = [...(form.getValues("skuComponents") || [])];
+                                    if (idx < rows.length - 1) { [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]]; form.setValue("skuComponents", rows); }
+                                  }}
+                                  data-testid={`button-bom-down-${idx}`}
+                                >
+                                  <ArrowDown className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move part down</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    const rows = (form.getValues("skuComponents") || []).filter((_, i) => i !== idx);
+                                    form.setValue("skuComponents", rows.length > 0 ? rows : null);
+                                  }}
+                                  data-testid={`button-remove-bom-row-${idx}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove part</TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       ))}
