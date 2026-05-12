@@ -260,6 +260,27 @@ export default function SelectUpgrades() {
         const [keep, ...toRemove] = ids;
         replaceUpgrades(toRemove, keep);
         purgeQuantities(toRemove);
+
+        // Notify the customer which items were removed and why
+        const keptUpgrade = allUpgrades.find(u => u.id === keep);
+        const keptName = keptUpgrade
+          ? (keptUpgrade.variantName ? `${keptUpgrade.name} (${keptUpgrade.variantName})` : keptUpgrade.name)
+          : "the selected option";
+        const removedNames = toRemove
+          .map(id => {
+            const u = allUpgrades.find(u => u.id === id);
+            if (!u) return null;
+            return u.variantName ? `${u.name} (${u.variantName})` : u.name;
+          })
+          .filter(Boolean) as string[];
+        if (removedNames.length > 0) {
+          const removed = removedNames.join(" and ");
+          toast({
+            title: "Option removed",
+            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${keptName}.`,
+            duration: 5000,
+          });
+        }
       }
     });
   }, [configuratorData, state.upgradeIds, replaceUpgrades]);
