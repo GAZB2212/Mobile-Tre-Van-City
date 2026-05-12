@@ -8,6 +8,7 @@ import { createUser, getSession } from "./auth";
 import { pool } from "./db";
 import { generateAiBlogPost } from "./blogGenerator";
 import { checkEmailConfig } from "./email";
+import { backfillSkus } from "./backfill-skus";
 
 const app = express();
 
@@ -214,6 +215,9 @@ app.use((req, res, next) => {
       checkEmailConfig();
       bootstrapAdmin().catch(err => {
         console.error("Failed to bootstrap admin:", err);
+      });
+      backfillSkus().catch(err => {
+        console.error("Failed to backfill SKUs:", err);
       });
       // Add is_admin column to analytics_sessions if it doesn't exist yet (production safe)
       pool.query("ALTER TABLE analytics_sessions ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE")
