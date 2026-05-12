@@ -1352,12 +1352,12 @@ export default function AdminKits() {
                   </div>
                   {expandedBomIds.has(kit.id) && (
                     <div className="mt-2 rounded-md border bg-muted/40 overflow-hidden" data-testid={`table-kit-bom-${kit.id}`}>
-                      <table className="w-full text-xs">
+                      <table className="w-full text-xs table-fixed">
                         <thead>
                           <tr className="border-b bg-muted/60">
-                            <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Part SKU</th>
+                            <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-28">Part SKU</th>
                             <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Description</th>
-                            <th className="text-right px-2 py-1.5 font-medium text-muted-foreground">Qty</th>
+                            <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10">Qty</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1379,8 +1379,8 @@ export default function AdminKits() {
                                     </span>
                                   ) : (
                                     <span className="flex items-center gap-1">
-                                      {part.sku}
-                                      <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                      <span className="break-words min-w-0">{part.sku}</span>
+                                      <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible shrink-0" />
                                     </span>
                                   )}
                                 </td>
@@ -1396,9 +1396,9 @@ export default function AdminKits() {
                                       Copied!
                                     </span>
                                   ) : (
-                                    <span className="flex items-center gap-1">
-                                      {part.description}
-                                      <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                    <span className="flex items-start gap-1">
+                                      <span className="break-words min-w-0 flex-1">{part.description}</span>
+                                      <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible shrink-0 mt-0.5" />
                                     </span>
                                   )}
                                 </td>
