@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Admin role types
-export const adminRoles = ["none", "basic", "full"] as const;
+export const adminRoles = ["none", "basic", "full", "finance"] as const;
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
