@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Van } from "@shared/schema";
 
 interface ConfiguratorData {
@@ -114,6 +115,7 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
 export default function SelectUpgrades() {
   const [, setLocation] = useLocation();
   const { state, addUpgrade, removeUpgrade, replaceUpgrades, setUpgradeQuantity, purgeUpgradeQuantities } = useConfigurator();
+  const { toast } = useToast();
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [galleryTitle, setGalleryTitle] = useState("");
@@ -289,6 +291,22 @@ export default function SelectUpgrades() {
       if (toRemove.length > 0) {
         replaceUpgrades(toRemove, upgradeId);
         purgeQuantities(toRemove);
+        const addedName = upgrade?.name ?? "the selected option";
+        const removedNames = toRemove
+          .map(id => {
+            const u = allUpgrades.find(u => u.id === id);
+            if (!u) return null;
+            return u.variantName ? `${u.name} (${u.variantName})` : u.name;
+          })
+          .filter(Boolean) as string[];
+        if (removedNames.length > 0) {
+          const removed = removedNames.join(" and ");
+          toast({
+            title: "Option removed",
+            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${addedName}.`,
+            duration: 5000,
+          });
+        }
       } else {
         addUpgrade(upgradeId);
       }
@@ -319,6 +337,9 @@ export default function SelectUpgrades() {
     if (variantId) {
       const selectedVariant = allUpgrades.find(u => u.id === variantId);
       
+      // Track exclusive-group conflicts separately so we can show toasts for them
+      const exclusiveGroupConflicts: string[] = [];
+
       // If this variant (or its parent) has an exclusive group, remove any other selected member of that group
       if (selectedVariant) {
         const group = getExclusiveGroup(selectedVariant, allUpgrades);
@@ -327,6 +348,7 @@ export default function SelectUpgrades() {
             const selectedUpgrade = allUpgrades.find(u => u.id === selectedId);
             if (selectedUpgrade && getExclusiveGroup(selectedUpgrade, allUpgrades) === group && !toRemove.includes(selectedId)) {
               toRemove.push(selectedId);
+              exclusiveGroupConflicts.push(selectedId);
             }
           });
         }
@@ -335,6 +357,28 @@ export default function SelectUpgrades() {
       // Use atomic replace to remove all items and add the new variant in one update
       replaceUpgrades(toRemove, variantId);
       purgeQuantities(toRemove);
+
+      // Show a single aggregated toast for all exclusive-group conflicts (not for routine same-parent variant switches)
+      if (exclusiveGroupConflicts.length > 0 && selectedVariant) {
+        const addedName = selectedVariant.variantName
+          ? `${selectedVariant.name} (${selectedVariant.variantName})`
+          : selectedVariant.name;
+        const removedNames = exclusiveGroupConflicts
+          .map(id => {
+            const u = allUpgrades.find(u => u.id === id);
+            if (!u) return null;
+            return u.variantName ? `${u.name} (${u.variantName})` : u.name;
+          })
+          .filter(Boolean) as string[];
+        if (removedNames.length > 0) {
+          const removed = removedNames.join(" and ");
+          toast({
+            title: "Option removed",
+            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${addedName}.`,
+            duration: 5000,
+          });
+        }
+      }
     } else if (toRemove.length > 0) {
       // If no variant selected, just remove the old ones
       toRemove.forEach(id => removeUpgrade(id));
