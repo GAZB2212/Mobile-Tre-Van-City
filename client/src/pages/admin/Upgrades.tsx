@@ -39,7 +39,7 @@ import { AdminSwitch } from "@/components/AdminSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
@@ -144,11 +144,25 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
     isDragging,
   } = useSortable({ id: upgrade.id });
 
+  const [bomOpen, setBomOpen] = useState(false);
+  const [variantBomOpen, setVariantBomOpen] = useState<Set<string>>(new Set());
+
+  const toggleVariantBom = (id: string) => {
+    setVariantBomOpen(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const upgradeSku = upgrade.sku;
+  const upgradeSkuComponents = upgrade.skuComponents;
 
   return (
     <Card ref={setNodeRef} style={style} className="hover-elevate">
@@ -173,6 +187,12 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                 </Badge>
               )}
             </div>
+            {upgradeSku && (
+              <Badge variant="outline" className="font-mono text-xs gap-1 w-fit" data-testid={`badge-upgrade-sku-${upgrade.id}`}>
+                <Barcode className="w-3 h-3" />
+                {upgradeSku}
+              </Badge>
+            )}
           </div>
         </div>
         <div className="flex items-center flex-shrink-0">
@@ -198,27 +218,107 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
             <div className="mt-3 space-y-2 border-t pt-3">
               <p className="text-xs font-medium text-muted-foreground">Variants:</p>
               {variants.map((variant) => (
-                <div key={variant.id} className="flex items-center justify-between bg-muted/50 rounded p-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Badge variant="outline" className="text-xs flex-shrink-0">
-                      {variant.variantName}
-                    </Badge>
-                    <span className="text-sm font-semibold">
-                      £{penceToPounds(variant.price)}
-                    </span>
+                <div key={variant.id} className="bg-muted/50 rounded p-2 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+                      <Badge variant="outline" className="text-xs flex-shrink-0">
+                        {variant.variantName}
+                      </Badge>
+                      <span className="text-sm font-semibold">
+                        £{penceToPounds(variant.price)}
+                      </span>
+                      {variant.sku && (
+                        <Badge variant="outline" className="font-mono text-xs gap-1 flex-shrink-0" data-testid={`badge-variant-sku-${variant.id}`}>
+                          <Barcode className="w-3 h-3" />
+                          {variant.sku}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex space-x-1 flex-shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onEdit(variant)}
+                        data-testid={`button-edit-variant-${variant.id}`}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex space-x-1 flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onEdit(variant)}
-                      data-testid={`button-edit-variant-${variant.id}`}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  {variant.skuComponents && variant.skuComponents.length > 0 && (
+                    <div>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => toggleVariantBom(variant.id)}
+                        data-testid={`button-variant-bom-toggle-${variant.id}`}
+                      >
+                        <ChevronDownIcon className={`w-3 h-3 transition-transform ${variantBomOpen.has(variant.id) ? "" : "-rotate-90"}`} />
+                        View BOM ({variant.skuComponents.length} {variant.skuComponents.length === 1 ? "part" : "parts"})
+                      </button>
+                      {variantBomOpen.has(variant.id) && (
+                        <div className="mt-1.5 rounded-md border bg-background overflow-hidden" data-testid={`table-variant-bom-${variant.id}`}>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b bg-muted/60">
+                                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Part SKU</th>
+                                <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Description</th>
+                                <th className="text-right px-2 py-1.5 font-medium text-muted-foreground">Qty</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {variant.skuComponents.map((part, i) => (
+                                <tr key={i} className="border-b last:border-0">
+                                  <td className="px-2 py-1.5 font-mono">{part.sku}</td>
+                                  <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                                  <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* BOM expansion */}
+          {upgradeSkuComponents && upgradeSkuComponents.length > 0 && (
+            <div>
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setBomOpen(o => !o)}
+                data-testid={`button-upgrade-bom-toggle-${upgrade.id}`}
+              >
+                <ChevronDownIcon className={`w-3 h-3 transition-transform ${bomOpen ? "" : "-rotate-90"}`} />
+                View BOM ({upgradeSkuComponents.length} {upgradeSkuComponents.length === 1 ? "part" : "parts"})
+              </button>
+              {bomOpen && (
+                <div className="mt-2 rounded-md border bg-muted/40 overflow-hidden" data-testid={`table-upgrade-bom-${upgrade.id}`}>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b bg-muted/60">
+                        <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Part SKU</th>
+                        <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Description</th>
+                        <th className="text-right px-2 py-1.5 font-medium text-muted-foreground">Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upgradeSkuComponents.map((part, i) => (
+                        <tr key={i} className="border-b last:border-0">
+                          <td className="px-2 py-1.5 font-mono">{part.sku}</td>
+                          <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                          <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
           

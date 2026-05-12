@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check, Barcode, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
@@ -45,6 +45,15 @@ export default function AdminKits() {
   const [includesInput, setIncludesInput] = useState("");
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editingItemText, setEditingItemText] = useState("");
+  const [expandedBomIds, setExpandedBomIds] = useState<Set<string>>(new Set());
+
+  const toggleBom = (id: string) => {
+    setExpandedBomIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
   const { toast } = useToast();
 
   // Fetch kits with admin access (includes unpublished)
@@ -1204,6 +1213,12 @@ export default function AdminKits() {
                   {kit.euroSixCompatible && (
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 no-default-hover-elevate">Euro 6</Badge>
                   )}
+                  {kit.sku && (
+                    <Badge variant="outline" className="font-mono text-xs gap-1" data-testid={`badge-kit-sku-${kit.id}`}>
+                      <Barcode className="w-3 h-3" />
+                      {kit.sku}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -1215,6 +1230,41 @@ export default function AdminKits() {
                 <div className="font-bold text-lg">{formatPrice(kit.price)}</div>
                 <div className="text-sm font-medium">{kit.powerKw}kW</div>
               </div>
+              {kit.skuComponents && kit.skuComponents.length > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => toggleBom(kit.id)}
+                    data-testid={`button-kit-bom-toggle-${kit.id}`}
+                  >
+                    <ChevronRight className={`w-3 h-3 transition-transform ${expandedBomIds.has(kit.id) ? "rotate-90" : ""}`} />
+                    View BOM ({kit.skuComponents.length} {kit.skuComponents.length === 1 ? "part" : "parts"})
+                  </button>
+                  {expandedBomIds.has(kit.id) && (
+                    <div className="mt-2 rounded-md border bg-muted/40 overflow-hidden" data-testid={`table-kit-bom-${kit.id}`}>
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b bg-muted/60">
+                            <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Part SKU</th>
+                            <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Description</th>
+                            <th className="text-right px-2 py-1.5 font-medium text-muted-foreground">Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {kit.skuComponents.map((part, i) => (
+                            <tr key={i} className="border-b last:border-0">
+                              <td className="px-2 py-1.5 font-mono">{part.sku}</td>
+                              <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button
                   variant="outline"
