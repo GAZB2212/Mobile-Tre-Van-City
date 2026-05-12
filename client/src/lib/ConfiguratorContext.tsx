@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { KitServiceType } from '@shared/schema';
+import { useQuery } from '@tanstack/react-query';
+import type { KitServiceType, Upgrade } from '@shared/schema';
 
 export interface ConfiguratorSlotState {
   vanId: string | null;
@@ -100,6 +101,11 @@ const defaultFullState: FullState = {
 const ConfiguratorContext = createContext<ConfiguratorContextValue | undefined>(undefined);
 
 export function ConfiguratorProvider({ children }: { children: ReactNode }) {
+  // Fetch the upgrade catalog independently so the context can self-resolve
+  // exclusive-group conflicts without relying on any page-level registration.
+  const { data: upgradesData } = useQuery<Upgrade[]>({ queryKey: ['/api/upgrades'] });
+  const upgradeCatalog = upgradesData ?? null;
+
   const [fullState, setFullState] = useState<FullState>(() => {
     if (typeof window === 'undefined') return defaultFullState;
 
@@ -168,6 +174,59 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       console.error('Failed to save configurator state:', error);
     }
   }, [fullState]);
+
+  // Internal effect: once the upgrade catalog is registered, resolve any exclusive-group
+  // conflicts that arrived via stale localStorage or loaded quote data.
+  // This runs exactly once per catalog registration — before any user interaction.
+  useEffect(() => {
+    if (!upgradeCatalog) return;
+
+    const getExclusiveGroup = (upgrade: Upgrade): string | null => {
+      if (upgrade.exclusiveGroup) return upgrade.exclusiveGroup;
+      if (upgrade.parentId) {
+        const parent = upgradeCatalog.find(u => u.id === upgrade.parentId);
+        if (parent?.exclusiveGroup) return parent.exclusiveGroup;
+      }
+      return null;
+    };
+
+    const resolveSlot = (slot: ConfiguratorSlotState): ConfiguratorSlotState => {
+      const selected = upgradeCatalog.filter(u => slot.upgradeIds.includes(u.id));
+      const groupMap = new Map<string, string[]>();
+      selected.forEach(u => {
+        const group = getExclusiveGroup(u);
+        if (group) {
+          if (!groupMap.has(group)) groupMap.set(group, []);
+          groupMap.get(group)!.push(u.id);
+        }
+      });
+
+      const toRemove: string[] = [];
+      groupMap.forEach(ids => {
+        if (ids.length > 1) {
+          const [, ...rest] = ids;
+          toRemove.push(...rest);
+        }
+      });
+
+      if (toRemove.length === 0) return slot;
+
+      const nextQuantities = { ...slot.upgradeQuantities };
+      toRemove.forEach(id => delete nextQuantities[id]);
+      return {
+        ...slot,
+        upgradeIds: slot.upgradeIds.filter(id => !toRemove.includes(id)),
+        upgradeQuantities: nextQuantities,
+      };
+    };
+
+    setFullState(prev => {
+      const nextSlotA = resolveSlot(prev.slotA);
+      const nextSlotB = resolveSlot(prev.slotB);
+      if (nextSlotA === prev.slotA && nextSlotB === prev.slotB) return prev;
+      return { ...prev, slotA: nextSlotA, slotB: nextSlotB };
+    });
+  }, [upgradeCatalog]);
 
   // Helper to update the currently active slot
   const updateActiveSlot = (updater: (prev: ConfiguratorSlotState) => ConfiguratorSlotState) => {
@@ -609,6 +668,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       pricingSnapshot: null,
     }));
   };
+
 
   const activeSlotState = fullState.activeSlot === 'A' ? fullState.slotA : fullState.slotB;
 

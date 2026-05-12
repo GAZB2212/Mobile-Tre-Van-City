@@ -237,53 +237,6 @@ export default function SelectUpgrades() {
     });
   }, [vanSize, configuratorData, state.upgradeIds, removeUpgrade]);
 
-  // Auto-remove duplicate exclusive group members whenever state changes
-  // This handles cases where users load old localStorage or quote data with conflicts
-  useEffect(() => {
-    if (!configuratorData) return;
-    const allUpgrades = Object.values(filteredUpgrades).flat();
-    const selected = allUpgrades.filter(u => state.upgradeIds.includes(u.id));
-
-    // Group selected upgrades by their exclusive group
-    const groupMap = new Map<string, string[]>();
-    selected.forEach(u => {
-      const group = getExclusiveGroup(u, allUpgrades);
-      if (group) {
-        if (!groupMap.has(group)) groupMap.set(group, []);
-        groupMap.get(group)!.push(u.id);
-      }
-    });
-
-    // For any group with more than one member, keep only the first and remove the rest
-    groupMap.forEach((ids) => {
-      if (ids.length > 1) {
-        const [keep, ...toRemove] = ids;
-        replaceUpgrades(toRemove, keep);
-        purgeQuantities(toRemove);
-
-        // Notify the customer which items were removed and why
-        const keptUpgrade = allUpgrades.find(u => u.id === keep);
-        const keptName = keptUpgrade
-          ? (keptUpgrade.variantName ? `${keptUpgrade.name} (${keptUpgrade.variantName})` : keptUpgrade.name)
-          : "the selected option";
-        const removedNames = toRemove
-          .map(id => {
-            const u = allUpgrades.find(u => u.id === id);
-            if (!u) return null;
-            return u.variantName ? `${u.name} (${u.variantName})` : u.name;
-          })
-          .filter(Boolean) as string[];
-        if (removedNames.length > 0) {
-          const removed = removedNames.join(" and ");
-          toast({
-            title: "Option removed",
-            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${keptName}.`,
-            duration: 5000,
-          });
-        }
-      }
-    });
-  }, [configuratorData, state.upgradeIds, replaceUpgrades]);
 
   const handleUpgradeToggle = (upgradeId: string) => {
     const upgrade = configuratorData?.upgrades 
