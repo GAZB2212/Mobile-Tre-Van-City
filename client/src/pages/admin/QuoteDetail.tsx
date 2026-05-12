@@ -2138,7 +2138,12 @@ export default function AdminQuoteDetail() {
                   <p className="text-xs text-muted-foreground">Change this if the customer chose the wrong path in the configurator.</p>
                   <Select
                     value={serviceType || "none"}
-                    onValueChange={(v) => setServiceType(v === "none" ? null : v as "car" | "commercial" | "hybrid")}
+                    onValueChange={(v) => {
+                      const newType = v === "none" ? null : v as "car" | "commercial" | "hybrid";
+                      setServiceType(newType);
+                      // Commercial doesn't use a kit — clear it so the price updates immediately
+                      if (newType === "commercial") setSelectedKitId(null);
+                    }}
                   >
                     <SelectTrigger id="service-type-select" data-testid="select-service-type">
                       <SelectValue placeholder="Not set" />
