@@ -46,6 +46,39 @@ async function sortUpgradesByDisplayOrder<T extends { category: string; sortOrde
   });
 }
 
+async function generateNextSku(type: 'kit' | 'upgrade' | 'part'): Promise<string> {
+  const prefix = type === 'kit' ? 'MTVC-K' : type === 'upgrade' ? 'MTVC-U' : 'MTVC-P';
+  const allNums: number[] = [];
+
+  if (type === 'part') {
+    const [kitsResult, upgradesResult] = await Promise.all([
+      pool.query(`SELECT sku_components FROM kits WHERE sku_components IS NOT NULL`),
+      pool.query(`SELECT sku_components FROM upgrades WHERE sku_components IS NOT NULL`),
+    ]);
+    for (const row of [...kitsResult.rows, ...upgradesResult.rows]) {
+      const components: Array<{ sku?: string }> = row.sku_components || [];
+      for (const comp of components) {
+        if (comp.sku && comp.sku.startsWith(prefix)) {
+          const num = parseInt(comp.sku.slice(prefix.length), 10);
+          if (!isNaN(num)) allNums.push(num);
+        }
+      }
+    }
+  } else {
+    const table = type === 'kit' ? 'kits' : 'upgrades';
+    const r = await pool.query(`SELECT sku FROM ${table} WHERE sku LIKE $1`, [`${prefix}%`]);
+    for (const row of r.rows) {
+      if (row.sku) {
+        const num = parseInt((row.sku as string).slice(prefix.length), 10);
+        if (!isNaN(num)) allNums.push(num);
+      }
+    }
+  }
+
+  const max = allNums.length > 0 ? Math.max(...allNums) : 0;
+  return `${prefix}${String(max + 1).padStart(3, '0')}`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
@@ -1393,6 +1426,48 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ── SKU utilities ─────────────────────────────────────────────────────────
+
+  app.post("/api/admin/sku/generate", isFullAdmin, async (req, res) => {
+    try {
+      const { type } = z.object({ type: z.enum(["kit", "upgrade", "part"]) }).parse(req.body);
+      const sku = await generateNextSku(type);
+      res.json({ sku });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: "Invalid type" });
+      console.error("SKU generate:", err);
+      res.status(500).json({ error: "Failed to generate SKU" });
+    }
+  });
+
+  app.post("/api/admin/sku/backfill", isFullAdmin, async (req, res) => {
+    try {
+      let count = 0;
+      // Backfill kits missing a SKU
+      const missingKits = await pool.query(`SELECT id FROM kits WHERE sku IS NULL OR sku = ''`);
+      for (const row of missingKits.rows) {
+        const sku = await generateNextSku('kit');
+        await pool.query(`UPDATE kits SET sku = $1 WHERE id = $2`, [sku, row.id]);
+        count++;
+      }
+      // Backfill upgrades missing a SKU (skip parent groups: no parentId + price=0)
+      const missingUpgrades = await pool.query(
+        `SELECT id, price, parent_id FROM upgrades WHERE (sku IS NULL OR sku = '') AND NOT (parent_id IS NULL AND price = 0)`
+      );
+      for (const row of missingUpgrades.rows) {
+        const sku = await generateNextSku('upgrade');
+        await pool.query(`UPDATE upgrades SET sku = $1 WHERE id = $2`, [sku, row.id]);
+        count++;
+      }
+      res.json({ ok: true, assigned: count });
+    } catch (err) {
+      console.error("SKU backfill:", err);
+      res.status(500).json({ error: "Failed to backfill SKUs" });
+    }
+  });
+
+  // ── Equipment Packs ────────────────────────────────────────────────────────
+
   app.post("/api/admin/kits", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       if (process.env.NODE_ENV === 'development') {
@@ -1407,7 +1482,12 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       if (process.env.NODE_ENV === 'development') {
         console.log('✅ Kit validation passed:', kitData);
       }
-      
+
+      // Auto-assign SKU if not provided
+      if (!kitData.sku) {
+        kitData.sku = await generateNextSku('kit');
+      }
+
       const kit = await storage.createKit(kitData);
       
       if (process.env.NODE_ENV === 'development') {
@@ -1979,6 +2059,12 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         });
       }
       
+      // Auto-assign SKU if not provided — skip parent groups (no parentId + price=0, just a label)
+      const isParentGroup = !upgradeData.parentId && upgradeData.price === 0;
+      if (!upgradeData.sku && !isParentGroup) {
+        (upgradeData as any).sku = await generateNextSku('upgrade');
+      }
+
       const upgrade = await storage.createUpgrade(upgradeData);
       res.json(upgrade);
     } catch (error) {
