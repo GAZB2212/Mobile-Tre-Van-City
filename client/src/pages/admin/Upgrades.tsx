@@ -39,7 +39,7 @@ import { AdminSwitch } from "@/components/AdminSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check, ClipboardList } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check, ClipboardList, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
@@ -358,15 +358,21 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                                 return (
                                   <tr key={i} className="border-b last:border-0">
                                     <td
-                                      className="px-2 py-1.5 font-mono cursor-pointer select-none"
+                                      className="px-2 py-1.5 font-mono cursor-pointer select-none group"
                                       title="Click to copy SKU"
                                       data-testid={`cell-variant-bom-sku-${variant.id}-${i}`}
                                       onClick={() => handleCopyBomPartSku(partKey, part.sku)}
                                     >
                                       {isCopied ? (
-                                        <span className="text-green-600">Copied!</span>
+                                        <span className="flex items-center gap-1 text-green-600">
+                                          <Check className="w-3 h-3" />
+                                          Copied!
+                                        </span>
                                       ) : (
-                                        part.sku
+                                        <span className="flex items-center gap-1">
+                                          {part.sku}
+                                          <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                        </span>
                                       )}
                                     </td>
                                     <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
@@ -435,15 +441,21 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                         return (
                           <tr key={i} className="border-b last:border-0">
                             <td
-                              className="px-2 py-1.5 font-mono cursor-pointer select-none"
+                              className="px-2 py-1.5 font-mono cursor-pointer select-none group"
                               title="Click to copy SKU"
                               data-testid={`cell-upgrade-bom-sku-${upgrade.id}-${i}`}
                               onClick={() => handleCopyBomPartSku(partKey, part.sku)}
                             >
                               {isCopied ? (
-                                <span className="text-green-600">Copied!</span>
+                                <span className="flex items-center gap-1 text-green-600">
+                                  <Check className="w-3 h-3" />
+                                  Copied!
+                                </span>
                               ) : (
-                                part.sku
+                                <span className="flex items-center gap-1">
+                                  {part.sku}
+                                  <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                </span>
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>

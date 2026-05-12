@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check, Barcode, ChevronRight, ClipboardList } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ChevronUp, ChevronDown, Check, Barcode, ChevronRight, ClipboardList, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import type { Kit } from "@shared/schema";
@@ -1327,15 +1327,21 @@ export default function AdminKits() {
                             return (
                               <tr key={i} className="border-b last:border-0">
                                 <td
-                                  className="px-2 py-1.5 font-mono cursor-pointer select-none"
+                                  className="px-2 py-1.5 font-mono cursor-pointer select-none group"
                                   title="Click to copy SKU"
                                   data-testid={`cell-kit-bom-sku-${kit.id}-${i}`}
                                   onClick={() => handleCopyBomPartSku(partKey, part.sku)}
                                 >
                                   {isCopied ? (
-                                    <span className="text-green-600">Copied!</span>
+                                    <span className="flex items-center gap-1 text-green-600">
+                                      <Check className="w-3 h-3" />
+                                      Copied!
+                                    </span>
                                   ) : (
-                                    part.sku
+                                    <span className="flex items-center gap-1">
+                                      {part.sku}
+                                      <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                    </span>
                                   )}
                                 </td>
                                 <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
