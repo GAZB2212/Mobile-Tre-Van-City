@@ -387,6 +387,7 @@ export default function AdminFinancePlans() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Edit finance plan"
                             onClick={() => handleEditPlan(plan)}
                             data-testid={`button-edit-${plan.id}`}
                           >
@@ -602,6 +603,7 @@ export default function AdminFinancePlans() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Delete finance plan"
                         onClick={() => {
                           if (confirm("Are you sure you want to delete this finance plan?")) {
                             deleteMutation.mutate(plan.id);

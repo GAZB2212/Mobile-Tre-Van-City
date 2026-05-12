@@ -380,6 +380,7 @@ export default function AdminBlog() {
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                aria-label={post.published ? "Unpublish post" : "Publish post"}
                                 onClick={() => togglePublish(post)}
                                 data-testid={`button-toggle-${post.id}`}
                               >
@@ -393,6 +394,7 @@ export default function AdminBlog() {
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                aria-label="Edit post"
                                 onClick={() => setEditPost(post)}
                                 data-testid={`button-edit-${post.id}`}
                               >
@@ -406,6 +408,7 @@ export default function AdminBlog() {
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                aria-label="Delete post"
                                 onClick={() => setDeleteId(post.id)}
                                 data-testid={`button-delete-${post.id}`}
                               >

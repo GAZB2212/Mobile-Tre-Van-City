@@ -304,23 +304,34 @@ export default function AdminTrainingOptions() {
                         }}
                         data-testid="input-includes"
                       />
-                      <Button type="button" onClick={handleAddInclude} variant="outline" data-testid="button-add-include">
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button type="button" onClick={handleAddInclude} variant="outline" size="icon" aria-label="Add item" data-testid="button-add-include">
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Add item</TooltipContent>
+                      </Tooltip>
                     </div>
                     {includesList.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {includesList.map((item, index) => (
                           <Badge key={index} variant="secondary" className="gap-1" data-testid={`badge-include-${index}`}>
                             {item}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveInclude(index)}
-                              className="ml-1 hover:text-destructive"
-                              data-testid={`button-remove-include-${index}`}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label="Remove item"
+                                  onClick={() => handleRemoveInclude(index)}
+                                  className="ml-1 hover:text-destructive"
+                                  data-testid={`button-remove-include-${index}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remove item</TooltipContent>
+                            </Tooltip>
                           </Badge>
                         ))}
                       </div>
@@ -398,6 +409,7 @@ export default function AdminTrainingOptions() {
                           <Button
                             variant="outline"
                             size="icon"
+                            aria-label="Edit training option"
                             onClick={() => handleEditOption(option)}
                             data-testid={`button-edit-${option.id}`}
                           >
@@ -411,6 +423,7 @@ export default function AdminTrainingOptions() {
                           <Button
                             variant="outline"
                             size="icon"
+                            aria-label="Delete training option"
                             onClick={() => {
                               if (confirm("Are you sure you want to delete this training option?")) {
                                 deleteMutation.mutate(option.id);
