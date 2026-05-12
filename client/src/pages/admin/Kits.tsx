@@ -46,12 +46,22 @@ export default function AdminKits() {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editingItemText, setEditingItemText] = useState("");
   const [copiedKitSkuId, setCopiedKitSkuId] = useState<string | null>(null);
+  const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
 
   const handleCopyKitSku = (kitId: string, sku: string, e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(sku).then(() => {
       setCopiedKitSkuId(kitId);
       setTimeout(() => setCopiedKitSkuId(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyBomPartSku = (key: string, sku: string) => {
+    navigator.clipboard.writeText(sku).then(() => {
+      setCopiedBomPartKey(key);
+      setTimeout(() => setCopiedBomPartKey(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
     });
@@ -1278,13 +1288,28 @@ export default function AdminKits() {
                           </tr>
                         </thead>
                         <tbody>
-                          {kit.skuComponents.map((part, i) => (
-                            <tr key={i} className="border-b last:border-0">
-                              <td className="px-2 py-1.5 font-mono">{part.sku}</td>
-                              <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
-                              <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
-                            </tr>
-                          ))}
+                          {kit.skuComponents.map((part, i) => {
+                            const partKey = `${kit.id}-${i}`;
+                            const isCopied = copiedBomPartKey === partKey;
+                            return (
+                              <tr key={i} className="border-b last:border-0">
+                                <td
+                                  className="px-2 py-1.5 font-mono cursor-pointer select-none"
+                                  title="Click to copy SKU"
+                                  data-testid={`cell-kit-bom-sku-${kit.id}-${i}`}
+                                  onClick={() => handleCopyBomPartSku(partKey, part.sku)}
+                                >
+                                  {isCopied ? (
+                                    <span className="text-green-600">Copied!</span>
+                                  ) : (
+                                    part.sku
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

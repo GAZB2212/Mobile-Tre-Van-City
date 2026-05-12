@@ -147,6 +147,7 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
   const [bomOpen, setBomOpen] = useState(false);
   const [variantBomOpen, setVariantBomOpen] = useState<Set<string>>(new Set());
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
+  const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -155,6 +156,15 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
     navigator.clipboard.writeText(sku).then(() => {
       setCopiedSkuId(id);
       setTimeout(() => setCopiedSkuId(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyBomPartSku = (key: string, sku: string) => {
+    navigator.clipboard.writeText(sku).then(() => {
+      setCopiedBomPartKey(key);
+      setTimeout(() => setCopiedBomPartKey(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
     });
@@ -310,13 +320,28 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                               </tr>
                             </thead>
                             <tbody>
-                              {variant.skuComponents.map((part, i) => (
-                                <tr key={i} className="border-b last:border-0">
-                                  <td className="px-2 py-1.5 font-mono">{part.sku}</td>
-                                  <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
-                                  <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
-                                </tr>
-                              ))}
+                              {variant.skuComponents.map((part, i) => {
+                                const partKey = `variant-${variant.id}-${i}`;
+                                const isCopied = copiedBomPartKey === partKey;
+                                return (
+                                  <tr key={i} className="border-b last:border-0">
+                                    <td
+                                      className="px-2 py-1.5 font-mono cursor-pointer select-none"
+                                      title="Click to copy SKU"
+                                      data-testid={`cell-variant-bom-sku-${variant.id}-${i}`}
+                                      onClick={() => handleCopyBomPartSku(partKey, part.sku)}
+                                    >
+                                      {isCopied ? (
+                                        <span className="text-green-600">Copied!</span>
+                                      ) : (
+                                        part.sku
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -351,13 +376,28 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                       </tr>
                     </thead>
                     <tbody>
-                      {upgradeSkuComponents.map((part, i) => (
-                        <tr key={i} className="border-b last:border-0">
-                          <td className="px-2 py-1.5 font-mono">{part.sku}</td>
-                          <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
-                          <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
-                        </tr>
-                      ))}
+                      {upgradeSkuComponents.map((part, i) => {
+                        const partKey = `upgrade-${upgrade.id}-${i}`;
+                        const isCopied = copiedBomPartKey === partKey;
+                        return (
+                          <tr key={i} className="border-b last:border-0">
+                            <td
+                              className="px-2 py-1.5 font-mono cursor-pointer select-none"
+                              title="Click to copy SKU"
+                              data-testid={`cell-upgrade-bom-sku-${upgrade.id}-${i}`}
+                              onClick={() => handleCopyBomPartSku(partKey, part.sku)}
+                            >
+                              {isCopied ? (
+                                <span className="text-green-600">Copied!</span>
+                              ) : (
+                                part.sku
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                            <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
