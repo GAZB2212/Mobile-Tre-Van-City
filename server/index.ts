@@ -658,6 +658,22 @@ app.use((req, res, next) => {
             .then(() => log("✅ SKU/BOM columns ready"))
             .catch((err: Error) => console.error("SKU/BOM migration:", err.message));
 
+          // ── Mutual exclusivity: Silent Compressor (48V) vs Commercial Power Inversion ──
+          // These two upgrades serve overlapping electrical/power roles and must not
+          // both be selectable. We assign them the same exclusive_group so the
+          // configurator's existing group-enforcement logic handles deselection.
+          // Matches by ID for the known seed upgrade and by name pattern for any
+          // production-only variants (e.g. "Commercial Power Inversion Systems").
+          pool.query(`
+            UPDATE upgrades
+            SET exclusive_group = 'compressor-power-system'
+            WHERE id = 'silent-compressor-upgrade'
+               OR LOWER(name) LIKE '%commercial power inversion%'
+               OR LOWER(name) LIKE '%power inversion system%'
+          `)
+            .then(r => log(`✅ Compressor/power-inversion exclusive group set (${r.rowCount} row(s))`))
+            .catch((err: Error) => console.error("Compressor exclusive group migration:", err.message));
+
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {
