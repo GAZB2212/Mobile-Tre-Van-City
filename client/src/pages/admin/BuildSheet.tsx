@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History } from "lucide-react";
+import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,10 +15,26 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 import type { SkuComponent } from "@shared/schema";
 
-function SkuBomInfo({ sku, skuComponents }: { sku?: string | null; skuComponents?: SkuComponent[] | null }) {
+function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuComponents?: SkuComponent[] | null; bomId?: string }) {
   const hasSku = !!sku;
   const hasBom = Array.isArray(skuComponents) && skuComponents.length > 0;
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
   if (!hasSku && !hasBom) return null;
+
+  const copyableSkus = hasBom ? (skuComponents ?? []).map(c => c.sku).filter(Boolean) : [];
+
+  const handleCopyAllSkus = () => {
+    if (copyableSkus.length === 0) return;
+    navigator.clipboard.writeText(copyableSkus.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
+    });
+  };
+
   return (
     <div className="mt-0.5 space-y-0.5">
       {hasSku && (
@@ -27,14 +43,39 @@ function SkuBomInfo({ sku, skuComponents }: { sku?: string | null; skuComponents
         </p>
       )}
       {hasBom && skuComponents && (
-        <ul className="pl-3 space-y-0">
-          {skuComponents.map((c, i) => (
-            <li key={i} className="text-xs text-muted-foreground print:text-black font-mono">
-              {c.quantity}&times;&nbsp;{c.description}
-              {c.sku ? <span className="text-foreground print:text-black"> ({c.sku})</span> : null}
-            </li>
-          ))}
-        </ul>
+        <>
+          {copyableSkus.length > 0 && (
+            <div className="flex items-center gap-2 print:hidden">
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleCopyAllSkus}
+                data-testid={bomId ? `button-bom-copy-all-${bomId}` : "button-bom-copy-all"}
+                title="Copy all part SKUs to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3 h-3 text-green-600" />
+                    <span className="text-green-600">Copied {copyableSkus.length} SKU{copyableSkus.length !== 1 ? "s" : ""}!</span>
+                  </>
+                ) : (
+                  <>
+                    <ClipboardList className="w-3 h-3" />
+                    Copy all SKUs
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          <ul className="pl-3 space-y-0">
+            {skuComponents.map((c, i) => (
+              <li key={i} className="text-xs text-muted-foreground print:text-black font-mono">
+                {c.quantity}&times;&nbsp;{c.description}
+                {c.sku ? <span className="text-foreground print:text-black"> ({c.sku})</span> : null}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );
@@ -819,7 +860,7 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
-                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} />
+                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -869,7 +910,7 @@ export default function BuildSheet() {
                                   (Upgraded)
                                 </span>
                               </div>
-                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} />
+                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} />
                             </div>
                           ) : (
                             <span
@@ -949,7 +990,7 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
-                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} />
+                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} />
                         </div>
                       </div>
                     );
