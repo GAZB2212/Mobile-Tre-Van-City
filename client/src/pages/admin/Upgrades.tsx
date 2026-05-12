@@ -149,6 +149,7 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
   const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
   const [copiedAllBomKey, setCopiedAllBomKey] = useState<string | null>(null);
+  const [copiedAllBomDescKey, setCopiedAllBomDescKey] = useState<string | null>(null);
   const [copiedBomDescKey, setCopiedBomDescKey] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -179,6 +180,16 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
       setTimeout(() => setCopiedAllBomKey(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyAllBomDescs = (key: string, parts: { description: string }[]) => {
+    const descs = parts.map(p => p.description).filter(Boolean).join('\n');
+    navigator.clipboard.writeText(descs).then(() => {
+      setCopiedAllBomDescKey(key);
+      setTimeout(() => setCopiedAllBomDescKey(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy descriptions", description: "Please copy them manually.", variant: "destructive" });
     });
   };
 
@@ -350,6 +361,25 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                             </>
                           )}
                         </button>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => handleCopyAllBomDescs(`variant-all-${variant.id}`, variant.skuComponents!)}
+                          data-testid={`button-variant-bom-copy-all-descs-${variant.id}`}
+                          title="Copy all part descriptions to clipboard"
+                        >
+                          {copiedAllBomDescKey === `variant-all-${variant.id}` ? (
+                            <>
+                              <Check className="w-3 h-3 text-green-600" />
+                              <span className="text-green-600">Copied {variant.skuComponents.length} descriptions!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardList className="w-3 h-3" />
+                              Copy all descriptions
+                            </>
+                          )}
+                        </button>
                       </div>
                       {variantBomOpen.has(variant.id) && (
                         <div className="mt-1.5 rounded-md border bg-background overflow-hidden" data-testid={`table-variant-bom-${variant.id}`}>
@@ -447,6 +477,25 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                     <>
                       <ClipboardList className="w-3 h-3" />
                       Copy all SKUs
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => handleCopyAllBomDescs(`upgrade-all-${upgrade.id}`, upgradeSkuComponents)}
+                  data-testid={`button-upgrade-bom-copy-all-descs-${upgrade.id}`}
+                  title="Copy all part descriptions to clipboard"
+                >
+                  {copiedAllBomDescKey === `upgrade-all-${upgrade.id}` ? (
+                    <>
+                      <Check className="w-3 h-3 text-green-600" />
+                      <span className="text-green-600">Copied {upgradeSkuComponents.length} descriptions!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="w-3 h-3" />
+                      Copy all descriptions
                     </>
                   )}
                 </button>

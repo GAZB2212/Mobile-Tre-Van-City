@@ -48,6 +48,7 @@ export default function AdminKits() {
   const [copiedKitSkuId, setCopiedKitSkuId] = useState<string | null>(null);
   const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
   const [copiedAllBomId, setCopiedAllBomId] = useState<string | null>(null);
+  const [copiedAllBomDescId, setCopiedAllBomDescId] = useState<string | null>(null);
   const [copiedBomDescKey, setCopiedBomDescKey] = useState<string | null>(null);
 
   const handleCopyKitSku = (kitId: string, sku: string, e: React.MouseEvent) => {
@@ -76,6 +77,16 @@ export default function AdminKits() {
       setTimeout(() => setCopiedAllBomId(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyAllBomDescs = (id: string, parts: { description: string }[]) => {
+    const descs = parts.map(p => p.description).filter(Boolean).join('\n');
+    navigator.clipboard.writeText(descs).then(() => {
+      setCopiedAllBomDescId(id);
+      setTimeout(() => setCopiedAllBomDescId(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy descriptions", description: "Please copy them manually.", variant: "destructive" });
     });
   };
 
@@ -1316,6 +1327,25 @@ export default function AdminKits() {
                         <>
                           <ClipboardList className="w-3 h-3" />
                           Copy all SKUs
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => handleCopyAllBomDescs(kit.id, kit.skuComponents!)}
+                      data-testid={`button-kit-bom-copy-all-descs-${kit.id}`}
+                      title="Copy all part descriptions to clipboard"
+                    >
+                      {copiedAllBomDescId === kit.id ? (
+                        <>
+                          <Check className="w-3 h-3 text-green-600" />
+                          <span className="text-green-600">Copied {kit.skuComponents.length} descriptions!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardList className="w-3 h-3" />
+                          Copy all descriptions
                         </>
                       )}
                     </button>
