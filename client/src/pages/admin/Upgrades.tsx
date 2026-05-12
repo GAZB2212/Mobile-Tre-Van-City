@@ -40,6 +40,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check, ClipboardList, Copy, Tags, Pencil, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema } from "@shared/schema";
@@ -321,14 +322,19 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                       )}
                     </div>
                     <div className="flex space-x-1 flex-shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onEdit(variant)}
-                        data-testid={`button-edit-variant-${variant.id}`}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onEdit(variant)}
+                            data-testid={`button-edit-variant-${variant.id}`}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit variant</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                   {variant.skuComponents && variant.skuComponents.length > 0 && (
@@ -575,23 +581,33 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
               </span>
             )}
             <div className="flex space-x-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(upgrade)}
-                data-testid={`button-edit-upgrade-${upgrade.id}`}
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onDelete(upgrade.id)}
-                disabled={isDeleting}
-                data-testid={`button-delete-upgrade-${upgrade.id}`}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onEdit(upgrade)}
+                    data-testid={`button-edit-upgrade-${upgrade.id}`}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit upgrade</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDelete(upgrade.id)}
+                    disabled={isDeleting}
+                    data-testid={`button-delete-upgrade-${upgrade.id}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete upgrade</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -2008,35 +2024,50 @@ export default function AdminUpgrades() {
                       >
                         Save
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setEditingCategoryId(null)}>
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" onClick={() => setEditingCategoryId(null)}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Cancel rename</TooltipContent>
+                      </Tooltip>
                     </>
                   ) : (
                     <>
                       <span className="flex-1 text-sm font-medium" data-testid={`text-category-label-${cat.id}`}>{cat.label}</span>
                       <span className="text-xs text-muted-foreground mr-2">{cat.id}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => { setEditingCategoryId(cat.id); setEditCategoryLabel(cat.label); }}
-                        data-testid={`button-rename-category-${cat.id}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          if (confirm(`Delete category "${cat.label}"? This will fail if any upgrades still use it.`)) {
-                            deleteCategoryMutation.mutate(cat.id);
-                          }
-                        }}
-                        disabled={deleteCategoryMutation.isPending}
-                        data-testid={`button-delete-category-${cat.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => { setEditingCategoryId(cat.id); setEditCategoryLabel(cat.label); }}
+                            data-testid={`button-rename-category-${cat.id}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Rename category</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm(`Delete category "${cat.label}"? This will fail if any upgrades still use it.`)) {
+                                deleteCategoryMutation.mutate(cat.id);
+                              }
+                            }}
+                            disabled={deleteCategoryMutation.isPending}
+                            data-testid={`button-delete-category-${cat.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete category</TooltipContent>
+                      </Tooltip>
                     </>
                   )}
                 </div>
