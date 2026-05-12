@@ -283,7 +283,7 @@ export default function AdminTestimonials() {
                                   <ChevronUp className="w-4 h-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Move up</TooltipContent>
+                              <TooltipContent>Move testimonial up</TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -298,7 +298,7 @@ export default function AdminTestimonials() {
                                   <ChevronDown className="w-4 h-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Move down</TooltipContent>
+                              <TooltipContent>Move testimonial down</TooltipContent>
                             </Tooltip>
                           </div>
                         </TableCell>

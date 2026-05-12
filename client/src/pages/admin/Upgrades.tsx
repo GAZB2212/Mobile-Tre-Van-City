@@ -225,14 +225,19 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
     <Card ref={setNodeRef} style={style} className="hover-elevate">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
-            data-testid={`handle-drag-${upgrade.id}`}
-          >
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+                data-testid={`handle-drag-${upgrade.id}`}
+              >
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Drag to reorder</TooltipContent>
+          </Tooltip>
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <CardTitle className="text-lg" data-testid={`text-upgrade-name-${upgrade.id}`}>
