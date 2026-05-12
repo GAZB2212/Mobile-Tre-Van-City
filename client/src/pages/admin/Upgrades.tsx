@@ -149,6 +149,7 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
   const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
   const [copiedAllBomKey, setCopiedAllBomKey] = useState<string | null>(null);
+  const [copiedBomDescKey, setCopiedBomDescKey] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -178,6 +179,15 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
       setTimeout(() => setCopiedAllBomKey(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyBomPartDesc = (key: string, description: string) => {
+    navigator.clipboard.writeText(description).then(() => {
+      setCopiedBomDescKey(key);
+      setTimeout(() => setCopiedBomDescKey(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy description", description: "Please copy it manually.", variant: "destructive" });
     });
   };
 
@@ -375,7 +385,24 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                                         </span>
                                       )}
                                     </td>
-                                    <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                                    <td
+                                      className="px-2 py-1.5 text-muted-foreground cursor-pointer select-none group"
+                                      title="Click to copy description"
+                                      data-testid={`cell-variant-bom-desc-${variant.id}-${i}`}
+                                      onClick={() => handleCopyBomPartDesc(partKey, part.description)}
+                                    >
+                                      {copiedBomDescKey === partKey ? (
+                                        <span className="flex items-center gap-1 text-green-600">
+                                          <Check className="w-3 h-3" />
+                                          Copied!
+                                        </span>
+                                      ) : (
+                                        <span className="flex items-center gap-1">
+                                          {part.description}
+                                          <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                        </span>
+                                      )}
+                                    </td>
                                     <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
                                   </tr>
                                 );
@@ -458,7 +485,24 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                                 </span>
                               )}
                             </td>
-                            <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                            <td
+                              className="px-2 py-1.5 text-muted-foreground cursor-pointer select-none group"
+                              title="Click to copy description"
+                              data-testid={`cell-upgrade-bom-desc-${upgrade.id}-${i}`}
+                              onClick={() => handleCopyBomPartDesc(partKey, part.description)}
+                            >
+                              {copiedBomDescKey === partKey ? (
+                                <span className="flex items-center gap-1 text-green-600">
+                                  <Check className="w-3 h-3" />
+                                  Copied!
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  {part.description}
+                                  <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                </span>
+                              )}
+                            </td>
                             <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
                           </tr>
                         );

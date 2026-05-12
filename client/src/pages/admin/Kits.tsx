@@ -48,6 +48,7 @@ export default function AdminKits() {
   const [copiedKitSkuId, setCopiedKitSkuId] = useState<string | null>(null);
   const [copiedBomPartKey, setCopiedBomPartKey] = useState<string | null>(null);
   const [copiedAllBomId, setCopiedAllBomId] = useState<string | null>(null);
+  const [copiedBomDescKey, setCopiedBomDescKey] = useState<string | null>(null);
 
   const handleCopyKitSku = (kitId: string, sku: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -75,6 +76,15 @@ export default function AdminKits() {
       setTimeout(() => setCopiedAllBomId(null), 1500);
     }).catch(() => {
       toast({ title: "Could not copy SKUs", description: "Please copy them manually.", variant: "destructive" });
+    });
+  };
+
+  const handleCopyBomPartDesc = (key: string, description: string) => {
+    navigator.clipboard.writeText(description).then(() => {
+      setCopiedBomDescKey(key);
+      setTimeout(() => setCopiedBomDescKey(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy description", description: "Please copy it manually.", variant: "destructive" });
     });
   };
 
@@ -1344,7 +1354,24 @@ export default function AdminKits() {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-2 py-1.5 text-muted-foreground">{part.description}</td>
+                                <td
+                                  className="px-2 py-1.5 text-muted-foreground cursor-pointer select-none group"
+                                  title="Click to copy description"
+                                  data-testid={`cell-kit-bom-desc-${kit.id}-${i}`}
+                                  onClick={() => handleCopyBomPartDesc(partKey, part.description)}
+                                >
+                                  {copiedBomDescKey === partKey ? (
+                                    <span className="flex items-center gap-1 text-green-600">
+                                      <Check className="w-3 h-3" />
+                                      Copied!
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      {part.description}
+                                      <Copy className="w-3 h-3 text-muted-foreground invisible group-hover:visible" />
+                                    </span>
+                                  )}
+                                </td>
                                 <td className="px-2 py-1.5 text-right tabular-nums">{part.quantity}</td>
                               </tr>
                             );
