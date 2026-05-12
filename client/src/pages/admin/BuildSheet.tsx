@@ -67,14 +67,28 @@ function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuCom
               </button>
             </div>
           )}
-          <ul className="pl-3 space-y-0">
-            {skuComponents.map((c, i) => (
-              <li key={i} className="text-xs text-muted-foreground print:text-black font-mono">
-                {c.quantity}&times;&nbsp;{c.description}
-                {c.sku ? <span className="text-foreground print:text-black"> ({c.sku})</span> : null}
-              </li>
-            ))}
-          </ul>
+          <div className="rounded-md border bg-muted/40 overflow-hidden mt-1">
+            <table className="w-full text-xs table-fixed">
+              <thead>
+                <tr className="border-b bg-muted/60">
+                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-28 print:text-black">Part SKU</th>
+                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground print:text-black">Description</th>
+                  <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10 print:text-black">Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {skuComponents.map((c, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="px-2 py-1.5 font-mono text-muted-foreground break-words min-w-0 print:text-black">{c.sku}</td>
+                    <td className="px-2 py-1.5 text-muted-foreground print:text-black">
+                      <span className="break-words min-w-0">{c.description}</span>
+                    </td>
+                    <td className="px-2 py-1.5 text-right tabular-nums print:text-black">{c.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
