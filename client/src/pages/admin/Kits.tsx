@@ -45,6 +45,17 @@ export default function AdminKits() {
   const [includesInput, setIncludesInput] = useState("");
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editingItemText, setEditingItemText] = useState("");
+  const [copiedKitSkuId, setCopiedKitSkuId] = useState<string | null>(null);
+
+  const handleCopyKitSku = (kitId: string, sku: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(sku).then(() => {
+      setCopiedKitSkuId(kitId);
+      setTimeout(() => setCopiedKitSkuId(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
+    });
+  };
   const [expandedBomIds, setExpandedBomIds] = useState<Set<string>>(new Set());
 
   const toggleBom = (id: string) => {
@@ -1214,9 +1225,24 @@ export default function AdminKits() {
                     <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 no-default-hover-elevate">Euro 6</Badge>
                   )}
                   {kit.sku && (
-                    <Badge variant="outline" className="font-mono text-xs gap-1" data-testid={`badge-kit-sku-${kit.id}`}>
-                      <Barcode className="w-3 h-3" />
-                      {kit.sku}
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-xs gap-1 cursor-pointer select-none"
+                      data-testid={`badge-kit-sku-${kit.id}`}
+                      onClick={(e) => handleCopyKitSku(kit.id, kit.sku!, e)}
+                      title="Click to copy SKU"
+                    >
+                      {copiedKitSkuId === kit.id ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Barcode className="w-3 h-3" />
+                          {kit.sku}
+                        </>
+                      )}
                     </Badge>
                   )}
                 </div>

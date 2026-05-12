@@ -39,7 +39,7 @@ import { AdminSwitch } from "@/components/AdminSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
 import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
@@ -146,6 +146,19 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
 
   const [bomOpen, setBomOpen] = useState(false);
   const [variantBomOpen, setVariantBomOpen] = useState<Set<string>>(new Set());
+  const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
+
+  const { toast } = useToast();
+
+  const handleCopySku = (id: string, sku: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(sku).then(() => {
+      setCopiedSkuId(id);
+      setTimeout(() => setCopiedSkuId(null), 1500);
+    }).catch(() => {
+      toast({ title: "Could not copy SKU", description: "Please copy it manually.", variant: "destructive" });
+    });
+  };
 
   const toggleVariantBom = (id: string) => {
     setVariantBomOpen(prev => {
@@ -188,9 +201,24 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
               )}
             </div>
             {upgradeSku && (
-              <Badge variant="outline" className="font-mono text-xs gap-1 w-fit" data-testid={`badge-upgrade-sku-${upgrade.id}`}>
-                <Barcode className="w-3 h-3" />
-                {upgradeSku}
+              <Badge
+                variant="outline"
+                className="font-mono text-xs gap-1 w-fit cursor-pointer select-none"
+                data-testid={`badge-upgrade-sku-${upgrade.id}`}
+                onClick={(e) => handleCopySku(upgrade.id, upgradeSku, e)}
+                title="Click to copy SKU"
+              >
+                {copiedSkuId === upgrade.id ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Barcode className="w-3 h-3" />
+                    {upgradeSku}
+                  </>
+                )}
               </Badge>
             )}
           </div>
@@ -228,9 +256,24 @@ function SortableUpgradeCard({ upgrade, onEdit, onDelete, isDeleting, hasVariant
                         £{penceToPounds(variant.price)}
                       </span>
                       {variant.sku && (
-                        <Badge variant="outline" className="font-mono text-xs gap-1 flex-shrink-0" data-testid={`badge-variant-sku-${variant.id}`}>
-                          <Barcode className="w-3 h-3" />
-                          {variant.sku}
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-xs gap-1 flex-shrink-0 cursor-pointer select-none"
+                          data-testid={`badge-variant-sku-${variant.id}`}
+                          onClick={(e) => handleCopySku(variant.id, variant.sku!, e)}
+                          title="Click to copy SKU"
+                        >
+                          {copiedSkuId === variant.id ? (
+                            <>
+                              <Check className="w-3 h-3" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Barcode className="w-3 h-3" />
+                              {variant.sku}
+                            </>
+                          )}
                         </Badge>
                       )}
                     </div>
