@@ -185,6 +185,9 @@ export default function AdminConfigurator() {
   const [vatRegistered, setVatRegistered] = useState(false);
   const [deferVat, setDeferVat] = useState(false);
 
+  // ── Commercial-with-kit confirmation dialog
+  const [pendingCommercialType, setPendingCommercialType] = useState<KitServiceType | null>(null);
+
   // ── Save as quote dialog
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveForm, setSaveForm] = useState<SaveForm>({ userName: "", email: "", phone: "", company: "", notes: "", staffName: "" });
@@ -318,7 +321,7 @@ export default function AdminConfigurator() {
   };
 
   // Change service type while stripping upgrades / kit that are incompatible with the new type
-  const handleServiceTypeChange = (newType: KitServiceType) => {
+  const applyServiceTypeChange = (newType: KitServiceType, removeKit: boolean) => {
     if (!configData) { setServiceTypeOnly(newType); return; }
     const allUpgrades = Object.values(configData.upgrades).flat() as Upgrade[];
     const newIsCommercial = newType === "commercial" || newType === "hybrid";
@@ -333,7 +336,10 @@ export default function AdminConfigurator() {
       setUpgrades(state.upgradeIds.filter(id => !incompatibleIds.includes(id)));
       purgeQuantities(incompatibleIds);
     }
-    if (state.kitId) {
+    if (removeKit) {
+      setKitOnly(null);
+    } else if (state.kitId) {
+      // For non-commercial switches, still clear kit if it's incompatible by serviceType flags
       const kit = configData.kits.find((k: any) => k.id === state.kitId);
       if (kit) {
         const types: string[] = Array.isArray(kit.serviceType) ? kit.serviceType : ["car", "commercial", "hybrid"];
@@ -346,6 +352,15 @@ export default function AdminConfigurator() {
       }
     }
     setServiceTypeOnly(newType);
+  };
+
+  const handleServiceTypeChange = (newType: KitServiceType) => {
+    // Switching to commercial-only with a kit already selected — ask staff what to do
+    if (newType === "commercial" && state.kitId) {
+      setPendingCommercialType(newType);
+      return;
+    }
+    applyServiceTypeChange(newType, false);
   };
 
   // Auto-remove duplicate exclusive groups
@@ -1606,6 +1621,56 @@ export default function AdminConfigurator() {
           )}
         </DialogContent>
       </Dialog>
+      {/* ── Commercial-with-kit Confirmation Dialog ────────────── */}
+      {pendingCommercialType && (() => {
+        const kitName = configData?.kits.find((k: any) => k.id === state.kitId)?.name ?? "the current pack";
+        return (
+          <Dialog open={true} onOpenChange={(open) => { if (!open) setPendingCommercialType(null); }}>
+            <DialogContent className="sm:max-w-md" data-testid="dialog-commercial-kit-warning">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  Switch to Commercial Only?
+                </DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-2 text-sm pt-1">
+                    <p>
+                      Commercial Only doesn't normally require an equipment pack — the customer would go straight to selecting commercial extras.
+                    </p>
+                    <p>
+                      This configuration currently has <strong>{kitName}</strong> selected. Would you like to remove it or keep it?
+                    </p>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex-col sm:flex-row gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  className="sm:flex-1"
+                  onClick={() => {
+                    applyServiceTypeChange(pendingCommercialType, false);
+                    setPendingCommercialType(null);
+                  }}
+                  data-testid="button-keep-kit-on-commercial"
+                >
+                  Keep Pack
+                </Button>
+                <Button
+                  className="sm:flex-1"
+                  onClick={() => {
+                    applyServiceTypeChange(pendingCommercialType, true);
+                    setPendingCommercialType(null);
+                  }}
+                  data-testid="button-remove-kit-on-commercial"
+                >
+                  Remove Pack
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
       {/* ── Stale Session Dialog ─────────────────────────────── */}
       <Dialog open={showSessionModal} onOpenChange={() => {}}>
         <DialogContent
