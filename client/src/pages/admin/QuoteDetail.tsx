@@ -2229,6 +2229,11 @@ export default function AdminQuoteDetail() {
                         ))}
                     </SelectContent>
                   </Select>
+                  {selectedKitId && kits.find(k => k.id === selectedKitId)?.sku && (
+                    <Badge variant="secondary" className="font-mono text-xs mt-1 h-auto py-0.5" data-testid="badge-sku-kit">
+                      {kits.find(k => k.id === selectedKitId)!.sku}
+                    </Badge>
+                  )}
                 </div>
                 )}
 
@@ -2287,6 +2292,11 @@ export default function AdminQuoteDetail() {
                                   >
                                     {upgrade.name} - £{(upgrade.price / 100).toLocaleString()}
                                   </label>
+                                  {upgrade.sku && (
+                                    <Badge variant="secondary" className="font-mono text-xs mt-0.5 h-auto py-0.5" data-testid={`badge-sku-${upgrade.id}`}>
+                                      {upgrade.sku}
+                                    </Badge>
+                                  )}
                                   {upgrade.description && (
                                     <p className="text-xs text-muted-foreground mt-0.5">
                                       {upgrade.description}
@@ -2332,6 +2342,11 @@ export default function AdminQuoteDetail() {
                                 <Label className="text-sm font-medium">{parent.name}</Label>
                                 {parent.description && (
                                   <p className="text-xs text-muted-foreground mb-2">{parent.description}</p>
+                                )}
+                                {selectedVariant?.sku && (
+                                  <Badge variant="secondary" className="font-mono text-xs mt-0.5 mb-1 h-auto py-0.5" data-testid={`badge-sku-${selectedVariant.id}`}>
+                                    {selectedVariant.sku}
+                                  </Badge>
                                 )}
                                 <Select
                                   value={selectedVariantId || "none"}
