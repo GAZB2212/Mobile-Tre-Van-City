@@ -2216,10 +2216,10 @@ export default function AdminQuoteDetail() {
                   )}
                 </div>
 
-                {/* Kit Selection — only for car/van customers (not commercial or hybrid) */}
-                {(serviceType === null || serviceType === "car") && (
+                {/* Kit Selection — shown for car and hybrid (both need a pack); hidden for commercial-only */}
+                {(serviceType === null || serviceType === "car" || serviceType === "hybrid") && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="kit-select">Equipment Kit</Label>
+                  <Label htmlFor="kit-select">Equipment Pack</Label>
                   <Select value={selectedKitId || "none"} onValueChange={(v) => setSelectedKitId(v === "none" ? null : v)}>
                     <SelectTrigger id="kit-select" data-testid="select-kit">
                       <SelectValue placeholder="Select kit" />
