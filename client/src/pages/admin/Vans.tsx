@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, Car } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
 import { VanWizard } from "@/components/VanWizard";
@@ -382,18 +383,23 @@ export default function AdminVans() {
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete "${van.title}"?`)) {
-                          deleteVanMutation.mutate(van.id);
-                        }
-                      }}
-                      data-testid={`button-delete-van-${van.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete "${van.title}"?`)) {
+                              deleteVanMutation.mutate(van.id);
+                            }
+                          }}
+                          data-testid={`button-delete-van-${van.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete van</TooltipContent>
+                    </Tooltip>
                   </div>
                 </CardContent>
               </Card>
