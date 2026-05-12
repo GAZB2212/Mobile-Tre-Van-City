@@ -861,11 +861,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configurator endpoints
   app.get("/api/configurator/data", async (req, res) => {
     try {
-      const [kits, upgrades, financePlans, trainingOptions] = await Promise.all([
+      const [kits, upgrades, financePlans, trainingOptions, categoriesResult] = await Promise.all([
         storage.getKits(),
         storage.getUpgrades(),
         storage.getFinancePlans(),
-        storage.getTrainingOptions()
+        storage.getTrainingOptions(),
+        pool.query(`SELECT id, label, sort_order AS "sortOrder" FROM upgrade_categories ORDER BY sort_order ASC, label ASC`)
       ]);
       
       // Group upgrades by category
@@ -881,6 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         kits,
         upgrades: upgradesByCategory,
+        categories: categoriesResult.rows,
         financePlans: financePlans.filter(p => p.published),
         trainingOptions: trainingOptions.filter(o => o.published)
       });
@@ -8793,6 +8795,33 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     } catch (err) {
       console.error("Delete upgrade category:", err);
       res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
+  app.put("/api/admin/upgrade-categories/order", isFullAdmin, async (req, res) => {
+    try {
+      const { ids } = z.object({ ids: z.array(z.string()).min(1) }).parse(req.body);
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        for (let i = 0; i < ids.length; i++) {
+          await client.query(
+            `UPDATE upgrade_categories SET sort_order = $1 WHERE id = $2`,
+            [i, ids[i]]
+          );
+        }
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Reorder upgrade categories:", err);
+      res.status(500).json({ error: "Failed to reorder categories" });
     }
   });
 

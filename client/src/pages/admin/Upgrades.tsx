@@ -1896,6 +1896,31 @@ export default function AdminUpgrades() {
     },
   });
 
+  const reorderCategoryMutation = useMutation({
+    mutationFn: async (ids: string[]) =>
+      apiRequest("PUT", "/api/admin/upgrade-categories/order", { ids }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrade-categories"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to reorder categories", variant: "destructive" });
+    },
+  });
+
+  const moveCategoryUp = (index: number) => {
+    if (index <= 0) return;
+    const newOrder = [...dbCategories];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    reorderCategoryMutation.mutate(newOrder.map(c => c.id));
+  };
+
+  const moveCategoryDown = (index: number) => {
+    if (index >= dbCategories.length - 1) return;
+    const newOrder = [...dbCategories];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    reorderCategoryMutation.mutate(newOrder.map(c => c.id));
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest("DELETE", `/api/admin/upgrades/${id}`);
@@ -2031,7 +2056,7 @@ export default function AdminUpgrades() {
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
             <div className="divide-y rounded-md border">
-              {dbCategories.map((cat) => (
+              {dbCategories.map((cat, index) => (
                 <div key={cat.id} className="flex items-center gap-2 px-3 py-2">
                   {editingCategoryId === cat.id ? (
                     <>
@@ -2065,6 +2090,38 @@ export default function AdminUpgrades() {
                     </>
                   ) : (
                     <>
+                      <div className="flex flex-col gap-0.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5"
+                              onClick={() => moveCategoryUp(index)}
+                              disabled={index === 0 || reorderCategoryMutation.isPending}
+                              data-testid={`button-category-up-${cat.id}`}
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Move category up</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5"
+                              onClick={() => moveCategoryDown(index)}
+                              disabled={index === dbCategories.length - 1 || reorderCategoryMutation.isPending}
+                              data-testid={`button-category-down-${cat.id}`}
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Move category down</TooltipContent>
+                        </Tooltip>
+                      </div>
                       <span className="flex-1 text-sm font-medium" data-testid={`text-category-label-${cat.id}`}>{cat.label}</span>
                       <span className="text-xs text-muted-foreground mr-2">{cat.id}</span>
                       <Tooltip>

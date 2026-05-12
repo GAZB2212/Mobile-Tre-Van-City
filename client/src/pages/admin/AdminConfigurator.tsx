@@ -94,13 +94,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   "profit-makers": "Profit Makers",
 };
 
-const CATEGORY_ORDER = [
+const FALLBACK_CATEGORY_ORDER = [
   "commercial", "air-systems", "air-system", "equipment", "equipment-options",
   "branding", "lighting", "comfort", "power", "technology", "security",
 ];
 
-function getCategoryOrder(cat: string) {
-  const i = CATEGORY_ORDER.indexOf(cat);
+function getFallbackCategoryOrder(cat: string) {
+  const i = FALLBACK_CATEGORY_ORDER.indexOf(cat);
   return i === -1 ? 999 : i;
 }
 
@@ -139,7 +139,7 @@ function groupUpgrades(upgrades: Upgrade[]) {
 
 interface SaveForm { userName: string; email: string; phone: string; company: string; notes: string; staffName: string; }
 interface DiscountState { type: 'none' | 'percentage' | 'fixed'; value: string; }
-interface ConfiguratorData { kits: any[]; upgrades: Record<string, Upgrade[]>; financePlans: any[]; }
+interface ConfiguratorData { kits: any[]; upgrades: Record<string, Upgrade[]>; categories: { id: string; label: string; sortOrder: number }[]; financePlans: any[]; }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -943,7 +943,14 @@ export default function AdminConfigurator() {
                 ) : (
                   <div className="space-y-6">
                     {Object.entries(filteredUpgrades)
-                      .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
+                      .sort(([a], [b]) => {
+                        const cats = configData?.categories ?? [];
+                        const idxA = cats.findIndex(c => c.id === a);
+                        const idxB = cats.findIndex(c => c.id === b);
+                        const orderA = idxA === -1 ? getFallbackCategoryOrder(a) + 1000 : idxA;
+                        const orderB = idxB === -1 ? getFallbackCategoryOrder(b) + 1000 : idxB;
+                        return orderA - orderB;
+                      })
                       .map(([category, upgrades]) => {
                         const sorted = [...upgrades].sort((a: any, b: any) => a.sortOrder - b.sortOrder);
                         const { groups, standalone } = groupUpgrades(sorted);
@@ -956,7 +963,7 @@ export default function AdminConfigurator() {
                           <Card key={category}>
                             <CardHeader>
                               <CardTitle className="text-lg">
-                                {CATEGORY_LABELS[category] ?? category.replace(/-/g, " ")} Options
+                                {configData?.categories?.find(c => c.id === category)?.label ?? CATEGORY_LABELS[category] ?? category.replace(/-/g, " ")} Options
                               </CardTitle>
                             </CardHeader>
                             <CardContent>

@@ -28,6 +28,7 @@ import type { Upgrade, Van } from "@shared/schema";
 interface ConfiguratorData {
   kits: any[];
   upgrades: Record<string, Upgrade[]>;
+  categories: { id: string; label: string; sortOrder: number }[];
   financePlans: any[];
 }
 
@@ -56,24 +57,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   "profit-makers": "Profit Makers",
 };
 
-// Define preferred category order
-const CATEGORY_ORDER = [
-  'commercial',
-  'air-systems',
-  'air-system',
-  'equipment',
-  'equipment-options',
-  'branding',
-  'lighting',
-  'comfort',
-  'power',
-  'technology',
-  'security'
+// Fallback category order (used when DB categories aren't loaded yet)
+const FALLBACK_CATEGORY_ORDER = [
+  'commercial', 'air-systems', 'air-system', 'equipment', 'equipment-options',
+  'branding', 'lighting', 'comfort', 'power', 'technology', 'security',
 ];
 
-function getCategoryOrder(category: string): number {
-  const index = CATEGORY_ORDER.indexOf(category);
-  return index === -1 ? 999 : index; // Unknown categories go to the end
+function getFallbackCategoryOrder(category: string): number {
+  const index = FALLBACK_CATEGORY_ORDER.indexOf(category);
+  return index === -1 ? 999 : index;
 }
 
 function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; standalone: Upgrade[] } {
@@ -423,7 +415,14 @@ export default function SelectUpgrades() {
               ) : configuratorData ? (
                 <div className="space-y-6" data-testid="section-upgrades">
                   {Object.entries(filteredUpgrades)
-                    .sort(([categoryA], [categoryB]) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB))
+                    .sort(([categoryA], [categoryB]) => {
+                      const cats = configuratorData?.categories ?? [];
+                      const idxA = cats.findIndex(c => c.id === categoryA);
+                      const idxB = cats.findIndex(c => c.id === categoryB);
+                      const orderA = idxA === -1 ? getFallbackCategoryOrder(categoryA) + 1000 : idxA;
+                      const orderB = idxB === -1 ? getFallbackCategoryOrder(categoryB) + 1000 : idxB;
+                      return orderA - orderB;
+                    })
                     .map(([category, upgrades]) => {
                     // Sort upgrades by sortOrder before grouping
                     const sortedUpgrades = [...upgrades].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -464,7 +463,7 @@ export default function SelectUpgrades() {
                       <Card key={category}>
                         <CardHeader>
                           <CardTitle className="text-lg">
-                            {CATEGORY_LABELS[category] ?? category.replace(/-/g, ' ')} Options
+                            {configuratorData?.categories?.find(c => c.id === category)?.label ?? CATEGORY_LABELS[category] ?? category.replace(/-/g, ' ')} Options
                           </CardTitle>
                           {category === 'comfort' && vanSize && (
                             <p className="text-sm text-muted-foreground mt-2">
