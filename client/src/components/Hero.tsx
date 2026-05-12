@@ -123,14 +123,14 @@ export default function Hero() {
                   Configure Your Van
                 </Button>
               </Link>
-              <Link href="/business-opportunity">
+              <Link href="/business-opportunity" aria-label="Learn more about the mobile tyre van business opportunity">
                 <Button
                   size="lg"
                   variant="outline"
                   className="w-full sm:w-auto bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white border-white/30 font-semibold"
                   data-testid="button-learn-more"
                 >
-                  Learn More
+                  The Opportunity
                 </Button>
               </Link>
             </div>

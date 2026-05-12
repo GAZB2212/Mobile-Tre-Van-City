@@ -109,7 +109,6 @@ export default function Training() {
         description="Professional REACT motorway certification and tyre fitting training is coming soon from Mobile Tyre Van City. Register your interest today. Based in Wirral, serving the UK."
         canonical="/training"
         keywords="mobile tyre fitting training, REACT motorway certification, tyre fitting course UK, mobile tyre technician training, tyre fitting qualification"
-        noindex={true}
         structuredData={[
           ...createTrainingStructuredData(),
           {
@@ -420,9 +419,9 @@ export default function Training() {
                 <p className="text-muted-foreground text-sm mb-4">
                   Discover why mobile tyre fitting is one of the UK's fastest growing small business opportunities.
                 </p>
-                <Link href="/business-opportunity">
+                <Link href="/business-opportunity" aria-label="Explore the mobile tyre van business opportunity">
                   <Button variant="outline" className="!border-2 !border-accent text-accent" data-testid="link-opportunity-from-training">
-                    Learn More
+                    Explore the Opportunity
                     <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
                 </Link>

@@ -51,9 +51,9 @@ export default function ProcessSteps() {
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                 {service.description}
               </p>
-              <Link href="/how-it-works">
+              <Link href="/how-it-works" aria-label={`How it works — ${service.title.toLowerCase()}`}>
                 <Button variant="link" className="text-foreground hover:text-accent p-0 h-auto" data-testid={`button-learn-more-${index}`}>
-                  Learn More <ArrowRight className="w-4 h-4 ml-1" />
+                  How It Works <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </Link>
             </div>
