@@ -2,14 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
-import { HelpCircle, X, Send, Trash2, Bot, ChevronDown } from "lucide-react";
+import { X, Send, Trash2, ChevronDown } from "lucide-react";
+import gazAvatarSrc from "@assets/gaz-avatar.png";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-const GREETING = "Hi! I'm your MTVC Admin Assistant. Ask me anything about how to use the admin panel — adding vans, managing quotes, configuring upgrades, pushing to AutoTradeOS, or anything else.";
+const GREETING = "Hi! I'm Gaz, your MTVC Admin Assistant. Ask me anything about how to use the admin panel — adding vans, managing quotes, configuring upgrades, pushing to AutoTradeOS, or anything else.";
 
 export function AdminHelpWidget() {
   const [open, setOpen] = useState(false);
@@ -66,15 +67,18 @@ export function AdminHelpWidget() {
       {/* Floating toggle button */}
       <div className="fixed bottom-5 right-5 z-50 print:hidden">
         {!open && (
-          <Button
-            size="icon"
-            className="h-12 w-12 rounded-full shadow-lg bg-[#8bc440] hover:bg-[#7ab035] text-white border-0"
+          <button
+            className="h-14 w-14 rounded-full shadow-lg overflow-hidden border-2 border-[#8bc440] hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-[#8bc440] focus:ring-offset-2"
             onClick={() => setOpen(true)}
             data-testid="button-admin-help-open"
-            title="Admin Help Assistant"
+            title="Chat with Gaz"
           >
-            <HelpCircle className="h-6 w-6" />
-          </Button>
+            <img
+              src={gazAvatarSrc}
+              alt="Gaz"
+              className="h-full w-full object-cover"
+            />
+          </button>
         )}
 
         {/* Chat panel */}
@@ -85,13 +89,20 @@ export function AdminHelpWidget() {
             data-testid="admin-help-panel"
           >
             {/* Header */}
-            <div className="flex items-center gap-2 px-3 py-2.5 bg-[#8bc440] text-white flex-shrink-0">
-              <Bot className="h-4 w-4 flex-shrink-0" />
-              <span className="font-semibold text-sm flex-1">MTVC Admin Assistant</span>
+            <div className="flex items-center gap-2.5 px-3 py-2 bg-[#8bc440] text-white flex-shrink-0">
+              <img
+                src={gazAvatarSrc}
+                alt="Gaz"
+                className="h-8 w-8 rounded-full object-cover border border-white/30 flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm leading-tight">Gaz</div>
+                <div className="text-[10px] text-white/80 leading-tight">MTVC Admin Assistant</div>
+              </div>
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7 text-white hover:bg-white/20 hover:text-white"
+                className="h-7 w-7 text-white hover:bg-white/20 hover:text-white flex-shrink-0"
                 onClick={clear}
                 title="Clear chat"
                 data-testid="button-admin-help-clear"
@@ -101,7 +112,7 @@ export function AdminHelpWidget() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7 text-white hover:bg-white/20 hover:text-white"
+                className="h-7 w-7 text-white hover:bg-white/20 hover:text-white flex-shrink-0"
                 onClick={() => setOpen(false)}
                 title="Minimise"
                 data-testid="button-admin-help-close"
@@ -115,10 +126,17 @@ export function AdminHelpWidget() {
               {messages.map((msg, i) => (
                 <div
                   key={i}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
+                  {msg.role === "assistant" && (
+                    <img
+                      src={gazAvatarSrc}
+                      alt="Gaz"
+                      className="h-6 w-6 rounded-full object-cover flex-shrink-0 mb-0.5"
+                    />
+                  )}
                   <div
-                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                    className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-[#8bc440] text-white"
                         : "bg-muted text-foreground"
@@ -129,7 +147,12 @@ export function AdminHelpWidget() {
                 </div>
               ))}
               {loading && (
-                <div className="flex justify-start">
+                <div className="flex items-end gap-2 justify-start">
+                  <img
+                    src={gazAvatarSrc}
+                    alt="Gaz"
+                    className="h-6 w-6 rounded-full object-cover flex-shrink-0 mb-0.5"
+                  />
                   <div className="bg-muted rounded-xl px-3 py-2 text-sm text-muted-foreground">
                     <span className="inline-flex gap-1 items-center">
                       <span className="animate-bounce delay-0">•</span>
@@ -172,7 +195,7 @@ export function AdminHelpWidget() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Ask a question…"
+                placeholder="Ask Gaz a question…"
                 className="flex-1 h-9 text-sm"
                 disabled={loading}
                 data-testid="input-admin-help-message"
