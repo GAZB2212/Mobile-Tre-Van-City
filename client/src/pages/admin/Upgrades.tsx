@@ -1970,14 +1970,17 @@ export default function AdminUpgrades() {
       <div className="space-y-6 p-6">
 
       {/* ── Category Management ── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Tags className="h-4 w-4" />
-            Manage Categories
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <Accordion type="single" collapsible className="border rounded-lg px-4">
+        <AccordionItem value="categories" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-3">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <Tags className="h-4 w-4" />
+              Manage Categories
+              <Badge variant="secondary" className="ml-1">{dbCategories.length}</Badge>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent>
+        <div className="space-y-3 pb-2">
           {categoriesLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
@@ -2064,8 +2067,10 @@ export default function AdminUpgrades() {
               Add
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {upgrades.length === 0 ? (
         <Card>
