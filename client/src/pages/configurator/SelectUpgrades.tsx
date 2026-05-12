@@ -227,6 +227,11 @@ export default function SelectUpgrades() {
         if (isIncompatible) {
           removeUpgrade(upgrade.id);
           purgeQuantities([upgrade.id]);
+          const itemName = upgrade.variantName || upgrade.name;
+          toast({
+            title: `${itemName} removed`,
+            description: `It isn't compatible with your ${vanSize} van.`,
+          });
         }
       }
     });
