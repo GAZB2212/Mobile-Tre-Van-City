@@ -1223,6 +1223,12 @@ export async function sendDepotInvoiceEmail({
 
   const totalAfterDiscount = discount && discount > 0 ? total - discount : total;
 
+  // Pre-discount breakdown — needed so the email shows the full list price
+  // before the discount row, making the maths immediately obvious to admins.
+  // `total` is always the pre-discount total inc. VAT; back-calculate ex-VAT parts.
+  const preDiscountVAT = discount && discount > 0 ? Math.round(total / 6) : vat;
+  const preDiscountSubtotal = discount && discount > 0 ? total - preDiscountVAT : subtotal;
+
   const vanDescriptionLines: string[] = [];
   if (vanDetails.isCustom) {
     vanDescriptionLines.push(vanDetails.customDescription || 'Customer-supplied van');
@@ -1287,10 +1293,17 @@ export async function sendDepotInvoiceEmail({
 
     <div class="section-title">Pricing</div>
     <table>
-      ${discount && discount > 0 ? `<tr><td>Original Price (inc. VAT)</td><td>${fmt(total)}</td></tr><tr><td style="color:#166534;">Discount</td><td style="color:#166534;">-${fmt(discount)}</td></tr>` : ''}
-      <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
-      <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
-      <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
+      ${discount && discount > 0 ? `
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(preDiscountSubtotal)}</td></tr>
+        <tr><td>VAT (20%)</td><td>${fmt(preDiscountVAT)}</td></tr>
+        <tr><td>List Price (inc. VAT)</td><td>${fmt(total)}</td></tr>
+        <tr><td style="color:#166534; font-weight:600; border-top:2px solid #e5e7eb;">Discount</td><td style="color:#166534; font-weight:600; border-top:2px solid #e5e7eb;">−${fmt(discount)}</td></tr>
+        <tr class="total-row"><td>Total Payable (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
+      ` : `
+        <tr><td>Subtotal (ex. VAT)</td><td>${fmt(subtotal)}</td></tr>
+        <tr><td>VAT (20%)</td><td>${fmt(vat)}</td></tr>
+        <tr class="total-row"><td>Total (inc. VAT)</td><td>${fmt(totalAfterDiscount)}</td></tr>
+      `}
       ${financeRows}
     </table>
   `;
@@ -1308,9 +1321,9 @@ ${kitName ? `Conversion Pack: ${kitName}\n` : ''}Upgrades:
 ${upgradeNames && upgradeNames.length > 0 ? upgradeNames.map(u => `  - ${u}`).join('\n') : '  None'}
 ${extrasText}
 PRICING
-${discount && discount > 0 ? `Original Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\n` : ''}Subtotal (ex. VAT): ${fmt(subtotal)}
-VAT (20%): ${fmt(vat)}
-Total (inc. VAT): ${fmt(totalAfterDiscount)}
+${discount && discount > 0
+  ? `Subtotal (ex. VAT): ${fmt(preDiscountSubtotal)}\nVAT (20%): ${fmt(preDiscountVAT)}\nList Price (inc. VAT): ${fmt(total)}\nDiscount: -${fmt(discount)}\nTotal Payable (inc. VAT): ${fmt(totalAfterDiscount)}`
+  : `Subtotal (ex. VAT): ${fmt(subtotal)}\nVAT (20%): ${fmt(vat)}\nTotal (inc. VAT): ${fmt(totalAfterDiscount)}`}
 ${financeText}
 Mobile Tyre Van City | ${PHONE}
 ${ADDRESS}`;
