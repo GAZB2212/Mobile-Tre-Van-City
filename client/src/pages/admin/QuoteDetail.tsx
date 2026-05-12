@@ -102,7 +102,6 @@ interface QuoteDetail extends Quote {
 }
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { upgradeCategories } from "@shared/schema";
 import BuildProgressTracker from "@/components/BuildProgressTracker";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import maxAvatarSrc from "@assets/max-avatar.png";
@@ -351,6 +350,11 @@ export default function AdminQuoteDetail() {
 
   const { data: upgrades = [] } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const { data: upgradeCategories = [] } = useQuery<{ id: string; label: string }[]>({
+    queryKey: ["/api/admin/upgrade-categories"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
 
@@ -2246,7 +2250,8 @@ export default function AdminQuoteDetail() {
                     Items with a green outline were originally selected by the customer
                   </p>
                   <div className="mt-2 space-y-4 border rounded-md p-4">
-                    {upgradeCategories.map((category) => {
+                    {upgradeCategories.map((cat) => {
+                      const category = cat.id;
                       // Hide the "commercial" category entirely for car/personal customers
                       if (category === "commercial" && serviceType === "car") return null;
 
@@ -2267,7 +2272,7 @@ export default function AdminQuoteDetail() {
                       return (
                         <div key={category} className="space-y-3">
                           <div className="text-sm font-semibold text-foreground border-b pb-1">
-                            {category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                            {cat.label}
                           </div>
                           
                           {/* Standalone upgrades with checkbox */}

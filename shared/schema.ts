@@ -101,7 +101,8 @@ export const upgradeCategories = [
   "storage",
   "safety",
   "power",
-  "accessories"
+  "accessories",
+  "profit-makers"
 ] as const;
 
 // Quote status enums

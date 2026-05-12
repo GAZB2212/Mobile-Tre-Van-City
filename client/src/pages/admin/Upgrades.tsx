@@ -39,10 +39,10 @@ import { AdminSwitch } from "@/components/AdminSwitch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check, ClipboardList, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Package, GripVertical, ArrowUp, ArrowDown, Barcode, ChevronDown as ChevronDownIcon, Check, ClipboardList, Copy, Tags, Pencil, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Upgrade, Kit } from "@shared/schema";
-import { insertUpgradeSchema, upgradeCategories } from "@shared/schema";
+import { insertUpgradeSchema } from "@shared/schema";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { UpgradeImageUploader } from "@/components/UpgradeImageUploader";
 import { UpgradeVideoUploader } from "@/components/UpgradeVideoUploader";
@@ -65,7 +65,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// Human-readable labels for upgrade categories
+// Human-readable labels for upgrade categories (fallback for DB-driven labels)
 const CATEGORY_LABELS: Record<string, string> = {
   "air-systems": "Air Systems",
   "equipment": "Equipment",
@@ -80,6 +80,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   "power": "Power",
   "accessories": "Accessories",
   "commercial": "Commercial / Hybrid",
+  "profit-makers": "Profit Makers",
 };
 
 // Form validation schema - extend shared schema for price conversion
@@ -611,6 +612,10 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
   const isEditing = !!upgrade;
 
   const { data: allKits = [] } = useQuery<Kit[]>({ queryKey: ["/api/admin/kits"], enabled: open });
+  const { data: dialogCategories = [] } = useQuery<{ id: string; label: string; sortOrder: number }[]>({
+    queryKey: ["/api/admin/upgrade-categories"],
+    enabled: open,
+  });
   const [showKitItems, setShowKitItems] = useState(false);
   const uniqueKitItems = Array.from(new Set(allKits.flatMap(k => k.includes))).sort();
   const [hasVariants, setHasVariants] = useState(false);
@@ -1041,9 +1046,9 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {upgradeCategories.map((category: string) => (
-                        <SelectItem key={category} value={category}>
-                          {CATEGORY_LABELS[category] ?? category}
+                      {dialogCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1789,13 +1794,60 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
   );
 }
 
+type UpgradeCategory = { id: string; label: string; sortOrder: number };
+
 export default function AdminUpgrades() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUpgrade, setEditingUpgrade] = useState<Upgrade | undefined>();
+  const [newCategoryLabel, setNewCategoryLabel] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCategoryLabel, setEditCategoryLabel] = useState("");
   const { toast } = useToast();
 
   const { data: upgrades = [], isLoading } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
+  });
+
+  const { data: dbCategories = [], isLoading: categoriesLoading } = useQuery<UpgradeCategory[]>({
+    queryKey: ["/api/admin/upgrade-categories"],
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (label: string) =>
+      apiRequest("POST", "/api/admin/upgrade-categories", { label }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrade-categories"] });
+      setNewCategoryLabel("");
+      toast({ title: "Category added" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err?.message || "Failed to add category", variant: "destructive" });
+    },
+  });
+
+  const renameCategoryMutation = useMutation({
+    mutationFn: async ({ id, label }: { id: string; label: string }) =>
+      apiRequest("PATCH", `/api/admin/upgrade-categories/${id}`, { label }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrade-categories"] });
+      setEditingCategoryId(null);
+      toast({ title: "Category renamed" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err?.message || "Failed to rename category", variant: "destructive" });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: string) =>
+      apiRequest("DELETE", `/api/admin/upgrade-categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrade-categories"] });
+      toast({ title: "Category deleted" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Cannot delete", description: err?.message || "Failed to delete category", variant: "destructive" });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -1899,8 +1951,8 @@ export default function AdminUpgrades() {
     upgradesByCategory[category].sort((a, b) => a.sortOrder - b.sortOrder);
   });
 
-  // Get all categories (from schema) to show empty categories too
-  const allCategories = [...upgradeCategories];
+  // Get all categories from DB (falls back to empty until loaded)
+  const allCategories = dbCategories.map(c => c.id);
 
   return (
     <>
@@ -1916,6 +1968,104 @@ export default function AdminUpgrades() {
         }
       />
       <div className="space-y-6 p-6">
+
+      {/* ── Category Management ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Tags className="h-4 w-4" />
+            Manage Categories
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {categoriesLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : (
+            <div className="divide-y rounded-md border">
+              {dbCategories.map((cat) => (
+                <div key={cat.id} className="flex items-center gap-2 px-3 py-2">
+                  {editingCategoryId === cat.id ? (
+                    <>
+                      <Input
+                        value={editCategoryLabel}
+                        onChange={(e) => setEditCategoryLabel(e.target.value)}
+                        className="h-8 flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") renameCategoryMutation.mutate({ id: cat.id, label: editCategoryLabel });
+                          if (e.key === "Escape") setEditingCategoryId(null);
+                        }}
+                        autoFocus
+                        data-testid={`input-rename-category-${cat.id}`}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => renameCategoryMutation.mutate({ id: cat.id, label: editCategoryLabel })}
+                        disabled={renameCategoryMutation.isPending}
+                        data-testid={`button-save-category-${cat.id}`}
+                      >
+                        Save
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setEditingCategoryId(null)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm font-medium" data-testid={`text-category-label-${cat.id}`}>{cat.label}</span>
+                      <span className="text-xs text-muted-foreground mr-2">{cat.id}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => { setEditingCategoryId(cat.id); setEditCategoryLabel(cat.label); }}
+                        data-testid={`button-rename-category-${cat.id}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          if (confirm(`Delete category "${cat.label}"? This will fail if any upgrades still use it.`)) {
+                            deleteCategoryMutation.mutate(cat.id);
+                          }
+                        }}
+                        disabled={deleteCategoryMutation.isPending}
+                        data-testid={`button-delete-category-${cat.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Add new category */}
+          <div className="flex gap-2 pt-1">
+            <Input
+              placeholder="New category name, e.g. Profit Makers"
+              value={newCategoryLabel}
+              onChange={(e) => setNewCategoryLabel(e.target.value)}
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newCategoryLabel.trim()) {
+                  createCategoryMutation.mutate(newCategoryLabel.trim());
+                }
+              }}
+              data-testid="input-new-category"
+            />
+            <Button
+              onClick={() => { if (newCategoryLabel.trim()) createCategoryMutation.mutate(newCategoryLabel.trim()); }}
+              disabled={createCategoryMutation.isPending || !newCategoryLabel.trim()}
+              size="sm"
+              data-testid="button-add-category"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {upgrades.length === 0 ? (
         <Card>
@@ -1941,7 +2091,7 @@ export default function AdminUpgrades() {
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-semibold">
-                      {CATEGORY_LABELS[category] ?? category.replace(/-/g, ' ')}
+                      {dbCategories.find(c => c.id === category)?.label ?? CATEGORY_LABELS[category] ?? category.replace(/-/g, ' ')}
                     </h2>
                     <Badge variant="secondary">{categoryUpgrades.length}</Badge>
                   </div>

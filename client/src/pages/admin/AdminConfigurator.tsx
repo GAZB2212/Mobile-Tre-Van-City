@@ -91,6 +91,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   "power": "Power",
   "accessories": "Accessories",
   "commercial": "Commercial / Hybrid",
+  "profit-makers": "Profit Makers",
 };
 
 const CATEGORY_ORDER = [

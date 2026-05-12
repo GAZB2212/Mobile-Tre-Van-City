@@ -261,6 +261,32 @@ app.use((req, res, next) => {
         .then(() => log("✅ Finance portal columns ready"))
         .catch((err: Error) => console.error("Finance portal migration:", err.message));
       pool.query(`
+        CREATE TABLE IF NOT EXISTS upgrade_categories (
+          id TEXT PRIMARY KEY,
+          label TEXT NOT NULL,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        INSERT INTO upgrade_categories (id, label, sort_order) VALUES
+          ('commercial',    'Commercial / Hybrid', 0),
+          ('air-systems',   'Air Systems',         1),
+          ('equipment',     'Equipment',           2),
+          ('branding',      'Branding',            3),
+          ('security',      'Security',            4),
+          ('lighting',      'Lighting',            5),
+          ('business',      'Business',            6),
+          ('technology',    'Technology',          7),
+          ('comfort',       'Comfort',             8),
+          ('storage',       'Storage',             9),
+          ('safety',        'Safety',              10),
+          ('power',         'Power',               11),
+          ('accessories',   'Accessories',         12),
+          ('profit-makers', 'Profit Makers',       13)
+        ON CONFLICT (id) DO NOTHING;
+      `)
+        .then(() => log("✅ Upgrade categories table ready"))
+        .catch((err: Error) => console.error("Upgrade categories migration:", err.message));
+      pool.query(`
         CREATE TABLE IF NOT EXISTS follow_ups (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
           lead_id VARCHAR REFERENCES leads(id),

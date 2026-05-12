@@ -8709,6 +8709,81 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── Upgrade Categories CRUD ────────────────────────────────────────────────
+
+  app.get("/api/admin/upgrade-categories", isBasicAdmin, async (_req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT id, label, sort_order AS "sortOrder" FROM upgrade_categories ORDER BY sort_order ASC, label ASC`
+      );
+      res.json(result.rows);
+    } catch (err) {
+      console.error("Get upgrade categories:", err);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/admin/upgrade-categories", isFullAdmin, async (req, res) => {
+    try {
+      const { label } = z.object({ label: z.string().min(1).max(100) }).parse(req.body);
+      const id = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const nextOrder = await pool.query(
+        `SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM upgrade_categories`
+      );
+      const sortOrder = nextOrder.rows[0].next;
+      await pool.query(
+        `INSERT INTO upgrade_categories (id, label, sort_order) VALUES ($1, $2, $3)
+         ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label`,
+        [id, label, sortOrder]
+      );
+      res.json({ id, label, sortOrder });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Create upgrade category:", err);
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.patch("/api/admin/upgrade-categories/:id", isFullAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { label } = z.object({ label: z.string().min(1).max(100) }).parse(req.body);
+      const result = await pool.query(
+        `UPDATE upgrade_categories SET label = $1 WHERE id = $2
+         RETURNING id, label, sort_order AS "sortOrder"`,
+        [label, id]
+      );
+      if (result.rowCount === 0) return res.status(404).json({ error: "Category not found" });
+      res.json(result.rows[0]);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: "Invalid data" });
+      console.error("Update upgrade category:", err);
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/admin/upgrade-categories/:id", isFullAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const inUse = await pool.query(
+        `SELECT COUNT(*) AS count FROM upgrades WHERE category = $1`, [id]
+      );
+      const count = parseInt(inUse.rows[0].count, 10);
+      if (count > 0) {
+        return res.status(409).json({
+          error: `Cannot delete — ${count} upgrade${count === 1 ? "" : "s"} use this category. Reassign them first.`
+        });
+      }
+      await pool.query(`DELETE FROM upgrade_categories WHERE id = $1`, [id]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Delete upgrade category:", err);
+      res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
+  // ── End Upgrade Categories ─────────────────────────────────────────────────
+
   const httpServer = createServer(app);
 
   return httpServer;
