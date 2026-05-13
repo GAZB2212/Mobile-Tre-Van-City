@@ -162,6 +162,38 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
   };
 }
 
+function resolveExclusiveGroupConflicts(ids: string[], catalog: Upgrade[]): string[] {
+  const getExclusiveGroup = (upgrade: Upgrade): string | null => {
+    if (upgrade.exclusiveGroup) return upgrade.exclusiveGroup;
+    if (upgrade.parentId) {
+      const parent = catalog.find(u => u.id === upgrade.parentId);
+      if (parent?.exclusiveGroup) return parent.exclusiveGroup;
+    }
+    return null;
+  };
+
+  const selected = catalog.filter(u => ids.includes(u.id));
+  const groupMap = new Map<string, string[]>();
+  selected.forEach(u => {
+    const group = getExclusiveGroup(u);
+    if (group) {
+      if (!groupMap.has(group)) groupMap.set(group, []);
+      groupMap.get(group)!.push(u.id);
+    }
+  });
+
+  const toRemove = new Set<string>();
+  groupMap.forEach(groupIds => {
+    if (groupIds.length > 1) {
+      const [, ...rest] = groupIds;
+      rest.forEach(id => toRemove.add(id));
+    }
+  });
+
+  if (toRemove.size === 0) return ids;
+  return ids.filter(id => !toRemove.has(id));
+}
+
 const quoteStatuses = [
   "new", "contacted", "awaiting_deposit", "awaiting_finance",
   "finance_declined", "deposit_taken", "finance_approved", "in_build", "completed", "cancelled"
@@ -416,17 +448,21 @@ export default function AdminQuoteDetail() {
       // Also detect custom van when only customVanValue or vanRegistration is set (e.g. from configurator flow)
       setSelectedVanId(quote.vanId || (quote.customVanDescription || quote.customVanValue || quote.vanRegistration ? "custom" : null));
       setSelectedKitId(quote.kitId || null);
-      setSelectedUpgradeIds(quote.selectedUpgradeIds || []);
-      setSelectedUpgrades(quote.selectedUpgrades || {});
-      setOriginalUpgradeIds(quote.selectedUpgradeIds || []);
+      const rawUpgradeIds = quote.selectedUpgradeIds || [];
+      const rawUpgrades = quote.selectedUpgrades || {};
+      const resolvedIds = upgrades.length ? resolveExclusiveGroupConflicts(rawUpgradeIds, upgrades) : rawUpgradeIds;
+      const resolvedUpgrades = Object.fromEntries(Object.entries(rawUpgrades).filter(([id]) => resolvedIds.includes(id)));
+      setSelectedUpgradeIds(resolvedIds);
+      setSelectedUpgrades(resolvedUpgrades);
+      setOriginalUpgradeIds(rawUpgradeIds);
       setCustomExtras((quote as any).customExtras || []);
       
       // Store original configuration for change detection
       // Mirror the "custom" sentinel used by selectedVanId so dirty-check works correctly for custom vans
       setOriginalVanId(quote.vanId || (quote.customVanDescription || quote.customVanValue || quote.vanRegistration ? "custom" : null));
       setOriginalKitId(quote.kitId || null);
-      setOriginalSelectedUpgradeIds(quote.selectedUpgradeIds || []);
-      setOriginalSelectedUpgrades(quote.selectedUpgrades || {});
+      setOriginalSelectedUpgradeIds(resolvedIds);
+      setOriginalSelectedUpgrades(resolvedUpgrades);
 
       // Initialize finance editor (deposit stored in pence, convert to £; term stored in months, convert to years)
       const depositPence = quote.financeInputs?.deposit;
@@ -439,6 +475,30 @@ export default function AdminQuoteDetail() {
       else setViewingSlot('A');
     }
   }, [quote]);
+
+  // Secondary resolution: if the upgrade catalog finished loading after the initial quote load,
+  // silently drop any conflicting exclusive-group selections that slipped through.
+  useEffect(() => {
+    if (!upgrades.length || !hasLoadedRef.current) return;
+    setSelectedUpgradeIds(prev => {
+      const resolved = resolveExclusiveGroupConflicts(prev, upgrades);
+      return resolved.length !== prev.length ? resolved : prev;
+    });
+    setSelectedUpgrades(prev => {
+      const resolvedSet = new Set(resolveExclusiveGroupConflicts(Object.keys(prev), upgrades));
+      const next = Object.fromEntries(Object.entries(prev).filter(([id]) => resolvedSet.has(id)));
+      return Object.keys(next).length !== Object.keys(prev).length ? next : prev;
+    });
+    setOriginalSelectedUpgradeIds(prev => {
+      const resolved = resolveExclusiveGroupConflicts(prev, upgrades);
+      return resolved.length !== prev.length ? resolved : prev;
+    });
+    setOriginalSelectedUpgrades(prev => {
+      const resolvedSet = new Set(resolveExclusiveGroupConflicts(Object.keys(prev), upgrades));
+      const next = Object.fromEntries(Object.entries(prev).filter(([id]) => resolvedSet.has(id)));
+      return Object.keys(next).length !== Object.keys(prev).length ? next : prev;
+    });
+  }, [upgrades]);
 
   const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
     queryKey: ["/api/admin/customers", linkCustomerSearch],
