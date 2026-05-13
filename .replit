@@ -69,4 +69,4 @@ AUTOTRADEOS_API_URL = "https://autotradeos.autotradeportal.com"
 
 [postMerge]
 path = "scripts/post-merge.sh"
-timeoutMs = 20000
+timeoutMs = 60000
