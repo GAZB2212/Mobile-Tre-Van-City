@@ -29,6 +29,8 @@ import {
   Pencil,
   Trash2,
   PhoneCall,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import type { User, StaffPhone } from "@shared/schema";
 
@@ -132,6 +134,26 @@ export default function AdminSettings() {
     onError: () => toast({ variant: "destructive", title: "Failed to remove phone number" }),
   });
 
+  const reorderPhoneMutation = useMutation({
+    mutationFn: async ({ id, newOrder }: { id: string; newOrder: number }) => {
+      const res = await apiRequest("PATCH", `/api/admin/staff-phones/${id}`, { sortOrder: newOrder });
+      if (!res.ok) throw new Error("Failed to reorder");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/staff-phones"] }),
+    onError: () => toast({ variant: "destructive", title: "Failed to reorder" }),
+  });
+
+  const movePhone = (index: number, direction: "up" | "down") => {
+    const phones = [...staffPhones];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= phones.length) return;
+    const a = phones[index];
+    const b = phones[targetIndex];
+    reorderPhoneMutation.mutate({ id: a.id, newOrder: b.sortOrder });
+    reorderPhoneMutation.mutate({ id: b.id, newOrder: a.sortOrder });
+  };
+
   const isAdmin = user?.adminRole === "full" || user?.adminRole === "basic";
   if (!isAdmin) {
     return (
@@ -184,7 +206,7 @@ export default function AdminSettings() {
                 </div>
               ) : (
                 <ul className="space-y-2">
-                  {staffPhones.map((p) => (
+                  {staffPhones.map((p, idx) => (
                     <li key={p.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2" data-testid={`staff-phone-${p.id}`}>
                       <div className="flex items-center gap-2 min-w-0">
                         <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -192,6 +214,24 @@ export default function AdminSettings() {
                         <span className="text-xs text-muted-foreground truncate">{p.label}</span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => movePhone(idx, "up")}
+                          disabled={idx === 0 || reorderPhoneMutation.isPending}
+                          data-testid={`button-move-phone-up-${p.id}`}
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => movePhone(idx, "down")}
+                          disabled={idx === staffPhones.length - 1 || reorderPhoneMutation.isPending}
+                          data-testid={`button-move-phone-down-${p.id}`}
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </Button>
                         <Button
                           size="icon"
                           variant="ghost"

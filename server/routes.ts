@@ -9081,7 +9081,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           await pool.query(`UPDATE quotes SET admin_notes_history = $1 WHERE id = $2`, [JSON.stringify(hist), quoteId]);
         }
         if (leadId) {
-          // Log to customer notes if the lead is linked to a customer
+          // Always log to lead crm_notes timeline (no customer linkage required)
+          const { rows: leadRows } = await pool.query(`SELECT crm_notes FROM leads WHERE id = $1`, [leadId]);
+          if (leadRows[0]) {
+            const leadHist: Array<{ text: string; timestamp: string; author?: string }> =
+              Array.isArray(leadRows[0].crm_notes) ? leadRows[0].crm_notes : [];
+            leadHist.push(entry);
+            await pool.query(`UPDATE leads SET crm_notes = $1 WHERE id = $2`, [JSON.stringify(leadHist), leadId]);
+          }
+          // Also log to customer notes if the lead is linked to a customer
           await pool.query(
             `INSERT INTO customer_notes (customer_id, author_name, note_type, text)
              SELECT customer_id, $1, 'call', $2 FROM leads WHERE id = $3 AND customer_id IS NOT NULL`,

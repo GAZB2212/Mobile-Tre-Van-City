@@ -966,7 +966,7 @@ export default function AdminQuotes() {
                                     No profile
                                   </span>
                                 )}
-                                <div className="pt-1 border-t border-border/50">
+                                <div className="pt-1 border-t border-border/50 flex items-center justify-between gap-2">
                                   <Link
                                     href={`/admin/quotes/${quote.id}?tab=configuration&from=quotes`}
                                     onClick={e => e.stopPropagation()}
@@ -976,6 +976,26 @@ export default function AdminQuotes() {
                                     <Settings className="w-3 h-3" />
                                     Edit Config
                                   </Link>
+                                  {twilioConfigured && staffPhones.length > 0 && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={(e) => {
+                                            if (!quote.phone) return;
+                                            e.stopPropagation();
+                                            setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
+                                            setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", customerPhone: quote.phone });
+                                          }}
+                                          disabled={!quote.phone}
+                                          className="p-1 rounded text-[#8bc440] hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                          data-testid={`icon-call-kanban-${quote.id}`}
+                                        >
+                                          <PhoneCall className="w-3 h-3" />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{quote.phone ? "Call via bridge" : "No phone number on record"}</TooltipContent>
+                                    </Tooltip>
+                                  )}
                                 </div>
                               </CardContent>
                             </Card>
