@@ -862,6 +862,12 @@ export default function AdminQuotes() {
                                       Max
                                     </Badge>
                                   )}
+                                  {(quote as any).staffName && (
+                                    <Badge className="shrink-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 gap-1 text-[10px] px-1.5 py-0" data-testid={`badge-staff-built-kanban-${quote.id}`}>
+                                      <Wrench className="w-2.5 h-2.5" />
+                                      {(quote as any).staffName}
+                                    </Badge>
+                                  )}
                                 </div>
                                 {quote.company && (
                                   <p className="text-xs text-muted-foreground truncate">{quote.company}</p>
@@ -964,6 +970,12 @@ export default function AdminQuotes() {
                           <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1" data-testid={`badge-max-ai-${quote.id}`}>
                             <Bot className="w-3 h-3" />
                             Via Max
+                          </Badge>
+                        )}
+                        {(quote as any).staffName && (
+                          <Badge className="shrink-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 gap-1" data-testid={`badge-staff-built-${quote.id}`}>
+                            <Wrench className="w-3 h-3" />
+                            Built by {(quote as any).staffName}
                           </Badge>
                         )}
                         {/* Quick status dropdown */}
