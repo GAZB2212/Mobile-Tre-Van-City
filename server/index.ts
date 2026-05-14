@@ -35,6 +35,28 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  // Content-Security-Policy
+  // - unsafe-inline needed for React SSR hydration scripts and inline styles (Tailwind/shadcn)
+  // - Google Fonts loaded via <link> in index.html
+  // - GCS for all van/upgrade/gallery images and videos
+  // - YouTube for embed iframes and thumbnail images
+  // - maps.google.com for the contact page map iframe
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://analytics.ahrefs.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https://storage.googleapis.com https://img.youtube.com https://lh3.googleusercontent.com",
+    "media-src 'self' blob: https://storage.googleapis.com",
+    "frame-src https://www.youtube.com https://maps.google.com",
+    "connect-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+  ].join('; ');
+  res.setHeader('Content-Security-Policy', csp);
+
   next();
 });
 
