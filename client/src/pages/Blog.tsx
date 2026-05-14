@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { CalendarDays, Tag, ArrowRight, Rss } from "lucide-react";
+import { CalendarDays, Tag, ArrowRight, Rss, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -14,6 +14,14 @@ function PostCard({ post }: { post: BlogPost }) {
   const date = post.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : null;
+
+  const updatedDate = (() => {
+    if (!post.updatedAt || !post.publishedAt) return null;
+    const updated = new Date(post.updatedAt).getTime();
+    const published = new Date(post.publishedAt).getTime();
+    if (updated - published < 24 * 60 * 60 * 1000) return null;
+    return new Date(post.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  })();
 
   return (
     <Card className="flex flex-col overflow-hidden hover-elevate" data-testid={`card-blog-${post.id}`}>
@@ -36,6 +44,12 @@ function PostCard({ post }: { post: BlogPost }) {
             <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-date-${post.id}`}>
               <CalendarDays className="w-3 h-3" />
               {date}
+            </span>
+          )}
+          {updatedDate && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-updated-${post.id}`}>
+              <RefreshCw className="w-3 h-3" />
+              Updated {updatedDate}
             </span>
           )}
         </div>

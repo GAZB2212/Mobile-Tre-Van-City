@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
-import { CalendarDays, Tag, ArrowLeft, User } from "lucide-react";
+import { CalendarDays, Tag, ArrowLeft, User, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +38,14 @@ export default function BlogPostPage() {
   const date = post?.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : null;
+
+  const updatedDate = (() => {
+    if (!post?.updatedAt || !post?.publishedAt) return null;
+    const updated = new Date(post.updatedAt).getTime();
+    const published = new Date(post.publishedAt).getTime();
+    if (updated - published < 24 * 60 * 60 * 1000) return null;
+    return new Date(post.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  })();
 
   const breadcrumb = post
     ? createBreadcrumbStructuredData([
@@ -114,6 +122,11 @@ export default function BlogPostPage() {
                 {date && (
                   <span className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="text-post-date">
                     <CalendarDays className="w-3.5 h-3.5" /> {date}
+                  </span>
+                )}
+                {updatedDate && (
+                  <span className="flex items-center gap-1 text-sm text-muted-foreground" data-testid="text-post-updated">
+                    <RefreshCw className="w-3.5 h-3.5" /> Updated {updatedDate}
                   </span>
                 )}
                 {post.authorName && (
