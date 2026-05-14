@@ -469,6 +469,14 @@ export function createProductStructuredData(van: {
       "price": van.price / 100,
       "availability": "https://schema.org/InStock",
       "url": `${SITE_URL}/stock/${van.id}`
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "GAJO Creative Ltd"
+    },
+    "copyrightHolder": {
+      "@type": "Organization",
+      "name": "GAJO Creative Ltd"
     }
   };
 }
@@ -553,6 +561,14 @@ export function createArticleStructuredData(post: {
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `${SITE_URL}/blog/${post.slug}`
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "GAJO Creative Ltd"
+    },
+    "copyrightHolder": {
+      "@type": "Organization",
+      "name": "GAJO Creative Ltd"
     }
   };
 }
