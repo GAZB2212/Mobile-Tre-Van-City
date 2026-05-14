@@ -115,7 +115,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Mobile Tyre Van Conversions UK | Mobile Tyre Van City"
+        title="Mobile Tyre Van Conversions UK"
         description="UK specialists in custom mobile tyre van conversions. Fully equipped builds, nationwide delivery, finance available. Based in Wirral. Call 0151 203 8500."
         canonical="/"
         keywords="mobile tyre van, tyre van conversion, mobile tyre fitting van, mobile tyre van for sale, tyre van city, mobile tyre business, van conversion UK"

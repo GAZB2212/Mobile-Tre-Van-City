@@ -464,7 +464,7 @@ export default function Configurator() {
                                       )}
                                       <div className="flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                          <h4 className="font-medium leading-tight">{parent.name}</h4>
+                                          <h3 className="font-medium leading-tight">{parent.name}</h3>
                                           <Badge variant="outline" className="text-xs">
                                             {variants.length} options available
                                           </Badge>
@@ -568,7 +568,7 @@ export default function Configurator() {
                     <div className="space-y-4">
                       {selectedKit && (
                         <div>
-                          <h3 className="font-medium mb-2">Selected Equipment Kit:</h3>
+                          <h2 className="font-medium mb-2 text-base">Selected Equipment Kit:</h2>
                           {(() => {
                             const kit = configuratorData.kits.find(k => k.id === selectedKit);
                             return kit ? (
@@ -590,7 +590,7 @@ export default function Configurator() {
 
                       {selectedUpgrades.length > 0 && (
                         <div>
-                          <h3 className="font-medium mb-2">Selected Upgrades:</h3>
+                          <h2 className="font-medium mb-2 text-base">Selected Upgrades:</h2>
                           <div className="space-y-2">
                             {selectedUpgrades.map(upgradeId => {
                               const upgrade = Object.values(configuratorData.upgrades)
