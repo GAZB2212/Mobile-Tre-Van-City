@@ -9,6 +9,7 @@ import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
 import AIChatWidget from "@/components/AIChatWidget";
 import ConfiguratorIdleModal from "@/components/ConfiguratorIdleModal";
+import SkipLink from "@/components/SkipLink";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
@@ -156,6 +157,26 @@ function Router() {
   );
 }
 
+/**
+ * Wraps all public (non-admin, non-finance-portal, non-login) routes in a
+ * labelled <main id="main-content"> landmark so the global SkipLink target
+ * is always present. The Finance Portal manages its own <main id="main-content">
+ * and is intentionally excluded here to prevent duplicate IDs in the DOM.
+ */
+function PublicMain({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const isExcluded =
+    location.startsWith("/admin") ||
+    location.startsWith("/finance-portal") ||
+    location === "/login";
+  if (isExcluded) return <>{children}</>;
+  return (
+    <main id="main-content" tabIndex={-1} className="outline-none">
+      {children}
+    </main>
+  );
+}
+
 function PublicChatBubble() {
   const [location] = useLocation();
   if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal")) return null;
@@ -198,13 +219,16 @@ function App() {
     <AppErrorBoundary>
       <ConfiguratorProvider>
         <TooltipProvider>
+          <SkipLink />
           <ConditionalLoadingScreen />
           <ScrollRestoration />
           <Toaster />
           <AnalyticsProvider>
-            <Suspense fallback={null}>
-              <Router />
-            </Suspense>
+            <PublicMain>
+              <Suspense fallback={null}>
+                <Router />
+              </Suspense>
+            </PublicMain>
           </AnalyticsProvider>
           <PublicChatBubble />
           <AIWidget />
