@@ -23,6 +23,7 @@ export interface PageMeta {
   canonical: string;
   ogImage?: string;
   ogType?: string;
+  structuredData?: object[];
 }
 
 export const staticRouteMeta: Record<string, PageMeta> = {
@@ -242,5 +243,86 @@ export function injectMetaIntoHtml(html: string, meta: PageMeta): string {
     html = html.replace("</head>", `  ${tagsToInject.join('\n    ')}\n  </head>`);
   }
 
+  if (meta.structuredData && meta.structuredData.length > 0) {
+    const ldScripts = meta.structuredData
+      .map(data => `<script type="application/ld+json">${JSON.stringify(data)}</script>`)
+      .join('\n    ');
+    html = html.replace("</head>", `  ${ldScripts}\n  </head>`);
+  }
+
   return html;
+}
+
+export function buildBlogPostMeta(post: {
+  title: string;
+  summary: string;
+  slug: string;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  featuredImage?: string | null;
+  authorName?: string | null;
+  publishedAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  createdAt?: Date | string | null;
+}): PageMeta {
+  const title = post.seoTitle || post.title;
+  const description = post.seoDescription || post.summary;
+  const image = post.featuredImage
+    ? (post.featuredImage.startsWith('http') ? post.featuredImage : `${SITE_URL}${post.featuredImage.startsWith('/') ? '' : '/'}${post.featuredImage}`)
+    : DEFAULT_OG_IMAGE;
+
+  const publishedIso = post.publishedAt
+    ? new Date(post.publishedAt).toISOString()
+    : post.createdAt
+      ? new Date(post.createdAt).toISOString()
+      : null;
+  const modifiedIso = post.updatedAt
+    ? new Date(post.updatedAt).toISOString()
+    : publishedIso;
+
+  const articleSchema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": description,
+    "url": `${SITE_URL}/blog/${post.slug}`,
+    ...(publishedIso && { "datePublished": publishedIso }),
+    ...(modifiedIso && { "dateModified": modifiedIso }),
+    "image": image,
+    "author": {
+      "@type": "Person",
+      "name": post.authorName || SITE_NAME
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": SITE_NAME,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${SITE_URL}/favicon.png`
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/blog/${post.slug}`
+    }
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": SITE_URL },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": `${SITE_URL}/blog` },
+      { "@type": "ListItem", "position": 3, "name": post.title, "item": `${SITE_URL}/blog/${post.slug}` }
+    ]
+  };
+
+  return {
+    title: `${title} | ${SITE_NAME}`,
+    description,
+    canonical: `/blog/${post.slug}`,
+    ogImage: image,
+    ogType: "article",
+    structuredData: [articleSchema, breadcrumbSchema],
+  };
 }

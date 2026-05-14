@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { CalendarDays, Tag, ArrowRight, Rss } from "lucide-react";
+import { CalendarDays, Tag, ArrowRight, Rss, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -36,6 +36,12 @@ function PostCard({ post }: { post: BlogPost }) {
             <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-date-${post.id}`}>
               <CalendarDays className="w-3 h-3" />
               {date}
+            </span>
+          )}
+          {post.authorName && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-author-${post.id}`}>
+              <User className="w-3 h-3" />
+              {post.authorName}
             </span>
           )}
         </div>

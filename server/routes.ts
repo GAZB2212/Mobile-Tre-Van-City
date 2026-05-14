@@ -11,7 +11,7 @@ import { pool } from "./db";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, isFinanceUser, getCurrentUser } from "./auth";
-import { buildVanMeta } from "./seo";
+import { buildVanMeta, buildBlogPostMeta } from "./seo";
 import { generateAiBlogPost } from "./blogGenerator";
 import { computePopularityIntelligence, formatPopularityBlock } from "./popularityIntelligence";
 import { 
@@ -5727,6 +5727,18 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       const van = await storage.getVanBySlug(req.params.slug);
       if (van && van.published) {
         req.__seoMeta = buildVanMeta(van);
+      }
+    } catch (e) {
+      // Non-fatal: page will use default meta
+    }
+    next();
+  });
+
+  app.get('/blog/:slug', async (req, res, next) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (post && post.published) {
+        req.__seoMeta = buildBlogPostMeta(post);
       }
     } catch (e) {
       // Non-fatal: page will use default meta
