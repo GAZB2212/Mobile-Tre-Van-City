@@ -9020,8 +9020,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // TwiML webhook — Twilio calls this when the staff member answers; it then dials the customer
   // No auth required — Twilio calls this endpoint server-to-server
-  app.get("/api/admin/calls/twiml", (req, res) => {
-    const rawTo = (req.query.to as string) || "";
+  function twimlHandler(req: express.Request, res: express.Response) {
+    const rawTo = ((req.query.to as string) || (req.body?.to as string) || "");
     const to = rawTo.replace(/[^0-9+]/g, "");
     res.set("Content-Type", "text/xml");
     if (!to) {
@@ -9031,7 +9031,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     res.send(
       `<Response><Dial callerId="${from}"><Number>${to}</Number></Dial></Response>`
     );
-  });
+  }
+  app.get("/api/admin/calls/twiml", twimlHandler);
+  app.post("/api/admin/calls/twiml", twimlHandler);
 
   // Initiate outbound bridge call: Twilio calls staff → on answer, connects to customer
   app.post("/api/admin/calls/initiate", isAuthenticated, isBasicAdmin, async (req, res) => {
@@ -9065,7 +9067,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const protocol = (req.get("x-forwarded-proto") as string) || req.protocol;
       const twimlUrl = `${protocol}://${host}/api/admin/calls/twiml?to=${encodeURIComponent(toNumber)}`;
 
-      await client.calls.create({ to: staffPhone, from: fromNumber, url: twimlUrl });
+      await client.calls.create({ to: staffPhone, from: fromNumber, url: twimlUrl, method: "GET" });
 
       // Log the call attempt as an admin note (non-fatal)
       try {
