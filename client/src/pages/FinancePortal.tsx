@@ -213,7 +213,7 @@ export default function FinancePortal() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[

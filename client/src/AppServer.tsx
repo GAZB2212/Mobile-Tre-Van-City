@@ -123,9 +123,11 @@ function AppServer() {
         <ScrollRestoration />
         <Toaster />
         <AnalyticsProvider>
-          <Suspense fallback={null}>
-            <Router />
-          </Suspense>
+          <main id="main-content">
+            <Suspense fallback={null}>
+              <Router />
+            </Suspense>
+          </main>
         </AnalyticsProvider>
         <PublicChatBubble />
         {showCookieBanner && <CookieConsentBanner onConsent={handleConsent} />}

@@ -158,6 +158,14 @@ function Router() {
   );
 }
 
+function PublicMain({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  if (location.startsWith("/admin") || location.startsWith("/finance-portal")) {
+    return <>{children}</>;
+  }
+  return <main id="main-content">{children}</main>;
+}
+
 function PublicChatBubble() {
   const [location] = useLocation();
   if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal")) return null;
@@ -204,9 +212,11 @@ function App() {
           <ScrollRestoration />
           <Toaster />
           <AnalyticsProvider>
-            <Suspense fallback={null}>
-              <Router />
-            </Suspense>
+            <PublicMain>
+              <Suspense fallback={null}>
+                <Router />
+              </Suspense>
+            </PublicMain>
           </AnalyticsProvider>
           <PublicChatBubble />
           <AIWidget />
