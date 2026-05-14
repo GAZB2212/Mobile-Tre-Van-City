@@ -1,0 +1,135 @@
+Terms & Conditions
+Last Updated: May 2026
+1. Introduction
+These Terms and Conditions (“Terms”) govern access to and use of the Mobile Tyre Van Conversions website platform, configurator systems, digital infrastructure, and associated services.
+The Platform and all associated Digital Assets are owned, developed, operated, and maintained exclusively by GAJO Creative Ltd (“GAJO”, “we”, “our”, or “us”).
+The Platform is utilised in connection with the commercial operations of Mobile Tyre Van Conversions.
+By accessing or using the Platform, submitting enquiries, requesting quotations, or engaging with any associated services, you agree to be bound by these Terms.
+If you do not agree to these Terms, you must not use the Platform.
+2. Definitions
+“GAJO” refers to GAJO Creative Ltd.
+“Operating Business” refers to Mobile Tyre Van Conversions and any associated trading operations using the Platform.
+“Platform” refers to the website, configurator systems, CRM systems, databases, automation systems, APIs, AI systems, enquiry systems, workflows, software infrastructure, hosting environment, and associated digital technologies owned and operated by GAJO.
+“Digital Assets” refers to all intellectual property and digital materials associated with the Platform including source code, software architecture, databases, graphics, designs, layouts, SEO structures, branding assets, content, workflows, customer systems, and backend infrastructure.
+“Services” refers to vehicle conversion services, equipment supply, installation services, quotations, finance facilitation, and related commercial activities conducted through the Platform.
+“User”, “Customer”, “you”, or “your” refers to any person or entity accessing or using the Platform or Services.
+3. Quotations & Orders
+Quote Validity
+Unless otherwise stated in writing, quotations remain valid for 30 days from the date of issue.
+Pricing
+All prices are stated in GBP (£).
+VAT will be added where applicable.
+Prices and specifications may change without notice.
+Additional charges may apply for bespoke requirements, specification changes, or additional works requested after quotation.
+Order Acceptance
+No order shall be deemed accepted until confirmed in writing by the Operating Business.
+The Operating Business reserves the right to refuse, cancel, or amend any order at its discretion.
+4. Payments
+Deposits may be required before work commences.
+Full payment must be received prior to collection or delivery unless alternative arrangements have been agreed in writing.
+Finance applications remain subject to lender approval and separate finance terms.
+Late payments may result in suspension of works, withholding of delivery, cancellation of services, interest charges, or recovery action.
+5. Build Times, Delivery & Collection
+Timescales
+All build and delivery times are estimates only and may vary due to:
+Vehicle availability
+Equipment supply delays
+Manufacturing constraints
+Third-party supplier issues
+Technical complications
+Operational requirements
+Events beyond reasonable control
+No liability shall arise from reasonable delays.
+Collection & Delivery
+Collection and delivery arrangements will be agreed separately.
+Additional delivery or transport charges may apply depending on location and operational requirements.
+Risk in goods passes upon collection or delivery.
+6. Warranty & Cancellations
+Warranty
+Workmanship warranties apply only where expressly confirmed in writing.
+Manufacturer warranties remain subject to manufacturer terms and conditions.
+Warranty does not cover misuse, accidental damage, neglect, unauthorised modifications, improper operation, or normal wear and tear.
+Cancellations
+Deposits may be non-refundable once work, procurement, design, preparation, or scheduling has commenced.
+Cancellation charges may apply to cover costs incurred.
+7. Limitation of Liability
+To the fullest extent permitted by law:
+GAJO and the Operating Business exclude liability for any indirect, incidental, consequential, special, or economic loss.
+No liability shall arise for loss of profits, loss of business, loss of contracts, loss of opportunity, loss of goodwill, data loss, or operational interruption.
+Liability for any claim shall not exceed the amount paid for the relevant Services giving rise to the claim.
+No liability is accepted for delays, supplier failures, technical issues, hosting interruptions, third-party systems, cyber incidents, or events outside reasonable control.
+Nothing in these Terms excludes liability which cannot legally be excluded under the laws of England and Wales.
+8. Intellectual Property Ownership
+All rights, title, and interest in the Platform and all associated Digital Assets remain exclusively vested in GAJO Creative Ltd.
+This includes, without limitation:
+Source code
+Software systems
+Configurator systems
+CRM systems
+Databases
+APIs
+AI systems
+Automation workflows
+Enquiry systems
+SEO structures
+User interfaces
+Graphics and layouts
+Branding assets
+Backend infrastructure
+Hosting architecture
+Customer workflows
+Operational systems
+Technical documentation
+Business process integrations
+No access to, use of, operational involvement with, contribution toward, commercial use of, or interaction with the Platform or Services shall create or imply any:
+transfer of ownership,
+assignment,
+licence,
+partnership interest,
+equitable interest,
+beneficial interest,
+joint ownership claim,
+implied intellectual property right,
+or continuing right of access
+in favour of any third party unless expressly agreed in a separate written agreement executed by GAJO Creative Ltd.
+All intellectual property rights are expressly reserved.
+Unauthorised reproduction, extraction, reverse engineering, copying, redistribution, modification, resale, replication, or exploitation of any Digital Assets is strictly prohibited.
+GAJO reserves the right to modify, suspend, migrate, replace, discontinue, revoke access to, rebrand, or otherwise control the Platform and associated Digital Assets at its discretion, subject only to any separate written agreements in force.
+9. Website Usage
+Users agree not to:
+Attempt unauthorised access to systems or databases
+Interfere with Platform security or functionality
+Upload malicious code or harmful content
+Use the Platform unlawfully
+Scrape, harvest, or extract data without permission
+Copy or replicate Platform functionality or content
+GAJO reserves the right to restrict or terminate access where misuse is suspected.
+10. Third-Party Services & Links
+The Platform may contain integrations, tools, software, or links provided by third parties.
+GAJO accepts no responsibility for third-party websites, systems, services, or content outside its control.
+Third-party services remain subject to their own terms and policies.
+11. Data Protection
+Use of the Platform is also governed by the Privacy Policy.
+By using the Platform, you acknowledge that personal data may be processed in accordance with applicable privacy laws and the Privacy Policy.
+12. Force Majeure
+Neither GAJO nor the Operating Business shall be liable for any delay or failure resulting from circumstances beyond reasonable control, including but not limited to:
+Supply chain failures
+Industrial disputes
+Acts of God
+Internet or hosting failures
+Cyber incidents
+Government action
+Power outages
+Transport disruption
+Natural disasters
+13. Governing Law
+These Terms are governed by and construed in accordance with the laws of England and Wales.
+Any disputes arising in connection with these Terms shall be subject to the exclusive jurisdiction of the courts of England and Wales.
+14. Changes to These Terms
+GAJO reserves the right to amend these Terms at any time without prior notice.
+Updated versions shall become effective immediately upon publication on the Platform.
+Continued use of the Platform constitutes acceptance of the revised Terms.
+15. Contact Information
+GAJO Creative Ltd
+United Kingdom
+Email: hello@gajocreative.co.uk

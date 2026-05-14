@@ -1,0 +1,84 @@
+Privacy Policy
+Last Updated: May 2026
+1. Introduction
+This website and associated digital systems are owned and operated by GAJO Creative Ltd (“GAJO”, “we”, “our”, or “us”) and licensed for commercial use by Mobile Tyre Van Conversions (“Operating Business”).
+This Privacy Policy explains how personal information is collected, used, stored, and protected when you access this website, use the configurator platform, submit enquiries, request quotations, communicate with the Operating Business, or otherwise interact with the digital systems provided by GAJO.
+GAJO acts as the provider and controller of the website platform, digital infrastructure, customer management systems, and associated technologies.
+2. Information We Collect
+We may collect and process the following information:
+Information You Voluntarily Provide
+Name
+Email address
+Telephone number
+Company information
+Vehicle and conversion requirements
+Finance enquiry details
+Uploaded documents or images
+Communications submitted through forms, email, chat systems, or telephone
+Automatically Collected Information
+IP address
+Browser and device information
+Operating system
+Usage analytics
+Session and cookie data
+Pages visited and interaction data
+Referral sources
+3. How We Use Your Information
+We use information to:
+Process enquiries and quotations
+Operate and improve the platform
+Provide customer support
+Manage projects and communications
+Facilitate finance enquiries
+Improve functionality and performance
+Conduct analytics and diagnostics
+Prevent fraud, abuse, or unauthorised activity
+Comply with legal and regulatory obligations
+4. Lawful Basis for Processing
+We process personal information under the following lawful bases:
+Contractual necessity
+Legitimate business interests
+Consent
+Legal obligations
+5. Platform Infrastructure & Digital Systems
+The website platform, configurator systems, customer relationship management systems, databases, automation tools, APIs, AI systems, enquiry handling systems, workflows, and associated digital infrastructure are proprietary systems owned exclusively by GAJO Creative Ltd.
+The Operating Business is granted limited licensed access to use the platform for commercial operations. No ownership rights or intellectual property rights are transferred by virtue of such use.
+6. Information Sharing
+We do not sell personal information.
+Information may be shared with:
+Finance providers
+Payment processors
+Hosting providers
+CRM and communications providers
+Analytics providers
+Professional advisers
+Legal or regulatory authorities where required
+All third parties are required to process information securely and lawfully.
+7. Cookies & Tracking
+We use cookies and similar technologies to operate and improve the platform.
+Users may manage cookie preferences through browser settings and applicable consent tools.
+8. Data Retention
+Information is retained only as long as reasonably necessary for operational, legal, contractual, and regulatory purposes.
+9. Data Security
+We implement reasonable technical and organisational security measures to protect information and platform integrity.
+However, no internet-based system can be guaranteed completely secure.
+10. Your Rights
+Under UK GDPR, users may request:
+Access to personal data
+Correction of inaccurate data
+Deletion of personal data
+Restriction of processing
+Objection to processing
+Data portability
+Withdrawal of consent
+Requests may be submitted using the contact details below.
+Users also have the right to complain to the UK Information Commissioner’s Office:
+ICO
+11. Third-Party Services
+The platform may contain links or integrations with third-party services. GAJO is not responsible for external websites or services outside its control.
+12. Changes to This Policy
+We reserve the right to update this Privacy Policy at any time. Continued use of the platform constitutes acceptance of any updated version.
+13. Contact Information
+GAJO Creative Ltd
+United Kingdom
+Email: hello@gajocreative.co.uk

@@ -24,14 +24,19 @@ export default function TermsConditions() {
 
         <Card data-testid="card-terms-conditions">
           <CardHeader>
-            <CardTitle className="text-4xl">Terms and Conditions</CardTitle>
-            <p className="text-muted-foreground">Last updated: November 2024</p>
+            <CardTitle className="text-4xl">Terms &amp; Conditions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 prose prose-invert max-w-none">
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-introduction">1. Introduction</h2>
               <p>
-                These Terms and Conditions ("Terms") govern your use of the Mobile Tyre Van Conversions website and services. By accessing or using our website, you agree to be bound by these Terms.
+                These Terms govern access to and use of the Mobile Tyre Van Conversions website platform, configurator systems, digital infrastructure, and associated services.
+              </p>
+              <p className="mt-3">
+                The digital platform and all associated systems are owned exclusively by GAJO Creative Ltd and licensed for operational use by Mobile Tyre Van Conversions ("Operating Business").
+              </p>
+              <p className="mt-3">
+                By using the platform or services, you agree to these Terms.
               </p>
             </section>
 
@@ -40,96 +45,105 @@ export default function TermsConditions() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-definitions">2. Definitions</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li><strong>"Company", "we", "our", or "us"</strong> refers to Mobile Tyre Van Conversions</li>
-                <li><strong>"Customer", "you", or "your"</strong> refers to the person or entity using our services</li>
-                <li><strong>"Services"</strong> refers to van conversions, equipment installation, and related services</li>
-                <li><strong>"Website"</strong> refers to our online platform and configurator system</li>
+                <li><strong>"GAJO"</strong> refers to GAJO Creative Ltd.</li>
+                <li><strong>"Operating Business"</strong> refers to Mobile Tyre Van Conversions.</li>
+                <li><strong>"Platform"</strong> refers to the website, configurator systems, CRM systems, databases, software, automation systems, APIs, AI systems, workflows, and associated infrastructure owned by GAJO.</li>
+                <li><strong>"Services"</strong> refers to vehicle conversion and associated operational services offered by the Operating Business.</li>
               </ul>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-quotes">3. Quotes and Orders</h2>
-              <p className="font-semibold">Quote Validity</p>
-              <p>All quotes are valid for 30 days from the date of issue unless otherwise stated.</p>
-              
-              <p className="font-semibold mt-4">Pricing</p>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-quotes">3. Quotations &amp; Orders</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li>All prices are in GBP (£) and exclude VAT unless stated otherwise</li>
-                <li>VAT at the current rate will be added to all prices</li>
-                <li>Prices are subject to change without notice</li>
-                <li>Additional charges may apply for custom requirements or modifications</li>
+                <li>Quotations remain valid for 30 days unless otherwise stated.</li>
+                <li>Prices are in GBP (£) excluding VAT unless stated otherwise.</li>
+                <li>Orders are accepted only upon written confirmation.</li>
+                <li>Specifications and pricing may change without notice.</li>
               </ul>
-
-              <p className="font-semibold mt-4">Order Acceptance</p>
-              <p>
-                A contract is formed when we accept your order. We reserve the right to refuse any order at our discretion.
-              </p>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-payment">4. Payment Terms</h2>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-payment">4. Payments</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li>A deposit is required to secure your order (amount specified in quote)</li>
-                <li>Full payment is due before delivery unless finance arrangements are in place</li>
-                <li>We accept bank transfer, credit/debit cards, and finance applications</li>
-                <li>Late payments may incur additional charges</li>
+                <li>Deposits may be required.</li>
+                <li>Full payment must be received before delivery unless alternative arrangements exist.</li>
+                <li>Late payments may incur fees or suspension of services.</li>
               </ul>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-delivery">5. Delivery and Installation</h2>
-              <p className="font-semibold">Timescales</p>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-delivery">5. Build &amp; Delivery Times</h2>
               <p>
-                Build times are estimates and may vary depending on vehicle availability, equipment supply, and other factors. We will keep you informed of any delays.
-              </p>
-
-              <p className="font-semibold mt-4">Collection and Delivery</p>
-              <p>
-                Arrangements for vehicle collection and delivery will be agreed upon order confirmation. Additional delivery charges may apply depending on location.
+                Build and delivery dates are estimates only and may vary due to supply chain, vehicle availability, technical, operational, or external factors.
               </p>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-warranty">6. Warranty and Returns</h2>
-              <p className="font-semibold">Warranty Coverage</p>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-warranty">6. Warranty</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li>All workmanship is guaranteed for 12 months from completion</li>
-                <li>Equipment warranties are as per manufacturer specifications</li>
-                <li>The warranty does not cover normal wear and tear or misuse</li>
+                <li>Workmanship warranties apply only as specified in writing.</li>
+                <li>Manufacturer warranties remain subject to manufacturer terms.</li>
+                <li>Warranty does not cover misuse, unauthorised modification, or normal wear and tear.</li>
               </ul>
-
-              <p className="font-semibold mt-4">Cancellations</p>
-              <p>
-                Cancellation terms will be specified in your order confirmation. Deposits may be non-refundable once work has commenced.
-              </p>
             </section>
 
             <Separator />
 
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-liability">7. Limitation of Liability</h2>
-              <p>To the extent permitted by law:</p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>We are not liable for any indirect, consequential, or special damages</li>
-                <li>Our total liability is limited to the amount paid for the services in question</li>
-                <li>We are not liable for delays caused by circumstances beyond our control</li>
+              <p>To the fullest extent permitted by law:</p>
+              <ul className="list-disc pl-6 space-y-2 mt-2">
+                <li>GAJO and the Operating Business exclude liability for indirect or consequential loss.</li>
+                <li>Liability shall not exceed the amount paid for relevant services.</li>
+                <li>No liability is accepted for operational interruption, data loss, third-party failures, or events outside reasonable control.</li>
               </ul>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-intellectual">8. Intellectual Property</h2>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-intellectual">8. Intellectual Property Ownership</h2>
               <p>
-                All content on our website, including text, images, designs, and configurator tools, is our property or used with permission. You may not reproduce, distribute, or create derivative works without our written consent.
+                All rights, title, and interest in the Platform and all associated Digital Assets remain exclusively vested in GAJO Creative Ltd.
+              </p>
+              <p className="mt-3">This includes but is not limited to:</p>
+              <ul className="list-disc pl-6 space-y-2 mt-2">
+                <li>Source code</li>
+                <li>Software architecture</li>
+                <li>Configurator systems</li>
+                <li>CRM systems</li>
+                <li>Databases</li>
+                <li>APIs</li>
+                <li>Automation workflows</li>
+                <li>AI systems</li>
+                <li>Enquiry systems</li>
+                <li>SEO structures</li>
+                <li>Designs and layouts</li>
+                <li>Branding assets</li>
+                <li>Graphics and content</li>
+                <li>Hosting architecture</li>
+                <li>Customer workflows</li>
+                <li>Backend infrastructure</li>
+              </ul>
+              <p className="mt-3">
+                The Operating Business accesses and uses the Platform strictly under licence.
+              </p>
+              <p className="mt-3">
+                No use, contribution, operational involvement, commercial arrangement, payment, access, collaboration, or business relationship shall create or imply any transfer, assignment, beneficial interest, equitable interest, partnership ownership, or intellectual property rights in favour of any third party unless expressly agreed in a signed written agreement executed by GAJO Creative Ltd.
+              </p>
+              <p className="mt-3">
+                GAJO reserves all rights relating to the Platform and Digital Assets, including rights to modify, suspend, revoke, rebrand, relicense, migrate, or otherwise control the Platform at its sole discretion subject to any binding written agreements.
+              </p>
+              <p className="mt-3">
+                Unauthorised reproduction, extraction, reverse engineering, copying, distribution, or modification is strictly prohibited.
               </p>
             </section>
 
@@ -138,7 +152,7 @@ export default function TermsConditions() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-data">9. Data Protection</h2>
               <p>
-                Your use of our services is also governed by our <Link href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>, which explains how we collect, use, and protect your personal information.
+                Use of the Platform is also governed by the <Link href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
               </p>
             </section>
 
@@ -147,7 +161,10 @@ export default function TermsConditions() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-governing">10. Governing Law</h2>
               <p>
-                These Terms are governed by the laws of England and Wales. Any disputes will be subject to the exclusive jurisdiction of the courts of England and Wales.
+                These Terms are governed by the laws of England and Wales.
+              </p>
+              <p className="mt-3">
+                Any disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.
               </p>
             </section>
 
@@ -156,34 +173,21 @@ export default function TermsConditions() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-changes-terms">11. Changes to Terms</h2>
               <p>
-                We reserve the right to modify these Terms at any time. Changes will be effective immediately upon posting on our website. Your continued use of our services constitutes acceptance of the modified Terms.
+                We reserve the right to amend these Terms at any time.
+              </p>
+              <p className="mt-3">
+                Continued use of the Platform constitutes acceptance of amended Terms.
               </p>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-ip-ownership">12. Intellectual Property Ownership</h2>
-              <p className="mb-3">
-                This website, including but not limited to its design, layout, source code, databases, content, graphics, branding assets, SEO infrastructure, and all associated digital materials (collectively, the "Digital Assets"), was designed and developed by GAJO Creative Ltd, a company registered in England and Wales (Company No. 16669280). All intellectual property rights in the Digital Assets, including copyright, database rights, and design rights, are and shall remain the sole and exclusive property of GAJO Creative Ltd, regardless of any commercial arrangement with the operating entity of this website.
-              </p>
-              <p className="mb-3">
-                No intellectual property rights in the Digital Assets are transferred or assigned to any third party by virtue of their use of or access to this website. Unauthorised reproduction, copying, distribution, or modification of any part of this website without the prior written consent of GAJO Creative Ltd is strictly prohibited.
-              </p>
-              <p>
-                For licensing enquiries please contact: <a href="mailto:hello@gajocreative.co.uk" className="text-primary hover:underline">hello@gajocreative.co.uk</a>
-              </p>
-            </section>
-
-            <Separator />
-
-            <section>
-              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-contact">13. Contact Information</h2>
-              <p>For questions about these Terms, please contact us:</p>
+              <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-contact">12. Contact Information</h2>
               <div className="bg-muted p-4 rounded-lg mt-3">
-                <p><strong>Email:</strong> info@mobiletyravan.co.uk</p>
-                <p><strong>Phone:</strong> 01234 567890</p>
-                <p><strong>Address:</strong> Mobile Tyre Van Conversions, Business Address, UK</p>
+                <p><strong>GAJO Creative Ltd</strong></p>
+                <p>United Kingdom</p>
+                <p><strong>Email:</strong> hello@gajocreative.co.uk</p>
               </div>
             </section>
           </CardContent>
