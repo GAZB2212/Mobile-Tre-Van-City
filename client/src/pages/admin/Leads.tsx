@@ -845,60 +845,29 @@ export default function AdminLeads() {
                           No phone
                         </span>
                       )}
-                      {/* Primary call CTA: bridge on desktop when Twilio is configured; direct tel: on mobile or when Twilio absent */}
-                      {twilioConfigured && staffPhones.length > 0 ? (
-                        <>
-                          {/* Desktop: bridge button is the primary action */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="hidden md:inline-flex">
-                                <Button
-                                  size="sm"
-                                  className="bg-[#8bc440] text-[#191919] shrink-0"
-                                  disabled={!lead.phone}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                    setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", toNumber: lead.phone! });
-                                  }}
-                                  data-testid={`button-call-bridge-${lead.id}`}
-                                >
-                                  <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                                  Call now
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            {!lead.phone && <TooltipContent>No phone number on record</TooltipContent>}
-                          </Tooltip>
-                          {/* Mobile: fall back to direct dial */}
-                          {lead.phone && (
-                            <a
-                              href={`tel:${lead.phone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="md:hidden"
-                              data-testid={`button-call-direct-${lead.id}`}
-                            >
-                              <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
+                      {/* Call via bridge — desktop only, only shown when Twilio is fully configured */}
+                      {twilioConfigured && staffPhones.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="hidden md:inline-flex">
+                              <Button
+                                size="sm"
+                                className="bg-[#8bc440] text-[#191919] shrink-0"
+                                disabled={!lead.phone}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
+                                  setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", toNumber: lead.phone! });
+                                }}
+                                data-testid={`button-call-bridge-${lead.id}`}
+                              >
                                 <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
                                 Call now
                               </Button>
-                            </a>
-                          )}
-                        </>
-                      ) : (
-                        /* No Twilio — always direct dial */
-                        lead.phone && (
-                          <a
-                            href={`tel:${lead.phone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            data-testid={`button-call-direct-${lead.id}`}
-                          >
-                            <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
-                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                              Call now
-                            </Button>
-                          </a>
-                        )
+                            </span>
+                          </TooltipTrigger>
+                          {!lead.phone && <TooltipContent>No phone number on record</TooltipContent>}
+                        </Tooltip>
                       )}
                     </div>
 
