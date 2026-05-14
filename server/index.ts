@@ -34,10 +34,12 @@ const ALLOWED_HOSTS = new Set([
 const CANONICAL_HOST = 'www.mobiletyrevancity.co.uk';
 
 // In production: force HTTPS before anything else (Replit terminates TLS and forwards x-forwarded-proto).
-// Always redirect to the canonical host — never reflect an untrusted host header in the Location URL.
+// Only redirect when the upstream proxy EXPLICITLY signals HTTP — do NOT fall back to req.protocol,
+// which would cause Cloud Run's internal health-check probes (which carry no x-forwarded-proto header)
+// to receive a 301 redirect instead of 200, failing the startup health check and causing restart loops.
 app.use((req, res, next) => {
-  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || '';
-  if (isProductionEnv && proto && proto !== 'https') {
+  const forwardedProto = req.headers['x-forwarded-proto'] as string | undefined;
+  if (isProductionEnv && forwardedProto === 'http') {
     return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
   }
   next();
