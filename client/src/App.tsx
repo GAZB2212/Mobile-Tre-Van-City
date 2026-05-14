@@ -10,6 +10,7 @@ import ChatBubble from "@/components/ChatBubble";
 import AIChatWidget from "@/components/AIChatWidget";
 import ConfiguratorIdleModal from "@/components/ConfiguratorIdleModal";
 import SkipLink from "@/components/SkipLink";
+import { PublicMain } from "@/lib/PublicMain";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
@@ -154,26 +155,6 @@ function Router() {
       <Route path="/admin/sku-manager">{() => <AdminLayout><AdminSkuManager /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
-  );
-}
-
-/**
- * Wraps all public (non-admin, non-finance-portal, non-login) routes in a
- * labelled <main id="main-content"> landmark so the global SkipLink target
- * is always present. The Finance Portal manages its own <main id="main-content">
- * and is intentionally excluded here to prevent duplicate IDs in the DOM.
- */
-function PublicMain({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const isExcluded =
-    location.startsWith("/admin") ||
-    location.startsWith("/finance-portal") ||
-    location === "/login";
-  if (isExcluded) return <>{children}</>;
-  return (
-    <main id="main-content" tabIndex={-1}>
-      {children}
-    </main>
   );
 }
 

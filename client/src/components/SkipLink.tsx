@@ -2,8 +2,7 @@ import { useLocation } from "wouter";
 
 export default function SkipLink() {
   const [location] = useLocation();
-  const hasTarget = location !== "/login";
-  if (!hasTarget) return null;
+  if (location === "/login") return null;
 
   return (
     <a

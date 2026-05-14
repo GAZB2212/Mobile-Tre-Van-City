@@ -726,7 +726,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </Dialog>
 
         {/* Page content */}
-        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
           {children}
         </main>
       </div>
