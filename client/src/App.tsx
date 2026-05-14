@@ -34,6 +34,7 @@ import Login from "@/pages/Login";
 import QuoteConfirmation from "@/pages/QuoteConfirmation";
 import SpecApproval from "@/pages/SpecApproval";
 import ArtworkApproval from "@/pages/ArtworkApproval";
+import CustomerBuildProgress from "@/pages/BuildProgress";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
@@ -108,6 +109,7 @@ function Router() {
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
       <Route path="/spec-approval/:token" component={SpecApproval} />
       <Route path="/artwork-approval/:token" component={ArtworkApproval} />
+      <Route path="/build-progress/:token" component={CustomerBuildProgress} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
@@ -170,7 +172,7 @@ function AIWidget() {
 
 function ConditionalLoadingScreen() {
   const [location] = useLocation();
-  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.startsWith("/artwork-approval/") || location.startsWith("/finance-portal")) {
+  if (location.startsWith("/spec-approval/") || location.startsWith("/quote/confirm/") || location.startsWith("/artwork-approval/") || location.startsWith("/build-progress/") || location.startsWith("/finance-portal")) {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("hasLoadedBefore", "true");
     }

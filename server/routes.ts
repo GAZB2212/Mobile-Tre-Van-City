@@ -4256,6 +4256,72 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     }
   });
 
+  // Public customer build progress — read-only view via approval token
+  app.get("/api/build-progress-public/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const quotes = await storage.getQuotes();
+      const quote = quotes.find(q => q.approvalToken === token);
+      if (!quote) {
+        return res.status(404).json({ error: "Build progress link not found or has expired" });
+      }
+      const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
+      const allUpgrades = await storage.getAllUpgradesAdmin();
+      const selectedUpgrades = allUpgrades.filter(u => quote.selectedUpgradeIds.includes(u.id));
+
+      const interiorWallPattern = /interior.wall/i;
+      const wrapGraphicsPattern = /wrap|graphic/i;
+      const isInteriorWall = (u: { name: string; category: string }) =>
+        interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
+      const isWrapGraphics = (u: { name: string; category: string }) =>
+        wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
+      const upgradeLabel = (u: { name: string; variantName: string | null }) =>
+        u.variantName ? `${u.name} — ${u.variantName}` : u.name;
+
+      let stages: Array<{ id: string; label: string; section?: string }>;
+      if (quote.customBuildStages && quote.customBuildStages.length > 0) {
+        stages = quote.customBuildStages;
+      } else {
+        stages = [];
+        stages.push({ id: "prep", label: "Van Preparation" });
+        if (kit) stages.push({ id: "kit", label: `Install ${kit.name}` });
+        const nonWrap = selectedUpgrades.filter(u => !isWrapGraphics(u) && !isInteriorWall(u));
+        const wrap = selectedUpgrades.filter(u => isWrapGraphics(u) && !isInteriorWall(u));
+        const wallUpgrades = selectedUpgrades.filter(u => isInteriorWall(u) && !isWrapGraphics(u));
+        for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
+        if (wrap.length > 0) {
+          stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
+          stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
+          stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
+        }
+        for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
+        if (wallUpgrades.length > 0) {
+          stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
+          stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
+          stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
+        }
+        for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
+        stages.push({ id: "final_checks", label: "Final Checks" });
+        stages.push({ id: "valet", label: "Valet & Handover" });
+      }
+
+      const completedStageIds = quote.completedBuildStages.map(s =>
+        typeof s === "string" ? s : s.id
+      );
+
+      res.json({
+        customerName: quote.userName,
+        vanRegistration: quote.vanRegistration ?? null,
+        company: quote.company ?? null,
+        stages,
+        completedStageIds,
+      });
+    } catch (error) {
+      console.error("Error fetching customer build progress:", error);
+      res.status(500).json({ error: "Failed to fetch build progress" });
+    }
+  });
+
   // Public spec approval — get quote info by approval token
   app.get("/api/spec-approval/:token", async (req, res) => {
     try {
