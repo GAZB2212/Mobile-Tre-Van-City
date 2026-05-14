@@ -12,6 +12,9 @@ import { backfillSkus } from "./backfill-skus";
 
 const app = express();
 
+// Detect production deployment (Replit sets REPLIT_DEPLOYMENT=1 when deployed)
+const isProductionEnv = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
+
 // Session must be first middleware to ensure cookies work properly
 app.set("trust proxy", true);
 app.use(getSession());
@@ -19,18 +22,26 @@ app.use(getSession());
 // Gzip compression for all responses
 app.use(compression());
 
+// In production: force HTTPS before anything else (Replit terminates TLS and forwards x-forwarded-proto)
+app.use((req, res, next) => {
+  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || '';
+  if (isProductionEnv && proto && proto !== 'https') {
+    const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
+    return res.redirect(301, `https://${host}${req.originalUrl}`);
+  }
+  next();
+});
+
 // Redirect non-www to www
 app.use((req, res, next) => {
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
   if (host && !host.startsWith('www.') && host.includes('mobiletyrevancity.co.uk')) {
-    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
-    return res.redirect(301, `${proto}://www.${host}${req.originalUrl}`);
+    return res.redirect(301, `https://www.${host}${req.originalUrl}`);
   }
   next();
 });
 
 // HTTP security headers
-const isProductionEnv = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
 
 app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -52,6 +63,9 @@ app.use((_req, res, next) => {
   // - maps.google.com for the contact page map iframe
   const csp = [
     "default-src 'self'",
+    // unsafe-inline required for React SSR hydration (<script>window.__TANSTACK_QUERY_STATE__</script>)
+    // and for Tailwind/shadcn inline styles. A nonce-based approach would remove this but requires
+    // deep SSR pipeline changes; tracked as a future hardening task.
     "script-src 'self' 'unsafe-inline' https://analytics.ahrefs.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
@@ -62,6 +76,8 @@ app.use((_req, res, next) => {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'self'",
+    // Instruct browsers to upgrade any remaining http:// sub-resources to https://
+    "upgrade-insecure-requests",
   ].join('; ');
   res.setHeader('Content-Security-Policy', csp);
 
