@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import session from "express-session";

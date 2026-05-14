@@ -34,7 +34,9 @@ export default function SEO({
     const metaTags: Array<{ name?: string; property?: string; content: string }> = [
       { name: 'description', content: description },
       { name: 'robots', content: noindex ? 'noindex, nofollow' : 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' },
-      { name: 'author', content: SITE_NAME },
+      { name: 'author', content: 'GAJO Creative Ltd' },
+      { name: 'copyright', content: '© GAJO Creative Ltd' },
+      { name: 'generator', content: 'GAJO Platform Systems' },
       { property: 'og:title', content: fullTitle },
       { property: 'og:description', content: description },
       { property: 'og:type', content: ogType },
@@ -201,6 +203,14 @@ export const organizationStructuredData = {
   "foundingLocation": {
     "@type": "Place",
     "name": "Wirral, Merseyside, United Kingdom"
+  },
+  "creator": {
+    "@type": "Organization",
+    "name": "GAJO Creative Ltd"
+  },
+  "copyrightHolder": {
+    "@type": "Organization",
+    "name": "GAJO Creative Ltd"
   }
 };
 

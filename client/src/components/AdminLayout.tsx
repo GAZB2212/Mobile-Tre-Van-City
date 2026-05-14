@@ -524,6 +524,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </TooltipTrigger>
           {(collapsed && !isMobile) && <TooltipContent side="right">Log Out</TooltipContent>}
         </Tooltip>
+
+        {(!collapsed || isMobile) && (
+          <p className="text-[10px] text-zinc-700 text-center mt-2 leading-snug px-1">
+            Powered by GAJO Infrastructure
+          </p>
+        )}
       </div>
     </div>
   );

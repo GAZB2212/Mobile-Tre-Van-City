@@ -156,7 +156,10 @@ export function injectMetaIntoHtml(html: string, meta: PageMeta): string {
   const canonicalUrl = `${SITE_URL}${meta.canonical === "/" ? "" : meta.canonical}`;
   const hreflangTag = `<link rel="alternate" hreflang="en-gb" href="${canonicalUrl}" />`;
   const canonicalTag = `<link rel="canonical" href="${canonicalUrl}" />`;
-  html = html.replace("</head>", `  ${canonicalTag}\n    ${hreflangTag}\n  </head>`);
+  const authorTag = `<meta name="author" content="GAJO Creative Ltd">`;
+  const copyrightTag = `<meta name="copyright" content="© GAJO Creative Ltd">`;
+  const generatorTag = `<meta name="generator" content="GAJO Platform Systems">`;
+  html = html.replace("</head>", `  ${canonicalTag}\n    ${hreflangTag}\n    ${authorTag}\n    ${copyrightTag}\n    ${generatorTag}\n  </head>`);
 
   return html;
 }

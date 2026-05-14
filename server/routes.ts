@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";

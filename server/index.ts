@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import crypto from "crypto";
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";

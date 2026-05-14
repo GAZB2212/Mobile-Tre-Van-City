@@ -1120,6 +1120,7 @@ export default function BuildSheet() {
         <div className="hidden print:block mt-6 text-center text-xs text-black border-t border-black pt-3">
           <p>Mobile Tyre Van City &mdash; Internal Workshop Document &mdash; {formatDate(new Date())}</p>
           <p>Quote Ref: {quote.id.substring(0, 8).toUpperCase()}</p>
+          <p className="mt-1 text-[10px] text-gray-500">Generated via GAJO Platform Systems &middot; &copy; GAJO Creative Ltd</p>
         </div>
       </div>
     </>
