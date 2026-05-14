@@ -127,7 +127,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type QuoteWithCustomer = Quote & { customerName?: string | null };
 
@@ -1124,79 +1123,23 @@ export default function AdminQuotes() {
                           <TooltipContent>Email {quote.email}</TooltipContent>
                         </Tooltip>
                         {/* Quick note button */}
-                        <Popover
-                          open={notePopover?.quoteId === quote.id}
-                          onOpenChange={(open) => {
-                            if (open) {
-                              setNotePopover({ quoteId: quote.id, customerId: (quote as any).customerId ?? null });
-                              setNoteText("");
-                              setNoteType("call");
-                            } else {
-                              setNotePopover(null);
-                            }
-                          }}
-                        >
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <PopoverTrigger asChild>
-                                <button
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                                  data-testid={`icon-note-${quote.id}`}
-                                >
-                                  <StickyNote className="w-3.5 h-3.5" />
-                                </button>
-                              </PopoverTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>Add note</TooltipContent>
-                          </Tooltip>
-                          <PopoverContent
-                            className="w-72 p-3 space-y-2"
-                            onClick={(e) => e.stopPropagation()}
-                            align="end"
-                          >
-                            <p className="text-sm font-medium">
-                              {(quote as any).customerId
-                                ? `Note for ${(quote as any).customerName || quote.userName}`
-                                : `Note on quote`}
-                            </p>
-                            {(quote as any).customerId && (
-                              <Select value={noteType} onValueChange={(v) => setNoteType(v as typeof noteType)}>
-                                <SelectTrigger className="h-8 text-xs" data-testid={`note-type-select-${quote.id}`}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="call">Phone call</SelectItem>
-                                  <SelectItem value="email">Email</SelectItem>
-                                  <SelectItem value="meeting">Meeting</SelectItem>
-                                  <SelectItem value="general">General</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
-                            <Textarea
-                              placeholder="What happened on this call?"
-                              value={noteText}
-                              onChange={(e) => setNoteText(e.target.value)}
-                              className="text-sm min-h-[80px] resize-none"
-                              data-testid={`note-textarea-${quote.id}`}
-                              autoFocus
-                            />
-                            <Button
-                              size="sm"
-                              className="w-full"
-                              disabled={!noteText.trim() || addNoteMutation.isPending}
-                              onClick={() => addNoteMutation.mutate({
-                                quoteId: quote.id,
-                                customerId: (quote as any).customerId ?? null,
-                                text: noteText.trim(),
-                                type: noteType,
-                              })}
-                              data-testid={`button-save-note-${quote.id}`}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNotePopover({ quoteId: quote.id, customerId: (quote as any).customerId ?? null });
+                                setNoteText("");
+                                setNoteType("call");
+                              }}
+                              className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                              data-testid={`icon-note-${quote.id}`}
                             >
-                              {addNoteMutation.isPending ? "Saving…" : "Save note"}
-                            </Button>
-                          </PopoverContent>
-                        </Popover>
+                              <StickyNote className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add note</TooltipContent>
+                        </Tooltip>
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -1376,7 +1319,71 @@ export default function AdminQuotes() {
         )}
       </div>
 
-      {/* Follow-up scheduling dialog — shown when a configurator is marked Contacted */}
+      {/* Quick note dialog */}
+      <Dialog open={!!notePopover} onOpenChange={(open) => { if (!open) setNotePopover(null); }}>
+        <DialogContent className="max-w-sm" data-testid="dialog-quick-note">
+          <DialogHeader>
+            <DialogTitle>
+              {notePopover && (quotes as any[]).find((q: any) => q.id === notePopover.quoteId)
+                ? notePopover.customerId
+                  ? `Note for ${(quotes as any[]).find((q: any) => q.id === notePopover.quoteId)?.customerName || (quotes as any[]).find((q: any) => q.id === notePopover.quoteId)?.userName}`
+                  : `Note on quote`
+                : "Add note"}
+            </DialogTitle>
+            <DialogDescription>
+              {notePopover?.customerId
+                ? "Saved to the customer's profile and linked quotes."
+                : "Saved as an internal note on this quote."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            {notePopover?.customerId && (
+              <div className="space-y-1">
+                <Label htmlFor="quick-note-type">Type</Label>
+                <Select value={noteType} onValueChange={(v) => setNoteType(v as typeof noteType)}>
+                  <SelectTrigger id="quick-note-type" className="h-9" data-testid="select-quick-note-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="call">Phone call</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label htmlFor="quick-note-text">Note</Label>
+              <Textarea
+                id="quick-note-text"
+                placeholder="What happened on this call?"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                rows={4}
+                autoFocus
+                data-testid="textarea-quick-note"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotePopover(null)}>Cancel</Button>
+            <Button
+              disabled={!noteText.trim() || addNoteMutation.isPending}
+              onClick={() => notePopover && addNoteMutation.mutate({
+                quoteId: notePopover.quoteId,
+                customerId: notePopover.customerId,
+                text: noteText.trim(),
+                type: noteType,
+              })}
+              data-testid="button-save-quick-note"
+            >
+              {addNoteMutation.isPending ? "Saving…" : "Save note"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Status change note dialog */}
       <Dialog
         open={!!pendingStatusChange}
