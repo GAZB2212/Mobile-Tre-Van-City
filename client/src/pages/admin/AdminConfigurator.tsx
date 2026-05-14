@@ -378,6 +378,21 @@ export default function AdminConfigurator() {
         const [keep, ...rem] = ids;
         replaceUpgrades(rem, keep);
         purgeQuantities(rem);
+        const keptUpgrade = all.find(u => u.id === keep);
+        const keptName = keptUpgrade
+          ? (keptUpgrade.variantName ? `${keptUpgrade.name} (${keptUpgrade.variantName})` : keptUpgrade.name)
+          : keep;
+        rem.forEach(id => {
+          const removedUpgrade = all.find(u => u.id === id);
+          const removedName = removedUpgrade
+            ? (removedUpgrade.variantName ? `${removedUpgrade.name} (${removedUpgrade.variantName})` : removedUpgrade.name)
+            : id;
+          toast({
+            title: "Option removed",
+            description: `${removedName} was removed because ${keptName} was already selected.`,
+            duration: 5000,
+          });
+        });
       }
     });
   }, [configData, state.upgradeIds, replaceUpgrades, filteredUpgrades]);
@@ -402,6 +417,20 @@ export default function AdminConfigurator() {
       if (toRemove.length > 0) {
         replaceUpgrades(toRemove, upgradeId);
         purgeQuantities(toRemove);
+        const addedName = upgrade
+          ? (upgrade.variantName ? `${upgrade.name} (${upgrade.variantName})` : upgrade.name)
+          : upgradeId;
+        toRemove.forEach(id => {
+          const removed = all.find(u => u.id === id);
+          const removedName = removed
+            ? (removed.variantName ? `${removed.name} (${removed.variantName})` : removed.name)
+            : id;
+          toast({
+            title: "Option removed",
+            description: `${removedName} was removed because ${addedName} was already selected.`,
+            duration: 5000,
+          });
+        });
       } else addUpgrade(upgradeId);
     }
   };
@@ -416,17 +445,35 @@ export default function AdminConfigurator() {
     const toRemove: string[] = siblingIds.filter(id => state.upgradeIds.includes(id));
     if (variantId) {
       const v = all.find(u => u.id === variantId);
+      const exclusiveGroupConflicts: string[] = [];
       if (v) {
         const g = getExclusiveGroup(v, all);
         if (g) {
           state.upgradeIds.forEach(id => {
             const u = all.find(x => x.id === id);
-            if (u && getExclusiveGroup(u, all) === g && !toRemove.includes(id)) toRemove.push(id);
+            if (u && getExclusiveGroup(u, all) === g && !toRemove.includes(id)) {
+              toRemove.push(id);
+              exclusiveGroupConflicts.push(id);
+            }
           });
         }
       }
       replaceUpgrades(toRemove, variantId);
       purgeQuantities(toRemove);
+      if (exclusiveGroupConflicts.length > 0 && v) {
+        const addedName = v.variantName ? `${v.name} (${v.variantName})` : v.name;
+        exclusiveGroupConflicts.forEach(id => {
+          const removed = all.find(u => u.id === id);
+          const removedName = removed
+            ? (removed.variantName ? `${removed.name} (${removed.variantName})` : removed.name)
+            : id;
+          toast({
+            title: "Option removed",
+            description: `${removedName} was removed because ${addedName} was already selected.`,
+            duration: 5000,
+          });
+        });
+      }
     } else {
       toRemove.forEach(id => removeUpgrade(id));
       purgeQuantities(toRemove);

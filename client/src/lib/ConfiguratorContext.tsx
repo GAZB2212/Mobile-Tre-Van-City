@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { KitServiceType, Upgrade } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
 export interface ConfiguratorSlotState {
   vanId: string | null;
@@ -101,6 +102,7 @@ const defaultFullState: FullState = {
 const ConfiguratorContext = createContext<ConfiguratorContextValue | undefined>(undefined);
 
 export function ConfiguratorProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
   // Fetch the upgrade catalog independently so the context can self-resolve
   // exclusive-group conflicts without relying on any page-level registration.
   const { data: upgradesData } = useQuery<Upgrade[]>({ queryKey: ['/api/upgrades'] });
@@ -190,7 +192,10 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       return null;
     };
 
-    const resolveSlot = (slot: ConfiguratorSlotState): ConfiguratorSlotState => {
+    const resolveSlot = (slot: ConfiguratorSlotState): {
+      resolved: ConfiguratorSlotState;
+      keptByRemovedId: Map<string, string>;
+    } => {
       const selected = upgradeCatalog.filter(u => slot.upgradeIds.includes(u.id));
       const groupMap = new Map<string, string[]>();
       selected.forEach(u => {
@@ -202,31 +207,57 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       });
 
       const toRemove: string[] = [];
+      const keptByRemovedId = new Map<string, string>();
       groupMap.forEach(ids => {
         if (ids.length > 1) {
-          const [, ...rest] = ids;
-          toRemove.push(...rest);
+          const [keptId, ...rest] = ids;
+          const keptUpgrade = upgradeCatalog.find(u => u.id === keptId);
+          const keptName = keptUpgrade
+            ? (keptUpgrade.variantName ? `${keptUpgrade.name} (${keptUpgrade.variantName})` : keptUpgrade.name)
+            : keptId;
+          rest.forEach(id => {
+            toRemove.push(id);
+            keptByRemovedId.set(id, keptName);
+          });
         }
       });
 
-      if (toRemove.length === 0) return slot;
+      if (toRemove.length === 0) return { resolved: slot, keptByRemovedId };
 
       const nextQuantities = { ...slot.upgradeQuantities };
       toRemove.forEach(id => delete nextQuantities[id]);
       return {
-        ...slot,
-        upgradeIds: slot.upgradeIds.filter(id => !toRemove.includes(id)),
-        upgradeQuantities: nextQuantities,
+        resolved: {
+          ...slot,
+          upgradeIds: slot.upgradeIds.filter(id => !toRemove.includes(id)),
+          upgradeQuantities: nextQuantities,
+        },
+        keptByRemovedId,
       };
     };
 
-    setFullState(prev => {
-      const nextSlotA = resolveSlot(prev.slotA);
-      const nextSlotB = resolveSlot(prev.slotB);
-      if (nextSlotA === prev.slotA && nextSlotB === prev.slotB) return prev;
-      return { ...prev, slotA: nextSlotA, slotB: nextSlotB };
-    });
-  }, [upgradeCatalog]);
+    // Compute resolutions from the current state snapshot (captured at catalog-load time).
+    // fullState is intentionally not in the dep array — this effect is designed to run
+    // once per catalog registration to clean up stale localStorage / share-link data.
+    const { resolved: nextSlotA, keptByRemovedId: mapA } = resolveSlot(fullState.slotA); // eslint-disable-line react-hooks/exhaustive-deps
+    const { resolved: nextSlotB, keptByRemovedId: mapB } = resolveSlot(fullState.slotB); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (nextSlotA !== fullState.slotA || nextSlotB !== fullState.slotB) { // eslint-disable-line react-hooks/exhaustive-deps
+      setFullState(prev => ({ ...prev, slotA: nextSlotA, slotB: nextSlotB }));
+
+      [...mapA.entries(), ...mapB.entries()].forEach(([removedId, keptName]) => {
+        const removedUpgrade = upgradeCatalog.find(u => u.id === removedId);
+        const removedName = removedUpgrade
+          ? (removedUpgrade.variantName ? `${removedUpgrade.name} (${removedUpgrade.variantName})` : removedUpgrade.name)
+          : removedId;
+        toast({
+          title: "Option removed",
+          description: `${removedName} was removed because ${keptName} was already selected.`,
+          duration: 5000,
+        });
+      });
+    }
+  }, [upgradeCatalog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper to update the currently active slot
   const updateActiveSlot = (updater: (prev: ConfiguratorSlotState) => ConfiguratorSlotState) => {
