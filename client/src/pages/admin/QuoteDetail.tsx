@@ -336,6 +336,8 @@ export default function AdminQuoteDetail() {
   const pendingTabRef = useRef<string | null>(null);
   const pendingNavRef = useRef<string | null>(null);
   const hasLoadedRef = useRef(false); // prevents poll re-runs from overwriting admin edits
+  const conflictWarnedRef = useRef(false); // prevents duplicate conflict toasts across both load effects
+  const selectedUpgradeIdsRef = useRef<string[]>([]); // mirrors selectedUpgradeIds for reads inside effects without dep-loop
 
   // Finance editor state (deposit in £ pounds, term in years 1-5)
   const [editorDepositAmount, setEditorDepositAmount] = useState<string>("");
@@ -454,6 +456,19 @@ export default function AdminQuoteDetail() {
       const resolvedUpgrades = Object.fromEntries(Object.entries(rawUpgrades).filter(([id]) => resolvedIds.includes(id)));
       setSelectedUpgradeIds(resolvedIds);
       setSelectedUpgrades(resolvedUpgrades);
+
+      // Warn staff if any conflicting upgrades were silently removed on load
+      if (upgrades.length && resolvedIds.length !== rawUpgradeIds.length && !conflictWarnedRef.current) {
+        conflictWarnedRef.current = true;
+        const removedIds = rawUpgradeIds.filter(id => !resolvedIds.includes(id));
+        const removedNames = removedIds.map(id => upgrades.find(u => u.id === id)?.name ?? id);
+        toast({
+          title: "Conflicting upgrades removed",
+          description: `The following saved upgrade${removedNames.length > 1 ? "s were" : " was"} removed because a mutually exclusive option was already selected: ${removedNames.join(", ")}.`,
+          variant: "destructive",
+          duration: 10000,
+        });
+      }
       setOriginalUpgradeIds(rawUpgradeIds);
       setCustomExtras((quote as any).customExtras || []);
       
@@ -476,10 +491,22 @@ export default function AdminQuoteDetail() {
     }
   }, [quote]);
 
+  // Keep ref in sync so the secondary effect can read current selectedUpgradeIds without a dep-loop.
+  useEffect(() => {
+    selectedUpgradeIdsRef.current = selectedUpgradeIds;
+  }, [selectedUpgradeIds]);
+
   // Secondary resolution: if the upgrade catalog finished loading after the initial quote load,
-  // silently drop any conflicting exclusive-group selections that slipped through.
+  // drop any conflicting exclusive-group selections that slipped through and warn staff.
   useEffect(() => {
     if (!upgrades.length || !hasLoadedRef.current) return;
+    // Compute removals deterministically from the ref — never inside a state updater,
+    // which would be a side-effect in a pure function and unreliable under React 18 batching.
+    const currentIds = selectedUpgradeIdsRef.current;
+    const resolvedIds = resolveExclusiveGroupConflicts(currentIds, upgrades);
+    const removedIds = currentIds.filter(id => !resolvedIds.includes(id));
+    const removedNames = removedIds.map(id => upgrades.find(u => u.id === id)?.name ?? id);
+
     setSelectedUpgradeIds(prev => {
       const resolved = resolveExclusiveGroupConflicts(prev, upgrades);
       return resolved.length !== prev.length ? resolved : prev;
@@ -498,6 +525,16 @@ export default function AdminQuoteDetail() {
       const next = Object.fromEntries(Object.entries(prev).filter(([id]) => resolvedSet.has(id)));
       return Object.keys(next).length !== Object.keys(prev).length ? next : prev;
     });
+    // Warn staff if conflicts were found (only once across both load effects)
+    if (removedNames.length > 0 && !conflictWarnedRef.current) {
+      conflictWarnedRef.current = true;
+      toast({
+        title: "Conflicting upgrades removed",
+        description: `The following saved upgrade${removedNames.length > 1 ? "s were" : " was"} removed because a mutually exclusive option was already selected: ${removedNames.join(", ")}.`,
+        variant: "destructive",
+        duration: 10000,
+      });
+    }
   }, [upgrades]);
 
   const { data: customerSearchResults = [] } = useQuery<Array<{ id: string; name: string; email?: string | null; phone?: string | null }>>({
