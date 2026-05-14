@@ -171,7 +171,7 @@ function PublicMain({ children }: { children: React.ReactNode }) {
     location === "/login";
   if (isExcluded) return <>{children}</>;
   return (
-    <main id="main-content" tabIndex={-1} className="outline-none">
+    <main id="main-content" tabIndex={-1}>
       {children}
     </main>
   );

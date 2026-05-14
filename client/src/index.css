@@ -463,3 +463,11 @@
     size: A4;
   }
 }
+
+/* Skip-link target: show a branded focus ring when keyboard navigation lands on the
+   main content area. tabIndex={-1} means Tab never lands here, so :focus fires only
+   when the skip link (or equivalent programmatic focus) is used — not on mouse clicks. */
+#main-content:focus {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: -2px;
+}
