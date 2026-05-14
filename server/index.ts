@@ -247,6 +247,9 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE`)
         .then(() => log("✅ Gallery featured column ready"))
         .catch((err: Error) => console.error("Gallery featured migration:", err.message));
+      pool.query(`ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS author_bio TEXT`)
+        .then(() => log("✅ Blog post author_bio column ready"))
+        .catch((err: Error) => console.error("Blog post author_bio migration:", err.message));
       // Add quote_id column to leads for linking converted leads to their quote
       pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS quote_id VARCHAR REFERENCES quotes(id)`)
         .then(() => log("✅ Lead quote_id column ready"))

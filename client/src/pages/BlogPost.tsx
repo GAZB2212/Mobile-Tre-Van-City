@@ -157,6 +157,24 @@ export default function BlogPostPage() {
                 data-testid="div-post-content"
               />
 
+              {/* Author card */}
+              <div className="mt-10 pt-6 border-t border-border" data-testid="div-author-card">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-muted flex items-center justify-center" aria-hidden="true">
+                    <User className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Written by</p>
+                    <p className="font-semibold text-foreground" data-testid="text-author-name">
+                      {post.authorName || "MTVC Team"}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed" data-testid="text-author-bio">
+                      {post.authorBio || "The Mobile Tyre Van City team are specialists in mobile tyre van conversions, helping businesses across the UK build profitable, road-ready operations."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Tags */}
               {post.tags && post.tags.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 mt-8 pt-6 border-t border-border" data-testid="div-post-tags">

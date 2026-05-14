@@ -95,6 +95,7 @@ const emptyForm = {
   seoTitle: "",
   seoDescription: "",
   authorName: "",
+  authorBio: "",
 };
 
 type FormState = typeof emptyForm;
@@ -157,6 +158,10 @@ function PostForm({
         <div className="space-y-1.5">
           <Label htmlFor="authorName">Author</Label>
           <Input id="authorName" value={form.authorName} onChange={e => set("authorName", e.target.value)} placeholder="e.g. MTVC Team" data-testid="input-author" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="authorBio">Author Bio <span className="text-muted-foreground font-normal">(shown at the bottom of the post)</span></Label>
+          <Textarea id="authorBio" value={form.authorBio} onChange={e => set("authorBio", e.target.value)} rows={2} placeholder="A short 1–2 sentence bio about the author. Leave blank to show a default MTVC Team blurb." data-testid="input-author-bio" />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="summary">Summary * <span className="text-muted-foreground font-normal">(shown on listing cards)</span></Label>
@@ -229,6 +234,7 @@ function formToPayload(form: FormState) {
     seoTitle: form.seoTitle || null,
     seoDescription: form.seoDescription || null,
     authorName: form.authorName || null,
+    authorBio: form.authorBio || null,
   };
 }
 
@@ -245,6 +251,7 @@ function postToForm(post: BlogPost): FormState {
     seoTitle: post.seoTitle || "",
     seoDescription: post.seoDescription || "",
     authorName: post.authorName || "",
+    authorBio: post.authorBio || "",
   };
 }
 

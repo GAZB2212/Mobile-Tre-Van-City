@@ -512,6 +512,7 @@ export const blogPosts = pgTable("blog_posts", {
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   authorName: text("author_name"),
+  authorBio: text("author_bio"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
