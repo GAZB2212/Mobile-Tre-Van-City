@@ -17,6 +17,7 @@ export interface PageMeta {
   title: string;
   description: string;
   canonical: string;
+  ogImage?: string;
 }
 
 export const staticRouteMeta: Record<string, PageMeta> = {
@@ -66,9 +67,14 @@ export const staticRouteMeta: Record<string, PageMeta> = {
     canonical: "/how-it-works",
   },
   "/business-opportunity": {
-    title: `The Mobile Tyre Business Opportunity | ${SITE_NAME}`,
+    title: `Mobile Tyre Business Opportunity | ${SITE_NAME}`,
     description: "Why mobile tyre fitting is one of the UK's fastest-growing small businesses. Operators earning up to £1,200 per day. Van, training and ongoing support included.",
     canonical: "/business-opportunity",
+  },
+  "/blog": {
+    title: `Blog | ${SITE_NAME}`,
+    description: "Tips, guides, and news for mobile tyre business owners. Advice on van conversions, equipment, training, and growing your mobile tyre operation.",
+    canonical: "/blog",
   },
 };
 
@@ -81,6 +87,10 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
 
   if (cleanPath.startsWith("/configurator/")) {
     return staticRouteMeta["/configurator"];
+  }
+
+  if (cleanPath.startsWith("/blog/")) {
+    return staticRouteMeta["/blog"];
   }
 
   // Van conversion hub page
@@ -120,7 +130,7 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
     const location = locations.find((l) => l.slug === slug);
     if (location) {
       return {
-        title: `Tyre Vans in ${location.name} | ${SITE_NAME}`,
+        title: `Mobile Tyre Vans in ${location.name} | ${SITE_NAME}`,
         description: `Mobile tyre van delivered to ${location.name}, ${location.county}. Fully equipped L3H3 build, Euro 6. Finance available. Call 0151 203 8500.`,
         canonical: `/mobile-tyre-vans/${location.slug}`,
       };
@@ -130,12 +140,14 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
   return null;
 }
 
-export function buildVanMeta(van: { year: number; make: string; model: string; mileage: number; slug: string; specs: { transmission?: string; fuel?: string } }): PageMeta {
+export function buildVanMeta(van: { year: number; make: string; model: string; mileage: number; slug: string; specs: { transmission?: string; fuel?: string }; images?: string[] }): PageMeta {
   const vanTitle = `${van.year} ${van.make} ${van.model}`;
+  const shortTitle = vanTitle.length > 45 ? vanTitle.substring(0, 45).trim() + "…" : vanTitle;
   return {
-    title: `${vanTitle} - Tyre Van For Sale | ${SITE_NAME}`,
+    title: `${shortTitle} — Tyre Van For Sale | ${SITE_NAME}`,
     description: `For sale: ${vanTitle}. Fully equipped mobile tyre van conversion${van.mileage ? ` — ${van.mileage.toLocaleString()} miles` : ''}. Finance available. Call 0151 203 8500.`,
     canonical: `/stock/${van.slug}`,
+    ogImage: van.images?.[0] ?? undefined,
   };
 }
 
@@ -154,9 +166,35 @@ export function injectMetaIntoHtml(html: string, meta: PageMeta): string {
   );
 
   const canonicalUrl = `${SITE_URL}${meta.canonical === "/" ? "" : meta.canonical}`;
-  const hreflangTag = `<link rel="alternate" hreflang="en-gb" href="${canonicalUrl}" />`;
-  const canonicalTag = `<link rel="canonical" href="${canonicalUrl}" />`;
-  html = html.replace("</head>", `  ${canonicalTag}\n    ${hreflangTag}\n  </head>`);
+  const ogImage = meta.ogImage ?? `${SITE_URL}/og-image.jpg`;
+
+  const tagsToInject = [
+    `<link rel="canonical" href="${canonicalUrl}" />`,
+    `<link rel="alternate" hreflang="en-gb" href="${canonicalUrl}" />`,
+    `<link rel="alternate" hreflang="x-default" href="${canonicalUrl}" />`,
+    `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
+    `<meta property="og:description" content="${escapeHtml(meta.description)}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:url" content="${canonicalUrl}" />`,
+    `<meta property="og:image" content="${ogImage}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:site_name" content="${SITE_NAME}" />`,
+    `<meta property="og:locale" content="en_GB" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:site" content="@mobiletyrevancity" />`,
+    `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`,
+    `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`,
+    `<meta name="twitter:image" content="${ogImage}" />`,
+  ].join("\n    ");
+
+  // Remove any existing canonical/og/twitter/hreflang tags injected by a previous pass
+  html = html.replace(/<link rel="canonical"[^>]*\/>/g, "");
+  html = html.replace(/<link rel="alternate"[^>]*\/>/g, "");
+  html = html.replace(/<meta property="og:[^"]*"[^>]*\/>/g, "");
+  html = html.replace(/<meta name="twitter:[^"]*"[^>]*\/>/g, "");
+
+  html = html.replace("</head>", `  ${tagsToInject}\n  </head>`);
 
   return html;
 }

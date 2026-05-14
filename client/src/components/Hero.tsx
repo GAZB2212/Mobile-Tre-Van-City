@@ -99,6 +99,7 @@ export default function Hero() {
         muted
         playsInline
         preload="auto"
+        poster="/og-image.jpg"
         className="absolute inset-0 w-full h-full object-cover"
         style={{ WebkitBackfaceVisibility: "hidden" } as React.CSSProperties}
       />

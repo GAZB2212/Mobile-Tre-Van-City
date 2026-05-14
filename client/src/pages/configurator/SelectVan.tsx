@@ -475,7 +475,7 @@ export default function SelectVan() {
                   
                   return allImages.length > 0 ? (
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-lg">Images ({allImages.length})</h3>
+                      <h2 className="font-semibold text-lg">Images ({allImages.length})</h2>
                       <Carousel className="w-full" data-testid={`modal-carousel-${modalVan.id}`}>
                         <CarouselContent>
                           {allImages.map((img, idx) => (
@@ -508,7 +508,7 @@ export default function SelectVan() {
 
                 {/* Full Specifications */}
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-lg">Specifications</h3>
+                  <h2 className="font-semibold text-lg">Specifications</h2>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">
@@ -564,7 +564,7 @@ export default function SelectVan() {
                 {/* Description */}
                 {modalVan.description && (
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-lg">Description</h3>
+                    <h2 className="font-semibold text-lg">Description</h2>
                     <p 
                       className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed"
                       data-testid={`modal-description-${modalVan.id}`}
