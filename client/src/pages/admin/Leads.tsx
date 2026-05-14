@@ -188,7 +188,7 @@ export default function AdminLeads() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: "Call started", description: data.message || "Your phone will ring shortly." });
+      toast({ title: "Connected — check your phone", description: data.message || "Twilio will ring your phone and connect you to the customer." });
       setCallDialog(null);
     },
     onError: (err: Error) => {

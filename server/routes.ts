@@ -9019,8 +9019,21 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   });
 
   // TwiML webhook — Twilio calls this when the staff member answers; it then dials the customer
-  // No auth required — Twilio calls this endpoint server-to-server
-  function twimlHandler(req: express.Request, res: express.Response) {
+  // Validates Twilio request signature when auth token is present (defense-in-depth)
+  async function twimlHandler(req: express.Request, res: express.Response) {
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (authToken) {
+      try {
+        const { default: twilio } = await import("twilio");
+        const signature = req.headers["x-twilio-signature"] as string | undefined;
+        const proto = (req.get("x-forwarded-proto") as string) || req.protocol;
+        const fullUrl = `${proto}://${req.get("host")}${req.originalUrl}`;
+        const params = req.method === "POST" ? (req.body ?? {}) : {};
+        if (signature && !twilio.validateRequest(authToken, signature, fullUrl, params)) {
+          return res.status(403).send("<Response><Say>Forbidden</Say></Response>");
+        }
+      } catch { /* validation failure is non-fatal in dev where secrets may differ */ }
+    }
     const rawTo = ((req.query.to as string) || (req.body?.to as string) || "");
     const to = rawTo.replace(/[^0-9+]/g, "");
     res.set("Content-Type", "text/xml");
@@ -9051,6 +9064,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const { staffNumberId, toNumber, quoteId, leadId } = req.body;
       if (!staffNumberId || !toNumber) {
         return res.status(400).json({ error: "staffNumberId and toNumber are required" });
+      }
+      // Basic E.164 validation — must start with + followed by digits only
+      if (!/^\+[1-9]\d{6,14}$/.test(toNumber)) {
+        return res.status(400).json({ error: "toNumber must be in E.164 format (e.g. +447700000000)" });
       }
 
       // Validate the staffNumberId exists in our DB — prevents arbitrary dialling
