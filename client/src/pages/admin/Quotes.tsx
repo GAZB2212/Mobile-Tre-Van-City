@@ -127,6 +127,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type QuoteWithCustomer = Quote & { customerName?: string | null };
 
@@ -180,6 +181,35 @@ export default function AdminQuotes() {
   // Status-change note dialog state
   const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; newStatus: string; currentStatus: string } | null>(null);
   const [statusNoteText, setStatusNoteText] = useState("");
+
+  // Quick note popover state
+  const [notePopover, setNotePopover] = useState<{ quoteId: string; customerId: string | null } | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [noteType, setNoteType] = useState<"call" | "email" | "meeting" | "general">("call");
+
+  const addNoteMutation = useMutation({
+    mutationFn: async ({ quoteId, customerId, text, type }: { quoteId: string; customerId: string | null; text: string; type: string }) => {
+      if (customerId) {
+        const res = await apiRequest("POST", `/api/admin/customers/${customerId}/notes`, { text, noteType: type });
+        if (!res.ok) throw new Error("Failed to save note");
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", `/api/admin/quotes/${quoteId}/notes`, { text });
+        if (!res.ok) throw new Error("Failed to save note");
+        return res.json();
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Note saved" });
+      setNotePopover(null);
+      setNoteText("");
+      setNoteType("call");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to save note", variant: "destructive" });
+    },
+  });
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
@@ -1093,6 +1123,80 @@ export default function AdminQuotes() {
                           </TooltipTrigger>
                           <TooltipContent>Email {quote.email}</TooltipContent>
                         </Tooltip>
+                        {/* Quick note button */}
+                        <Popover
+                          open={notePopover?.quoteId === quote.id}
+                          onOpenChange={(open) => {
+                            if (open) {
+                              setNotePopover({ quoteId: quote.id, customerId: (quote as any).customerId ?? null });
+                              setNoteText("");
+                              setNoteType("call");
+                            } else {
+                              setNotePopover(null);
+                            }
+                          }}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <PopoverTrigger asChild>
+                                <button
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                  data-testid={`icon-note-${quote.id}`}
+                                >
+                                  <StickyNote className="w-3.5 h-3.5" />
+                                </button>
+                              </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Add note</TooltipContent>
+                          </Tooltip>
+                          <PopoverContent
+                            className="w-72 p-3 space-y-2"
+                            onClick={(e) => e.stopPropagation()}
+                            align="end"
+                          >
+                            <p className="text-sm font-medium">
+                              {(quote as any).customerId
+                                ? `Note for ${(quote as any).customerName || quote.userName}`
+                                : `Note on quote`}
+                            </p>
+                            {(quote as any).customerId && (
+                              <Select value={noteType} onValueChange={(v) => setNoteType(v as typeof noteType)}>
+                                <SelectTrigger className="h-8 text-xs" data-testid={`note-type-select-${quote.id}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="call">Phone call</SelectItem>
+                                  <SelectItem value="email">Email</SelectItem>
+                                  <SelectItem value="meeting">Meeting</SelectItem>
+                                  <SelectItem value="general">General</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Textarea
+                              placeholder="What happened on this call?"
+                              value={noteText}
+                              onChange={(e) => setNoteText(e.target.value)}
+                              className="text-sm min-h-[80px] resize-none"
+                              data-testid={`note-textarea-${quote.id}`}
+                              autoFocus
+                            />
+                            <Button
+                              size="sm"
+                              className="w-full"
+                              disabled={!noteText.trim() || addNoteMutation.isPending}
+                              onClick={() => addNoteMutation.mutate({
+                                quoteId: quote.id,
+                                customerId: (quote as any).customerId ?? null,
+                                text: noteText.trim(),
+                                type: noteType,
+                              })}
+                              data-testid={`button-save-note-${quote.id}`}
+                            >
+                              {addNoteMutation.isPending ? "Saving…" : "Save note"}
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
