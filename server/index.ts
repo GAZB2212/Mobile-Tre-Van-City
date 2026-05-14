@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cron from "node-cron";
@@ -64,17 +65,55 @@ app.use((_req, res, next) => {
   }
 
   // Content-Security-Policy
-  // - unsafe-inline needed for React SSR hydration scripts and inline styles (Tailwind/shadcn)
-  // - Google Fonts loaded via <link> in index.html
-  // - GCS for all van/upgrade/gallery images and videos
-  // - YouTube for embed iframes and thumbnail images
-  // - maps.google.com for the contact page map iframe
+  //
+  // In production: nonce-based script-src (no 'unsafe-inline').
+  //   A per-request cryptographic nonce is generated and injected into both:
+  //     (a) the CSP header — 'nonce-{nonce}'
+  //     (b) every inline <script> tag in the HTML response body via res.end interception
+  //   This covers the React SSR hydration script (<script>window.__TANSTACK_QUERY_STATE__=…</script>)
+  //   that server/vite.ts injects, without requiring changes to that file.
+  //
+  // In development: 'unsafe-inline' is required — Vite's HMR runtime and @vitejs/plugin-react
+  //   preamble inject many inline scripts that cannot carry nonces in dev mode.
+  //
+  // style-src keeps 'unsafe-inline' in both modes because React's style={} prop and
+  //   shadcn/ui components use inline styles at runtime.
+  //
+  // External allowlist: analytics.ahrefs.com (script tag in client/index.html),
+  //   Google Fonts, GCS storage, YouTube embeds, Google Maps iframe.
+
+  let scriptSrcDirective: string;
+
+  if (isProductionEnv) {
+    const nonce = crypto.randomBytes(16).toString('base64');
+    res.locals.cspNonce = nonce;
+    scriptSrcDirective = `script-src 'self' 'nonce-${nonce}' https://analytics.ahrefs.com`;
+
+    // Intercept res.end (used by server/vite.ts production SSR) to stamp the nonce
+    // onto every inline <script> tag. External scripts (<script src="…">) rely on
+    // the domain allowlist above and don't need the nonce.
+    const originalEnd = res.end.bind(res);
+    (res as any).end = function(chunk: any, encoding?: any, callback?: any): Response {
+      const ct = res.getHeader('content-type');
+      if (typeof chunk === 'string' && typeof ct === 'string' && ct.includes('text/html')) {
+        chunk = chunk.replace(/<script(?![^>]*\bsrc\b)([^>]*)>/gi, `<script$1 nonce="${nonce}">`);
+      } else if (Buffer.isBuffer(chunk)) {
+        const str = chunk.toString('utf8');
+        const ct2 = res.getHeader('content-type');
+        if (typeof ct2 === 'string' && ct2.includes('text/html')) {
+          chunk = Buffer.from(str.replace(/<script(?![^>]*\bsrc\b)([^>]*)>/gi, `<script$1 nonce="${nonce}">`), 'utf8');
+        }
+      }
+      return originalEnd(chunk, encoding, callback);
+    };
+  } else {
+    // Dev mode: allow inline scripts so Vite HMR works correctly
+    scriptSrcDirective = `script-src 'self' 'unsafe-inline' https://analytics.ahrefs.com`;
+  }
+
   const csp = [
     "default-src 'self'",
-    // unsafe-inline required for React SSR hydration (<script>window.__TANSTACK_QUERY_STATE__</script>)
-    // and for Tailwind/shadcn inline styles. A nonce-based approach would remove this but requires
-    // deep SSR pipeline changes; tracked as a future hardening task.
-    "script-src 'self' 'unsafe-inline' https://analytics.ahrefs.com",
+    scriptSrcDirective,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://storage.googleapis.com https://img.youtube.com https://lh3.googleusercontent.com",
@@ -84,7 +123,6 @@ app.use((_req, res, next) => {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'self'",
-    // Instruct browsers to upgrade any remaining http:// sub-resources to https://
     "upgrade-insecure-requests",
   ].join('; ');
   res.setHeader('Content-Security-Policy', csp);
