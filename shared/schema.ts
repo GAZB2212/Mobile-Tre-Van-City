@@ -778,3 +778,20 @@ export const insertArtworkProofSchema = createInsertSchema(artworkProofs).omit({
 });
 export type InsertArtworkProof = z.infer<typeof insertArtworkProofSchema>;
 export type ArtworkProof = typeof artworkProofs.$inferSelect;
+
+// ─── Staff Phone Numbers (for Twilio click-to-call) ──────────────────────────
+export const staffPhoneNumbers = pgTable("staff_phone_numbers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  label: text("label").notNull().default("Mobile"),
+  phone: text("phone").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertStaffPhoneSchema = createInsertSchema(staffPhoneNumbers).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertStaffPhone = z.infer<typeof insertStaffPhoneSchema>;
+export type StaffPhone = typeof staffPhoneNumbers.$inferSelect;

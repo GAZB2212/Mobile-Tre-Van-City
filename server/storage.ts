@@ -16,6 +16,7 @@ import {
   type Customer, type InsertCustomer,
   type CustomerNote, type InsertCustomerNote,
   type CustomerMergeHistory,
+  type StaffPhone, type InsertStaffPhone,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -144,6 +145,13 @@ export interface IStorage {
   mergeCustomers(keepId: string, mergeId: string, triggeredBy?: string): Promise<{ leadsRepointed: number; quotesRepointed: number; convosRepointed: number; historyId: string }>;
   getMergeHistory(limit?: number, keepId?: string): Promise<CustomerMergeHistory[]>;
   splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
+
+  // Staff Phone Numbers (for Twilio click-to-call)
+  getStaffPhones(userId?: string): Promise<StaffPhone[]>;
+  getStaffPhone(id: string): Promise<StaffPhone | undefined>;
+  createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone>;
+  updateStaffPhone(id: string, data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined>;
+  deleteStaffPhone(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1786,6 +1794,13 @@ export class MemStorage implements IStorage {
   }
   async getMergeHistory(_limit?: number): Promise<CustomerMergeHistory[]> { return []; }
   async splitMerge(_historyId: string): Promise<{ newCustomerId: string }> { return { newCustomerId: "" }; }
+  async getStaffPhones(_userId?: string): Promise<StaffPhone[]> { return []; }
+  async getStaffPhone(_id: string): Promise<StaffPhone | undefined> { return undefined; }
+  async createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone> {
+    return { id: randomUUID(), userId: data.userId ?? null, label: data.label ?? "Mobile", phone: data.phone, isDefault: data.isDefault ?? false, createdAt: new Date() };
+  }
+  async updateStaffPhone(_id: string, _data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined> { return undefined; }
+  async deleteStaffPhone(_id: string): Promise<boolean> { return false; }
 }
 
 // Database Storage Implementation
@@ -2845,6 +2860,58 @@ export class DbStorage implements IStorage {
       }
     }
     await pool.query(`UPDATE ai_conversations SET customer_id = $1 WHERE session_id = $2`, [customerId, sessionId]);
+  }
+
+  // ── Staff Phone Numbers ──────────────────────────────────────────────────────
+  async getStaffPhones(userId?: string): Promise<StaffPhone[]> {
+    const { rows } = userId
+      ? await pool.query(
+          `SELECT id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt" FROM staff_phone_numbers WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC`,
+          [userId]
+        )
+      : await pool.query(
+          `SELECT id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt" FROM staff_phone_numbers ORDER BY user_id, is_default DESC, created_at ASC`
+        );
+    return rows;
+  }
+
+  async getStaffPhone(id: string): Promise<StaffPhone | undefined> {
+    const { rows } = await pool.query(
+      `SELECT id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt" FROM staff_phone_numbers WHERE id = $1`,
+      [id]
+    );
+    return rows[0];
+  }
+
+  async createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone> {
+    const { rows } = await pool.query(
+      `INSERT INTO staff_phone_numbers (user_id, label, phone, is_default) VALUES ($1, $2, $3, $4)
+       RETURNING id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt"`,
+      [data.userId ?? null, data.label ?? "Mobile", data.phone, data.isDefault ?? false]
+    );
+    return rows[0];
+  }
+
+  async updateStaffPhone(id: string, data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+    if (data.label !== undefined) { fields.push(`label = $${idx++}`); values.push(data.label); }
+    if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
+    if (data.isDefault !== undefined) { fields.push(`is_default = $${idx++}`); values.push(data.isDefault); }
+    if (fields.length === 0) return this.getStaffPhone(id);
+    values.push(id);
+    const { rows } = await pool.query(
+      `UPDATE staff_phone_numbers SET ${fields.join(", ")} WHERE id = $${idx}
+       RETURNING id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt"`,
+      values
+    );
+    return rows[0];
+  }
+
+  async deleteStaffPhone(id: string): Promise<boolean> {
+    const { rowCount } = await pool.query(`DELETE FROM staff_phone_numbers WHERE id = $1`, [id]);
+    return (rowCount ?? 0) > 0;
   }
 }
 

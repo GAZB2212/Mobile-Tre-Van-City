@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
-import type { User, Lead } from "@shared/schema";
+import type { User, Lead, StaffPhone } from "@shared/schema";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -160,6 +160,35 @@ export default function AdminLeads() {
       toast({ title: "Follow-up scheduled", description: "You can view it in the Calendar." });
     },
     onError: () => toast({ variant: "destructive", title: "Failed to schedule follow-up" }),
+  });
+
+  // Click-to-call
+  const [callDialog, setCallDialog] = useState<{ leadId: string; customerName: string; customerPhone: string } | null>(null);
+  const [selectedStaffPhone, setSelectedStaffPhone] = useState("");
+
+  const { data: twilioStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/admin/twilio/status"],
+  });
+  const twilioConfigured = twilioStatus?.configured ?? false;
+
+  const { data: staffPhones = [] } = useQuery<StaffPhone[]>({
+    queryKey: ["/api/admin/staff-phones"],
+    enabled: twilioConfigured,
+  });
+
+  const initiateCallMutation = useMutation({
+    mutationFn: async ({ staffPhone, customerPhone, leadId }: { staffPhone: string; customerPhone: string; leadId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffPhone, customerPhone, leadId });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to start call"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Call started", description: data.message || "Your phone will ring shortly." });
+      setCallDialog(null);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Call failed", description: err.message });
+    },
   });
 
   const toggleExpand = (id: string) =>
@@ -809,13 +838,30 @@ export default function AdminLeads() {
                           <a
                             href={`tel:${lead.phone}`}
                             onClick={(e) => e.stopPropagation()}
-                            data-testid={`button-call-${lead.id}`}
+                            data-testid={`button-call-direct-${lead.id}`}
                           >
                             <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
                               <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
                               Call now
                             </Button>
                           </a>
+                          {twilioConfigured && staffPhones.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0 hidden md:inline-flex"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const defaultPhone = staffPhones.find(p => p.isDefault) ?? staffPhones[0];
+                                setSelectedStaffPhone(defaultPhone?.phone ?? "");
+                                setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", customerPhone: lead.phone! });
+                              }}
+                              data-testid={`button-call-bridge-${lead.id}`}
+                            >
+                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+                              Call via bridge
+                            </Button>
+                          )}
                         </>
                       ) : (
                         <span className="text-sm text-muted-foreground italic">No phone provided</span>
@@ -1477,6 +1523,70 @@ export default function AdminLeads() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Click-to-call dialog */}
+      <Dialog open={!!callDialog} onOpenChange={(open) => { if (!open) setCallDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="w-4 h-4 text-[#8bc440]" />
+              Call {callDialog?.customerName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="rounded-md bg-muted/50 px-3 py-2 text-sm flex items-center gap-2">
+              <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="font-mono font-medium">{callDialog?.customerPhone}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Your phone (Twilio will ring this first)</Label>
+              {staffPhones.length === 1 ? (
+                <div className="rounded-md border px-3 py-2 text-sm flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span>{staffPhones[0].phone}</span>
+                  <span className="text-muted-foreground text-xs">({staffPhones[0].label})</span>
+                </div>
+              ) : (
+                <Select value={selectedStaffPhone} onValueChange={setSelectedStaffPhone}>
+                  <SelectTrigger data-testid="select-staff-phone-lead">
+                    <SelectValue placeholder="Select your phone…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staffPhones.map((p) => (
+                      <SelectItem key={p.id} value={p.phone} data-testid={`option-staff-phone-lead-${p.id}`}>
+                        {p.phone} <span className="text-muted-foreground text-xs ml-1">({p.label})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Twilio will call your phone. Answer it and you will be automatically connected to the customer. The call is logged as a note on this lead.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setCallDialog(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="bg-[#8bc440] text-[#191919]"
+              disabled={!selectedStaffPhone || !callDialog?.customerPhone || initiateCallMutation.isPending}
+              onClick={() => {
+                if (!callDialog) return;
+                initiateCallMutation.mutate({
+                  staffPhone: selectedStaffPhone,
+                  customerPhone: callDialog.customerPhone,
+                  leadId: callDialog.leadId,
+                });
+              }}
+              data-testid="button-confirm-call-lead"
+            >
+              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+              {initiateCallMutation.isPending ? "Calling…" : "Call me now"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

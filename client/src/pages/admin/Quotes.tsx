@@ -72,7 +72,7 @@ function isOverdue(quote: { status: string; statusChangedAt?: string | Date | nu
 
 import { useAuth } from "@/hooks/useAuth";
 import { useIdlePolling } from "@/hooks/useIdlePolling";
-import type { User, Quote, Van, Kit, Upgrade } from "@shared/schema";
+import type { User, Quote, Van, Kit, Upgrade, StaffPhone } from "@shared/schema";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -125,6 +125,7 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
+  PhoneCall,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -207,6 +208,36 @@ export default function AdminQuotes() {
     },
     onError: () => {
       toast({ title: "Failed to save note", variant: "destructive" });
+    },
+  });
+
+  // Click-to-call state
+  const [callDialog, setCallDialog] = useState<{ quoteId: string; customerName: string; customerPhone: string } | null>(null);
+  const [selectedStaffPhone, setSelectedStaffPhone] = useState("");
+
+  const { data: twilioStatus } = useQuery<{ configured: boolean }>({
+    queryKey: ["/api/admin/twilio/status"],
+  });
+  const twilioConfigured = twilioStatus?.configured ?? false;
+
+  const { data: staffPhones = [] } = useQuery<StaffPhone[]>({
+    queryKey: ["/api/admin/staff-phones"],
+    enabled: twilioConfigured,
+  });
+
+  const initiateCallMutation = useMutation({
+    mutationFn: async ({ staffPhone, customerPhone, quoteId }: { staffPhone: string; customerPhone: string; quoteId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffPhone, customerPhone, quoteId });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to start call"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Call started", description: data.message || "Your phone will ring shortly." });
+      setCallDialog(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Call failed", description: err.message });
     },
   });
 
@@ -1140,6 +1171,26 @@ export default function AdminQuotes() {
                           </TooltipTrigger>
                           <TooltipContent>Add note</TooltipContent>
                         </Tooltip>
+                        {/* Click-to-call button — desktop only, shown if Twilio is configured and phone is present */}
+                        {twilioConfigured && quote.phone && staffPhones.length > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const defaultPhone = staffPhones.find(p => p.isDefault) ?? staffPhones[0];
+                                  setSelectedStaffPhone(defaultPhone?.phone ?? "");
+                                  setCallDialog({ quoteId: quote.id, customerName: (quote as any).userName || "Customer", customerPhone: quote.phone });
+                                }}
+                                className="hidden md:flex p-1.5 rounded hover:bg-muted text-[#8bc440] hover:text-[#8bc440]/80 transition-colors"
+                                data-testid={`icon-call-${quote.id}`}
+                              >
+                                <PhoneCall className="w-3.5 h-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Call via bridge</TooltipContent>
+                          </Tooltip>
+                        )}
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -1500,6 +1551,70 @@ export default function AdminQuotes() {
             >
               <Calendar className="w-4 h-4 mr-2" />
               Add to calendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Click-to-call dialog */}
+      <Dialog open={!!callDialog} onOpenChange={(open) => { if (!open) setCallDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="w-4 h-4 text-[#8bc440]" />
+              Call {callDialog?.customerName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="rounded-md bg-muted/50 px-3 py-2 text-sm flex items-center gap-2">
+              <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="font-mono font-medium">{callDialog?.customerPhone}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Your phone (Twilio will ring this first)</Label>
+              {staffPhones.length === 1 ? (
+                <div className="rounded-md border px-3 py-2 text-sm flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span>{staffPhones[0].phone}</span>
+                  <span className="text-muted-foreground text-xs">({staffPhones[0].label})</span>
+                </div>
+              ) : (
+                <Select value={selectedStaffPhone} onValueChange={setSelectedStaffPhone}>
+                  <SelectTrigger data-testid="select-staff-phone">
+                    <SelectValue placeholder="Select your phone…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staffPhones.map((p) => (
+                      <SelectItem key={p.id} value={p.phone} data-testid={`option-staff-phone-${p.id}`}>
+                        {p.phone} <span className="text-muted-foreground text-xs ml-1">({p.label})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Twilio will call your phone. Answer it and you will be automatically connected to the customer. The call is logged as a note on this quote.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setCallDialog(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              className="bg-[#8bc440] text-[#191919]"
+              disabled={!selectedStaffPhone || !callDialog?.customerPhone || initiateCallMutation.isPending}
+              onClick={() => {
+                if (!callDialog) return;
+                initiateCallMutation.mutate({
+                  staffPhone: selectedStaffPhone,
+                  customerPhone: callDialog.customerPhone,
+                  quoteId: callDialog.quoteId,
+                });
+              }}
+              data-testid="button-confirm-call"
+            >
+              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+              {initiateCallMutation.isPending ? "Calling…" : "Call me now"}
             </Button>
           </DialogFooter>
         </DialogContent>

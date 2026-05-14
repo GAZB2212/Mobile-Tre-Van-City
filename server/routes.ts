@@ -8952,6 +8952,139 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // ── End Upgrade Categories ─────────────────────────────────────────────────
 
+  // ── Twilio / Click-to-Call ─────────────────────────────────────────────────
+
+  // Check whether Twilio creds are present
+  app.get("/api/admin/twilio/status", isAuthenticated, isBasicAdmin, (_req, res) => {
+    const configured = !!(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_FROM_NUMBER
+    );
+    res.json({ configured });
+  });
+
+  // Staff phone numbers — each admin manages their own; full admins see everyone's
+  app.get("/api/admin/staff-phones", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const user = (req as any).user as User;
+      const userId = user?.adminRole === "full" ? undefined : user?.id;
+      const phones = await storage.getStaffPhones(userId);
+      res.json(phones);
+    } catch (err) {
+      console.error("GET staff-phones:", err);
+      res.status(500).json({ error: "Failed to load staff phones" });
+    }
+  });
+
+  app.post("/api/admin/staff-phones", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const user = (req as any).user as User;
+      const { label, phone, isDefault } = req.body;
+      if (!phone) return res.status(400).json({ error: "phone is required" });
+      const record = await storage.createStaffPhone({ userId: user.id, label: label || "Mobile", phone, isDefault: !!isDefault });
+      res.json(record);
+    } catch (err) {
+      console.error("POST staff-phones:", err);
+      res.status(500).json({ error: "Failed to create staff phone" });
+    }
+  });
+
+  app.patch("/api/admin/staff-phones/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const record = await storage.updateStaffPhone(req.params.id, req.body);
+      if (!record) return res.status(404).json({ error: "Not found" });
+      res.json(record);
+    } catch (err) {
+      console.error("PATCH staff-phones:", err);
+      res.status(500).json({ error: "Failed to update staff phone" });
+    }
+  });
+
+  app.delete("/api/admin/staff-phones/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      await storage.deleteStaffPhone(req.params.id);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("DELETE staff-phones:", err);
+      res.status(500).json({ error: "Failed to delete staff phone" });
+    }
+  });
+
+  // TwiML webhook — Twilio calls this when the staff member answers; it then dials the customer
+  // No auth required — Twilio calls this endpoint server-to-server
+  app.get("/api/admin/calls/twiml", (req, res) => {
+    const rawTo = (req.query.to as string) || "";
+    const to = rawTo.replace(/[^0-9+]/g, "");
+    res.set("Content-Type", "text/xml");
+    if (!to) {
+      return res.send("<Response><Say>Sorry, the destination number is missing. Goodbye.</Say></Response>");
+    }
+    const from = process.env.TWILIO_FROM_NUMBER || "";
+    res.send(
+      `<Response><Dial callerId="${from}"><Number>${to}</Number></Dial></Response>`
+    );
+  });
+
+  // Initiate outbound bridge call: Twilio calls staff → on answer, connects to customer
+  app.post("/api/admin/calls/initiate", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken  = process.env.TWILIO_AUTH_TOKEN;
+      const fromNumber = process.env.TWILIO_FROM_NUMBER;
+
+      if (!accountSid || !authToken || !fromNumber) {
+        return res.status(503).json({
+          error: "Twilio is not configured. Ask your system administrator to add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.",
+        });
+      }
+
+      const { staffPhone, customerPhone, quoteId, leadId } = req.body;
+      if (!staffPhone || !customerPhone) {
+        return res.status(400).json({ error: "staffPhone and customerPhone are required" });
+      }
+
+      const { default: twilio } = await import("twilio");
+      const client = twilio(accountSid, authToken);
+
+      const host     = req.get("host")!;
+      const protocol = (req.get("x-forwarded-proto") as string) || req.protocol;
+      const twimlUrl = `${protocol}://${host}/api/admin/calls/twiml?to=${encodeURIComponent(customerPhone)}`;
+
+      await client.calls.create({ to: staffPhone, from: fromNumber, url: twimlUrl });
+
+      // Log the call attempt as an admin note (non-fatal)
+      try {
+        const staffUser = (req as any).user as User;
+        const author    = (staffUser as any)?.username || "Staff";
+        const noteText  = `Click-to-call initiated — staff: ${staffPhone} → customer: ${customerPhone}`;
+        const entry     = { text: noteText, timestamp: new Date().toISOString(), author };
+
+        if (quoteId) {
+          const { rows } = await pool.query(`SELECT admin_notes_history FROM quotes WHERE id = $1`, [quoteId]);
+          const hist: any[] = Array.isArray(rows[0]?.admin_notes_history) ? rows[0].admin_notes_history : [];
+          hist.push(entry);
+          await pool.query(`UPDATE quotes SET admin_notes_history = $1 WHERE id = $2`, [JSON.stringify(hist), quoteId]);
+        }
+        if (leadId) {
+          // Log to customer notes if the lead is linked to a customer
+          await pool.query(
+            `INSERT INTO customer_notes (customer_id, author_name, note_type, text)
+             SELECT customer_id, $1, 'call', $2 FROM leads WHERE id = $3 AND customer_id IS NOT NULL`,
+            [author, noteText, leadId]
+          );
+        }
+      } catch { /* non-fatal */ }
+
+      res.json({ ok: true, message: "Your phone will ring in a moment. Answer it to be connected to the customer." });
+    } catch (err: any) {
+      console.error("Twilio call initiation error:", err);
+      res.status(500).json({ error: err?.message || "Failed to initiate call" });
+    }
+  });
+
+  // ── End Twilio / Click-to-Call ─────────────────────────────────────────────
+
   const httpServer = createServer(app);
 
   return httpServer;

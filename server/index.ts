@@ -833,6 +833,20 @@ app.use((req, res, next) => {
       `).then(() => log("✅ Artwork proof messages table ready"))
         .catch((err: Error) => console.error("Artwork proof messages migration:", err.message));
 
+      // Staff phone numbers table (for Twilio click-to-call bridging)
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS staff_phone_numbers (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
+          label TEXT NOT NULL DEFAULT 'Mobile',
+          phone TEXT NOT NULL,
+          is_default BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_staff_phone_numbers_user ON staff_phone_numbers (user_id);
+      `).then(() => log("✅ Staff phone numbers table ready"))
+        .catch((err: Error) => console.error("Staff phone numbers migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.
