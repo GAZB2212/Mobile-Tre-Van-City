@@ -92,19 +92,24 @@ app.use((_req, res, next) => {
     // Intercept res.end (used by server/vite.ts production SSR) to stamp the nonce
     // onto every inline <script> tag. External scripts (<script src="…">) rely on
     // the domain allowlist above and don't need the nonce.
-    const originalEnd = res.end.bind(res);
-    (res as any).end = function(chunk: any, encoding?: any, callback?: any): Response {
+    const originalEnd: typeof res.end = res.end.bind(res);
+    res.end = function nonceInjectedEnd(
+      chunk?: string | Buffer | Uint8Array,
+      encodingOrCallback?: BufferEncoding | (() => void),
+      callback?: () => void,
+    ): typeof res {
       const ct = res.getHeader('content-type');
-      if (typeof chunk === 'string' && typeof ct === 'string' && ct.includes('text/html')) {
-        chunk = chunk.replace(/<script(?![^>]*\bsrc\b)([^>]*)>/gi, `<script$1 nonce="${nonce}">`);
-      } else if (Buffer.isBuffer(chunk)) {
-        const str = chunk.toString('utf8');
-        const ct2 = res.getHeader('content-type');
-        if (typeof ct2 === 'string' && ct2.includes('text/html')) {
-          chunk = Buffer.from(str.replace(/<script(?![^>]*\bsrc\b)([^>]*)>/gi, `<script$1 nonce="${nonce}">`), 'utf8');
-        }
+      const isHtml = typeof ct === 'string' && ct.includes('text/html');
+      const noncePattern = /<script(?![^>]*\bsrc\b)([^>]*)>/gi;
+      const replacement = `<script$1 nonce="${nonce}">`;
+
+      if (isHtml && typeof chunk === 'string') {
+        chunk = chunk.replace(noncePattern, replacement);
+      } else if (isHtml && Buffer.isBuffer(chunk)) {
+        chunk = Buffer.from(chunk.toString('utf8').replace(noncePattern, replacement), 'utf8');
       }
-      return originalEnd(chunk, encoding, callback);
+
+      return originalEnd.call(res, chunk, encodingOrCallback as BufferEncoding, callback);
     };
   } else {
     // Dev mode: allow inline scripts so Vite HMR works correctly
