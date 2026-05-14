@@ -163,6 +163,13 @@ function groupUpgradeVariations(upgrades: Upgrade[]): { groups: UpgradeGroup[]; 
 }
 
 function resolveExclusiveGroupConflicts(ids: string[], catalog: Upgrade[]): string[] {
+  return resolveExclusiveGroupConflictsWithDetails(ids, catalog).resolvedIds;
+}
+
+function resolveExclusiveGroupConflictsWithDetails(
+  ids: string[],
+  catalog: Upgrade[]
+): { resolvedIds: string[]; keptByRemovedId: Map<string, string> } {
   const getExclusiveGroup = (upgrade: Upgrade): string | null => {
     if (upgrade.exclusiveGroup) return upgrade.exclusiveGroup;
     if (upgrade.parentId) {
@@ -183,15 +190,20 @@ function resolveExclusiveGroupConflicts(ids: string[], catalog: Upgrade[]): stri
   });
 
   const toRemove = new Set<string>();
+  const keptByRemovedId = new Map<string, string>();
   groupMap.forEach(groupIds => {
     if (groupIds.length > 1) {
-      const [, ...rest] = groupIds;
-      rest.forEach(id => toRemove.add(id));
+      const [keptId, ...rest] = groupIds;
+      const keptName = catalog.find(u => u.id === keptId)?.name ?? keptId;
+      rest.forEach(id => {
+        toRemove.add(id);
+        keptByRemovedId.set(id, keptName);
+      });
     }
   });
 
-  if (toRemove.size === 0) return ids;
-  return ids.filter(id => !toRemove.has(id));
+  const resolvedIds = toRemove.size === 0 ? ids : ids.filter(id => !toRemove.has(id));
+  return { resolvedIds, keptByRemovedId };
 }
 
 const quoteStatuses = [
@@ -452,7 +464,9 @@ export default function AdminQuoteDetail() {
       setSelectedKitId(quote.kitId || null);
       const rawUpgradeIds = quote.selectedUpgradeIds || [];
       const rawUpgrades = quote.selectedUpgrades || {};
-      const resolvedIds = upgrades.length ? resolveExclusiveGroupConflicts(rawUpgradeIds, upgrades) : rawUpgradeIds;
+      const { resolvedIds, keptByRemovedId } = upgrades.length
+        ? resolveExclusiveGroupConflictsWithDetails(rawUpgradeIds, upgrades)
+        : { resolvedIds: rawUpgradeIds, keptByRemovedId: new Map<string, string>() };
       const resolvedUpgrades = Object.fromEntries(Object.entries(rawUpgrades).filter(([id]) => resolvedIds.includes(id)));
       setSelectedUpgradeIds(resolvedIds);
       setSelectedUpgrades(resolvedUpgrades);
@@ -461,10 +475,16 @@ export default function AdminQuoteDetail() {
       if (upgrades.length && resolvedIds.length !== rawUpgradeIds.length && !conflictWarnedRef.current) {
         conflictWarnedRef.current = true;
         const removedIds = rawUpgradeIds.filter(id => !resolvedIds.includes(id));
-        const removedNames = removedIds.map(id => upgrades.find(u => u.id === id)?.name ?? id);
+        const conflictLines = removedIds.map(id => {
+          const removedName = upgrades.find(u => u.id === id)?.name ?? id;
+          const keptName = keptByRemovedId.get(id);
+          return keptName
+            ? `${removedName} was removed because ${keptName} was already selected.`
+            : `${removedName} was removed because a mutually exclusive option was already selected.`;
+        });
         toast({
           title: "Conflicting upgrades removed",
-          description: `The following saved upgrade${removedNames.length > 1 ? "s were" : " was"} removed because a mutually exclusive option was already selected: ${removedNames.join(", ")}.`,
+          description: conflictLines.join(" "),
           variant: "destructive",
           duration: 10000,
         });
@@ -514,7 +534,7 @@ export default function AdminQuoteDetail() {
     // Compute removals deterministically from the ref — never inside a state updater,
     // which would be a side-effect in a pure function and unreliable under React 18 batching.
     const currentIds = selectedUpgradeIdsRef.current;
-    const resolvedIds = resolveExclusiveGroupConflicts(currentIds, upgrades);
+    const { resolvedIds, keptByRemovedId } = resolveExclusiveGroupConflictsWithDetails(currentIds, upgrades);
     const removedIds = currentIds.filter(id => !resolvedIds.includes(id));
     const removedNames = removedIds.map(id => upgrades.find(u => u.id === id)?.name ?? id);
 
@@ -539,9 +559,16 @@ export default function AdminQuoteDetail() {
     // Warn staff if conflicts were found (only once across both load effects)
     if (removedNames.length > 0 && !conflictWarnedRef.current) {
       conflictWarnedRef.current = true;
+      const conflictLines = removedIds.map(id => {
+        const removedName = upgrades.find(u => u.id === id)?.name ?? id;
+        const keptName = keptByRemovedId.get(id);
+        return keptName
+          ? `${removedName} was removed because ${keptName} was already selected.`
+          : `${removedName} was removed because a mutually exclusive option was already selected.`;
+      });
       toast({
         title: "Conflicting upgrades removed",
-        description: `The following saved upgrade${removedNames.length > 1 ? "s were" : " was"} removed because a mutually exclusive option was already selected: ${removedNames.join(", ")}.`,
+        description: conflictLines.join(" "),
         variant: "destructive",
         duration: 10000,
       });
