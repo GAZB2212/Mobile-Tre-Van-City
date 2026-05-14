@@ -30,11 +30,19 @@ app.use((req, res, next) => {
 });
 
 // HTTP security headers
+const isProductionEnv = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
+
 app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  // HSTS — only set in production (HTTPS). Setting it on localhost breaks the browser.
+  // max-age=31536000 = 1 year; includeSubDomains covers www and any sub-domains.
+  if (isProductionEnv) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
 
   // Content-Security-Policy
   // - unsafe-inline needed for React SSR hydration scripts and inline styles (Tailwind/shadcn)
