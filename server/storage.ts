@@ -1,6 +1,3 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
 import { 
   type User, type InsertUser,
   type Van, type InsertVan,

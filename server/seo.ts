@@ -1,13 +1,9 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
 import type { Request } from "express";
 import { vanModels } from "../client/src/pages/seo/data/vanModels";
 import { locations } from "../client/src/pages/seo/data/locations";
 
 export const SITE_URL = "https://www.mobiletyrevancity.co.uk";
 export const SITE_NAME = "Mobile Tyre Van City";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 declare global {
   namespace Express {
@@ -21,9 +17,6 @@ export interface PageMeta {
   title: string;
   description: string;
   canonical: string;
-  ogImage?: string;
-  ogType?: string;
-  structuredData?: object[];
 }
 
 export const staticRouteMeta: Record<string, PageMeta> = {
@@ -73,14 +66,9 @@ export const staticRouteMeta: Record<string, PageMeta> = {
     canonical: "/how-it-works",
   },
   "/business-opportunity": {
-    title: `Mobile Tyre Business Opportunity | ${SITE_NAME}`,
-    description: "Why mobile tyre fitting is one of the UK's fastest-growing small businesses. Operators earning up to £1,200 per day. Van, training and support included.",
+    title: `The Mobile Tyre Business Opportunity | ${SITE_NAME}`,
+    description: "Why mobile tyre fitting is one of the UK's fastest-growing small businesses. Operators earning up to £1,200 per day. Van, training and ongoing support included.",
     canonical: "/business-opportunity",
-  },
-  "/blog": {
-    title: `Blog | Mobile Tyre Van Insights & Industry News | ${SITE_NAME}`,
-    description: "Expert advice, industry news, and practical guides for mobile tyre van operators. Tips on growing your mobile tyre business from the MTVC team.",
-    canonical: "/blog",
   },
 };
 
@@ -110,7 +98,7 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
     const van = vanModels.find((v) => v.slug === slug);
     if (van) {
       return {
-        title: `${van.displayName} Tyre Van Conversion | ${SITE_NAME}`,
+        title: `${van.displayName} Tyre Van | ${SITE_NAME}`,
         description: `${van.displayName} converted for mobile tyre fitting. ${van.loadVolumeCubicM} m³ load, ${van.payloadKg} kg payload. Euro 6, UK-wide delivery. Finance available. 0151 203 8500.`,
         canonical: `/van-conversions/${van.slug}`,
       };
@@ -132,7 +120,7 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
     const location = locations.find((l) => l.slug === slug);
     if (location) {
       return {
-        title: `Mobile Tyre Vans in ${location.name} | ${SITE_NAME}`,
+        title: `Tyre Vans in ${location.name} | ${SITE_NAME}`,
         description: `Mobile tyre van delivered to ${location.name}, ${location.county}. Fully equipped L3H3 build, Euro 6. Finance available. Call 0151 203 8500.`,
         canonical: `/mobile-tyre-vans/${location.slug}`,
       };
@@ -142,21 +130,12 @@ export function resolveStaticMeta(urlPath: string): PageMeta | null {
   return null;
 }
 
-export function buildVanMeta(van: { year: number; make: string; model: string; mileage: number; slug: string; specs: { transmission?: string; fuel?: string }; heroImage?: string | null; images?: string[] }): PageMeta {
+export function buildVanMeta(van: { year: number; make: string; model: string; mileage: number; slug: string; specs: { transmission?: string; fuel?: string } }): PageMeta {
   const vanTitle = `${van.year} ${van.make} ${van.model}`;
-  const image = van.heroImage || (van.images && van.images[0]) || DEFAULT_OG_IMAGE;
-  const absoluteImage = image.startsWith('http') ? image : `${SITE_URL}${image.startsWith('/') ? '' : '/'}${image}`;
-  // Keep title under ~65 chars: if full name is too long, use year + make only
-  const shortBase = `${van.year} ${van.make}`;
-  const fullBase = vanTitle;
-  const suffix = ` | Tyre Van For Sale | ${SITE_NAME}`;
-  const titleBase = (fullBase + suffix).length <= 65 ? fullBase : shortBase;
   return {
-    title: `${titleBase}${suffix}`,
-    description: `For sale: ${vanTitle} mobile tyre van conversion. Fully equipped and ready to earn${van.mileage ? ` — ${van.mileage.toLocaleString()} miles` : ''}. Finance available. Call 0151 203 8500.`,
+    title: `${vanTitle} - Tyre Van For Sale | ${SITE_NAME}`,
+    description: `For sale: ${vanTitle}. Fully equipped mobile tyre van conversion${van.mileage ? ` — ${van.mileage.toLocaleString()} miles` : ''}. Finance available. Call 0151 203 8500.`,
     canonical: `/stock/${van.slug}`,
-    ogImage: absoluteImage,
-    ogType: "product",
   };
 }
 
@@ -165,10 +144,6 @@ function escapeHtml(str: string): string {
 }
 
 export function injectMetaIntoHtml(html: string, meta: PageMeta): string {
-  const ogImage = meta.ogImage || DEFAULT_OG_IMAGE;
-  const canonicalUrl = `${SITE_URL}${meta.canonical === "/" ? "" : meta.canonical}`;
-  const ogType = meta.ogType || "website";
-
   html = html.replace(
     /<title>[^<]*<\/title>/,
     `<title>${escapeHtml(meta.title)}</title>`
@@ -178,151 +153,10 @@ export function injectMetaIntoHtml(html: string, meta: PageMeta): string {
     `<meta name="description" content="${escapeHtml(meta.description)}">`
   );
 
-  // Replace og: tags if already present, or collect new ones for injection
-  const ogReplacements: Array<{ attr: string; name: string; value: string }> = [
-    { attr: 'property', name: 'og:title', value: meta.title },
-    { attr: 'property', name: 'og:description', value: meta.description },
-    { attr: 'property', name: 'og:type', value: ogType },
-    { attr: 'property', name: 'og:url', value: canonicalUrl },
-    { attr: 'property', name: 'og:image', value: ogImage },
-    { attr: 'property', name: 'og:site_name', value: SITE_NAME },
-    { attr: 'name', name: 'twitter:title', value: meta.title },
-    { attr: 'name', name: 'twitter:description', value: meta.description },
-    { attr: 'name', name: 'twitter:image', value: ogImage },
-  ];
-
-  const tagsToInject: string[] = [];
-  for (const { attr, name, value } of ogReplacements) {
-    const regex = new RegExp(`<meta\\s+${attr}="${name.replace(/:/g, '\\:')}\\s*"\\s+content="[^"]*"\\s*/?>`, 'i');
-    if (regex.test(html)) {
-      html = html.replace(regex, `<meta ${attr}="${name}" content="${escapeHtml(value)}" />`);
-    } else {
-      tagsToInject.push(`<meta ${attr}="${name}" content="${escapeHtml(value)}" />`);
-    }
-  }
-
-  // Replace canonical if already exists, else inject it
-  const canonicalRegex = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i;
-  const canonicalTag = `<link rel="canonical" href="${canonicalUrl}" />`;
-  if (canonicalRegex.test(html)) {
-    html = html.replace(canonicalRegex, canonicalTag);
-  } else {
-    tagsToInject.push(canonicalTag);
-  }
-
-  // Replace hreflang en-gb if exists
-  const hreflangRegex = /<link\s+rel="alternate"\s+hreflang="en-gb"\s+href="[^"]*"\s*\/?>/i;
+  const canonicalUrl = `${SITE_URL}${meta.canonical === "/" ? "" : meta.canonical}`;
   const hreflangTag = `<link rel="alternate" hreflang="en-gb" href="${canonicalUrl}" />`;
-  if (hreflangRegex.test(html)) {
-    html = html.replace(hreflangRegex, hreflangTag);
-  } else {
-    tagsToInject.push(hreflangTag);
-  }
-
-  // Replace x-default hreflang if exists, or add it
-  const xDefaultRegex = /<link\s+rel="alternate"\s+hreflang="x-default"\s+href="[^"]*"\s*\/?>/i;
-  const xDefaultTag = `<link rel="alternate" hreflang="x-default" href="${canonicalUrl}" />`;
-  if (xDefaultRegex.test(html)) {
-    html = html.replace(xDefaultRegex, xDefaultTag);
-  } else {
-    tagsToInject.push(xDefaultTag);
-  }
-
-  // Inject author/copyright/generator attribution tags if not already present
-  if (!html.includes('name="author"')) {
-    tagsToInject.push(`<meta name="author" content="GAJO Creative Ltd">`);
-  }
-  if (!html.includes('name="copyright"')) {
-    tagsToInject.push(`<meta name="copyright" content="© GAJO Creative Ltd">`);
-  }
-  if (!html.includes('name="generator"')) {
-    tagsToInject.push(`<meta name="generator" content="GAJO Platform Systems">`);
-  }
-
-  if (tagsToInject.length > 0) {
-    html = html.replace("</head>", `  ${tagsToInject.join('\n    ')}\n  </head>`);
-  }
-
-  if (meta.structuredData && meta.structuredData.length > 0) {
-    const ldScripts = meta.structuredData
-      .map(data => `<script type="application/ld+json">${JSON.stringify(data)}</script>`)
-      .join('\n    ');
-    html = html.replace("</head>", `  ${ldScripts}\n  </head>`);
-  }
+  const canonicalTag = `<link rel="canonical" href="${canonicalUrl}" />`;
+  html = html.replace("</head>", `  ${canonicalTag}\n    ${hreflangTag}\n  </head>`);
 
   return html;
-}
-
-export function buildBlogPostMeta(post: {
-  title: string;
-  summary: string;
-  slug: string;
-  seoTitle?: string | null;
-  seoDescription?: string | null;
-  featuredImage?: string | null;
-  authorName?: string | null;
-  publishedAt?: Date | string | null;
-  updatedAt?: Date | string | null;
-  createdAt?: Date | string | null;
-}): PageMeta {
-  const title = post.seoTitle || post.title;
-  const description = post.seoDescription || post.summary;
-  const image = post.featuredImage
-    ? (post.featuredImage.startsWith('http') ? post.featuredImage : `${SITE_URL}${post.featuredImage.startsWith('/') ? '' : '/'}${post.featuredImage}`)
-    : DEFAULT_OG_IMAGE;
-
-  const publishedIso = post.publishedAt
-    ? new Date(post.publishedAt).toISOString()
-    : post.createdAt
-      ? new Date(post.createdAt).toISOString()
-      : null;
-  const modifiedIso = post.updatedAt
-    ? new Date(post.updatedAt).toISOString()
-    : publishedIso;
-
-  const articleSchema: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": post.title,
-    "description": description,
-    "url": `${SITE_URL}/blog/${post.slug}`,
-    ...(publishedIso && { "datePublished": publishedIso }),
-    ...(modifiedIso && { "dateModified": modifiedIso }),
-    "image": image,
-    "author": {
-      "@type": "Person",
-      "name": post.authorName || SITE_NAME
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": SITE_NAME,
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${SITE_URL}/favicon.png`
-      }
-    },
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": `${SITE_URL}/blog/${post.slug}`
-    }
-  };
-
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": SITE_URL },
-      { "@type": "ListItem", "position": 2, "name": "Blog", "item": `${SITE_URL}/blog` },
-      { "@type": "ListItem", "position": 3, "name": post.title, "item": `${SITE_URL}/blog/${post.slug}` }
-    ]
-  };
-
-  return {
-    title: `${title} | ${SITE_NAME}`,
-    description,
-    canonical: `/blog/${post.slug}`,
-    ogImage: image,
-    ogType: "article",
-    structuredData: [articleSchema, breadcrumbSchema],
-  };
 }

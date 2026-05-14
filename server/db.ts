@@ -1,6 +1,3 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
 import pg from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";

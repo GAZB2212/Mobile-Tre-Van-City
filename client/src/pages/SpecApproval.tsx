@@ -52,9 +52,8 @@ export default function SpecApproval() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex flex-col items-center justify-center gap-6">
+        <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
         </main>
         <Footer />
       </div>
@@ -66,24 +65,21 @@ export default function SpecApproval() {
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
-          <div className="max-w-md w-full space-y-6">
-            <Card>
-              <CardContent className="py-12 text-center space-y-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
-                  <AlertCircle className="w-8 h-8 text-destructive" />
-                </div>
-                <h2 className="text-xl font-bold">Link Not Found</h2>
-                <p className="text-muted-foreground text-sm">
-                  This approval link is invalid or has expired. Contact us directly if you need to give feedback on your specification.
-                </p>
-                <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
-                  <Phone className="w-4 h-4" />
-                  0151 203 8500
-                </a>
-              </CardContent>
-            </Card>
-            <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
-          </div>
+          <Card className="max-w-md w-full">
+            <CardContent className="py-12 text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <h2 className="text-xl font-bold">Link Not Found</h2>
+              <p className="text-muted-foreground text-sm">
+                This approval link is invalid or has expired. Contact us directly if you need to give feedback on your specification.
+              </p>
+              <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
+                <Phone className="w-4 h-4" />
+                0151 203 8500
+              </a>
+            </CardContent>
+          </Card>
         </main>
         <Footer />
       </div>
@@ -99,47 +95,44 @@ export default function SpecApproval() {
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
-          <div className="max-w-lg w-full space-y-6">
-            <Card data-testid="card-approval-submitted">
-              <CardContent className="py-12 text-center space-y-4">
-                <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mx-auto ${isApproved ? "bg-accent/10" : "bg-orange-500/10"}`}>
+          <Card className="max-w-lg w-full" data-testid="card-approval-submitted">
+            <CardContent className="py-12 text-center space-y-4">
+              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mx-auto ${isApproved ? "bg-accent/10" : "bg-orange-500/10"}`}>
+                {isApproved
+                  ? <CheckCircle className="w-8 h-8 text-accent" />
+                  : <XCircle className="w-8 h-8 text-orange-500" />
+                }
+              </div>
+
+              <Badge variant="outline" className={isApproved ? "border-accent text-accent" : "border-orange-500 text-orange-500"}>
+                {isApproved ? "Confirmed" : "Feedback Received"}
+              </Badge>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-2">
+                  {isApproved ? `Thanks, ${info.customerName.split(" ")[0]}!` : `Got it, ${info.customerName.split(" ")[0]}`}
+                </h2>
+                <p className="text-muted-foreground text-sm">
                   {isApproved
-                    ? <CheckCircle className="w-8 h-8 text-accent" />
-                    : <XCircle className="w-8 h-8 text-orange-500" />
+                    ? "We've noted that your specification looks correct. Our team will be in touch shortly to progress your order."
+                    : "We've received your feedback and a member of our team will review it and be in touch to discuss the changes."
                   }
+                </p>
+              </div>
+
+              {!isApproved && (info.specApprovalComments || comments) && (
+                <div className="text-left bg-muted rounded-md p-4 text-sm">
+                  <p className="font-medium text-foreground mb-1">Your comments:</p>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{info.specApprovalComments || comments}</p>
                 </div>
+              )}
 
-                <Badge variant="outline" className={isApproved ? "border-accent text-accent" : "border-orange-500 text-orange-500"}>
-                  {isApproved ? "Confirmed" : "Feedback Received"}
-                </Badge>
-
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">
-                    {isApproved ? `Thanks, ${info.customerName.split(" ")[0]}!` : `Got it, ${info.customerName.split(" ")[0]}`}
-                  </h2>
-                  <p className="text-muted-foreground text-sm">
-                    {isApproved
-                      ? "We've noted that your specification looks correct. Our team will be in touch shortly to progress your order."
-                      : "We've received your feedback and a member of our team will review it and be in touch to discuss the changes."
-                    }
-                  </p>
-                </div>
-
-                {!isApproved && (info.specApprovalComments || comments) && (
-                  <div className="text-left bg-muted rounded-md p-4 text-sm">
-                    <p className="font-medium text-foreground mb-1">Your comments:</p>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{info.specApprovalComments || comments}</p>
-                  </div>
-                )}
-
-                <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm pt-2">
-                  <Phone className="w-4 h-4" />
-                  0151 203 8500
-                </a>
-              </CardContent>
-            </Card>
-            <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
-          </div>
+              <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm pt-2">
+                <Phone className="w-4 h-4" />
+                0151 203 8500
+              </a>
+            </CardContent>
+          </Card>
         </main>
         <Footer />
       </div>
@@ -261,10 +254,6 @@ export default function SpecApproval() {
             <a href="tel:01512038500" className="text-accent font-medium hover:underline">
               Call 0151 203 8500
             </a>
-          </p>
-
-          <p className="text-center text-xs text-muted-foreground/60">
-            Platform operated by GAJO Creative Ltd
           </p>
         </div>
       </main>

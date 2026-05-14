@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -135,7 +135,6 @@ export default function BuildSheet() {
 
   // ── AutoTradeOS push state ──────────────────────────────────────────────
   type PushPhase = 'idle' | 'preflight' | 'pushing' | 'done' | 'error';
-  const [showSkus, setShowSkus] = useState(false);
   const [pushPhase, setPushPhase] = useState<PushPhase>('idle');
   const [pushResult, setPushResult] = useState<{
     success: boolean;
@@ -495,14 +494,6 @@ export default function BuildSheet() {
               <Button variant="ghost" onClick={() => setLocation("/admin/quotes")} data-testid="button-back">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Quotes
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowSkus(v => !v)}
-                data-testid="button-toggle-skus"
-              >
-                {showSkus ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                {showSkus ? "Hide SKUs" : "Show SKUs"}
               </Button>
               <Button onClick={handlePrint} data-testid="button-print">
                 <Printer className="w-4 h-4 mr-2" />
@@ -883,7 +874,7 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
-                    {showSkus && <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} />}
+                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -933,7 +924,7 @@ export default function BuildSheet() {
                                   (Upgraded)
                                 </span>
                               </div>
-                              {showSkus && <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} />}
+                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} />
                             </div>
                           ) : (
                             <span
@@ -1013,7 +1004,7 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
-                          {showSkus && <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} />}
+                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} />
                         </div>
                       </div>
                     );
@@ -1129,7 +1120,6 @@ export default function BuildSheet() {
         <div className="hidden print:block mt-6 text-center text-xs text-black border-t border-black pt-3">
           <p>Mobile Tyre Van City &mdash; Internal Workshop Document &mdash; {formatDate(new Date())}</p>
           <p>Quote Ref: {quote.id.substring(0, 8).toUpperCase()}</p>
-          <p className="mt-1 text-[10px] text-gray-500">Generated via GAJO Platform Systems &middot; &copy; GAJO Creative Ltd</p>
         </div>
       </div>
     </>

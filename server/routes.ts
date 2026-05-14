@@ -1,6 +1,3 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
@@ -11,7 +8,7 @@ import { pool } from "./db";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, isFinanceUser, getCurrentUser } from "./auth";
-import { buildVanMeta, buildBlogPostMeta } from "./seo";
+import { buildVanMeta } from "./seo";
 import { generateAiBlogPost } from "./blogGenerator";
 import { computePopularityIntelligence, formatPopularityBlock } from "./popularityIntelligence";
 import { 
@@ -3064,45 +3061,6 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     }
   });
 
-  // Log a conflict-removal event to the quote audit trail (deduplicates on same removed-upgrade set)
-  app.post("/api/admin/quotes/:id/conflict-log", isAuthenticated, isBasicAdmin, async (req, res) => {
-    try {
-      const { removedNames } = req.body;
-      if (!Array.isArray(removedNames) || removedNames.length === 0) {
-        return res.status(400).json({ error: "removedNames must be a non-empty array" });
-      }
-      const quote = await storage.getQuote(req.params.id);
-      if (!quote) return res.status(404).json({ error: "Quote not found" });
-
-      const sortedNames = [...removedNames].sort();
-      const noteText =
-        sortedNames.length === 1
-          ? `System: Conflicting upgrade auto-removed on load — "${sortedNames[0]}" was removed because a mutually exclusive option was already selected`
-          : `System: Conflicting upgrades auto-removed on load — the following were removed because a mutually exclusive option was already selected: ${sortedNames.join(", ")}`;
-
-      const existingHistory: Array<{ text: string; author?: string; timestamp: string }> =
-        quote.adminNotesHistory || [];
-
-      const alreadyLogged = existingHistory.some(
-        entry => entry.author === "System" && entry.text === noteText,
-      );
-
-      if (alreadyLogged) {
-        return res.json({ duplicate: true });
-      }
-
-      const newEntry = { text: noteText, timestamp: new Date().toISOString(), author: "System" };
-      const updated = await storage.updateQuote(req.params.id, {
-        adminNotesHistory: [...existingHistory, newEntry],
-      });
-      if (!updated) return res.status(500).json({ error: "Failed to log conflict" });
-      res.json(updated);
-    } catch (error) {
-      console.error("Error logging conflict removal:", error);
-      res.status(500).json({ error: "Failed to log conflict removal" });
-    }
-  });
-
   app.patch("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { noteType, timestamp, text } = req.body;
@@ -4253,72 +4211,6 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     } catch (error) {
       console.error('Error saving quote correction:', error);
       res.status(500).json({ error: "Failed to save corrections" });
-    }
-  });
-
-  // Public customer build progress — read-only view via approval token
-  app.get("/api/build-progress-public/:token", async (req, res) => {
-    try {
-      const { token } = req.params;
-      const quotes = await storage.getQuotes();
-      const quote = quotes.find(q => q.approvalToken === token);
-      if (!quote) {
-        return res.status(404).json({ error: "Build progress link not found or has expired" });
-      }
-      const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
-      const allUpgrades = await storage.getAllUpgradesAdmin();
-      const selectedUpgrades = allUpgrades.filter(u => quote.selectedUpgradeIds.includes(u.id));
-
-      const interiorWallPattern = /interior.wall/i;
-      const wrapGraphicsPattern = /wrap|graphic/i;
-      const isInteriorWall = (u: { name: string; category: string }) =>
-        interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
-      const isWrapGraphics = (u: { name: string; category: string }) =>
-        wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
-      const upgradeLabel = (u: { name: string; variantName: string | null }) =>
-        u.variantName ? `${u.name} — ${u.variantName}` : u.name;
-
-      let stages: Array<{ id: string; label: string; section?: string }>;
-      if (quote.customBuildStages && quote.customBuildStages.length > 0) {
-        stages = quote.customBuildStages;
-      } else {
-        stages = [];
-        stages.push({ id: "prep", label: "Van Preparation" });
-        if (kit) stages.push({ id: "kit", label: `Install ${kit.name}` });
-        const nonWrap = selectedUpgrades.filter(u => !isWrapGraphics(u) && !isInteriorWall(u));
-        const wrap = selectedUpgrades.filter(u => isWrapGraphics(u) && !isInteriorWall(u));
-        const wallUpgrades = selectedUpgrades.filter(u => isInteriorWall(u) && !isWrapGraphics(u));
-        for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
-        if (wrap.length > 0) {
-          stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
-          stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
-          stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
-        }
-        for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
-        if (wallUpgrades.length > 0) {
-          stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
-          stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
-          stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
-        }
-        for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
-        stages.push({ id: "final_checks", label: "Final Checks" });
-        stages.push({ id: "valet", label: "Valet & Handover" });
-      }
-
-      const completedStageIds = quote.completedBuildStages.map(s =>
-        typeof s === "string" ? s : s.id
-      );
-
-      res.json({
-        customerName: quote.userName,
-        vanRegistration: quote.vanRegistration ?? null,
-        company: quote.company ?? null,
-        stages,
-        completedStageIds,
-      });
-    } catch (error) {
-      console.error("Error fetching customer build progress:", error);
-      res.status(500).json({ error: "Failed to fetch build progress" });
     }
   });
 
@@ -5727,18 +5619,6 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       const van = await storage.getVanBySlug(req.params.slug);
       if (van && van.published) {
         req.__seoMeta = buildVanMeta(van);
-      }
-    } catch (e) {
-      // Non-fatal: page will use default meta
-    }
-    next();
-  });
-
-  app.get('/blog/:slug', async (req, res, next) => {
-    try {
-      const post = await storage.getBlogPostBySlug(req.params.slug);
-      if (post && post.published) {
-        req.__seoMeta = buildBlogPostMeta(post);
       }
     } catch (e) {
       // Non-fatal: page will use default meta

@@ -184,9 +184,8 @@ export default function ArtworkApproval() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex flex-col items-center justify-center gap-6">
+        <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
         </main>
         <Footer />
       </div>
@@ -198,24 +197,21 @@ export default function ArtworkApproval() {
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         <main className="flex-1 flex items-center justify-center px-4 py-16">
-          <div className="max-w-md w-full space-y-6">
-            <Card>
-              <CardContent className="py-12 text-center space-y-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
-                  <AlertCircle className="w-8 h-8 text-destructive" />
-                </div>
-                <h2 className="text-xl font-bold">Link Not Found</h2>
-                <p className="text-muted-foreground text-sm">
-                  This approval link is invalid or has expired. Please contact us directly if you need to review your artwork.
-                </p>
-                <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
-                  <Phone className="w-4 h-4" />
-                  0151 203 8500
-                </a>
-              </CardContent>
-            </Card>
-            <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
-          </div>
+          <Card className="max-w-md w-full">
+            <CardContent className="py-12 text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <h2 className="text-xl font-bold">Link Not Found</h2>
+              <p className="text-muted-foreground text-sm">
+                This approval link is invalid or has expired. Please contact us directly if you need to review your artwork.
+              </p>
+              <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
+                <Phone className="w-4 h-4" />
+                0151 203 8500
+              </a>
+            </CardContent>
+          </Card>
         </main>
         <Footer />
       </div>
@@ -276,8 +272,6 @@ export default function ArtworkApproval() {
 
             {/* Chat thread still accessible after approval */}
             <CustomerChatThread token={token!} customerName={info.customerName} />
-
-            <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
           </div>
         </main>
         <Footer />
@@ -429,10 +423,6 @@ export default function ArtworkApproval() {
             <a href="tel:01512038500" className="text-accent font-medium hover:underline">
               Call 0151 203 8500
             </a>
-          </p>
-
-          <p className="text-center text-xs text-muted-foreground/60">
-            Platform operated by GAJO Creative Ltd
           </p>
         </div>
       </main>

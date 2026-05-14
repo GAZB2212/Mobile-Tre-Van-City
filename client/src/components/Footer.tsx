@@ -122,8 +122,7 @@ export default function Footer() {
         <div className="border-t border-primary-foreground/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-primary-foreground/80 text-sm">
-              <p className="mb-0.5">© 2025 GAJO Creative Ltd (Co. No. 16669280). All rights reserved.</p>
-              <p className="text-primary-foreground/60 text-xs">Platform &amp; digital infrastructure operated by GAJO Creative Ltd</p>
+              Website design &amp; development © 2025 GAJO Creative Ltd (Co. No. 16669280). All rights reserved.
             </div>
             <div className="flex flex-wrap justify-center items-center gap-4">
               {legalLinks.map((link) => (
@@ -166,7 +165,7 @@ export default function Footer() {
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               data-testid="link-gajo-creative"
             >
-              <span className="text-primary-foreground/60 text-sm">Platform &amp; digital infrastructure operated by GAJO Creative Ltd</span>
+              <span className="text-primary-foreground/60 text-sm">Website owned and managed by</span>
               <img 
                 src={gajoLogo} 
                 alt="Gajo Creative" 

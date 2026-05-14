@@ -270,19 +270,22 @@ export default function SelectUpgrades() {
       if (toRemove.length > 0) {
         replaceUpgrades(toRemove, upgradeId);
         purgeQuantities(toRemove);
-        const addedName = upgrade
-          ? (upgrade.variantName ? `${upgrade.name} (${upgrade.variantName})` : upgrade.name)
-          : "the selected option";
-        toRemove.forEach(id => {
-          const u = allUpgrades.find(u => u.id === id);
-          if (!u) return;
-          const removedName = u.variantName ? `${u.name} (${u.variantName})` : u.name;
+        const addedName = upgrade?.name ?? "the selected option";
+        const removedNames = toRemove
+          .map(id => {
+            const u = allUpgrades.find(u => u.id === id);
+            if (!u) return null;
+            return u.variantName ? `${u.name} (${u.variantName})` : u.name;
+          })
+          .filter(Boolean) as string[];
+        if (removedNames.length > 0) {
+          const removed = removedNames.join(" and ");
           toast({
             title: "Option removed",
-            description: `${removedName} was removed because ${addedName} was already selected.`,
+            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${addedName}.`,
             duration: 5000,
           });
-        });
+        }
       } else {
         addUpgrade(upgradeId);
       }
@@ -334,21 +337,26 @@ export default function SelectUpgrades() {
       replaceUpgrades(toRemove, variantId);
       purgeQuantities(toRemove);
 
-      // Show toasts for all exclusive-group conflicts (not for routine same-parent variant switches)
+      // Show a single aggregated toast for all exclusive-group conflicts (not for routine same-parent variant switches)
       if (exclusiveGroupConflicts.length > 0 && selectedVariant) {
         const addedName = selectedVariant.variantName
           ? `${selectedVariant.name} (${selectedVariant.variantName})`
           : selectedVariant.name;
-        exclusiveGroupConflicts.forEach(id => {
-          const u = allUpgrades.find(u => u.id === id);
-          if (!u) return;
-          const removedName = u.variantName ? `${u.name} (${u.variantName})` : u.name;
+        const removedNames = exclusiveGroupConflicts
+          .map(id => {
+            const u = allUpgrades.find(u => u.id === id);
+            if (!u) return null;
+            return u.variantName ? `${u.name} (${u.variantName})` : u.name;
+          })
+          .filter(Boolean) as string[];
+        if (removedNames.length > 0) {
+          const removed = removedNames.join(" and ");
           toast({
             title: "Option removed",
-            description: `${removedName} was removed because ${addedName} was already selected.`,
+            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${addedName}.`,
             duration: 5000,
           });
-        });
+        }
       }
     } else if (toRemove.length > 0) {
       // If no variant selected, just remove the old ones

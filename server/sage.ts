@@ -1,6 +1,3 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
 import { pool } from "./db.js";
 
 const SAGE_CLIENT_ID = process.env.SAGE_CLIENT_ID ?? "";

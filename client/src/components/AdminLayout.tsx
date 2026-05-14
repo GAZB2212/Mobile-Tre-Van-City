@@ -524,19 +524,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </TooltipTrigger>
           {(collapsed && !isMobile) && <TooltipContent side="right">Log Out</TooltipContent>}
         </Tooltip>
-
-        {(!collapsed || isMobile) ? (
-          <p className="text-[10px] text-zinc-700 text-center mt-2 leading-snug px-1">
-            Powered by GAJO Infrastructure
-          </p>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p className="text-[10px] text-zinc-700 text-center mt-2">G</p>
-            </TooltipTrigger>
-            <TooltipContent side="right">Powered by GAJO Infrastructure</TooltipContent>
-          </Tooltip>
-        )}
       </div>
     </div>
   );
@@ -739,7 +726,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </Dialog>
 
         {/* Page content */}
-        <main id="main-content" className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

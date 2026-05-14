@@ -1,6 +1,3 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
 import { Resend } from 'resend';
 
 const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
@@ -160,7 +157,6 @@ export function emailLayout(
       <p style="margin:0 0 3px;">${ADDRESS}</p>
       <p style="margin:0;">${PHONE} &bull; <a href="https://${SITE_DOMAIN}">${SITE_DOMAIN}</a></p>
       ${footerNote ? `<p style="margin:12px 0 0; font-size:12px; color:#9ca3af;">${footerNote}</p>` : ''}
-      <p style="margin:14px 0 0; font-size:11px; color:#d1d5db; border-top:1px solid #e5e7eb; padding-top:10px;">Platform operated by <a href="https://www.gajocreative.co.uk" style="color:#9ca3af;">GAJO Creative Ltd</a> &mdash; Co. No. 16669280</p>
     </div>
   </div>
 </body>

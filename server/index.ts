@@ -1,7 +1,3 @@
-// Copyright © GAJO Creative Ltd
-// Proprietary and confidential — unauthorised copying or distribution prohibited
-
-import crypto from "crypto";
 import express, { type Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cron from "node-cron";
@@ -16,9 +12,6 @@ import { backfillSkus } from "./backfill-skus";
 
 const app = express();
 
-// Detect production deployment (Replit sets REPLIT_DEPLOYMENT=1 when deployed)
-const isProductionEnv = process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production';
-
 // Session must be first middleware to ensure cookies work properly
 app.set("trust proxy", true);
 app.use(getSession());
@@ -26,117 +19,22 @@ app.use(getSession());
 // Gzip compression for all responses
 app.use(compression());
 
-// Allowed hosts — used in redirects to prevent open-redirect via host-header injection
-const ALLOWED_HOSTS = new Set([
-  'www.mobiletyrevancity.co.uk',
-  'mobiletyrevancity.co.uk',
-]);
-const CANONICAL_HOST = 'www.mobiletyrevancity.co.uk';
-
-// In production: force HTTPS before anything else (Replit terminates TLS and forwards x-forwarded-proto).
-// Only redirect when the upstream proxy EXPLICITLY signals HTTP — do NOT fall back to req.protocol,
-// which would cause Cloud Run's internal health-check probes (which carry no x-forwarded-proto header)
-// to receive a 301 redirect instead of 200, failing the startup health check and causing restart loops.
-app.use((req, res, next) => {
-  const forwardedProto = req.headers['x-forwarded-proto'] as string | undefined;
-  if (isProductionEnv && forwardedProto === 'http') {
-    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
-  }
-  next();
-});
-
-// Redirect non-www to www — validate host is in allowlist before redirecting
+// Redirect non-www to www
 app.use((req, res, next) => {
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
-  const hostWithoutPort = host.split(':')[0];
-  if (ALLOWED_HOSTS.has(hostWithoutPort) && !hostWithoutPort.startsWith('www.')) {
-    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+  if (host && !host.startsWith('www.') && host.includes('mobiletyrevancity.co.uk')) {
+    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
+    return res.redirect(301, `${proto}://www.${host}${req.originalUrl}`);
   }
   next();
 });
 
 // HTTP security headers
-
 app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
-  // HSTS — only set in production (HTTPS). Setting it on localhost breaks the browser.
-  // max-age=31536000 = 1 year; includeSubDomains covers www and any sub-domains.
-  if (isProductionEnv) {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  }
-
-  // Content-Security-Policy
-  //
-  // In production: nonce-based script-src (no 'unsafe-inline').
-  //   A per-request cryptographic nonce is generated and injected into both:
-  //     (a) the CSP header — 'nonce-{nonce}'
-  //     (b) every inline <script> tag in the HTML response body via res.end interception
-  //   This covers the React SSR hydration script (<script>window.__TANSTACK_QUERY_STATE__=…</script>)
-  //   that server/vite.ts injects, without requiring changes to that file.
-  //
-  // In development: 'unsafe-inline' is required — Vite's HMR runtime and @vitejs/plugin-react
-  //   preamble inject many inline scripts that cannot carry nonces in dev mode.
-  //
-  // style-src keeps 'unsafe-inline' in both modes because React's style={} prop and
-  //   shadcn/ui components use inline styles at runtime.
-  //
-  // External allowlist: analytics.ahrefs.com (script tag in client/index.html),
-  //   Google Fonts, GCS storage, YouTube embeds, Google Maps iframe.
-
-  let scriptSrcDirective: string;
-
-  if (isProductionEnv) {
-    const nonce = crypto.randomBytes(16).toString('base64');
-    res.locals.cspNonce = nonce;
-    scriptSrcDirective = `script-src 'self' 'nonce-${nonce}' https://analytics.ahrefs.com`;
-
-    // Intercept res.end (used by server/vite.ts production SSR) to stamp the nonce
-    // onto every inline <script> tag. External scripts (<script src="…">) rely on
-    // the domain allowlist above and don't need the nonce.
-    const originalEnd: typeof res.end = res.end.bind(res);
-    res.end = function nonceInjectedEnd(
-      chunk?: string | Buffer | Uint8Array,
-      encodingOrCallback?: BufferEncoding | (() => void),
-      callback?: () => void,
-    ): typeof res {
-      const ct = res.getHeader('content-type');
-      const isHtml = typeof ct === 'string' && ct.includes('text/html');
-      const noncePattern = /<script(?![^>]*\bsrc\b)([^>]*)>/gi;
-      const replacement = `<script$1 nonce="${nonce}">`;
-
-      if (isHtml && typeof chunk === 'string') {
-        chunk = chunk.replace(noncePattern, replacement);
-      } else if (isHtml && Buffer.isBuffer(chunk)) {
-        chunk = Buffer.from(chunk.toString('utf8').replace(noncePattern, replacement), 'utf8');
-      }
-
-      return originalEnd.call(res, chunk, encodingOrCallback as BufferEncoding, callback);
-    };
-  } else {
-    // Dev mode: allow inline scripts so Vite HMR works correctly
-    scriptSrcDirective = `script-src 'self' 'unsafe-inline' https://analytics.ahrefs.com`;
-  }
-
-  const csp = [
-    "default-src 'self'",
-    scriptSrcDirective,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://storage.googleapis.com https://img.youtube.com https://lh3.googleusercontent.com",
-    "media-src 'self' blob: https://storage.googleapis.com",
-    "frame-src https://www.youtube.com https://maps.google.com",
-    "connect-src 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'self'",
-    "upgrade-insecure-requests",
-  ].join('; ');
-  res.setHeader('Content-Security-Policy', csp);
-
   next();
 });
 

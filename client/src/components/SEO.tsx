@@ -34,9 +34,7 @@ export default function SEO({
     const metaTags: Array<{ name?: string; property?: string; content: string }> = [
       { name: 'description', content: description },
       { name: 'robots', content: noindex ? 'noindex, nofollow' : 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' },
-      { name: 'author', content: 'GAJO Creative Ltd' },
-      { name: 'copyright', content: '© GAJO Creative Ltd' },
-      { name: 'generator', content: 'GAJO Platform Systems' },
+      { name: 'author', content: SITE_NAME },
       { property: 'og:title', content: fullTitle },
       { property: 'og:description', content: description },
       { property: 'og:type', content: ogType },
@@ -203,14 +201,6 @@ export const organizationStructuredData = {
   "foundingLocation": {
     "@type": "Place",
     "name": "Wirral, Merseyside, United Kingdom"
-  },
-  "creator": {
-    "@type": "Organization",
-    "name": "GAJO Creative Ltd"
-  },
-  "copyrightHolder": {
-    "@type": "Organization",
-    "name": "GAJO Creative Ltd"
   }
 };
 
@@ -469,14 +459,6 @@ export function createProductStructuredData(van: {
       "price": van.price / 100,
       "availability": "https://schema.org/InStock",
       "url": `${SITE_URL}/stock/${van.id}`
-    },
-    "creator": {
-      "@type": "Organization",
-      "name": "GAJO Creative Ltd"
-    },
-    "copyrightHolder": {
-      "@type": "Organization",
-      "name": "GAJO Creative Ltd"
     }
   };
 }
@@ -561,14 +543,6 @@ export function createArticleStructuredData(post: {
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `${SITE_URL}/blog/${post.slug}`
-    },
-    "creator": {
-      "@type": "Organization",
-      "name": "GAJO Creative Ltd"
-    },
-    "copyrightHolder": {
-      "@type": "Organization",
-      "name": "GAJO Creative Ltd"
     }
   };
 }
