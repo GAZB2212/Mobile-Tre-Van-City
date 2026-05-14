@@ -22,21 +22,29 @@ app.use(getSession());
 // Gzip compression for all responses
 app.use(compression());
 
-// In production: force HTTPS before anything else (Replit terminates TLS and forwards x-forwarded-proto)
+// Allowed hosts — used in redirects to prevent open-redirect via host-header injection
+const ALLOWED_HOSTS = new Set([
+  'www.mobiletyrevancity.co.uk',
+  'mobiletyrevancity.co.uk',
+]);
+const CANONICAL_HOST = 'www.mobiletyrevancity.co.uk';
+
+// In production: force HTTPS before anything else (Replit terminates TLS and forwards x-forwarded-proto).
+// Always redirect to the canonical host — never reflect an untrusted host header in the Location URL.
 app.use((req, res, next) => {
   const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || '';
   if (isProductionEnv && proto && proto !== 'https') {
-    const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
-    return res.redirect(301, `https://${host}${req.originalUrl}`);
+    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
   }
   next();
 });
 
-// Redirect non-www to www
+// Redirect non-www to www — validate host is in allowlist before redirecting
 app.use((req, res, next) => {
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
-  if (host && !host.startsWith('www.') && host.includes('mobiletyrevancity.co.uk')) {
-    return res.redirect(301, `https://www.${host}${req.originalUrl}`);
+  const hostWithoutPort = host.split(':')[0];
+  if (ALLOWED_HOSTS.has(hostWithoutPort) && !hostWithoutPort.startsWith('www.')) {
+    return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
   }
   next();
 });
