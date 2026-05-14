@@ -834,16 +834,15 @@ app.use((req, res, next) => {
         .catch((err: Error) => console.error("Artwork proof messages migration:", err.message));
 
       // Staff phone numbers table (for Twilio click-to-call bridging)
+      // Global list managed by full admins. sort_order column added idempotently.
       pool.query(`
         CREATE TABLE IF NOT EXISTS staff_phone_numbers (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE,
           label TEXT NOT NULL DEFAULT 'Mobile',
           phone TEXT NOT NULL,
-          is_default BOOLEAN NOT NULL DEFAULT FALSE,
           created_at TIMESTAMP DEFAULT NOW()
         );
-        CREATE INDEX IF NOT EXISTS idx_staff_phone_numbers_user ON staff_phone_numbers (user_id);
+        ALTER TABLE staff_phone_numbers ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
       `).then(() => log("✅ Staff phone numbers table ready"))
         .catch((err: Error) => console.error("Staff phone numbers migration:", err.message));
 

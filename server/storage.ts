@@ -147,7 +147,7 @@ export interface IStorage {
   splitMerge(historyId: string): Promise<{ newCustomerId: string }>;
 
   // Staff Phone Numbers (for Twilio click-to-call)
-  getStaffPhones(userId?: string): Promise<StaffPhone[]>;
+  getStaffPhones(): Promise<StaffPhone[]>;
   getStaffPhone(id: string): Promise<StaffPhone | undefined>;
   createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone>;
   updateStaffPhone(id: string, data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined>;
@@ -1794,10 +1794,10 @@ export class MemStorage implements IStorage {
   }
   async getMergeHistory(_limit?: number): Promise<CustomerMergeHistory[]> { return []; }
   async splitMerge(_historyId: string): Promise<{ newCustomerId: string }> { return { newCustomerId: "" }; }
-  async getStaffPhones(_userId?: string): Promise<StaffPhone[]> { return []; }
+  async getStaffPhones(): Promise<StaffPhone[]> { return []; }
   async getStaffPhone(_id: string): Promise<StaffPhone | undefined> { return undefined; }
   async createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone> {
-    return { id: randomUUID(), userId: data.userId ?? null, label: data.label ?? "Mobile", phone: data.phone, isDefault: data.isDefault ?? false, createdAt: new Date() };
+    return { id: randomUUID(), label: data.label ?? "Mobile", phone: data.phone, sortOrder: data.sortOrder ?? 0, createdAt: new Date() };
   }
   async updateStaffPhone(_id: string, _data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined> { return undefined; }
   async deleteStaffPhone(_id: string): Promise<boolean> { return false; }
@@ -2863,21 +2863,19 @@ export class DbStorage implements IStorage {
   }
 
   // ── Staff Phone Numbers ──────────────────────────────────────────────────────
-  async getStaffPhones(userId?: string): Promise<StaffPhone[]> {
-    const { rows } = userId
-      ? await pool.query(
-          `SELECT id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt" FROM staff_phone_numbers WHERE user_id = $1 ORDER BY is_default DESC, created_at ASC`,
-          [userId]
-        )
-      : await pool.query(
-          `SELECT id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt" FROM staff_phone_numbers ORDER BY user_id, is_default DESC, created_at ASC`
-        );
+  // Global list; no per-user filtering. Ordered by sort_order then created_at.
+  async getStaffPhones(): Promise<StaffPhone[]> {
+    const { rows } = await pool.query(
+      `SELECT id, label, phone, sort_order AS "sortOrder", created_at AS "createdAt"
+       FROM staff_phone_numbers ORDER BY sort_order ASC, created_at ASC`
+    );
     return rows;
   }
 
   async getStaffPhone(id: string): Promise<StaffPhone | undefined> {
     const { rows } = await pool.query(
-      `SELECT id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt" FROM staff_phone_numbers WHERE id = $1`,
+      `SELECT id, label, phone, sort_order AS "sortOrder", created_at AS "createdAt"
+       FROM staff_phone_numbers WHERE id = $1`,
       [id]
     );
     return rows[0];
@@ -2885,9 +2883,10 @@ export class DbStorage implements IStorage {
 
   async createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone> {
     const { rows } = await pool.query(
-      `INSERT INTO staff_phone_numbers (user_id, label, phone, is_default) VALUES ($1, $2, $3, $4)
-       RETURNING id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt"`,
-      [data.userId ?? null, data.label ?? "Mobile", data.phone, data.isDefault ?? false]
+      `INSERT INTO staff_phone_numbers (label, phone, sort_order)
+       VALUES ($1, $2, $3)
+       RETURNING id, label, phone, sort_order AS "sortOrder", created_at AS "createdAt"`,
+      [data.label ?? "Mobile", data.phone, data.sortOrder ?? 0]
     );
     return rows[0];
   }
@@ -2898,12 +2897,12 @@ export class DbStorage implements IStorage {
     let idx = 1;
     if (data.label !== undefined) { fields.push(`label = $${idx++}`); values.push(data.label); }
     if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
-    if (data.isDefault !== undefined) { fields.push(`is_default = $${idx++}`); values.push(data.isDefault); }
+    if (data.sortOrder !== undefined) { fields.push(`sort_order = $${idx++}`); values.push(data.sortOrder); }
     if (fields.length === 0) return this.getStaffPhone(id);
     values.push(id);
     const { rows } = await pool.query(
       `UPDATE staff_phone_numbers SET ${fields.join(", ")} WHERE id = $${idx}
-       RETURNING id, user_id AS "userId", label, phone, is_default AS "isDefault", created_at AS "createdAt"`,
+       RETURNING id, label, phone, sort_order AS "sortOrder", created_at AS "createdAt"`,
       values
     );
     return rows[0];

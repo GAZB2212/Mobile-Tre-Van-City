@@ -84,19 +84,16 @@ export default function AdminSettings() {
   const [phoneDialog, setPhoneDialog] = useState<{ open: boolean; editing: StaffPhone | null }>({ open: false, editing: null });
   const [phoneLabel, setPhoneLabel] = useState("Mobile");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [phoneDefault, setPhoneDefault] = useState(false);
 
   function openAddPhone() {
     setPhoneLabel("Mobile");
     setPhoneNumber("");
-    setPhoneDefault(false);
     setPhoneDialog({ open: true, editing: null });
   }
 
   function openEditPhone(p: StaffPhone) {
     setPhoneLabel(p.label);
     setPhoneNumber(p.phone);
-    setPhoneDefault(p.isDefault);
     setPhoneDialog({ open: true, editing: p });
   }
 
@@ -106,7 +103,6 @@ export default function AdminSettings() {
         const res = await apiRequest("PATCH", `/api/admin/staff-phones/${phoneDialog.editing.id}`, {
           label: phoneLabel.trim(),
           phone: phoneNumber.trim(),
-          isDefault: phoneDefault,
         });
         if (!res.ok) throw new Error("Failed to update");
         return res.json();
@@ -114,7 +110,6 @@ export default function AdminSettings() {
         const res = await apiRequest("POST", "/api/admin/staff-phones", {
           label: phoneLabel.trim(),
           phone: phoneNumber.trim(),
-          isDefault: phoneDefault,
         });
         if (!res.ok) throw new Error("Failed to create");
         return res.json();
@@ -155,77 +150,74 @@ export default function AdminSettings() {
 
       <Separator />
 
-      {/* Staff phone numbers — visible to all admins */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Phone className="w-5 h-5 text-muted-foreground" />
-              <CardTitle className="text-base">My Phone Numbers</CardTitle>
-            </div>
-            <Button size="sm" variant="outline" onClick={openAddPhone} data-testid="button-add-phone">
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Add number
-            </Button>
-          </div>
-          <CardDescription className="mt-1">
-            Phone numbers Twilio will call when you click "Call Now" on a quote or lead. Twilio rings you first, then connects you to the customer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {phonesLoading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : staffPhones.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
-              <PhoneCall className="w-8 h-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No phone numbers added yet.</p>
-              <Button size="sm" variant="outline" onClick={openAddPhone} data-testid="button-add-phone-empty">
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                Add your first number
-              </Button>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {staffPhones.map((p) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2" data-testid={`staff-phone-${p.id}`}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-sm font-medium truncate">{p.phone}</span>
-                    <span className="text-xs text-muted-foreground truncate">{p.label}</span>
-                    {p.isDefault && (
-                      <Badge variant="outline" className="text-xs shrink-0 no-default-active-elevate">Default</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => openEditPhone(p)}
-                      data-testid={`button-edit-phone-${p.id}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive"
-                      onClick={() => deletePhoneMutation.mutate(p.id)}
-                      disabled={deletePhoneMutation.isPending}
-                      data-testid={`button-delete-phone-${p.id}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Full-admin-only integrations */}
       {isFullAdmin && (
         <>
+          {/* Staff phone numbers — managed by full admins; used by all admins for click-to-call */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <CardTitle className="text-base">Staff Phone Numbers</CardTitle>
+                </div>
+                <Button size="sm" variant="outline" onClick={openAddPhone} data-testid="button-add-phone">
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Add number
+                </Button>
+              </div>
+              <CardDescription className="mt-1">
+                Phone numbers available for staff to use with the click-to-call bridge. When staff click "Call via bridge", Twilio rings the chosen number, then connects them to the customer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {phonesLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : staffPhones.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                  <PhoneCall className="w-8 h-8 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No phone numbers added yet.</p>
+                  <Button size="sm" variant="outline" onClick={openAddPhone} data-testid="button-add-phone-empty">
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />
+                    Add the first number
+                  </Button>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {staffPhones.map((p) => (
+                    <li key={p.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2" data-testid={`staff-phone-${p.id}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium truncate">{p.phone}</span>
+                        <span className="text-xs text-muted-foreground truncate">{p.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openEditPhone(p)}
+                          data-testid={`button-edit-phone-${p.id}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => deletePhoneMutation.mutate(p.id)}
+                          disabled={deletePhoneMutation.isPending}
+                          data-testid={`button-delete-phone-${p.id}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
           <Separator />
 
           {/* Twilio click-to-call */}
@@ -407,16 +399,6 @@ export default function AdminSettings() {
               />
               <p className="text-xs text-muted-foreground">Include the country code, e.g. +44 for UK.</p>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="accent-[#8bc440]"
-                checked={phoneDefault}
-                onChange={(e) => setPhoneDefault(e.target.checked)}
-                data-testid="checkbox-phone-default"
-              />
-              <span className="text-sm">Use as default for click-to-call</span>
-            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setPhoneDialog({ open: false, editing: null })}>

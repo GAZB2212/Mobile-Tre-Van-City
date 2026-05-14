@@ -8964,12 +8964,11 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     res.json({ configured });
   });
 
-  // Staff phone numbers — each admin manages their own; full admins see everyone's
-  app.get("/api/admin/staff-phones", isAuthenticated, isBasicAdmin, async (req, res) => {
+  // Staff phone numbers — global list, full-admin management only
+  // Basic admins can read (needed to show the call dialog) but cannot write
+  app.get("/api/admin/staff-phones", isAuthenticated, isBasicAdmin, async (_req, res) => {
     try {
-      const user = (req as any).user as User;
-      const userId = user?.adminRole === "full" ? undefined : user?.id;
-      const phones = await storage.getStaffPhones(userId);
+      const phones = await storage.getStaffPhones();
       res.json(phones);
     } catch (err) {
       console.error("GET staff-phones:", err);
@@ -8977,12 +8976,11 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
-  app.post("/api/admin/staff-phones", isAuthenticated, isBasicAdmin, async (req, res) => {
+  app.post("/api/admin/staff-phones", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
-      const user = (req as any).user as User;
-      const { label, phone, isDefault } = req.body;
+      const { label, phone, sortOrder } = req.body;
       if (!phone) return res.status(400).json({ error: "phone is required" });
-      const record = await storage.createStaffPhone({ userId: user.id, label: label || "Mobile", phone, isDefault: !!isDefault });
+      const record = await storage.createStaffPhone({ label: label || "Mobile", phone, sortOrder: sortOrder ?? 0 });
       res.json(record);
     } catch (err) {
       console.error("POST staff-phones:", err);
@@ -8990,9 +8988,16 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
-  app.patch("/api/admin/staff-phones/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+  app.patch("/api/admin/staff-phones/:id", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
-      const record = await storage.updateStaffPhone(req.params.id, req.body);
+      const existing = await storage.getStaffPhone(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Not found" });
+      const { label, phone, sortOrder } = req.body;
+      const record = await storage.updateStaffPhone(req.params.id, {
+        ...(label !== undefined && { label }),
+        ...(phone !== undefined && { phone }),
+        ...(sortOrder !== undefined && { sortOrder }),
+      });
       if (!record) return res.status(404).json({ error: "Not found" });
       res.json(record);
     } catch (err) {
@@ -9001,8 +9006,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
-  app.delete("/api/admin/staff-phones/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
+  app.delete("/api/admin/staff-phones/:id", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
+      const existing = await storage.getStaffPhone(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Not found" });
       await storage.deleteStaffPhone(req.params.id);
       res.json({ ok: true });
     } catch (err) {
@@ -9039,10 +9046,17 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         });
       }
 
-      const { staffPhone, customerPhone, quoteId, leadId } = req.body;
-      if (!staffPhone || !customerPhone) {
-        return res.status(400).json({ error: "staffPhone and customerPhone are required" });
+      const { staffNumberId, customerPhone, quoteId, leadId } = req.body;
+      if (!staffNumberId || !customerPhone) {
+        return res.status(400).json({ error: "staffNumberId and customerPhone are required" });
       }
+
+      // Validate the staffNumberId exists in our DB — prevents arbitrary dialling
+      const staffPhoneRecord = await storage.getStaffPhone(staffNumberId);
+      if (!staffPhoneRecord) {
+        return res.status(404).json({ error: "Staff phone number not found" });
+      }
+      const staffPhone = staffPhoneRecord.phone;
 
       const { default: twilio } = await import("twilio");
       const client = twilio(accountSid, authToken);
@@ -9056,8 +9070,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       // Log the call attempt as an admin note (non-fatal)
       try {
         const staffUser = (req as any).user as User;
-        const author    = (staffUser as any)?.username || "Staff";
-        const noteText  = `Click-to-call initiated — staff: ${staffPhone} → customer: ${customerPhone}`;
+        const author    = staffUser?.username || "Staff";
+        const noteText  = `Click-to-call initiated — staff: ${staffPhone} (${staffPhoneRecord.label}) → customer: ${customerPhone}`;
         const entry     = { text: noteText, timestamp: new Date().toISOString(), author };
 
         if (quoteId) {

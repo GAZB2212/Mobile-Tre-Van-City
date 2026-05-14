@@ -164,7 +164,7 @@ export default function AdminLeads() {
 
   // Click-to-call
   const [callDialog, setCallDialog] = useState<{ leadId: string; customerName: string; customerPhone: string } | null>(null);
-  const [selectedStaffPhone, setSelectedStaffPhone] = useState("");
+  const [selectedStaffPhoneId, setSelectedStaffPhoneId] = useState("");
 
   const { data: twilioStatus } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/admin/twilio/status"],
@@ -177,8 +177,8 @@ export default function AdminLeads() {
   });
 
   const initiateCallMutation = useMutation({
-    mutationFn: async ({ staffPhone, customerPhone, leadId }: { staffPhone: string; customerPhone: string; leadId: string }) => {
-      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffPhone, customerPhone, leadId });
+    mutationFn: async ({ staffNumberId, customerPhone, leadId }: { staffNumberId: string; customerPhone: string; leadId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffNumberId, customerPhone, leadId });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to start call"); }
       return res.json();
     },
@@ -825,46 +825,58 @@ export default function AdminLeads() {
                     {/* Phone — prominent call row */}
                     <div className="flex items-center gap-3 flex-wrap">
                       {lead.phone ? (
-                        <>
-                          <a
-                            href={`tel:${lead.phone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-2 text-2xl font-bold text-[#8bc440] hover:text-[#8bc440]/80 transition-colors leading-none"
-                            data-testid={`link-lead-phone-${lead.id}`}
-                          >
-                            <Phone className="w-5 h-5 shrink-0" />
-                            {lead.phone}
-                          </a>
-                          <a
-                            href={`tel:${lead.phone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            data-testid={`button-call-direct-${lead.id}`}
-                          >
-                            <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
-                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                              Call now
-                            </Button>
-                          </a>
-                          {twilioConfigured && staffPhones.length > 0 && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="shrink-0 hidden md:inline-flex"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const defaultPhone = staffPhones.find(p => p.isDefault) ?? staffPhones[0];
-                                setSelectedStaffPhone(defaultPhone?.phone ?? "");
-                                setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", customerPhone: lead.phone! });
-                              }}
-                              data-testid={`button-call-bridge-${lead.id}`}
-                            >
-                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                              Call via bridge
-                            </Button>
-                          )}
-                        </>
+                        <a
+                          href={`tel:${lead.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 text-2xl font-bold text-[#8bc440] hover:text-[#8bc440]/80 transition-colors leading-none"
+                          data-testid={`link-lead-phone-${lead.id}`}
+                        >
+                          <Phone className="w-5 h-5 shrink-0" />
+                          {lead.phone}
+                        </a>
                       ) : (
-                        <span className="text-sm text-muted-foreground italic">No phone provided</span>
+                        <span className="flex items-center gap-2 text-2xl font-bold text-muted-foreground/40 leading-none select-none" data-testid={`text-no-phone-${lead.id}`}>
+                          <Phone className="w-5 h-5 shrink-0" />
+                          No phone
+                        </span>
+                      )}
+                      {/* Call now — direct dial (mobile-friendly, always shown when phone exists) */}
+                      {lead.phone && (
+                        <a
+                          href={`tel:${lead.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`button-call-direct-${lead.id}`}
+                        >
+                          <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
+                            <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+                            Call now
+                          </Button>
+                        </a>
+                      )}
+                      {/* Call via bridge — desktop only, shown when Twilio is configured */}
+                      {twilioConfigured && staffPhones.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="hidden md:inline-flex">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="shrink-0"
+                                disabled={!lead.phone}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
+                                  setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", customerPhone: lead.phone! });
+                                }}
+                                data-testid={`button-call-bridge-${lead.id}`}
+                              >
+                                <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+                                Call via bridge
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {!lead.phone && <TooltipContent>No phone number on record</TooltipContent>}
+                        </Tooltip>
                       )}
                     </div>
 
@@ -1547,13 +1559,13 @@ export default function AdminLeads() {
                   <span className="text-muted-foreground text-xs">({staffPhones[0].label})</span>
                 </div>
               ) : (
-                <Select value={selectedStaffPhone} onValueChange={setSelectedStaffPhone}>
+                <Select value={selectedStaffPhoneId} onValueChange={setSelectedStaffPhoneId}>
                   <SelectTrigger data-testid="select-staff-phone-lead">
                     <SelectValue placeholder="Select your phone…" />
                   </SelectTrigger>
                   <SelectContent>
                     {staffPhones.map((p) => (
-                      <SelectItem key={p.id} value={p.phone} data-testid={`option-staff-phone-lead-${p.id}`}>
+                      <SelectItem key={p.id} value={p.id} data-testid={`option-staff-phone-lead-${p.id}`}>
                         {p.phone} <span className="text-muted-foreground text-xs ml-1">({p.label})</span>
                       </SelectItem>
                     ))}
@@ -1570,11 +1582,11 @@ export default function AdminLeads() {
             <Button
               size="sm"
               className="bg-[#8bc440] text-[#191919]"
-              disabled={!selectedStaffPhone || !callDialog?.customerPhone || initiateCallMutation.isPending}
+              disabled={!selectedStaffPhoneId || !callDialog?.customerPhone || initiateCallMutation.isPending}
               onClick={() => {
                 if (!callDialog) return;
                 initiateCallMutation.mutate({
-                  staffPhone: selectedStaffPhone,
+                  staffNumberId: selectedStaffPhoneId,
                   customerPhone: callDialog.customerPhone,
                   leadId: callDialog.leadId,
                 });

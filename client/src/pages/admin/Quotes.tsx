@@ -213,7 +213,7 @@ export default function AdminQuotes() {
 
   // Click-to-call state
   const [callDialog, setCallDialog] = useState<{ quoteId: string; customerName: string; customerPhone: string } | null>(null);
-  const [selectedStaffPhone, setSelectedStaffPhone] = useState("");
+  const [selectedStaffPhoneId, setSelectedStaffPhoneId] = useState("");
 
   const { data: twilioStatus } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/admin/twilio/status"],
@@ -226,8 +226,8 @@ export default function AdminQuotes() {
   });
 
   const initiateCallMutation = useMutation({
-    mutationFn: async ({ staffPhone, customerPhone, quoteId }: { staffPhone: string; customerPhone: string; quoteId: string }) => {
-      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffPhone, customerPhone, quoteId });
+    mutationFn: async ({ staffNumberId, customerPhone, quoteId }: { staffNumberId: string; customerPhone: string; quoteId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffNumberId, customerPhone, quoteId });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to start call"); }
       return res.json();
     },
@@ -1171,24 +1171,25 @@ export default function AdminQuotes() {
                           </TooltipTrigger>
                           <TooltipContent>Add note</TooltipContent>
                         </Tooltip>
-                        {/* Click-to-call button — desktop only, shown if Twilio is configured and phone is present */}
-                        {twilioConfigured && quote.phone && staffPhones.length > 0 && (
+                        {/* Click-to-call button — desktop only, shown if Twilio is configured */}
+                        {twilioConfigured && staffPhones.length > 0 && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
                                 onClick={(e) => {
+                                  if (!quote.phone) return;
                                   e.stopPropagation();
-                                  const defaultPhone = staffPhones.find(p => p.isDefault) ?? staffPhones[0];
-                                  setSelectedStaffPhone(defaultPhone?.phone ?? "");
-                                  setCallDialog({ quoteId: quote.id, customerName: (quote as any).userName || "Customer", customerPhone: quote.phone });
+                                  setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
+                                  setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", customerPhone: quote.phone });
                                 }}
-                                className="hidden md:flex p-1.5 rounded hover:bg-muted text-[#8bc440] hover:text-[#8bc440]/80 transition-colors"
+                                disabled={!quote.phone}
+                                className="hidden md:flex p-1.5 rounded hover:bg-muted text-[#8bc440] hover:text-[#8bc440]/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
                                 data-testid={`icon-call-${quote.id}`}
                               >
                                 <PhoneCall className="w-3.5 h-3.5" />
                               </button>
                             </TooltipTrigger>
-                            <TooltipContent>Call via bridge</TooltipContent>
+                            <TooltipContent>{quote.phone ? "Call via bridge" : "No phone number on record"}</TooltipContent>
                           </Tooltip>
                         )}
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
@@ -1579,13 +1580,13 @@ export default function AdminQuotes() {
                   <span className="text-muted-foreground text-xs">({staffPhones[0].label})</span>
                 </div>
               ) : (
-                <Select value={selectedStaffPhone} onValueChange={setSelectedStaffPhone}>
+                <Select value={selectedStaffPhoneId} onValueChange={setSelectedStaffPhoneId}>
                   <SelectTrigger data-testid="select-staff-phone">
                     <SelectValue placeholder="Select your phone…" />
                   </SelectTrigger>
                   <SelectContent>
                     {staffPhones.map((p) => (
-                      <SelectItem key={p.id} value={p.phone} data-testid={`option-staff-phone-${p.id}`}>
+                      <SelectItem key={p.id} value={p.id} data-testid={`option-staff-phone-${p.id}`}>
                         {p.phone} <span className="text-muted-foreground text-xs ml-1">({p.label})</span>
                       </SelectItem>
                     ))}
@@ -1602,11 +1603,11 @@ export default function AdminQuotes() {
             <Button
               size="sm"
               className="bg-[#8bc440] text-[#191919]"
-              disabled={!selectedStaffPhone || !callDialog?.customerPhone || initiateCallMutation.isPending}
+              disabled={!selectedStaffPhoneId || !callDialog?.customerPhone || initiateCallMutation.isPending}
               onClick={() => {
                 if (!callDialog) return;
                 initiateCallMutation.mutate({
-                  staffPhone: selectedStaffPhone,
+                  staffNumberId: selectedStaffPhoneId,
                   customerPhone: callDialog.customerPhone,
                   quoteId: callDialog.quoteId,
                 });
