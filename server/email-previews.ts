@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import { emailLayout } from './email';
 
 const BRAND_GREEN = '#8bc440';

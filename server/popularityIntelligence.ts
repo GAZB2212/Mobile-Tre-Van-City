@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import { pool } from "./db";
 
 export interface PackageTierStats {

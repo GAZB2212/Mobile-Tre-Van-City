@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import type { Request } from "express";
 import { vanModels } from "../client/src/pages/seo/data/vanModels";
 import { locations } from "../client/src/pages/seo/data/locations";

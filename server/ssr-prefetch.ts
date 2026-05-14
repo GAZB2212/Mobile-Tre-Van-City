@@ -1,3 +1,6 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
+
 import { QueryClient, dehydrate } from "@tanstack/react-query";
 
 const SERVER_PORT = process.env.PORT || 5000;

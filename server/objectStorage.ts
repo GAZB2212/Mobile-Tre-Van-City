@@ -1,3 +1,5 @@
+// Copyright © GAJO Creative Ltd
+// Proprietary and confidential — unauthorised copying or distribution prohibited
 // Referenced from blueprint: javascript_object_storage
 import { Storage, File } from "@google-cloud/storage";
 import { Response } from "express";
