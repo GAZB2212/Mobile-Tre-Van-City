@@ -168,7 +168,7 @@ export default function AdminLeads() {
   });
 
   // Click-to-call
-  const [callDialog, setCallDialog] = useState<{ leadId: string; customerName: string; customerPhone: string } | null>(null);
+  const [callDialog, setCallDialog] = useState<{ leadId: string; customerName: string; toNumber: string } | null>(null);
   const [selectedStaffPhoneId, setSelectedStaffPhoneId] = useState("");
 
   const { data: twilioStatus } = useQuery<{ configured: boolean }>({
@@ -182,8 +182,8 @@ export default function AdminLeads() {
   });
 
   const initiateCallMutation = useMutation({
-    mutationFn: async ({ staffNumberId, customerPhone, leadId }: { staffNumberId: string; customerPhone: string; leadId: string }) => {
-      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffNumberId, customerPhone, leadId });
+    mutationFn: async ({ staffNumberId, toNumber, leadId }: { staffNumberId: string; toNumber: string; leadId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffNumberId, toNumber, leadId });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to start call"); }
       return res.json();
     },
@@ -845,43 +845,60 @@ export default function AdminLeads() {
                           No phone
                         </span>
                       )}
-                      {/* Call now — direct dial (mobile-friendly, always shown when phone exists) */}
-                      {lead.phone && (
-                        <a
-                          href={`tel:${lead.phone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`button-call-direct-${lead.id}`}
-                        >
-                          <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
-                            <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                            Call now
-                          </Button>
-                        </a>
-                      )}
-                      {/* Call via bridge — desktop only, shown when Twilio is configured */}
-                      {twilioConfigured && staffPhones.length > 0 && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="hidden md:inline-flex">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="shrink-0"
-                                disabled={!lead.phone}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                  setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", customerPhone: lead.phone! });
-                                }}
-                                data-testid={`button-call-bridge-${lead.id}`}
-                              >
+                      {/* Primary call CTA: bridge on desktop when Twilio is configured; direct tel: on mobile or when Twilio absent */}
+                      {twilioConfigured && staffPhones.length > 0 ? (
+                        <>
+                          {/* Desktop: bridge button is the primary action */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="hidden md:inline-flex">
+                                <Button
+                                  size="sm"
+                                  className="bg-[#8bc440] text-[#191919] shrink-0"
+                                  disabled={!lead.phone}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
+                                    setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", toNumber: lead.phone! });
+                                  }}
+                                  data-testid={`button-call-bridge-${lead.id}`}
+                                >
+                                  <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+                                  Call now
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {!lead.phone && <TooltipContent>No phone number on record</TooltipContent>}
+                          </Tooltip>
+                          {/* Mobile: fall back to direct dial */}
+                          {lead.phone && (
+                            <a
+                              href={`tel:${lead.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="md:hidden"
+                              data-testid={`button-call-direct-${lead.id}`}
+                            >
+                              <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
                                 <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
-                                Call via bridge
+                                Call now
                               </Button>
-                            </span>
-                          </TooltipTrigger>
-                          {!lead.phone && <TooltipContent>No phone number on record</TooltipContent>}
-                        </Tooltip>
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        /* No Twilio — always direct dial */
+                        lead.phone && (
+                          <a
+                            href={`tel:${lead.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`button-call-direct-${lead.id}`}
+                          >
+                            <Button size="sm" className="bg-[#8bc440] text-[#191919] shrink-0" tabIndex={-1}>
+                              <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
+                              Call now
+                            </Button>
+                          </a>
+                        )
                       )}
                     </div>
 
@@ -1553,7 +1570,7 @@ export default function AdminLeads() {
           <div className="space-y-4 py-1">
             <div className="rounded-md bg-muted/50 px-3 py-2 text-sm flex items-center gap-2">
               <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="font-mono font-medium">{callDialog?.customerPhone}</span>
+              <span className="font-mono font-medium">{callDialog?.toNumber}</span>
             </div>
             <div className="space-y-1.5">
               <Label>Your phone (Twilio will ring this first)</Label>
@@ -1587,12 +1604,12 @@ export default function AdminLeads() {
             <Button
               size="sm"
               className="bg-[#8bc440] text-[#191919]"
-              disabled={!selectedStaffPhoneId || !callDialog?.customerPhone || initiateCallMutation.isPending}
+              disabled={!selectedStaffPhoneId || !callDialog?.toNumber || initiateCallMutation.isPending}
               onClick={() => {
                 if (!callDialog) return;
                 initiateCallMutation.mutate({
                   staffNumberId: selectedStaffPhoneId,
-                  customerPhone: callDialog.customerPhone,
+                  toNumber: callDialog.toNumber,
                   leadId: callDialog.leadId,
                 });
               }}

@@ -212,7 +212,7 @@ export default function AdminQuotes() {
   });
 
   // Click-to-call state
-  const [callDialog, setCallDialog] = useState<{ quoteId: string; customerName: string; customerPhone: string } | null>(null);
+  const [callDialog, setCallDialog] = useState<{ quoteId: string; customerName: string; toNumber: string } | null>(null);
   const [selectedStaffPhoneId, setSelectedStaffPhoneId] = useState("");
 
   const { data: twilioStatus } = useQuery<{ configured: boolean }>({
@@ -226,8 +226,8 @@ export default function AdminQuotes() {
   });
 
   const initiateCallMutation = useMutation({
-    mutationFn: async ({ staffNumberId, customerPhone, quoteId }: { staffNumberId: string; customerPhone: string; quoteId: string }) => {
-      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffNumberId, customerPhone, quoteId });
+    mutationFn: async ({ staffNumberId, toNumber, quoteId }: { staffNumberId: string; toNumber: string; quoteId: string }) => {
+      const res = await apiRequest("POST", "/api/admin/calls/initiate", { staffNumberId, toNumber, quoteId });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to start call"); }
       return res.json();
     },
@@ -984,10 +984,10 @@ export default function AdminQuotes() {
                                             if (!quote.phone) return;
                                             e.stopPropagation();
                                             setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                            setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", customerPhone: quote.phone });
+                                            setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", toNumber: quote.phone });
                                           }}
                                           disabled={!quote.phone}
-                                          className="p-1 rounded text-[#8bc440] hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                          className="hidden md:flex p-1 rounded text-[#8bc440] hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                           data-testid={`icon-call-kanban-${quote.id}`}
                                         >
                                           <PhoneCall className="w-3 h-3" />
@@ -1200,7 +1200,7 @@ export default function AdminQuotes() {
                                   if (!quote.phone) return;
                                   e.stopPropagation();
                                   setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                  setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", customerPhone: quote.phone });
+                                  setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", toNumber: quote.phone });
                                 }}
                                 disabled={!quote.phone}
                                 className="hidden md:flex p-1.5 rounded hover:bg-muted text-[#8bc440] hover:text-[#8bc440]/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
@@ -1589,7 +1589,7 @@ export default function AdminQuotes() {
           <div className="space-y-4 py-1">
             <div className="rounded-md bg-muted/50 px-3 py-2 text-sm flex items-center gap-2">
               <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="font-mono font-medium">{callDialog?.customerPhone}</span>
+              <span className="font-mono font-medium">{callDialog?.toNumber}</span>
             </div>
             <div className="space-y-1.5">
               <Label>Your phone (Twilio will ring this first)</Label>
@@ -1623,12 +1623,12 @@ export default function AdminQuotes() {
             <Button
               size="sm"
               className="bg-[#8bc440] text-[#191919]"
-              disabled={!selectedStaffPhoneId || !callDialog?.customerPhone || initiateCallMutation.isPending}
+              disabled={!selectedStaffPhoneId || !callDialog?.toNumber || initiateCallMutation.isPending}
               onClick={() => {
                 if (!callDialog) return;
                 initiateCallMutation.mutate({
                   staffNumberId: selectedStaffPhoneId,
-                  customerPhone: callDialog.customerPhone,
+                  toNumber: callDialog.toNumber,
                   quoteId: callDialog.quoteId,
                 });
               }}

@@ -9046,9 +9046,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         });
       }
 
-      const { staffNumberId, customerPhone, quoteId, leadId } = req.body;
-      if (!staffNumberId || !customerPhone) {
-        return res.status(400).json({ error: "staffNumberId and customerPhone are required" });
+      const { staffNumberId, toNumber, quoteId, leadId } = req.body;
+      if (!staffNumberId || !toNumber) {
+        return res.status(400).json({ error: "staffNumberId and toNumber are required" });
       }
 
       // Validate the staffNumberId exists in our DB — prevents arbitrary dialling
@@ -9063,20 +9063,21 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       const host     = req.get("host")!;
       const protocol = (req.get("x-forwarded-proto") as string) || req.protocol;
-      const twimlUrl = `${protocol}://${host}/api/admin/calls/twiml?to=${encodeURIComponent(customerPhone)}`;
+      const twimlUrl = `${protocol}://${host}/api/admin/calls/twiml?to=${encodeURIComponent(toNumber)}`;
 
       await client.calls.create({ to: staffPhone, from: fromNumber, url: twimlUrl });
 
       // Log the call attempt as an admin note (non-fatal)
       try {
-        const staffUser = (req as any).user as User;
+        const staffUser = req.user as User | undefined;
         const author    = staffUser?.username || "Staff";
-        const noteText  = `Click-to-call initiated — staff: ${staffPhone} (${staffPhoneRecord.label}) → customer: ${customerPhone}`;
-        const entry     = { text: noteText, timestamp: new Date().toISOString(), author };
+        const noteText  = `Click-to-call initiated — staff: ${staffPhone} (${staffPhoneRecord.label}) → customer: ${toNumber}`;
+        const entry: { text: string; timestamp: string; author: string } = { text: noteText, timestamp: new Date().toISOString(), author };
 
         if (quoteId) {
           const { rows } = await pool.query(`SELECT admin_notes_history FROM quotes WHERE id = $1`, [quoteId]);
-          const hist: any[] = Array.isArray(rows[0]?.admin_notes_history) ? rows[0].admin_notes_history : [];
+          const hist: Array<{ text: string; timestamp: string; author?: string }> =
+            Array.isArray(rows[0]?.admin_notes_history) ? rows[0].admin_notes_history : [];
           hist.push(entry);
           await pool.query(`UPDATE quotes SET admin_notes_history = $1 WHERE id = $2`, [JSON.stringify(hist), quoteId]);
         }
