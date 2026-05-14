@@ -357,7 +357,7 @@ export default function AIReview() {
         </div>
       </div>
 
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-5">
 
           {/* Van */}
@@ -804,7 +804,7 @@ export default function AIReview() {
           </div>
 
         </div>
-      </main>
+      </div>
 
       <Footer />
     </div>

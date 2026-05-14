@@ -184,9 +184,10 @@ export default function ArtworkApproval() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        </main>
+          <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
+        </div>
         <Footer />
       </div>
     );
@@ -196,23 +197,26 @@ export default function ArtworkApproval() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center px-4 py-16">
-          <Card className="max-w-md w-full">
-            <CardContent className="py-12 text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-              </div>
-              <h2 className="text-xl font-bold">Link Not Found</h2>
-              <p className="text-muted-foreground text-sm">
-                This approval link is invalid or has expired. Please contact us directly if you need to review your artwork.
-              </p>
-              <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
-                <Phone className="w-4 h-4" />
-                0151 203 8500
-              </a>
-            </CardContent>
-          </Card>
-        </main>
+        <div className="flex-1 flex items-center justify-center px-4 py-16">
+          <div className="max-w-md w-full space-y-6">
+            <Card>
+              <CardContent className="py-12 text-center space-y-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mx-auto">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <h2 className="text-xl font-bold">Link Not Found</h2>
+                <p className="text-muted-foreground text-sm">
+                  This approval link is invalid or has expired. Please contact us directly if you need to review your artwork.
+                </p>
+                <a href="tel:01512038500" className="inline-flex items-center gap-2 text-accent font-medium hover:underline text-sm">
+                  <Phone className="w-4 h-4" />
+                  0151 203 8500
+                </a>
+              </CardContent>
+            </Card>
+            <p className="text-center text-xs text-muted-foreground/60">Platform operated by GAJO Creative Ltd</p>
+          </div>
+        </div>
         <Footer />
       </div>
     );
@@ -226,7 +230,7 @@ export default function ArtworkApproval() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 px-4 py-12">
+        <div className="flex-1 px-4 py-12">
           <div className="max-w-2xl mx-auto space-y-8">
             <Card data-testid="card-artwork-submitted">
               <CardContent className="py-12 text-center space-y-4">
@@ -273,7 +277,7 @@ export default function ArtworkApproval() {
             {/* Chat thread still accessible after approval */}
             <CustomerChatThread token={token!} customerName={info.customerName} />
           </div>
-        </main>
+        </div>
         <Footer />
       </div>
     );
@@ -284,7 +288,7 @@ export default function ArtworkApproval() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 px-4 py-12">
+      <div className="flex-1 px-4 py-12">
         <div className="max-w-2xl mx-auto space-y-8">
 
           <div className="text-center space-y-2">
@@ -425,7 +429,7 @@ export default function ArtworkApproval() {
             </a>
           </p>
         </div>
-      </main>
+      </div>
       <Footer />
 
       {lightboxUrl && (

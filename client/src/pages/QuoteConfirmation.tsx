@@ -275,12 +275,12 @@ export default function QuoteConfirmation() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-accent mx-auto mb-4" />
             <p className="text-muted-foreground">Loading your quote...</p>
           </div>
-        </main>
+        </div>
         <Footer />
       </div>
     );
@@ -290,7 +290,7 @@ export default function QuoteConfirmation() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <Card className="max-w-md">
             <CardContent className="py-12 text-center">
               <XCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
@@ -303,7 +303,7 @@ export default function QuoteConfirmation() {
               </Button>
             </CardContent>
           </Card>
-        </main>
+        </div>
         <Footer />
       </div>
     );
@@ -313,7 +313,7 @@ export default function QuoteConfirmation() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 container mx-auto px-4 py-12">
+        <div className="flex-1 container mx-auto px-4 py-12">
           <Card className="max-w-2xl mx-auto">
             <CardContent className="py-12 text-center">
               <CheckCircle className="w-20 h-20 text-accent mx-auto mb-6" />
@@ -326,7 +326,7 @@ export default function QuoteConfirmation() {
               </Button>
             </CardContent>
           </Card>
-        </main>
+        </div>
         <Footer />
       </div>
     );
@@ -344,7 +344,7 @@ export default function QuoteConfirmation() {
       />
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8 text-center">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Confirm Your Quote</h1>
@@ -820,7 +820,7 @@ export default function QuoteConfirmation() {
             </Card>
           )}
         </div>
-      </main>
+      </div>
 
       <Footer />
     </div>

@@ -248,7 +248,7 @@ export default function RequestQuote() {
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto py-12">
             <div className="text-center mb-8">
               <div className="w-20 h-20 rounded-full bg-accent/15 flex items-center justify-center mx-auto mb-6">
@@ -333,7 +333,7 @@ export default function RequestQuote() {
               </Button>
             </div>
           </div>
-        </main>
+        </div>
 
         <Footer />
       </div>
@@ -346,7 +346,7 @@ export default function RequestQuote() {
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         
-        <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center py-20">
             <Package className="w-20 h-20 text-muted-foreground mx-auto mb-6" />
             <h1 className="text-2xl font-bold mb-4">No Kit Selected</h1>
@@ -357,7 +357,7 @@ export default function RequestQuote() {
               Select Kit
             </Button>
           </div>
-        </main>
+        </div>
 
         <Footer />
       </div>
@@ -368,7 +368,7 @@ export default function RequestQuote() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <Button 
@@ -674,7 +674,7 @@ export default function RequestQuote() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       <Footer />
     </div>

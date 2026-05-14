@@ -111,7 +111,7 @@ export default function SelectVan() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <ConfiguratorStepper currentPath="/configurator/van" />
 
@@ -443,7 +443,7 @@ export default function SelectVan() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       <Footer />
       

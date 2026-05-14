@@ -95,7 +95,7 @@ export default function LocationPage() {
 
       <Header />
 
-      <main>
+      <div>
         {/* ── Hero ── */}
         <section className="bg-[#191919] text-white py-16 md:py-24">
           <div className="container mx-auto px-4 max-w-5xl">
@@ -274,7 +274,7 @@ export default function LocationPage() {
             </div>
           </section>
         )}
-      </main>
+      </div>
 
       <Footer />
     </>

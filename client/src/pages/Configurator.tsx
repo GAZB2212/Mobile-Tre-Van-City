@@ -227,7 +227,7 @@ export default function Configurator() {
         keywords="mobile tyre van configurator, custom tyre van builder, design mobile tyre van, tyre van quote, build mobile tyre van online"
       />
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-configurator-title">
             Configure Your Mobile Tyre Van
@@ -651,7 +651,7 @@ export default function Configurator() {
             </div>
           </div>
         )}
-      </main>
+      </div>
       <Footer />
       
       <QuoteSubmission

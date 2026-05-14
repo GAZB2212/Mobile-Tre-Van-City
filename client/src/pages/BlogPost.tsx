@@ -71,13 +71,13 @@ export default function BlogPostPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto max-w-3xl px-4 py-20 text-center">
+        <div className="container mx-auto max-w-3xl px-4 py-20 text-center">
           <h1 className="text-2xl font-bold mb-4">Post not found</h1>
           <p className="text-muted-foreground mb-6">This article doesn't exist or has been removed.</p>
           <Button asChild>
             <Link href="/blog">Back to Blog</Link>
           </Button>
-        </main>
+        </div>
         <Footer />
       </div>
     );
@@ -95,7 +95,7 @@ export default function BlogPostPage() {
         />
       )}
       <Header />
-      <main>
+      <div>
         <article className="container mx-auto max-w-3xl px-4 py-10">
           <Button variant="ghost" asChild className="mb-6 -ml-2 text-muted-foreground" data-testid="button-back-blog">
             <Link href="/blog">
@@ -207,7 +207,7 @@ export default function BlogPostPage() {
             </>
           ) : null}
         </article>
-      </main>
+      </div>
       <Footer />
     </div>
   );

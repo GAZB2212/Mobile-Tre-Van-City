@@ -108,7 +108,7 @@ export default function HowItWorks() {
       />
       <Header />
       
-      <main>
+      <div>
         {/* Hero Section */}
         <section className="relative py-20 sm:py-32 overflow-hidden">
           <div className="container mx-auto px-4">
@@ -225,7 +225,7 @@ export default function HowItWorks() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
 
       <Footer />
     </div>

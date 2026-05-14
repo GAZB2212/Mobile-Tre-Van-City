@@ -116,7 +116,7 @@ export default function Blog() {
         keywords="mobile tyre van blog, mobile tyre business tips, tyre van advice, tyre fitting industry news"
       />
       <Header />
-      <main>
+      <div>
         <section className="py-12 px-4 border-b border-border">
           <div className="container mx-auto max-w-6xl">
             <div className="flex items-center gap-3 mb-2">
@@ -147,7 +147,7 @@ export default function Blog() {
             )}
           </div>
         </section>
-      </main>
+      </div>
       <Footer />
     </div>
   );

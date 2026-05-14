@@ -58,7 +58,7 @@ export default function SelectServiceType() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
+      <div className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
           <Button
             variant="ghost"
@@ -150,7 +150,7 @@ export default function SelectServiceType() {
             <ConfiguratorSummary />
           </div>
         </div>
-      </main>
+      </div>
       <Footer />
     </div>
   );

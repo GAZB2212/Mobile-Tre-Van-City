@@ -122,7 +122,7 @@ export default function Home() {
         structuredData={[orgSchema, homeFaqStructuredData]}
       />
       <Header />
-      <main>
+      <div>
         <Hero />
         <TrustStrip />
         <UKManufacturing />
@@ -139,7 +139,7 @@ export default function Home() {
         <HomeEnquiryForm />
         <CTASection />
         <PreFooterCTA />
-      </main>
+      </div>
       <Footer />
     </div>
   );

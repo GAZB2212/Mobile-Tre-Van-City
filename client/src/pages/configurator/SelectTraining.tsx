@@ -20,7 +20,7 @@ export default function SelectTraining() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <Button 
@@ -92,7 +92,7 @@ export default function SelectTraining() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       <Footer />
       <ConfiguratorTutorial page="training" />
