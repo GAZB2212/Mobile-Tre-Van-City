@@ -3061,6 +3061,45 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     }
   });
 
+  // Log a conflict-removal event to the quote audit trail (deduplicates on same removed-upgrade set)
+  app.post("/api/admin/quotes/:id/conflict-log", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { removedNames } = req.body;
+      if (!Array.isArray(removedNames) || removedNames.length === 0) {
+        return res.status(400).json({ error: "removedNames must be a non-empty array" });
+      }
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) return res.status(404).json({ error: "Quote not found" });
+
+      const sortedNames = [...removedNames].sort();
+      const noteText =
+        sortedNames.length === 1
+          ? `System: Conflicting upgrade auto-removed on load — "${sortedNames[0]}" was removed because a mutually exclusive option was already selected`
+          : `System: Conflicting upgrades auto-removed on load — the following were removed because a mutually exclusive option was already selected: ${sortedNames.join(", ")}`;
+
+      const existingHistory: Array<{ text: string; author?: string; timestamp: string }> =
+        quote.adminNotesHistory || [];
+
+      const alreadyLogged = existingHistory.some(
+        entry => entry.author === "System" && entry.text === noteText,
+      );
+
+      if (alreadyLogged) {
+        return res.json({ duplicate: true });
+      }
+
+      const newEntry = { text: noteText, timestamp: new Date().toISOString(), author: "System" };
+      const updated = await storage.updateQuote(req.params.id, {
+        adminNotesHistory: [...existingHistory, newEntry],
+      });
+      if (!updated) return res.status(500).json({ error: "Failed to log conflict" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error logging conflict removal:", error);
+      res.status(500).json({ error: "Failed to log conflict removal" });
+    }
+  });
+
   app.patch("/api/admin/quotes/:id/notes", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { noteType, timestamp, text } = req.body;

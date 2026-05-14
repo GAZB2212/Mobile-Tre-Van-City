@@ -468,6 +468,17 @@ export default function AdminQuoteDetail() {
           variant: "destructive",
           duration: 10000,
         });
+        // Log the conflict server-side so it appears in the quote audit trail;
+        // invalidate the quote cache on success so the Activity tab refreshes immediately.
+        if (id) {
+          apiRequest("POST", `/api/admin/quotes/${id}/conflict-log`, { removedNames })
+            .then((res) => {
+              if (!(res as any)?.duplicate) {
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
+              }
+            })
+            .catch(() => {});
+        }
       }
       setOriginalUpgradeIds(rawUpgradeIds);
       setCustomExtras((quote as any).customExtras || []);
@@ -534,6 +545,17 @@ export default function AdminQuoteDetail() {
         variant: "destructive",
         duration: 10000,
       });
+      // Log the conflict server-side so it appears in the quote audit trail;
+      // invalidate the quote cache on success so the Activity tab refreshes immediately.
+      if (id) {
+        apiRequest("POST", `/api/admin/quotes/${id}/conflict-log`, { removedNames })
+          .then((res) => {
+            if (!(res as any)?.duplicate) {
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes", id] });
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [upgrades]);
 
