@@ -3658,13 +3658,30 @@ export default function AdminQuoteDetail() {
                     }
                   });
                   if (!hasAnyCost) return null;
+                  const subtotalPence = viewingPricing.subtotal;
+                  const marginPence = subtotalPence - equipCost;
+                  const marginPct = subtotalPence > 0 ? (marginPence / subtotalPence) * 100 : 0;
+                  const marginColor =
+                    marginPct >= 30 ? "text-emerald-600 dark:text-emerald-400" :
+                    marginPct >= 15 ? "text-amber-600 dark:text-amber-400" :
+                    "text-red-600 dark:text-red-400";
                   return (
-                    <div className="flex justify-between text-sm" data-testid="div-equipment-cost">
-                      <span className="text-muted-foreground">Equipment cost (ex. VAT)</span>
-                      <span className="font-medium text-muted-foreground" data-testid="text-equipment-cost">
-                        £{(equipCost / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
+                    <>
+                      <div className="flex justify-between text-sm" data-testid="div-equipment-cost">
+                        <span className="text-muted-foreground">Equipment cost (ex. VAT)</span>
+                        <span className="font-medium text-muted-foreground" data-testid="text-equipment-cost">
+                          £{(equipCost / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm" data-testid="div-gross-margin">
+                        <span className="text-muted-foreground">Gross margin (ex. VAT)</span>
+                        <span className={`font-semibold ${marginColor}`} data-testid="text-gross-margin">
+                          £{(marginPence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                          {" "}
+                          <span className="text-xs font-normal">({marginPct.toFixed(1)}%)</span>
+                        </span>
+                      </div>
+                    </>
                   );
                 })()}
                 <div className="flex justify-between text-sm">

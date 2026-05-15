@@ -422,6 +422,48 @@ export default function AdminQuotes() {
     return upgrades.filter((u) => upgradeIds.includes(u.id)).map((u) => u.name);
   };
 
+  const computeEquipCost = (kitId: string | null, upgradeIds: string[], upgradeQuantities: Record<string, number>): number | null => {
+    let equipCost = 0;
+    let hasAnyCost = false;
+    const selectedKit = kitId ? kits.find(k => k.id === kitId) : null;
+    if (selectedKit) {
+      const bom = selectedKit.skuComponents as Array<{ costPrice?: number | null; quantity: number }> | null;
+      const bomHasCost = Array.isArray(bom) && bom.some(c => c.costPrice != null);
+      if (bomHasCost) {
+        equipCost += (bom as Array<{ costPrice?: number | null; quantity: number }>).reduce((s, c) => s + (c.costPrice ?? 0) * c.quantity, 0);
+        hasAnyCost = true;
+      } else if (selectedKit.costPrice != null) {
+        equipCost += selectedKit.costPrice;
+        hasAnyCost = true;
+      }
+    }
+    upgradeIds.forEach(uid => {
+      const u = upgrades.find(x => x.id === uid);
+      if (!u) return;
+      const qty = upgradeQuantities[uid] || 1;
+      const bom = u.skuComponents as Array<{ costPrice?: number | null; quantity: number }> | null;
+      const bomHasCost = Array.isArray(bom) && bom.some(c => c.costPrice != null);
+      if (bomHasCost) {
+        equipCost += (bom as Array<{ costPrice?: number | null; quantity: number }>).reduce((s, c) => s + (c.costPrice ?? 0) * c.quantity, 0) * qty;
+        hasAnyCost = true;
+      } else if (u.costPrice != null) {
+        equipCost += u.costPrice * qty;
+        hasAnyCost = true;
+      }
+    });
+    return hasAnyCost ? equipCost : null;
+  };
+
+  const getMarginColor = (pct: number): string =>
+    pct >= 30 ? "text-emerald-600 dark:text-emerald-400" :
+    pct >= 15 ? "text-amber-600 dark:text-amber-400" :
+    "text-red-600 dark:text-red-400";
+
+  const getMarginBadgeClass = (pct: number): string =>
+    pct >= 30 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+    pct >= 15 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+    "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+
   const INCOMPLETE_PLACEHOLDER = "Via Max (name pending)";
 
   // Filter and sort quotes
@@ -945,6 +987,17 @@ export default function AdminQuotes() {
                                   <span className="text-xs font-bold text-accent">{formatPrice(quote.estTotal)}</span>
                                   <span className="text-xs text-muted-foreground">{quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : ""}</span>
                                 </div>
+                                {(() => {
+                                  const equipCost = computeEquipCost(quote.kitId, quote.selectedUpgradeIds || [], quote.selectedUpgrades || {});
+                                  if (equipCost === null) return null;
+                                  const marginPence = quote.estSubtotal - equipCost;
+                                  const marginPct = quote.estSubtotal > 0 ? (marginPence / quote.estSubtotal) * 100 : 0;
+                                  return (
+                                    <Badge className={`text-[10px] px-1.5 py-0 border ${getMarginBadgeClass(marginPct)}`} data-testid={`badge-margin-kanban-${quote.id}`}>
+                                      {marginPct.toFixed(0)}% margin
+                                    </Badge>
+                                  );
+                                })()}
                                 {isOverdue(quote) && (
                                   <div className="flex items-center gap-1 pt-0.5" data-testid={`badge-overdue-kanban-${quote.id}`}>
                                     <Clock className="w-3 h-3 text-amber-500 shrink-0" />
@@ -1352,6 +1405,26 @@ export default function AdminQuotes() {
                       {/* Pricing Breakdown */}
                       <div className="mt-4 p-3 border rounded-md">
                         <div className="space-y-1">
+                          {(() => {
+                            const equipCost = computeEquipCost(quote.kitId, quote.selectedUpgradeIds || [], quote.selectedUpgrades || {});
+                            if (equipCost === null) return null;
+                            const marginPence = quote.estSubtotal - equipCost;
+                            const marginPct = quote.estSubtotal > 0 ? (marginPence / quote.estSubtotal) * 100 : 0;
+                            return (
+                              <>
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                  <span>Equipment cost:</span>
+                                  <span>{formatPrice(equipCost)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span>Gross margin:</span>
+                                  <span className={`font-semibold ${getMarginColor(marginPct)}`} data-testid={`text-margin-list-${quote.id}`}>
+                                    {formatPrice(marginPence)} ({marginPct.toFixed(1)}%)
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()}
                           <div className="flex justify-between text-sm">
                             <span>Subtotal:</span>
                             <span>{formatPrice(quote.estSubtotal)}</span>
