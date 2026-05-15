@@ -330,9 +330,10 @@ export default function AdminSkuManager() {
   const [catalogueSearch, setCatalogueSearch] = useState("");
 
   // ── Upgrade grouping ──────────────────────────────────────────────────────
-  const parentGroups = allUpgrades.filter(u => (u as any).hasVariants);
   const variantChildren = allUpgrades.filter(u => !!(u as any).parentId);
-  const simples = allUpgrades.filter(u => !(u as any).hasVariants && !(u as any).parentId);
+  const parentIds = new Set(variantChildren.map(v => (v as any).parentId as string));
+  const parentGroups = allUpgrades.filter(u => parentIds.has(u.id));
+  const simples = allUpgrades.filter(u => !(u as any).parentId && !parentIds.has(u.id));
 
   const bomCount = (item: any): number =>
     Array.isArray((item as any).skuComponents) ? (item as any).skuComponents.length : 0;
