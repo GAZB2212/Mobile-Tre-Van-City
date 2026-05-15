@@ -5,11 +5,17 @@ import { queryClient, fetchJson } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Wrench, CircleDot, Pencil } from "lucide-react";
+import { CheckCircle2, Wrench, CircleDot, Pencil, ChevronDown, ChevronUp, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 type CompletedStage = { id: string; initials: string };
+
+interface SkuComponent {
+  sku: string;
+  description: string;
+  quantity: number;
+}
 
 interface BuildProgressData {
   id: string;
@@ -19,8 +25,16 @@ interface BuildProgressData {
   status: string;
   customBuildStages: Array<{ id: string; label: string; section?: string }> | null;
   completedBuildStages: Array<string | { id: string; initials: string }>;
-  kit: { id: string; name: string } | null;
-  upgrades: Array<{ id: string; name: string; category: string; variantName: string | null }>;
+  kit: { id: string; name: string; sku: string | null; skuComponents: SkuComponent[] | null } | null;
+  upgrades: Array<{ id: string; name: string; category: string; variantName: string | null; sku: string | null; skuComponents: SkuComponent[] | null }>;
+}
+
+interface ActiveStage {
+  id: string;
+  label: string;
+  section?: string;
+  sku?: string | null;
+  skuComponents?: SkuComponent[] | null;
 }
 
 const INITIALS_KEY = "build_progress_initials";
@@ -32,14 +46,14 @@ export default function BuildProgress() {
   const { data, isLoading, isError } = useQuery<BuildProgressData>({
     queryKey: ["/api/build-progress", quoteId],
     queryFn: () => fetchJson(`/api/build-progress/${quoteId}`),
-    refetchInterval: 30000,            // poll every 30s — small payload, ~2KB per request
-    refetchIntervalInBackground: false, // pause when browser tab is not visible
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 
   const [completedStages, setCompletedStages] = useState<CompletedStage[]>([]);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [expandedBom, setExpandedBom] = useState<Set<string>>(new Set());
 
-  // Initials — stored in localStorage so persists between sessions on same device
   const [initials, setInitials] = useState<string>(() =>
     (localStorage.getItem(INITIALS_KEY) || "").toUpperCase()
   );
@@ -51,7 +65,6 @@ export default function BuildProgress() {
       typeof s === "string" ? { id: s, initials: "" } : s
     );
 
-  // Sync from server on every poll, but skip while a save is in-flight to avoid race conditions
   useEffect(() => {
     if (data && !saveMutation.isPending) {
       setCompletedStages(normalizeStages(data.completedBuildStages));
@@ -61,7 +74,7 @@ export default function BuildProgress() {
   const autoGenerateStages = (
     kit: BuildProgressData["kit"],
     upgrades: BuildProgressData["upgrades"]
-  ): Array<{ id: string; label: string; section?: string }> => {
+  ): ActiveStage[] => {
     const upgradeLabel = (u: BuildProgressData["upgrades"][0]) =>
       u.variantName ? `${u.name} — ${u.variantName}` : u.name;
     const interiorWallPattern = /interior.wall/i;
@@ -70,31 +83,31 @@ export default function BuildProgress() {
       interiorWallPattern.test(u.name) || interiorWallPattern.test(u.category);
     const isWrapGraphics = (u: { name: string; category: string }) =>
       wrapGraphicsPattern.test(u.name) || wrapGraphicsPattern.test(u.category);
-    const stages: Array<{ id: string; label: string; section?: string }> = [];
+    const stages: ActiveStage[] = [];
     stages.push({ id: "prep", label: "Van Preparation" });
-    if (kit) stages.push({ id: "kit", label: `Install ${kit.name}` });
+    if (kit) stages.push({ id: "kit", label: `Install ${kit.name}`, sku: kit.sku, skuComponents: kit.skuComponents });
     const nonWrap = upgrades.filter((u) => !isWrapGraphics(u) && !isInteriorWall(u));
     const wrap = upgrades.filter((u) => isWrapGraphics(u) && !isInteriorWall(u));
     const wallUpgrades = upgrades.filter((u) => isInteriorWall(u) && !isWrapGraphics(u));
-    for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
+    for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u), sku: u.sku, skuComponents: u.skuComponents });
     if (wrap.length > 0) {
       stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
       stages.push({ id: "artwork_approved", label: "Artwork Approved", section: "Design Work" });
       stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
     }
-    for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
+    for (const u of wrap) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u), sku: u.sku, skuComponents: u.skuComponents });
     if (wallUpgrades.length > 0) {
       stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
       stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved", section: "Design Work" });
       stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
-    for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u) });
+    for (const u of wallUpgrades) stages.push({ id: `upg_${u.id}`, label: upgradeLabel(u), sku: u.sku, skuComponents: u.skuComponents });
     stages.push({ id: "final_checks", label: "Final Checks" });
     stages.push({ id: "valet", label: "Valet & Handover" });
     return stages;
   };
 
-  const activeStages =
+  const activeStages: ActiveStage[] =
     data
       ? data.customBuildStages && data.customBuildStages.length > 0
         ? data.customBuildStages
@@ -115,7 +128,6 @@ export default function BuildProgress() {
       return res.json();
     },
     onSuccess: () => {
-      // Force a fresh fetch so the next poll reflects the save immediately
       queryClient.invalidateQueries({ queryKey: ["/api/build-progress", quoteId] });
     },
     onError: () => {
@@ -126,7 +138,6 @@ export default function BuildProgress() {
   const handleStagePress = (stageId: string) => {
     if (isStageComplete(stageId)) {
       const who = getStageInitials(stageId);
-      // Only allow undoing a stage if it was done by the same person (or has no initials = admin)
       if (who && who !== initials) {
         toast({
           title: `Completed by ${who}`,
@@ -162,6 +173,16 @@ export default function BuildProgress() {
       localStorage.setItem(INITIALS_KEY, trimmed);
     }
     setEditingInitials(false);
+  };
+
+  const toggleBom = (e: React.MouseEvent, stageId: string) => {
+    e.stopPropagation();
+    setExpandedBom((prev) => {
+      const next = new Set(prev);
+      if (next.has(stageId)) next.delete(stageId);
+      else next.add(stageId);
+      return next;
+    });
   };
 
   const doneCount = completedStages.filter((s) => activeStages.some((a) => a.id === s.id)).length;
@@ -278,10 +299,11 @@ export default function BuildProgress() {
             const isComplete = isStageComplete(stage.id);
             const stageInit = getStageInitials(stage.id);
             const isPending = pendingId === stage.id;
-            // A stage is locked if it was done by a different person
             const isLocked = isComplete && !!stageInit && stageInit !== initials;
             const prevSection = idx > 0 ? activeStages[idx - 1].section : undefined;
             const showSectionHeader = stage.section && stage.section !== prevSection;
+            const hasBom = !!(stage.skuComponents && stage.skuComponents.length > 0);
+            const bomExpanded = expandedBom.has(stage.id);
             return (
               <div key={stage.id}>
                 {showSectionHeader && (
@@ -292,51 +314,108 @@ export default function BuildProgress() {
                     {stage.section}
                   </div>
                 )}
-                <button
-                  type="button"
+                <div
                   className={cn(
-                    "w-full flex items-center gap-3 py-4 px-4 rounded-md text-left transition-all duration-150 active:scale-[0.99]",
+                    "rounded-md",
                     isComplete && "bg-[#8bc440]/10",
                     isPending && "bg-amber-500/15 ring-2 ring-amber-400/60",
                     !isComplete && !isPending && "bg-muted/20"
                   )}
-                  onClick={() => handleStagePress(stage.id)}
-                  data-testid={`toggle-stage-${stage.id}`}
                 >
-                  <span className="shrink-0">
-                    {isComplete ? (
-                      <CheckCircle2 className="w-5 h-5 text-[#8bc440]" />
-                    ) : isPending ? (
-                      <CircleDot className="w-5 h-5 text-amber-400" />
-                    ) : (
-                      <span className="w-5 h-5 rounded-full border-2 border-muted-foreground/40 block" />
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      "flex-1 text-sm font-medium leading-snug",
-                      isComplete ? "line-through text-muted-foreground" : "text-foreground"
-                    )}
+                  {/* Stage row — tappable to toggle complete */}
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 py-4 px-4 text-left transition-all duration-150 active:scale-[0.99]"
+                    onClick={() => handleStagePress(stage.id)}
+                    data-testid={`toggle-stage-${stage.id}`}
                   >
-                    {stage.label}
-                    {isPending && (
-                      <span className="ml-2 text-xs text-amber-400 font-normal">— tap Save to confirm</span>
-                    )}
-                  </span>
-                  {/* Initials badge — shows who completed it */}
-                  {isComplete && stageInit && (
-                    <Badge
-                      variant="secondary"
-                      className={cn("text-xs font-mono shrink-0", isLocked && "opacity-60")}
-                      data-testid={`badge-initials-${stage.id}`}
+                    <span className="shrink-0">
+                      {isComplete ? (
+                        <CheckCircle2 className="w-5 h-5 text-[#8bc440]" />
+                      ) : isPending ? (
+                        <CircleDot className="w-5 h-5 text-amber-400" />
+                      ) : (
+                        <span className="w-5 h-5 rounded-full border-2 border-muted-foreground/40 block" />
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex-1 text-sm font-medium leading-snug",
+                        isComplete ? "line-through text-muted-foreground" : "text-foreground"
+                      )}
                     >
-                      {stageInit}
-                    </Badge>
+                      {stage.label}
+                      {isPending && (
+                        <span className="ml-2 text-xs text-amber-400 font-normal">— tap Save to confirm</span>
+                      )}
+                    </span>
+                    {/* SKU badge */}
+                    {stage.sku && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-mono shrink-0 px-1.5 py-0 h-auto text-muted-foreground border-muted-foreground/30"
+                        data-testid={`badge-sku-${stage.id}`}
+                      >
+                        {stage.sku}
+                      </Badge>
+                    )}
+                    {/* Initials badge */}
+                    {isComplete && stageInit && (
+                      <Badge
+                        variant="secondary"
+                        className={cn("text-xs font-mono shrink-0", isLocked && "opacity-60")}
+                        data-testid={`badge-initials-${stage.id}`}
+                      >
+                        {stageInit}
+                      </Badge>
+                    )}
+                    {isComplete && !stageInit && (
+                      <span className="w-2 h-2 rounded-full bg-[#8bc440] shrink-0" />
+                    )}
+                  </button>
+
+                  {/* Parts toggle button — only shown when BOM components exist */}
+                  {hasBom && (
+                    <div className="px-4 pb-3">
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover-elevate rounded px-2 py-1"
+                        onClick={(e) => toggleBom(e, stage.id)}
+                        data-testid={`button-bom-${stage.id}`}
+                      >
+                        <List className="w-3 h-3" />
+                        Parts ({stage.skuComponents!.length})
+                        {bomExpanded
+                          ? <ChevronUp className="w-3 h-3 ml-0.5" />
+                          : <ChevronDown className="w-3 h-3 ml-0.5" />
+                        }
+                      </button>
+
+                      {/* Inline BOM table — expands below the button */}
+                      {bomExpanded && (
+                        <div className="mt-2 border border-border/30 rounded-md overflow-hidden" data-testid={`bom-panel-${stage.id}`}>
+                          <div className="grid grid-cols-[1fr_auto] gap-x-3 px-3 py-1.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span>Part</span>
+                            <span className="text-right">Qty</span>
+                          </div>
+                          {stage.skuComponents!.map((part, i) => (
+                            <div
+                              key={i}
+                              className="grid grid-cols-[1fr_auto] gap-x-3 px-3 py-2.5 border-t border-border/20"
+                              data-testid={`bom-row-${stage.id}-${i}`}
+                            >
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-mono text-[#8bc440] leading-tight">{part.sku}</p>
+                                <p className="text-xs text-foreground leading-snug mt-0.5">{part.description}</p>
+                              </div>
+                              <span className="text-sm font-semibold text-foreground self-center tabular-nums text-right">{part.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
-                  {isComplete && !stageInit && (
-                    <span className="w-2 h-2 rounded-full bg-[#8bc440] shrink-0" />
-                  )}
-                </button>
+                </div>
               </div>
             );
           })

@@ -482,8 +482,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: quote.status,
         customBuildStages: (quote as any).customBuildStages ?? null,
         completedBuildStages: (quote as any).completedBuildStages ?? [],
-        kit: kit ? { id: kit.id, name: kit.name } : null,
-        upgrades: selectedUpgrades.map(u => ({ id: u.id, name: u.name, category: u.category, variantName: u.variantName ?? null })),
+        kit: kit ? { id: kit.id, name: kit.name, sku: kit.sku ?? null, skuComponents: (kit.skuComponents ?? null) } : null,
+        upgrades: selectedUpgrades.map(u => ({ id: u.id, name: u.name, category: u.category, variantName: u.variantName ?? null, sku: u.sku ?? null, skuComponents: u.skuComponents ?? null })),
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch build progress" });
