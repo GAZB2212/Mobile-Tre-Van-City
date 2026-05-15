@@ -164,6 +164,7 @@ export interface IStorage {
   getLowStockCount(): Promise<number>;
   getStockDeductionHistory(sku: string, limit?: number): Promise<StockDeduction[]>;
   syncStockFromBom(defaultThreshold?: number): Promise<number>;
+  previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }>;
 }
 
 export class MemStorage implements IStorage {
@@ -1816,6 +1817,7 @@ export class MemStorage implements IStorage {
 
   async adjustStockDelta(_sku: string, _delta: number): Promise<StockItem> { return { sku: _sku, description: "", onHand: 0, lowStockThreshold: null, updatedAt: new Date() }; }
   async syncStockFromBom(_defaultThreshold?: number): Promise<number> { return 0; }
+  async previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }> { return { totalBomSkus: 0, alreadyTracked: 0, newSkus: 0 }; }
   async getStockItems(): Promise<StockItem[]> { return []; }
   async getStockItem(_sku: string): Promise<StockItem | undefined> { return undefined; }
   async upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem> {
@@ -3026,6 +3028,33 @@ export class DbStorage implements IStorage {
     );
     if (!rows[0]) throw new Error(`Stock item "${sku}" not found`);
     return rows[0];
+  }
+
+  async previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }> {
+    const { rows: kitRows } = await pool.query(
+      `SELECT sku_components FROM kits WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
+    );
+    const { rows: upgradeRows } = await pool.query(
+      `SELECT sku_components FROM upgrades WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
+    );
+    const allComponents = [
+      ...kitRows.flatMap((r: any) => (r.sku_components as any[]) || []),
+      ...upgradeRows.flatMap((r: any) => (r.sku_components as any[]) || []),
+    ];
+    const bomSkus = new Set<string>();
+    for (const c of allComponents) {
+      const s = (c?.sku ?? "").trim();
+      if (s) bomSkus.add(s);
+    }
+    const totalBomSkus = bomSkus.size;
+    if (totalBomSkus === 0) return { totalBomSkus: 0, alreadyTracked: 0, newSkus: 0 };
+    const skuList = Array.from(bomSkus);
+    const { rows: existing } = await pool.query(
+      `SELECT sku FROM stock_items WHERE sku = ANY($1::text[])`,
+      [skuList]
+    );
+    const alreadyTracked = existing.length;
+    return { totalBomSkus, alreadyTracked, newSkus: totalBomSkus - alreadyTracked };
   }
 
   async syncStockFromBom(defaultThreshold: number = 2): Promise<number> {

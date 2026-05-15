@@ -9366,6 +9366,16 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // GET preview of how many new SKUs a BOM sync would import
+  app.get("/api/admin/stock/sync-from-bom/preview", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const preview = await storage.previewSyncFromBom();
+      res.json(preview);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST sync stock_items from all BOM component SKUs (creates missing rows at on_hand=0)
   app.post("/api/admin/stock/sync-from-bom", isAuthenticated, isFullAdmin, async (req, res) => {
     try {

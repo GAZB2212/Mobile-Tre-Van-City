@@ -78,6 +78,7 @@ function EditStockDialog({ item, open, onClose }: EditDialogProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/sync-from-bom/preview"] });
       toast({ title: isNew ? "Stock item created" : "Stock item updated" });
       onClose();
     },
@@ -185,6 +186,11 @@ export default function StockLevels() {
     enabled: isFullAdmin,
   });
 
+  const { data: bomPreview } = useQuery<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }>({
+    queryKey: ["/api/admin/stock/sync-from-bom/preview"],
+    enabled: isFullAdmin,
+  });
+
   const { data: historyData = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/stock", historyItem?.sku, "history"],
     queryFn: () =>
@@ -212,6 +218,7 @@ export default function StockLevels() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
       setSyncDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/sync-from-bom/preview"] });
       toast({
         title: data.synced > 0 ? `${data.synced} new SKU${data.synced !== 1 ? "s" : ""} imported` : "Stock already up to date",
         description: data.synced > 0 ? "New BOM components added at 0 on-hand." : "All BOM SKUs already have stock records.",
@@ -247,16 +254,32 @@ export default function StockLevels() {
         description="Track on-hand quantities for BOM component parts"
         actions={
           <div className="flex gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
-              disabled={syncMutation.isPending}
-              data-testid="button-sync-from-bom"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-              Sync from BOM
-            </Button>
+            <div className="flex flex-col items-end gap-0.5">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
+                disabled={syncMutation.isPending}
+                data-testid="button-sync-from-bom"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+                Sync from BOM
+              </Button>
+              {bomPreview && (
+                <p
+                  className="text-xs text-muted-foreground text-right"
+                  data-testid="text-bom-preview"
+                >
+                  {bomPreview.totalBomSkus === 0 ? (
+                    <>No BOM components defined yet</>
+                  ) : bomPreview.newSkus > 0 ? (
+                    <>{bomPreview.newSkus} new &middot; {bomPreview.alreadyTracked} tracked &middot; {bomPreview.totalBomSkus} total in BOM</>
+                  ) : (
+                    <>All {bomPreview.totalBomSkus} BOM SKU{bomPreview.totalBomSkus !== 1 ? "s" : ""} tracked</>
+                  )}
+                </p>
+              )}
+            </div>
             <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)} data-testid="button-scan-stock">
               <TrendingDown className="w-3.5 h-3.5 mr-1.5" />
               Scan to deduct
