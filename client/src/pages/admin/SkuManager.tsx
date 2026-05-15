@@ -878,13 +878,14 @@ export default function AdminSkuManager() {
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Description</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground w-32">Type</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Source Item</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Stock</th>
                         <th className="w-10" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {filteredCatalogue.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                          <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                             No SKUs match your search.
                           </td>
                         </tr>
@@ -904,6 +905,9 @@ export default function AdminSkuManager() {
                             </td>
                             <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell truncate max-w-48">
                               {entry.source}
+                            </td>
+                            <td className="px-4 py-2.5 hidden md:table-cell">
+                              <StockBadge qty={entry.sku ? (stockLevels[entry.sku]?.stockQty ?? null) : undefined} />
                             </td>
                             <td className="px-2 py-1 text-center">
                               <button
