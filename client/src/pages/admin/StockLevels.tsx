@@ -648,6 +648,11 @@ export default function StockLevels() {
               data-testid="input-sync-threshold"
               className="w-32"
             />
+            {parseInt(syncThreshold, 10) > 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                All new SKUs will start at 0 on-hand and will immediately show as low stock until stock is entered.
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               Existing stock records will not be changed.
             </p>
