@@ -8,20 +8,45 @@ import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QrScannerModal } from "@/components/QrScannerModal";
 
-import type { SkuComponent } from "@shared/schema";
+import type { SkuComponent, StockItem } from "@shared/schema";
 
-function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows }: {
+function StockBadge({ onHand, lowStockThreshold }: { onHand: number; lowStockThreshold?: number | null }) {
+  let colorClass: string;
+  let label: string;
+  if (onHand === 0) {
+    colorClass = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
+    label = "0";
+  } else if (lowStockThreshold != null && onHand <= lowStockThreshold) {
+    colorClass = "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400";
+    label = String(onHand);
+  } else {
+    colorClass = "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400";
+    label = String(onHand);
+  }
+  return (
+    <span
+      className={`inline-block rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums leading-none ${colorClass}`}
+      title={`${onHand} in stock`}
+      data-testid="badge-stock-count"
+    >
+      {label}
+    </span>
+  );
+}
+
+function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap }: {
   sku?: string | null;
   skuComponents?: SkuComponent[] | null;
   bomId?: string;
   onScanRow?: (sku: string, qty: number, rowKey: string) => void;
   pickedRows?: Set<string>;
+  stockMap?: Map<string, StockItem>;
 }) {
   const hasSku = !!sku;
   const hasBom = Array.isArray(skuComponents) && skuComponents.length > 0;
@@ -97,6 +122,7 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows }: {
                   <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-28 print:text-black">Part SKU</th>
                   <th className="text-left px-2 py-1.5 font-medium text-muted-foreground print:text-black">Description</th>
                   <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10 print:text-black">Qty</th>
+                  {stockMap && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-16 print:hidden">Stock</th>}
                   {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Unit cost</th>}
                   {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Row total</th>}
                   {onScanRow && <th className="w-16 print:hidden" />}
@@ -114,6 +140,18 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows }: {
                         <span className="break-words min-w-0">{c.description}</span>
                       </td>
                       <td className="px-2 py-1.5 text-right tabular-nums print:text-black">{c.quantity}</td>
+                      {stockMap && (
+                        <td className="px-2 py-1.5 text-right print:hidden">
+                          {c.sku && stockMap.has(c.sku) ? (
+                            <StockBadge
+                              onHand={stockMap.get(c.sku)!.onHand}
+                              lowStockThreshold={stockMap.get(c.sku)!.lowStockThreshold}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground/40 text-xs">—</span>
+                          )}
+                        </td>
+                      )}
                       {hasCostData && (
                         <td className="px-2 py-1.5 text-right tabular-nums print:text-black">
                           {c.costPrice != null ? `£${(c.costPrice / 100).toFixed(2)}` : "—"}
@@ -236,6 +274,16 @@ export default function BuildSheet() {
       });
       return { data: await res.json(), rowKey };
     },
+    onMutate: async ({ sku, qty }: { sku: string; qty: number; rowKey: string }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/stock"] });
+      const previous = queryClient.getQueryData<StockItem[]>(["/api/admin/stock"]);
+      queryClient.setQueryData<StockItem[]>(["/api/admin/stock"], (old = []) =>
+        old.map((item) =>
+          item.sku === sku ? { ...item, onHand: Math.max(0, item.onHand - qty) } : item
+        )
+      );
+      return { previous };
+    },
     onSuccess: ({ data, rowKey }: { data: any; rowKey: string }) => {
       toast({
         title: "Stock deducted",
@@ -245,7 +293,10 @@ export default function BuildSheet() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars: any, context: any) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["/api/admin/stock"], context.previous);
+      }
       toast({ title: "Deduction failed", description: err?.message ?? "Unknown error", variant: "destructive" });
     },
   });
@@ -347,6 +398,16 @@ export default function BuildSheet() {
     queryKey: ["/api/admin/finance-plans"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
   });
+
+  const { data: stockItems = [] } = useQuery<StockItem[]>({
+    queryKey: ["/api/admin/stock"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+
+  const stockMap = useMemo(
+    () => new Map(stockItems.map((s) => [s.sku, s])),
+    [stockItems]
+  );
 
   const quote = quotes.find((q) => q.id === quoteId);
   const van = quote?.vanId ? vans.find((v) => v.id === quote.vanId) : undefined;
@@ -1003,7 +1064,7 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
-                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} />
+                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -1053,7 +1114,7 @@ export default function BuildSheet() {
                                   (Upgraded)
                                 </span>
                               </div>
-                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} />
+                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                             </div>
                           ) : (
                             <span
@@ -1133,7 +1194,7 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
-                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} />
+                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                         </div>
                       </div>
                     );
