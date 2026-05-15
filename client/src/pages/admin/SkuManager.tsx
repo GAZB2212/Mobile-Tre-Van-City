@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import type { Kit, Upgrade } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type SkuComponent = { sku: string; description: string; quantity: number };
 
@@ -56,14 +57,25 @@ interface SkuCatalogueEntry {
 function BomEditor({
   components,
   onChange,
+  catalogue,
 }: {
   components: SkuComponent[];
   onChange: (rows: SkuComponent[]) => void;
+  catalogue: SkuCatalogueEntry[];
 }) {
-  const addRow = () => {
-    onChange([...components, { sku: "", description: "", quantity: 1 }]);
-  };
+  const [activeRow, setActiveRow] = useState<number | null>(null);
+  const [skuQuery, setSkuQuery] = useState("");
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const suggestions = useMemo(() => {
+    if (activeRow === null || !skuQuery.trim()) return [];
+    const q = skuQuery.toLowerCase();
+    return catalogue
+      .filter(e => e.sku.toLowerCase().includes(q) || e.description.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [activeRow, skuQuery, catalogue]);
+
+  const addRow = () => onChange([...components, { sku: "", description: "", quantity: 1 }]);
   const remove = (i: number) => onChange(components.filter((_, idx) => idx !== i));
   const update = (i: number, patch: Partial<SkuComponent>) => {
     const rows = [...components];
@@ -91,6 +103,23 @@ function BomEditor({
     update(i, { sku });
   };
 
+  const openSuggestions = (i: number, value: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setActiveRow(i);
+    setSkuQuery(value);
+  };
+
+  const schedulClose = () => {
+    closeTimer.current = setTimeout(() => setActiveRow(null), 150);
+  };
+
+  const pickSuggestion = (i: number, entry: SkuCatalogueEntry) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    update(i, { sku: entry.sku, description: entry.description || entry.sku });
+    setActiveRow(null);
+    setSkuQuery("");
+  };
+
   return (
     <div className="space-y-2">
       {components.length > 0 && (
@@ -102,14 +131,36 @@ function BomEditor({
         </div>
       )}
       {components.map((row, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-center">
-          <Input
-            placeholder="SKU"
-            value={row.sku}
-            onChange={e => update(idx, { sku: e.target.value })}
-            className="text-sm h-8 font-mono"
-            data-testid={`input-skumgr-bom-sku-${idx}`}
-          />
+        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-start">
+          <div className="relative">
+            <Input
+              placeholder="SKU or search…"
+              value={row.sku}
+              onChange={e => {
+                update(idx, { sku: e.target.value });
+                openSuggestions(idx, e.target.value);
+              }}
+              onFocus={() => openSuggestions(idx, row.sku)}
+              onBlur={schedulClose}
+              className="text-sm h-8 font-mono"
+              data-testid={`input-skumgr-bom-sku-${idx}`}
+            />
+            {activeRow === idx && suggestions.length > 0 && (
+              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md overflow-hidden">
+                {suggestions.map((entry, si) => (
+                  <button
+                    key={si}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-xs hover-elevate flex flex-col gap-0.5 border-b last:border-0"
+                    onMouseDown={() => pickSuggestion(idx, entry)}
+                  >
+                    <span className="font-mono font-semibold tracking-wide">{entry.sku}</span>
+                    <span className="text-muted-foreground truncate">{entry.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Input
             placeholder="Description"
             value={row.description}
@@ -170,6 +221,7 @@ function BomDialog({
   initialComponents,
   onSave,
   isSaving,
+  catalogue,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -177,6 +229,7 @@ function BomDialog({
   initialComponents: SkuComponent[];
   onSave: (rows: SkuComponent[]) => void;
   isSaving: boolean;
+  catalogue: SkuCatalogueEntry[];
 }) {
   const [rows, setRows] = useState<SkuComponent[]>(initialComponents);
 
@@ -195,7 +248,7 @@ function BomDialog({
           Component parts sent to the AutoTradeOS warehouse when this item is pushed.
           Leave empty if this item ships as a single unit identified by its own SKU.
         </p>
-        <BomEditor components={rows} onChange={setRows} />
+        <BomEditor components={rows} onChange={setRows} catalogue={catalogue} />
         <div className="flex gap-2 justify-end pt-2 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-skumgr-cancel-bom">
             Cancel
@@ -672,6 +725,7 @@ export default function AdminSkuManager() {
           initialComponents={bomDialog.components}
           onSave={saveBom}
           isSaving={updateKitBom.isPending || updateUpgradeBom.isPending}
+          catalogue={catalogue}
         />
       )}
     </>
