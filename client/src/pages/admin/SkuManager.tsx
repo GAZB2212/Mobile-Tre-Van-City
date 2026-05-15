@@ -421,7 +421,8 @@ export default function AdminSkuManager() {
   });
 
   const generatePartSku = async (): Promise<string> => {
-    const data: any = await apiRequest("POST", "/api/admin/sku/generate", { type: "part" });
+    const res = await apiRequest("POST", "/api/admin/sku/generate", { type: "part" });
+    const data: any = await res.json();
     return data?.sku ?? "";
   };
 
