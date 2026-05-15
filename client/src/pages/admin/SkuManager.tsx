@@ -1,17 +1,19 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Download, Printer } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import type { Kit, Upgrade } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search, RefreshCw } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search, QrCode, RefreshCw, Download } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -649,6 +651,21 @@ export default function AdminSkuManager() {
     }
   };
 
+  const [qrLabelItem, setQrLabelItem] = useState<{ sku: string; description: string } | null>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const downloadQrPng = useCallback(() => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `qr-${qrLabelItem?.sku ?? "label"}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [qrLabelItem]);
+
   if (kitsLoading || upgradesLoading) {
     return <div className="p-8 text-muted-foreground">Loading…</div>;
   }
@@ -841,6 +858,11 @@ export default function AdminSkuManager() {
                   {filteredCatalogue.length} of {catalogue.length} SKUs
                 </span>
               </div>
+              {filteredCatalogue.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Click the <QrCode className="inline w-3.5 h-3.5 mx-0.5 -mt-0.5" /> icon on any row to print a QR label for that part.
+                </p>
+              )}
 
               {catalogue.length === 0 ? (
                 <div className="rounded-lg border p-8 text-center text-muted-foreground">
@@ -856,12 +878,13 @@ export default function AdminSkuManager() {
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Description</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground w-32">Type</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Source Item</th>
+                        <th className="w-10" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {filteredCatalogue.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                          <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                             No SKUs match your search.
                           </td>
                         </tr>
@@ -881,6 +904,17 @@ export default function AdminSkuManager() {
                             </td>
                             <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell truncate max-w-48">
                               {entry.source}
+                            </td>
+                            <td className="px-2 py-1 text-center">
+                              <button
+                                type="button"
+                                title={`QR label for ${entry.sku}`}
+                                onClick={() => setQrLabelItem({ sku: entry.sku, description: entry.description })}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                                data-testid={`button-print-qr-${i}`}
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -906,6 +940,45 @@ export default function AdminSkuManager() {
           catalogue={catalogue}
         />
       )}
+
+      {/* QR label modal — preview + Download PNG + optional print */}
+      <Dialog open={!!qrLabelItem} onOpenChange={v => { if (!v) setQrLabelItem(null); }}>
+        <DialogContent className="max-w-xs text-center">
+          <DialogHeader>
+            <DialogTitle>QR Label</DialogTitle>
+            <DialogDescription>
+              Scan this code with the workshop scanner to deduct stock.
+            </DialogDescription>
+          </DialogHeader>
+          {qrLabelItem && (
+            <div className="flex flex-col items-center gap-3 py-2">
+              <div className="rounded-md border bg-white p-3">
+                <QRCodeCanvas
+                  ref={qrCanvasRef}
+                  value={qrLabelItem.sku}
+                  size={192}
+                  marginSize={1}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+              </div>
+              <p className="font-mono text-sm font-semibold tracking-wide">{qrLabelItem.sku}</p>
+              {qrLabelItem.description && (
+                <p className="text-xs text-muted-foreground max-w-[200px] text-center">{qrLabelItem.description}</p>
+              )}
+            </div>
+          )}
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button size="sm" variant="outline" onClick={downloadQrPng} className="w-full sm:w-auto" data-testid="button-download-qr-png">
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Download PNG
+            </Button>
+            <Button size="sm" onClick={() => setQrLabelItem(null)} className="w-full sm:w-auto">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -79,6 +79,7 @@ const AdminCalendar = lazy(() => import("@/pages/admin/Calendar"));
 const AdminCustomers = lazy(() => import("@/pages/admin/Customers"));
 const AdminCustomerProfile = lazy(() => import("@/pages/admin/CustomerProfile"));
 const AdminSkuManager = lazy(() => import("@/pages/admin/SkuManager"));
+const AdminStockLevels = lazy(() => import("@/pages/admin/StockLevels"));
 const FinancePortal = lazy(() => import("@/pages/FinancePortal"));
 
 function Router() {
@@ -152,6 +153,7 @@ function Router() {
       <Route path="/admin/customers/:id">{() => <AdminLayout><AdminCustomerProfile /></AdminLayout>}</Route>
       <Route path="/admin/customers">{() => <AdminLayout><AdminCustomers /></AdminLayout>}</Route>
       <Route path="/admin/sku-manager">{() => <AdminLayout><AdminSkuManager /></AdminLayout>}</Route>
+      <Route path="/admin/stock">{() => <AdminLayout><AdminStockLevels /></AdminLayout>}</Route>
       <Route component={NotFound} />
     </Switch>
   );

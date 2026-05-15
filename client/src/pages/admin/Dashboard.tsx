@@ -38,6 +38,7 @@ import {
   Bell,
   BellOff,
   BellRing,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Tooltip,
@@ -117,6 +118,12 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/testimonials"],
     enabled: !!(user?.adminRole && user.adminRole === "full"),
   });
+
+  const { data: lowStockData } = useQuery<{ count: number }>({
+    queryKey: ["/api/admin/stock/low-stock-count"],
+    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+  });
+  const lowStockCount = lowStockData?.count ?? 0;
 
   // The polling and toast/browser notification logic is handled globally by
   // useEnquiryNotifications inside AdminLayout.  Here we just read the cached
@@ -359,6 +366,19 @@ export default function AdminDashboard() {
         {/* ── OVERVIEW TAB ── */}
         {activeTab === "overview" && (
           <div className="space-y-10">
+
+            {/* Low stock warning */}
+            {lowStockCount > 0 && (
+              <Link href="/admin/stock">
+                <div className="flex items-center gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 cursor-pointer hover-elevate">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                  <p className="text-sm flex-1">
+                    <strong>{lowStockCount}</strong> component{lowStockCount !== 1 ? "s are" : " is"} at or below the low stock threshold.
+                    <span className="ml-2 underline underline-offset-2 text-muted-foreground">View stock levels →</span>
+                  </p>
+                </div>
+              </Link>
+            )}
 
             {/* Sales Tools */}
             {user?.adminRole && (

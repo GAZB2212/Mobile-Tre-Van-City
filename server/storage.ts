@@ -17,6 +17,8 @@ import {
   type CustomerNote, type InsertCustomerNote,
   type CustomerMergeHistory,
   type StaffPhone, type InsertStaffPhone,
+  type StockItem, type InsertStockItem,
+  type StockDeduction,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -152,6 +154,16 @@ export interface IStorage {
   createStaffPhone(data: InsertStaffPhone): Promise<StaffPhone>;
   updateStaffPhone(id: string, data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined>;
   deleteStaffPhone(id: string): Promise<boolean>;
+
+  // Stock tracking
+  getStockItems(): Promise<StockItem[]>;
+  getStockItem(sku: string): Promise<StockItem | undefined>;
+  upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem>;
+  adjustStockDelta(sku: string, delta: number): Promise<StockItem>;
+  deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string): Promise<StockItem>;
+  getLowStockCount(): Promise<number>;
+  getStockDeductionHistory(sku: string, limit?: number): Promise<StockDeduction[]>;
+  syncStockFromBom(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -1801,6 +1813,19 @@ export class MemStorage implements IStorage {
   }
   async updateStaffPhone(_id: string, _data: Partial<InsertStaffPhone>): Promise<StaffPhone | undefined> { return undefined; }
   async deleteStaffPhone(_id: string): Promise<boolean> { return false; }
+
+  async adjustStockDelta(_sku: string, _delta: number): Promise<StockItem> { return { sku: _sku, description: "", onHand: 0, lowStockThreshold: null, updatedAt: new Date() }; }
+  async syncStockFromBom(): Promise<number> { return 0; }
+  async getStockItems(): Promise<StockItem[]> { return []; }
+  async getStockItem(_sku: string): Promise<StockItem | undefined> { return undefined; }
+  async upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem> {
+    return { sku, description: data.description ?? "", onHand: data.onHand ?? 0, lowStockThreshold: data.lowStockThreshold ?? null, updatedAt: new Date() };
+  }
+  async deductStock(sku: string, quantity: number): Promise<StockItem> {
+    return { sku, description: "", onHand: Math.max(0, 0 - quantity), lowStockThreshold: null, updatedAt: new Date() };
+  }
+  async getLowStockCount(): Promise<number> { return 0; }
+  async getStockDeductionHistory(_sku: string): Promise<StockDeduction[]> { return []; }
 }
 
 // Database Storage Implementation
@@ -2911,6 +2936,145 @@ export class DbStorage implements IStorage {
   async deleteStaffPhone(id: string): Promise<boolean> {
     const { rowCount } = await pool.query(`DELETE FROM staff_phone_numbers WHERE id = $1`, [id]);
     return (rowCount ?? 0) > 0;
+  }
+
+  // ── Stock Tracking ──────────────────────────────────────────────────────────
+  async getStockItems(): Promise<StockItem[]> {
+    const { rows } = await pool.query(
+      `SELECT sku, description, on_hand AS "onHand", low_stock_threshold AS "lowStockThreshold", updated_at AS "updatedAt"
+       FROM stock_items ORDER BY sku ASC`
+    );
+    return rows;
+  }
+
+  async getStockItem(sku: string): Promise<StockItem | undefined> {
+    const { rows } = await pool.query(
+      `SELECT sku, description, on_hand AS "onHand", low_stock_threshold AS "lowStockThreshold", updated_at AS "updatedAt"
+       FROM stock_items WHERE sku = $1`,
+      [sku]
+    );
+    return rows[0];
+  }
+
+  async upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem> {
+    // Ensure the row exists first
+    await pool.query(
+      `INSERT INTO stock_items (sku, updated_at) VALUES ($1, NOW()) ON CONFLICT (sku) DO NOTHING`,
+      [sku]
+    );
+    // Build a targeted UPDATE so we can explicitly set low_stock_threshold to NULL
+    const sets: string[] = ['updated_at = NOW()'];
+    const vals: any[] = [];
+    if (data.description !== undefined) {
+      vals.push(data.description);
+      sets.push(`description = $${vals.length}`);
+    }
+    if (data.onHand !== undefined) {
+      vals.push(data.onHand);
+      sets.push(`on_hand = $${vals.length}`);
+    }
+    if ('lowStockThreshold' in data) {
+      vals.push(data.lowStockThreshold ?? null);
+      sets.push(`low_stock_threshold = $${vals.length}`);
+    }
+    vals.push(sku);
+    const { rows } = await pool.query(
+      `UPDATE stock_items SET ${sets.join(', ')} WHERE sku = $${vals.length}
+       RETURNING sku, description, on_hand AS "onHand", low_stock_threshold AS "lowStockThreshold", updated_at AS "updatedAt"`,
+      vals
+    );
+    return rows[0];
+  }
+
+  async deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string): Promise<StockItem> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      // Ensure the row exists
+      await client.query(
+        `INSERT INTO stock_items (sku, on_hand, updated_at) VALUES ($1, 0, NOW()) ON CONFLICT (sku) DO NOTHING`,
+        [sku]
+      );
+      const { rows } = await client.query(
+        `UPDATE stock_items SET on_hand = GREATEST(on_hand - $2, 0), updated_at = NOW()
+         WHERE sku = $1
+         RETURNING sku, description, on_hand AS "onHand", low_stock_threshold AS "lowStockThreshold", updated_at AS "updatedAt"`,
+        [sku, quantity]
+      );
+      await client.query(
+        `INSERT INTO stock_deductions (sku, quantity_deducted, quote_id, build_sheet_ref, scanned_by_session, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())`,
+        [sku, quantity, quoteId ?? null, buildSheetRef ?? "", scannedBySession ?? null]
+      );
+      await client.query('COMMIT');
+      return rows[0];
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async adjustStockDelta(sku: string, delta: number): Promise<StockItem> {
+    const { rows } = await pool.query(
+      `UPDATE stock_items
+       SET on_hand = GREATEST(on_hand + $2, 0), updated_at = NOW()
+       WHERE sku = $1
+       RETURNING sku, description, on_hand AS "onHand", low_stock_threshold AS "lowStockThreshold", updated_at AS "updatedAt"`,
+      [sku, delta]
+    );
+    if (!rows[0]) throw new Error(`Stock item "${sku}" not found`);
+    return rows[0];
+  }
+
+  async syncStockFromBom(): Promise<number> {
+    const { rows: kitRows } = await pool.query(
+      `SELECT sku_components FROM kits WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
+    );
+    const { rows: upgradeRows } = await pool.query(
+      `SELECT sku_components FROM upgrades WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
+    );
+    const allComponents = [
+      ...kitRows.flatMap((r: any) => (r.sku_components as any[]) || []),
+      ...upgradeRows.flatMap((r: any) => (r.sku_components as any[]) || []),
+    ];
+    const skuDescMap = new Map<string, string>();
+    for (const c of allComponents) {
+      const s = (c?.sku ?? "").trim();
+      if (s && !skuDescMap.has(s)) {
+        skuDescMap.set(s, c.description ?? "");
+      }
+    }
+    let synced = 0;
+    for (const [sku, desc] of skuDescMap) {
+      const result = await pool.query(
+        `INSERT INTO stock_items (sku, description, on_hand, updated_at)
+         VALUES ($1, $2, 0, NOW()) ON CONFLICT (sku) DO NOTHING`,
+        [sku, desc]
+      );
+      if (result.rowCount && result.rowCount > 0) synced++;
+    }
+    return synced;
+  }
+
+  async getLowStockCount(): Promise<number> {
+    const { rows } = await pool.query(
+      `SELECT COUNT(*) AS count FROM stock_items
+       WHERE low_stock_threshold IS NOT NULL AND on_hand <= low_stock_threshold`
+    );
+    return parseInt(rows[0]?.count ?? "0", 10);
+  }
+
+  async getStockDeductionHistory(sku: string, limit = 50): Promise<StockDeduction[]> {
+    const { rows } = await pool.query(
+      `SELECT id, sku, quantity_deducted AS "quantityDeducted", quote_id AS "quoteId",
+              build_sheet_ref AS "buildSheetRef", scanned_by_session AS "scannedBySession",
+              created_at AS "createdAt"
+       FROM stock_deductions WHERE sku = $1 ORDER BY created_at DESC LIMIT $2`,
+      [sku, limit]
+    );
+    return rows;
   }
 }
 

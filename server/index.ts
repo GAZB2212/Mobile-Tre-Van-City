@@ -34,7 +34,14 @@ app.use((_req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // Allow camera on admin pages for the QR scanner; block it everywhere else
+  const isAdminRoute = _req.path.startsWith('/admin') || _req.path.startsWith('/api/admin');
+  res.setHeader(
+    'Permissions-Policy',
+    isAdminRoute
+      ? 'camera=(self), microphone=(), geolocation=()'
+      : 'camera=(), microphone=(), geolocation=()'
+  );
   next();
 });
 
@@ -898,6 +905,29 @@ app.use((req, res, next) => {
         )
       `).then(() => log("✅ SKU stock levels table ready"))
         .catch((err: Error) => console.error("SKU stock levels migration:", err.message));
+
+      // Stock tracking tables (for BOM QR scan deduction workflow)
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS stock_items (
+          sku TEXT PRIMARY KEY,
+          description TEXT NOT NULL DEFAULT '',
+          on_hand INTEGER NOT NULL DEFAULT 0,
+          low_stock_threshold INTEGER,
+          updated_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS stock_deductions (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          sku TEXT NOT NULL,
+          quantity_deducted INTEGER NOT NULL,
+          quote_id VARCHAR REFERENCES quotes(id),
+          build_sheet_ref TEXT NOT NULL DEFAULT '',
+          scanned_by_session TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_stock_deductions_sku ON stock_deductions (sku);
+        CREATE INDEX IF NOT EXISTS idx_stock_deductions_quote ON stock_deductions (quote_id);
+      `).then(() => log("✅ Stock tracking tables ready"))
+        .catch((err: Error) => console.error("Stock tables migration:", err.message));
 
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do

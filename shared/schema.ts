@@ -781,6 +781,39 @@ export const insertArtworkProofSchema = createInsertSchema(artworkProofs).omit({
 export type InsertArtworkProof = z.infer<typeof insertArtworkProofSchema>;
 export type ArtworkProof = typeof artworkProofs.$inferSelect;
 
+// ─── Stock Items ─────────────────────────────────────────────────────────────
+// On-hand quantity for every component SKU tracked in the warehouse.
+export const stockItems = pgTable("stock_items", {
+  sku: text("sku").primaryKey(),
+  description: text("description").notNull().default(""),
+  onHand: integer("on_hand").notNull().default(0),
+  lowStockThreshold: integer("low_stock_threshold"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertStockItemSchema = createInsertSchema(stockItems);
+export type InsertStockItem = z.infer<typeof insertStockItemSchema>;
+export type StockItem = typeof stockItems.$inferSelect;
+
+// ─── Stock Deductions ─────────────────────────────────────────────────────────
+// Append-only log of every stock deduction from the Build Sheet scanner.
+export const stockDeductions = pgTable("stock_deductions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sku: text("sku").notNull(),
+  quantityDeducted: integer("quantity_deducted").notNull(),
+  quoteId: varchar("quote_id").references(() => quotes.id),
+  buildSheetRef: text("build_sheet_ref").notNull().default(""),
+  scannedBySession: text("scanned_by_session"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_stock_deductions_sku").on(table.sku),
+  index("idx_stock_deductions_quote").on(table.quoteId),
+]);
+
+export const insertStockDeductionSchema = createInsertSchema(stockDeductions).omit({ id: true, createdAt: true });
+export type InsertStockDeduction = z.infer<typeof insertStockDeductionSchema>;
+export type StockDeduction = typeof stockDeductions.$inferSelect;
+
 // ─── Staff Phone Numbers (for Twilio click-to-call) ──────────────────────────
 // Global list managed by full admins only. Ordered by sort_order then created_at.
 export const staffPhoneNumbers = pgTable("staff_phone_numbers", {

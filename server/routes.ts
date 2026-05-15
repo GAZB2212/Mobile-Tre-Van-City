@@ -9295,6 +9295,125 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // ── End Twilio / Click-to-Call ─────────────────────────────────────────────
 
+  // ── Stock Tracking (BOM QR scan deduction workflow) ───────────────────────
+
+  // GET all stock items
+  app.get("/api/admin/stock", isAuthenticated, isBasicAdmin, async (_req, res) => {
+    try {
+      const items = await storage.getStockItems();
+      res.json(items);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET low stock count (for dashboard badge)
+  app.get("/api/admin/stock/low-stock-count", isAuthenticated, isBasicAdmin, async (_req, res) => {
+    try {
+      const count = await storage.getLowStockCount();
+      res.json({ count });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET single stock item by SKU
+  app.get("/api/admin/stock/:sku", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const item = await storage.getStockItem(req.params.sku);
+      if (!item) return res.status(404).json({ error: "Not found" });
+      res.json(item);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT/PATCH upsert a stock item — only full admins can change stock levels by hand
+  app.put("/api/admin/stock/:sku", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const body = req.body as { description?: string; onHand?: number; lowStockThreshold?: number | null };
+      const data: Record<string, any> = {};
+      if (body.description !== undefined) data.description = body.description;
+      if (body.onHand !== undefined) data.onHand = Number(body.onHand);
+      // Allow explicit null to clear the threshold; absent key = don't touch it
+      if ('lowStockThreshold' in body) {
+        data.lowStockThreshold = body.lowStockThreshold === null ? null : Number(body.lowStockThreshold);
+      }
+      const item = await storage.upsertStockItem(req.params.sku, data);
+      res.json(item);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PATCH adjust stock on-hand by a relative delta (±integer, full admins only)
+  app.patch("/api/admin/stock/:sku", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { delta } = req.body as { delta: number };
+      if (delta === undefined || isNaN(Number(delta))) {
+        return res.status(400).json({ error: "delta (integer) is required" });
+      }
+      const d = Math.trunc(Number(delta));
+      if (d === 0) {
+        const existing = await storage.getStockItem(req.params.sku);
+        if (!existing) return res.status(404).json({ error: "Not found" });
+        return res.json(existing);
+      }
+      const item = await storage.adjustStockDelta(req.params.sku, d);
+      res.json(item);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST sync stock_items from all BOM component SKUs (creates missing rows at on_hand=0)
+  app.post("/api/admin/stock/sync-from-bom", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const synced = await storage.syncStockFromBom();
+      res.json({ synced });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST deduct stock by scanning a QR code (basic admins — workshop staff)
+  app.post("/api/admin/stock/:sku/deduct", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { quantity = 1, quoteId, buildSheetRef } = req.body as {
+        quantity?: number;
+        quoteId?: string;
+        buildSheetRef?: string;
+      };
+      const qty = Math.max(1, Math.floor(Number(quantity) || 1));
+      const sessionId = (req as any).sessionID ?? undefined;
+      const item = await storage.deductStock(
+        req.params.sku,
+        qty,
+        quoteId,
+        buildSheetRef,
+        sessionId
+      );
+      res.json(item);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET deduction history for a SKU
+  app.get("/api/admin/stock/:sku/history", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const history = await storage.getStockDeductionHistory(
+        req.params.sku,
+        req.query.limit ? Number(req.query.limit) : 50
+      );
+      res.json(history);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ── End Stock Tracking ──────────────────────────────────────────────────────
+
   // ── Dev-only test helpers (never available in production) ─────────────────
   if (
     process.env.NODE_ENV !== 'production' &&

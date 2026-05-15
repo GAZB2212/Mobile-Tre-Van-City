@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check } from "lucide-react";
+import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check, ScanLine } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,14 +12,30 @@ import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { QrScannerModal } from "@/components/QrScannerModal";
 
 import type { SkuComponent } from "@shared/schema";
 
-function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuComponents?: SkuComponent[] | null; bomId?: string }) {
+function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows }: {
+  sku?: string | null;
+  skuComponents?: SkuComponent[] | null;
+  bomId?: string;
+  onScanRow?: (sku: string, qty: number, rowKey: string) => void;
+  pickedRows?: Set<string>;
+}) {
   const hasSku = !!sku;
   const hasBom = Array.isArray(skuComponents) && skuComponents.length > 0;
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+
+  // Composite row key — unique per section + position so the same physical SKU
+  // appearing in multiple BOM sections is tracked independently
+  const rk = (i: number) => `${bomId ?? ""}:${i}`;
+
+  // Parent-completion: every pickable row (has a sku) is in the pickedRows set
+  const pickableCount = hasBom ? (skuComponents ?? []).filter((c, i) => !!c.sku && i >= 0).length : 0;
+  const allPicked = hasBom && pickableCount > 0 &&
+    (skuComponents ?? []).every((c, i) => !c.sku || pickedRows?.has(rk(i)));
 
   if (!hasSku && !hasBom) return null;
 
@@ -45,6 +61,12 @@ function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuCom
       )}
       {hasBom && skuComponents && (
         <>
+          {allPicked && (
+            <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium print:hidden mb-1">
+              <Check className="w-3.5 h-3.5" />
+              All parts picked
+            </div>
+          )}
           {copyableSkus.length > 0 && (
             <div className="flex items-center gap-2 print:hidden">
               <button
@@ -77,13 +99,16 @@ function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuCom
                   <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10 print:text-black">Qty</th>
                   {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Unit cost</th>}
                   {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Row total</th>}
+                  {onScanRow && <th className="w-16 print:hidden" />}
                 </tr>
               </thead>
               <tbody>
                 {skuComponents.map((c, i) => {
                   const rowTotal = hasCostData && c.costPrice != null ? c.costPrice * c.quantity : null;
+                  const thisKey = rk(i);
+                  const isPicked = !!pickedRows?.has(thisKey);
                   return (
-                    <tr key={i} className="border-b last:border-0">
+                    <tr key={i} className={`border-b last:border-0 ${isPicked ? "bg-green-500/5" : ""}`}>
                       <td className="px-2 py-1.5 font-mono text-muted-foreground break-words min-w-0 print:text-black">{c.sku}</td>
                       <td className="px-2 py-1.5 text-muted-foreground print:text-black">
                         <span className="break-words min-w-0">{c.description}</span>
@@ -97,6 +122,31 @@ function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuCom
                       {hasCostData && (
                         <td className="px-2 py-1.5 text-right tabular-nums font-medium print:text-black">
                           {rowTotal != null ? `£${(rowTotal / 100).toFixed(2)}` : "—"}
+                        </td>
+                      )}
+                      {onScanRow && (
+                        <td className="px-1 py-1 text-center print:hidden">
+                          {c.sku ? (
+                            isPicked ? (
+                              <span
+                                className="inline-flex items-center justify-center w-6 h-6 rounded text-green-600"
+                                title={`${c.sku} picked`}
+                                data-testid={`icon-picked-bom-${bomId}-${i}`}
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => onScanRow(c.sku!, c.quantity, thisKey)}
+                                title={`Scan to deduct ${c.quantity} × ${c.sku}`}
+                                className="inline-flex items-center justify-center w-6 h-6 rounded text-blue-500 hover:bg-blue-500/10 transition-colors"
+                                data-testid={`button-scan-bom-${bomId}-${i}`}
+                              >
+                                <ScanLine className="w-3.5 h-3.5" />
+                              </button>
+                            )
+                          ) : null}
                         </td>
                       )}
                     </tr>
@@ -165,6 +215,57 @@ export default function BuildSheet() {
     user: User | undefined;
     isAuthenticated: boolean;
     isLoading: boolean;
+  };
+
+  // ── QR scan-to-deduct ───────────────────────────────────────────────────────
+  // scannerTarget carries the expected SKU, BOM row quantity, and the composite
+  // row key (bomId:rowIndex) used to track pick state per-row, not per-SKU
+  const [scannerTarget, setScannerTarget] = useState<{ sku: string; qty: number; rowKey: string } | null>(null);
+  // pickedBomRows is keyed by composite "bomId:rowIndex" — the same physical SKU
+  // appearing in two different BOM sections tracks independently
+  const [pickedBomRows, setPickedBomRows] = useState<Set<string>>(new Set());
+
+  const deductMutation = useMutation({
+    mutationFn: async ({ sku, qty, rowKey }: { sku: string; qty: number; rowKey: string }) => {
+      const res = await apiRequest("POST", `/api/admin/stock/${encodeURIComponent(sku)}/deduct`, {
+        quantity: qty,
+        quoteId,
+        buildSheetRef: `Build sheet — quote ${quoteId}`,
+      });
+      return { data: await res.json(), rowKey };
+    },
+    onSuccess: ({ data, rowKey }: { data: any; rowKey: string }) => {
+      toast({
+        title: "Stock deducted",
+        description: `${data.sku} — ${data.onHand} remaining`,
+      });
+      if (rowKey) setPickedBomRows(prev => new Set(prev).add(rowKey));
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Deduction failed", description: err?.message ?? "Unknown error", variant: "destructive" });
+    },
+  });
+
+  // Called when a workshop user clicks the scan button on a specific BOM row.
+  // rowKey is the composite "bomId:rowIndex" that uniquely identifies this row.
+  const handleScanRow = (expectedSku: string, qty: number, rowKey: string) => {
+    setScannerTarget({ sku: expectedSku, qty, rowKey });
+  };
+
+  const handleScanResult = (scannedSku: string) => {
+    const target = scannerTarget;
+    setScannerTarget(null);
+    if (target && scannedSku !== target.sku) {
+      toast({
+        title: "Wrong part scanned",
+        description: `Expected "${target.sku}" but scanned "${scannedSku}". Please scan the correct label.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    deductMutation.mutate({ sku: scannedSku, qty: target?.qty ?? 1, rowKey: target?.rowKey ?? "" });
   };
 
   // Checked items stored in localStorage per quote
@@ -890,7 +991,7 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
-                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} />
+                    <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -940,7 +1041,7 @@ export default function BuildSheet() {
                                   (Upgraded)
                                 </span>
                               </div>
-                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} />
+                              <SkuBomInfo sku={entry.upgrade.sku} skuComponents={entry.upgrade.skuComponents} bomId={`kit-upgrade-${entry.upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} />
                             </div>
                           ) : (
                             <span
@@ -1020,7 +1121,7 @@ export default function BuildSheet() {
                               </p>
                             )}
                           </div>
-                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} />
+                          <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} />
                         </div>
                       </div>
                     );
@@ -1138,6 +1239,14 @@ export default function BuildSheet() {
           <p>Quote Ref: {quote.id.substring(0, 8).toUpperCase()}</p>
         </div>
       </div>
+
+      {/* QR scan-to-deduct modal */}
+      <QrScannerModal
+        open={scannerTarget !== null}
+        onClose={() => setScannerTarget(null)}
+        onScan={handleScanResult}
+        expectedSku={scannerTarget?.sku}
+      />
     </>
   );
 }
