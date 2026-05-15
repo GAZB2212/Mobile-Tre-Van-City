@@ -664,8 +664,29 @@ export default function AdminQuotes() {
           const convPct = total > 0 ? Math.round((converted / total) * 100) : 0;
           const revenueConverted = convertedQuotes.reduce((s, q) => s + q.estTotal, 0);
           const overdueCount = quotes.filter(q => isOverdue(q)).length;
+
+          // Blended margin — computed from currently filtered quotes
+          let marginTotalSubtotal = 0;
+          let marginTotalGross = 0;
+          let marginQuotesWithCost = 0;
+          for (const q of filteredQuotes) {
+            const cost = computeEquipCost(
+              q.kitId,
+              (q.selectedUpgradeIds as string[]) || [],
+              (q.selectedUpgrades as Record<string, number>) || {}
+            );
+            if (cost !== null && q.estSubtotal > 0) {
+              marginTotalSubtotal += q.estSubtotal;
+              marginTotalGross += q.estSubtotal - cost;
+              marginQuotesWithCost++;
+            }
+          }
+          const blendedMarginPct = marginTotalSubtotal > 0
+            ? Math.round((marginTotalGross / marginTotalSubtotal) * 100)
+            : null;
+
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
               <Card>
                 <CardContent className="py-4 px-5">
                   <p className="text-xs text-muted-foreground mb-1">Conversion Rate</p>
@@ -688,6 +709,27 @@ export default function AdminQuotes() {
                   <p className="text-xs text-muted-foreground mb-1">Total Configurators</p>
                   <p className="text-2xl font-bold" data-testid="stat-total-quotes">{total}</p>
                   <p className="text-xs text-muted-foreground mt-1">all time</p>
+                </CardContent>
+              </Card>
+              {/* Blended margin — updates with current filter selection */}
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <p className="text-xs text-muted-foreground mb-1">Blended Margin</p>
+                  {blendedMarginPct === null ? (
+                    <p className="text-2xl font-bold text-muted-foreground" data-testid="stat-blended-margin">—</p>
+                  ) : (
+                    <p
+                      className={`text-3xl font-bold ${getMarginColor(blendedMarginPct)}`}
+                      data-testid="stat-blended-margin"
+                    >
+                      {blendedMarginPct}%
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {marginQuotesWithCost === 0
+                      ? "no cost data available"
+                      : `based on ${marginQuotesWithCost} of ${filteredQuotes.length} quote${filteredQuotes.length !== 1 ? "s" : ""}`}
+                  </p>
                 </CardContent>
               </Card>
               {/* Needs attention card — clickable to filter */}
