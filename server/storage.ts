@@ -3049,8 +3049,8 @@ export class DbStorage implements IStorage {
     let synced = 0;
     for (const [sku, desc] of skuDescMap) {
       const result = await pool.query(
-        `INSERT INTO stock_items (sku, description, on_hand, updated_at)
-         VALUES ($1, $2, 0, NOW()) ON CONFLICT (sku) DO NOTHING`,
+        `INSERT INTO stock_items (sku, description, on_hand, low_stock_threshold, updated_at)
+         VALUES ($1, $2, 0, 2, NOW()) ON CONFLICT (sku) DO NOTHING`,
         [sku, desc]
       );
       if (result.rowCount && result.rowCount > 0) synced++;
