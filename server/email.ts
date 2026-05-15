@@ -2,6 +2,12 @@ import { Resend } from 'resend';
 
 const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
 
+/** Returns true for email addresses that belong to test/e2e runs and must never receive real mail. */
+export function isTestEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return email.endsWith('@example.com') || email.endsWith('.example.com');
+}
+
 let connectionSettings: any;
 let fromEmailLogged = false;
 
@@ -695,6 +701,12 @@ export async function sendQuoteReceivedEmails({
   testMode?: { variant: 'customer' | 'admin'; testAddress: string };
   chooseOptionToken?: string;
 }) {
+  // Never send real emails for test/e2e submissions
+  if (isTestEmail(quote.email)) {
+    console.log(`[E2E] Suppressing all emails for test address: ${quote.email}`);
+    return;
+  }
+
   const { client, fromEmail } = await getUncachableResendClient();
 
   const ref = quote.id.slice(0, 8).toUpperCase();
@@ -958,6 +970,12 @@ export async function sendLeadReceivedEmails(lead: {
   message?: string | null;
   testMode?: { variant: 'customer' | 'admin'; testAddress: string };
 }) {
+  // Never send real emails for test/e2e submissions
+  if (isTestEmail(lead.email)) {
+    console.log(`[E2E] Suppressing lead emails for test address: ${lead.email}`);
+    return;
+  }
+
   const { client, fromEmail } = await getUncachableResendClient();
 
   const ref = lead.id.slice(0, 8).toUpperCase();

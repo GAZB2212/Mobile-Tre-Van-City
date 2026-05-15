@@ -4187,7 +4187,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       // Notify internal team
       const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
       try {
-        const { sendEmail } = await import('./email.js');
+        const { sendEmail, isTestEmail } = await import('./email.js');
+        if (isTestEmail(quote.email)) { /* suppress for e2e test addresses */ } else
         await sendEmail({
           to: INTERNAL_NOTIFY_EMAILS,
           subject: `Quote Correction Request — ${quote.userName}`,
@@ -4274,7 +4275,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
       const ref = quote.id.slice(0, 8).toUpperCase();
       try {
-        const { sendEmail } = await import('./email.js');
+        const { sendEmail, isTestEmail } = await import('./email.js');
+        if (isTestEmail(quote.email)) { /* suppress for e2e test addresses */ } else {
         const subject = status === 'approved'
           ? `Spec Approved — ${quote.userName} (Ref #${ref})`
           : `Spec Flagged as Incorrect — ${quote.userName} (Ref #${ref})`;
@@ -4294,6 +4296,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
              <hr/>
              <p>Please review and update the quote in the admin panel.</p>`;
         await sendEmail({ to: INTERNAL_NOTIFY_EMAILS, subject, html });
+        } // end isTestEmail guard
       } catch (emailErr) {
         console.error('Failed to send spec approval notification:', emailErr);
       }
@@ -8732,7 +8735,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       // Email the MTVC team (non-fatal)
       try {
         const INTERNAL_NOTIFY_EMAILS = ["carl@geg.co", "graham@wirralvans.co.uk", "sharon@geg.co", "info@gfukgroup.co.uk"];
-        const { sendEmail } = await import("./email.js");
+        const { sendEmail, isTestEmail } = await import("./email.js");
+        if (isTestEmail(quote.customer_email)) throw new Error("suppressed-test-email");
         const statusEmoji: Record<string, string> = { pending: "🔄", approved: "✅", declined: "❌", more_info_needed: "⚠️" };
         const statusLabel: Record<string, string> = { pending: "In Review", approved: "Approved", declined: "Declined", more_info_needed: "More Info Needed" };
         const subject = `Finance Update — ${quote.user_name}: ${statusEmoji[financeStatus]} ${statusLabel[financeStatus]}`;
@@ -8832,7 +8836,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       try {
         const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
         const customer = await storage.getCustomer(proof.customer_id);
-        const { sendEmail } = await import('./email.js');
+        const { sendEmail, isTestEmail } = await import('./email.js');
+        if (isTestEmail(customer?.email)) throw new Error("suppressed-test-email");
         const subject = approved
           ? `Artwork Approved — ${customer?.name ?? 'Customer'}`
           : `Artwork Changes Requested — ${customer?.name ?? 'Customer'}`;
