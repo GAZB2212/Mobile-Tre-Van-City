@@ -90,7 +90,55 @@ test.describe("Skip link — keyboard focus reaches #main-content", () => {
     expect(await isMainContentFocused(page)).toBe(true);
   });
 
-  // ── Test 2: Admin page ──────────────────────────────────────────────────────
+  // ── Test 2: Van stock listing ───────────────────────────────────────────────
+  test("/stock — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/stock");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 3: Gallery ─────────────────────────────────────────────────────────
+  test("/gallery — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/gallery");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 4: Configurator first step ─────────────────────────────────────────
+  test("/configurator/van — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/configurator/van");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 5: Contact page ─────────────────────────────────────────────────────
+  test("/contact — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/contact");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 6: Admin page ──────────────────────────────────────────────────────
   test("/admin/quotes — Tab then Enter moves focus to #main-content", async ({
     page,
   }) => {
@@ -107,7 +155,7 @@ test.describe("Skip link — keyboard focus reaches #main-content", () => {
     expect(await isMainContentFocused(page)).toBe(true);
   });
 
-  // ── Test 3: Finance portal ──────────────────────────────────────────────────
+  // ── Test 7: Finance portal ──────────────────────────────────────────────────
   // Skipped: finance-role e2e login returns 401 in CI — tracked as task #426
   test.skip("/finance-portal — Tab then Enter moves focus to #main-content", async ({
     page,
