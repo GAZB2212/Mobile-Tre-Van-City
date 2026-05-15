@@ -33,15 +33,10 @@ function BomEditor({
   onChange: (rows: SkuComponent[]) => void;
   generatePartSku?: () => Promise<string>;
 }) {
-  const [generating, setGenerating] = useState(false);
+  const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
 
-  const addRow = async () => {
-    let sku = "";
-    if (generatePartSku) {
-      setGenerating(true);
-      try { sku = await generatePartSku(); } catch { /* ignore */ } finally { setGenerating(false); }
-    }
-    onChange([...components, { sku, description: "", quantity: 1 }]);
+  const addRow = () => {
+    onChange([...components, { sku: "", description: "", quantity: 1 }]);
   };
 
   const remove = (i: number) => onChange(components.filter((_, idx) => idx !== i));
@@ -63,6 +58,18 @@ function BomEditor({
     onChange(rows);
   };
 
+  const handleDescriptionBlur = async (i: number) => {
+    const row = components[i];
+    if (!row || row.sku.trim() || !row.description.trim() || !generatePartSku) return;
+    setGeneratingIdx(i);
+    try {
+      const sku = await generatePartSku();
+      update(i, { sku });
+    } catch { /* ignore */ } finally {
+      setGeneratingIdx(null);
+    }
+  };
+
   return (
     <div className="space-y-2">
       {components.length > 0 && (
@@ -76,16 +83,18 @@ function BomEditor({
       {components.map((row, idx) => (
         <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-center">
           <Input
-            placeholder="SKU"
+            placeholder={generatingIdx === idx ? "Generating…" : "SKU"}
             value={row.sku}
             onChange={e => update(idx, { sku: e.target.value })}
             className="text-sm h-8 font-mono"
+            disabled={generatingIdx === idx}
             data-testid={`input-skumgr-bom-sku-${idx}`}
           />
           <Input
             placeholder="Description"
             value={row.description}
             onChange={e => update(idx, { description: e.target.value })}
+            onBlur={() => handleDescriptionBlur(idx)}
             className="text-sm h-8"
             data-testid={`input-skumgr-bom-desc-${idx}`}
           />
@@ -125,9 +134,9 @@ function BomEditor({
           </div>
         </div>
       ))}
-      <Button type="button" size="sm" variant="outline" onClick={addRow} disabled={generating} data-testid="button-skumgr-add-bom-row">
+      <Button type="button" size="sm" variant="outline" onClick={addRow} data-testid="button-skumgr-add-bom-row">
         <Plus className="w-3.5 h-3.5 mr-1" />
-        {generating ? "Generating SKU…" : "Add Part"}
+        Add Part
       </Button>
     </div>
   );
