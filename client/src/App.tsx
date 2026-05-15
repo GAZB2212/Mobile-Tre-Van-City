@@ -9,7 +9,6 @@ import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import ChatBubble from "@/components/ChatBubble";
 import AIChatWidget from "@/components/AIChatWidget";
 import ConfiguratorIdleModal from "@/components/ConfiguratorIdleModal";
-import SkipLink from "@/components/SkipLink";
 import { PublicMain } from "@/lib/PublicMain";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { initializeBucketName, hasGivenConsent } from "@/lib/utils";
@@ -200,7 +199,6 @@ function App() {
     <AppErrorBoundary>
       <ConfiguratorProvider>
         <TooltipProvider>
-          <SkipLink />
           <ConditionalLoadingScreen />
           <ScrollRestoration />
           <Toaster />
