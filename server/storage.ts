@@ -163,7 +163,7 @@ export interface IStorage {
   deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string): Promise<StockItem>;
   getLowStockCount(): Promise<number>;
   getStockDeductionHistory(sku: string, limit?: number): Promise<StockDeduction[]>;
-  syncStockFromBom(): Promise<number>;
+  syncStockFromBom(defaultThreshold?: number): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -1815,7 +1815,7 @@ export class MemStorage implements IStorage {
   async deleteStaffPhone(_id: string): Promise<boolean> { return false; }
 
   async adjustStockDelta(_sku: string, _delta: number): Promise<StockItem> { return { sku: _sku, description: "", onHand: 0, lowStockThreshold: null, updatedAt: new Date() }; }
-  async syncStockFromBom(): Promise<number> { return 0; }
+  async syncStockFromBom(_defaultThreshold?: number): Promise<number> { return 0; }
   async getStockItems(): Promise<StockItem[]> { return []; }
   async getStockItem(_sku: string): Promise<StockItem | undefined> { return undefined; }
   async upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem> {
@@ -3028,7 +3028,7 @@ export class DbStorage implements IStorage {
     return rows[0];
   }
 
-  async syncStockFromBom(): Promise<number> {
+  async syncStockFromBom(defaultThreshold: number = 2): Promise<number> {
     const { rows: kitRows } = await pool.query(
       `SELECT sku_components FROM kits WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
     );
@@ -3050,8 +3050,8 @@ export class DbStorage implements IStorage {
     for (const [sku, desc] of skuDescMap) {
       const result = await pool.query(
         `INSERT INTO stock_items (sku, description, on_hand, low_stock_threshold, updated_at)
-         VALUES ($1, $2, 0, 2, NOW()) ON CONFLICT (sku) DO NOTHING`,
-        [sku, desc]
+         VALUES ($1, $2, 0, $3, NOW()) ON CONFLICT (sku) DO NOTHING`,
+        [sku, desc, defaultThreshold]
       );
       if (result.rowCount && result.rowCount > 0) synced++;
     }

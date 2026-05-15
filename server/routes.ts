@@ -9367,9 +9367,11 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   });
 
   // POST sync stock_items from all BOM component SKUs (creates missing rows at on_hand=0)
-  app.post("/api/admin/stock/sync-from-bom", isAuthenticated, isFullAdmin, async (_req, res) => {
+  app.post("/api/admin/stock/sync-from-bom", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
-      const synced = await storage.syncStockFromBom();
+      const { defaultThreshold } = req.body as { defaultThreshold?: number };
+      const threshold = typeof defaultThreshold === "number" && defaultThreshold >= 0 ? Math.floor(defaultThreshold) : undefined;
+      const synced = await storage.syncStockFromBom(threshold);
       res.json({ synced });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

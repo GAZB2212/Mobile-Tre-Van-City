@@ -168,6 +168,8 @@ export default function StockLevels() {
   const [editItem, setEditItem] = useState<StockItem | null | "new">(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncThreshold, setSyncThreshold] = useState("2");
 
   // Stock levels are a full-admin feature
   const isFullAdmin = user?.adminRole === "full";
@@ -202,13 +204,14 @@ export default function StockLevels() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/stock/sync-from-bom", {});
+    mutationFn: async (defaultThreshold: number) => {
+      const res = await apiRequest("POST", "/api/admin/stock/sync-from-bom", { defaultThreshold });
       return res.json() as Promise<{ synced: number }>;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
+      setSyncDialogOpen(false);
       toast({
         title: data.synced > 0 ? `${data.synced} new SKU${data.synced !== 1 ? "s" : ""} imported` : "Stock already up to date",
         description: data.synced > 0 ? "New BOM components added at 0 on-hand." : "All BOM SKUs already have stock records.",
@@ -247,7 +250,7 @@ export default function StockLevels() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => syncMutation.mutate()}
+              onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
               disabled={syncMutation.isPending}
               data-testid="button-sync-from-bom"
             >
@@ -420,6 +423,52 @@ export default function StockLevels() {
           )}
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setHistoryItem(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync from BOM — threshold dialog */}
+      <Dialog open={syncDialogOpen} onOpenChange={(open) => { if (!syncMutation.isPending) setSyncDialogOpen(open); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sync from BOM</DialogTitle>
+            <DialogDescription>
+              New SKUs will be added with 0 on-hand. Set the low-stock threshold that should apply to any newly imported parts.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 space-y-1.5">
+            <label htmlFor="sync-threshold" className="text-sm font-medium">
+              Default low-stock threshold
+            </label>
+            <Input
+              id="sync-threshold"
+              type="number"
+              min={0}
+              step={1}
+              value={syncThreshold}
+              onChange={(e) => setSyncThreshold(e.target.value)}
+              data-testid="input-sync-threshold"
+              className="w-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              Existing stock records will not be changed.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSyncDialogOpen(false)} disabled={syncMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                const val = parseInt(syncThreshold, 10);
+                syncMutation.mutate(isNaN(val) || val < 0 ? 2 : val);
+              }}
+              disabled={syncMutation.isPending}
+              data-testid="button-confirm-sync"
+            >
+              {syncMutation.isPending ? "Syncing…" : "Sync"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
