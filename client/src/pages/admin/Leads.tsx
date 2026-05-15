@@ -170,6 +170,12 @@ export default function AdminLeads() {
   // Click-to-call
   const [callDialog, setCallDialog] = useState<{ leadId: string; customerName: string; toNumber: string } | null>(null);
   const [selectedStaffPhoneId, setSelectedStaffPhoneId] = useState("");
+  const normaliseToE164 = (n: string): string => {
+    const d = n.replace(/[\s\-().]/g, "");
+    if (/^07\d{9}$/.test(d)) return "+44" + d.slice(1);
+    if (/^447\d{9}$/.test(d)) return "+" + d;
+    return d;
+  };
 
   const { data: twilioStatus } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/admin/twilio/status"],
@@ -857,7 +863,7 @@ export default function AdminLeads() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                  setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", toNumber: lead.phone! });
+                                  setCallDialog({ leadId: lead.id, customerName: lead.name || "Customer", toNumber: normaliseToE164(lead.phone!) });
                                 }}
                                 data-testid={`button-call-bridge-${lead.id}`}
                               >

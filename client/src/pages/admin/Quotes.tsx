@@ -214,6 +214,12 @@ export default function AdminQuotes() {
   // Click-to-call state
   const [callDialog, setCallDialog] = useState<{ quoteId: string; customerName: string; toNumber: string } | null>(null);
   const [selectedStaffPhoneId, setSelectedStaffPhoneId] = useState("");
+  const normaliseToE164 = (n: string): string => {
+    const d = n.replace(/[\s\-().]/g, "");
+    if (/^07\d{9}$/.test(d)) return "+44" + d.slice(1);
+    if (/^447\d{9}$/.test(d)) return "+" + d;
+    return d;
+  };
 
   const { data: twilioStatus } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/admin/twilio/status"],
@@ -984,7 +990,7 @@ export default function AdminQuotes() {
                                             if (!quote.phone) return;
                                             e.stopPropagation();
                                             setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                            setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", toNumber: quote.phone });
+                                            setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", toNumber: normaliseToE164(quote.phone) });
                                           }}
                                           disabled={!quote.phone}
                                           className="hidden md:flex p-1 rounded text-[#8bc440] hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1200,7 +1206,7 @@ export default function AdminQuotes() {
                                   if (!quote.phone) return;
                                   e.stopPropagation();
                                   setSelectedStaffPhoneId(staffPhones[0]?.id ?? "");
-                                  setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", toNumber: quote.phone });
+                                  setCallDialog({ quoteId: quote.id, customerName: quote.name || "Customer", toNumber: normaliseToE164(quote.phone) });
                                 }}
                                 disabled={!quote.phone}
                                 className="hidden md:flex p-1.5 rounded hover:bg-muted text-[#8bc440] hover:text-[#8bc440]/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"

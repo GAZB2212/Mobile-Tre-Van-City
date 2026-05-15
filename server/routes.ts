@@ -9061,10 +9061,18 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         });
       }
 
-      const { staffNumberId, toNumber, quoteId, leadId } = req.body;
-      if (!staffNumberId || !toNumber) {
+      const { staffNumberId, toNumber: rawToNumber, quoteId, leadId } = req.body;
+      if (!staffNumberId || !rawToNumber) {
         return res.status(400).json({ error: "staffNumberId and toNumber are required" });
       }
+      // Normalise UK local numbers (07xxx / 447xxx) to E.164 (+447xxx)
+      const normaliseToE164 = (n: string): string => {
+        const digits = n.replace(/[\s\-().]/g, "");
+        if (/^07\d{9}$/.test(digits)) return "+44" + digits.slice(1);
+        if (/^447\d{9}$/.test(digits)) return "+" + digits;
+        return digits;
+      };
+      const toNumber = normaliseToE164(rawToNumber);
       // Basic E.164 validation — must start with + followed by digits only
       if (!/^\+[1-9]\d{6,14}$/.test(toNumber)) {
         return res.status(400).json({ error: "toNumber must be in E.164 format (e.g. +447700000000)" });
