@@ -27,7 +27,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: false,
-    sku: "ATS-EQP-000",
+    sku: "MTVC-EQP-000",
   },
   {
     id: "accessories-pack-1",
@@ -39,11 +39,11 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "accessories-parent",
     variantName: "Pack 1 - Maxi Euro 8 with T5000 Pro & Mini Spin",
     published: true,
-    sku: "ATS-EQP-001",
+    sku: "MTVC-EQP-001",
     skuComponents: [
-      { sku: "ATS-EQP-EURO8-MAXI", description: "Maxi Euro 8 Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "MTVC-EQP-EURO8-MAXI", description: "Maxi Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
     ],
   },
   {
@@ -56,11 +56,11 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "accessories-parent",
     variantName: "Pack 2 - Euro 8 with T5000 Pro & Mini Spin",
     published: true,
-    sku: "ATS-EQP-002",
+    sku: "MTVC-EQP-002",
     skuComponents: [
-      { sku: "ATS-EQP-EURO8-STD", description: "Standard Euro 8 Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "MTVC-EQP-EURO8-STD", description: "Standard Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
     ],
   },
   {
@@ -73,11 +73,11 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "accessories-parent",
     variantName: "Pack 3 - Mini Euro 8 with T5000 Pro & Mini Spin",
     published: true,
-    sku: "ATS-EQP-003",
+    sku: "MTVC-EQP-003",
     skuComponents: [
-      { sku: "ATS-EQP-EURO8-MINI", description: "Mini Euro 8 Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "MTVC-EQP-EURO8-MINI", description: "Mini Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-T5000", description: "T5000 Pro Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
     ],
   },
   {
@@ -90,11 +90,11 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "accessories-parent",
     variantName: "Pack 4 - Maxi Euro 8 with T6000 Pro & Mini Spin",
     published: true,
-    sku: "ATS-EQP-004",
+    sku: "MTVC-EQP-004",
     skuComponents: [
-      { sku: "ATS-EQP-EURO8-MAXI", description: "Maxi Euro 8 Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-T6000", description: "T6000 Pro Tyre Changer", quantity: 1 },
-      { sku: "ATS-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
+      { sku: "MTVC-EQP-EURO8-MAXI", description: "Maxi Euro 8 Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-T6000", description: "T6000 Pro Tyre Changer", quantity: 1 },
+      { sku: "MTVC-EQP-MSPIN", description: "Mini Spin Wheel Balancer", quantity: 1 },
     ],
   },
 
@@ -109,7 +109,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-AIR-001",
+    sku: "MTVC-AIR-001",
   },
   {
     id: "compressor-12hp-270l",
@@ -122,7 +122,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     variantName: null,
     published: true,
     popular: true,
-    sku: "ATS-AIR-002",
+    sku: "MTVC-AIR-002",
   },
   {
     id: "air-reel-fini",
@@ -134,7 +134,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-AIR-003",
+    sku: "MTVC-AIR-003",
   },
   {
     id: "compressor-reel-16m",
@@ -146,7 +146,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-AIR-004",
+    sku: "MTVC-AIR-004",
   },
 
   // Equipment
@@ -160,7 +160,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-EQP-005",
+    sku: "MTVC-EQP-005",
   },
 
   // Branding
@@ -174,7 +174,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-001",
+    sku: "MTVC-BRD-001",
   },
   {
     id: "half-wrap",
@@ -186,7 +186,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-002",
+    sku: "MTVC-BRD-002",
   },
   {
     id: "graphic-pack",
@@ -198,7 +198,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-003",
+    sku: "MTVC-BRD-003",
   },
   {
     id: "rear-chapter-livery",
@@ -210,7 +210,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-004",
+    sku: "MTVC-BRD-004",
   },
   {
     id: "branded-website",
@@ -222,7 +222,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-005",
+    sku: "MTVC-BRD-005",
   },
   {
     id: "full-print-package",
@@ -234,11 +234,11 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-006",
+    sku: "MTVC-BRD-006",
     skuComponents: [
-      { sku: "ATS-BRD-BCARD-500", description: "Business Cards x500", quantity: 1 },
-      { sku: "ATS-BRD-LEAF-250", description: "Leaflets x250", quantity: 1 },
-      { sku: "ATS-BRD-SOCIAL-2", description: "Social Media Setup (up to 2 platforms)", quantity: 1 },
+      { sku: "MTVC-BRD-BCARD-500", description: "Business Cards x500", quantity: 1 },
+      { sku: "MTVC-BRD-LEAF-250", description: "Leaflets x250", quantity: 1 },
+      { sku: "MTVC-BRD-SOCIAL-2", description: "Social Media Setup (up to 2 platforms)", quantity: 1 },
     ],
   },
   {
@@ -251,7 +251,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BRD-007",
+    sku: "MTVC-BRD-007",
   },
 
   // Van Interior Walls (with variations)
@@ -265,7 +265,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-CMF-000",
+    sku: "MTVC-CMF-000",
   },
   {
     id: "van-interior-diamond-lwb-standard",
@@ -277,7 +277,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "van-interior-walls-parent",
     variantName: "Diamond Liner - LWB Standard",
     published: true,
-    sku: "ATS-CMF-001",
+    sku: "MTVC-CMF-001",
   },
   {
     id: "van-interior-diamond-lwb-branded",
@@ -289,7 +289,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "van-interior-walls-parent",
     variantName: "Diamond Liner - LWB Branded",
     published: true,
-    sku: "ATS-CMF-002",
+    sku: "MTVC-CMF-002",
   },
 
   // Security
@@ -303,7 +303,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-SEC-001",
+    sku: "MTVC-SEC-001",
   },
   {
     id: "vehicle-immobiliser",
@@ -315,7 +315,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-SEC-002",
+    sku: "MTVC-SEC-002",
   },
   {
     id: "vehicle-tracker",
@@ -327,7 +327,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-SEC-003",
+    sku: "MTVC-SEC-003",
   },
   {
     id: "high-security-door-lock",
@@ -339,7 +339,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-SEC-004",
+    sku: "MTVC-SEC-004",
   },
   {
     id: "standard-reversing-camera",
@@ -351,10 +351,10 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-SEC-005",
+    sku: "MTVC-SEC-005",
     skuComponents: [
-      { sku: "ATS-SEC-CAM-REV", description: "Reversing Camera", quantity: 1 },
-      { sku: "ATS-TEC-MON-7IN", description: "7\" Monitor", quantity: 1 },
+      { sku: "MTVC-SEC-CAM-REV", description: "Reversing Camera", quantity: 1 },
+      { sku: "MTVC-TEC-MON-7IN", description: "7\" Monitor", quantity: 1 },
     ],
   },
 
@@ -369,12 +369,12 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-BIZ-001",
+    sku: "MTVC-BIZ-001",
     skuComponents: [
-      { sku: "ATS-BRD-005", description: "Branded Website", quantity: 1 },
-      { sku: "ATS-BRD-BCARD-500", description: "Business Cards x500", quantity: 1 },
-      { sku: "ATS-BRD-LEAF-250", description: "Leaflets x250", quantity: 1 },
-      { sku: "ATS-BRD-SOCIAL-2", description: "Social Media Setup (up to 2 platforms)", quantity: 1 },
+      { sku: "MTVC-BRD-005", description: "Branded Website", quantity: 1 },
+      { sku: "MTVC-BRD-BCARD-500", description: "Business Cards x500", quantity: 1 },
+      { sku: "MTVC-BRD-LEAF-250", description: "Leaflets x250", quantity: 1 },
+      { sku: "MTVC-BRD-SOCIAL-2", description: "Social Media Setup (up to 2 platforms)", quantity: 1 },
     ],
   },
 
@@ -389,7 +389,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: false,
-    sku: "ATS-LGT-000",
+    sku: "MTVC-LGT-000",
   },
   {
     id: "light-pack-standard",
@@ -401,11 +401,11 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "light-pack-parent",
     variantName: "Standard Light Pack",
     published: true,
-    sku: "ATS-LGT-001",
+    sku: "MTVC-LGT-001",
     skuComponents: [
-      { sku: "ATS-LGT-REPEATER-LED", description: "LED Flashing Repeater", quantity: 8 },
-      { sku: "ATS-LGT-BAR-ROOF", description: "LED Light Bar (Roof)", quantity: 1 },
-      { sku: "ATS-LGT-WORK-LED", description: "LED Working Light", quantity: 1 },
+      { sku: "MTVC-LGT-REPEATER-LED", description: "LED Flashing Repeater", quantity: 8 },
+      { sku: "MTVC-LGT-BAR-ROOF", description: "LED Light Bar (Roof)", quantity: 1 },
+      { sku: "MTVC-LGT-WORK-LED", description: "LED Working Light", quantity: 1 },
     ],
   },
   {
@@ -418,13 +418,13 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "light-pack-parent",
     variantName: "Upgraded Light Pack - LED Scene Lights",
     published: true,
-    sku: "ATS-LGT-002",
+    sku: "MTVC-LGT-002",
     skuComponents: [
-      { sku: "ATS-LGT-REPEATER-LED", description: "LED Flashing Repeater", quantity: 8 },
-      { sku: "ATS-LGT-BAR-ROOF", description: "LED Light Bar (Roof)", quantity: 1 },
-      { sku: "ATS-LGT-WORK-LED", description: "LED Working Light", quantity: 1 },
-      { sku: "ATS-LGT-SCENE-LED", description: "LED Scene Light", quantity: 1 },
-      { sku: "ATS-LGT-MARKER-SIDE", description: "Side Marker Light", quantity: 2 },
+      { sku: "MTVC-LGT-REPEATER-LED", description: "LED Flashing Repeater", quantity: 8 },
+      { sku: "MTVC-LGT-BAR-ROOF", description: "LED Light Bar (Roof)", quantity: 1 },
+      { sku: "MTVC-LGT-WORK-LED", description: "LED Working Light", quantity: 1 },
+      { sku: "MTVC-LGT-SCENE-LED", description: "LED Scene Light", quantity: 1 },
+      { sku: "MTVC-LGT-MARKER-SIDE", description: "Side Marker Light", quantity: 2 },
     ],
   },
 
@@ -439,7 +439,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-TEC-001",
+    sku: "MTVC-TEC-001",
   },
   {
     id: "monitor-brake-light-camera",
@@ -451,10 +451,10 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-TEC-002",
+    sku: "MTVC-TEC-002",
     skuComponents: [
-      { sku: "ATS-TEC-MON-7IN", description: "7\" In-Cab Monitor", quantity: 1 },
-      { sku: "ATS-TEC-CAM-BRAKE", description: "Brake Light Camera", quantity: 1 },
+      { sku: "MTVC-TEC-MON-7IN", description: "7\" In-Cab Monitor", quantity: 1 },
+      { sku: "MTVC-TEC-CAM-BRAKE", description: "Brake Light Camera", quantity: 1 },
     ],
   },
   {
@@ -467,7 +467,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-TEC-003",
+    sku: "MTVC-TEC-003",
   },
   {
     id: "front-facing-dash-camera",
@@ -479,7 +479,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: true,
-    sku: "ATS-TEC-004",
+    sku: "MTVC-TEC-004",
   },
 
   // Comfort Parent (Carpeted Ceiling with variations)
@@ -493,7 +493,7 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: null,
     variantName: null,
     published: false,
-    sku: "ATS-CMF-010",
+    sku: "MTVC-CMF-010",
   },
   {
     id: "carpeted-ceiling-lwb-led",
@@ -505,10 +505,10 @@ export const upgradeCatalog: UpgradeSeedEntry[] = [
     parentId: "carpeted-ceiling-parent",
     variantName: "LWB with LED cabin lights",
     published: true,
-    sku: "ATS-CMF-011",
+    sku: "MTVC-CMF-011",
     skuComponents: [
-      { sku: "ATS-CMF-CARPET-LWB", description: "Carpeted Ceiling (LWB)", quantity: 1 },
-      { sku: "ATS-LGT-CABIN-LED", description: "LED Cabin Light", quantity: 1 },
+      { sku: "MTVC-CMF-CARPET-LWB", description: "Carpeted Ceiling (LWB)", quantity: 1 },
+      { sku: "MTVC-LGT-CABIN-LED", description: "LED Cabin Light", quantity: 1 },
     ],
   },
 ];

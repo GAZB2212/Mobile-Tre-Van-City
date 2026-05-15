@@ -219,6 +219,41 @@ app.use((req, res, next) => {
       backfillSkus().catch(err => {
         console.error("Failed to backfill SKUs:", err);
       });
+      // Rename all ATS- prefixed SKUs to MTVC- (one-time idempotent migration)
+      Promise.all([
+        pool.query(`UPDATE kits SET sku = REPLACE(sku, 'ATS-', 'MTVC-') WHERE sku LIKE 'ATS-%'`),
+        pool.query(`UPDATE upgrades SET sku = REPLACE(sku, 'ATS-', 'MTVC-') WHERE sku LIKE 'ATS-%'`),
+        pool.query(`
+          UPDATE kits
+          SET sku_components = (
+            SELECT jsonb_agg(
+              CASE WHEN (elem->>'sku') LIKE 'ATS-%'
+              THEN jsonb_set(elem, '{sku}', to_jsonb(REPLACE(elem->>'sku', 'ATS-', 'MTVC-')))
+              ELSE elem END
+            )
+            FROM jsonb_array_elements(sku_components) AS elem
+          )
+          WHERE sku_components IS NOT NULL AND sku_components::text LIKE '%ATS-%'
+        `),
+        pool.query(`
+          UPDATE upgrades
+          SET sku_components = (
+            SELECT jsonb_agg(
+              CASE WHEN (elem->>'sku') LIKE 'ATS-%'
+              THEN jsonb_set(elem, '{sku}', to_jsonb(REPLACE(elem->>'sku', 'ATS-', 'MTVC-')))
+              ELSE elem END
+            )
+            FROM jsonb_array_elements(sku_components) AS elem
+          )
+          WHERE sku_components IS NOT NULL AND sku_components::text LIKE '%ATS-%'
+        `),
+      ])
+        .then(results => {
+          const [kits, upgrades, kitBom, upgradeBom] = results;
+          const total = (kits.rowCount ?? 0) + (upgrades.rowCount ?? 0) + (kitBom.rowCount ?? 0) + (upgradeBom.rowCount ?? 0);
+          if (total > 0) log(`✅ Renamed ATS- → MTVC- on ${total} row(s)`);
+        })
+        .catch((err: Error) => console.error("SKU prefix migration:", err.message));
       // Add is_admin column to analytics_sessions if it doesn't exist yet (production safe)
       pool.query("ALTER TABLE analytics_sessions ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE")
         .then(() => log("✅ Analytics admin filter column ready"))
