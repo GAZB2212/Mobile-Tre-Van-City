@@ -9,8 +9,6 @@ export default defineConfig({
     baseURL: "http://localhost:5000",
     headless: true,
     launchOptions: {
-      executablePath:
-        "/home/runner/.pw-browsers/chromium-1223/chrome-linux64/chrome",
       args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
     },
   },
