@@ -16,6 +16,35 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 type SkuComponent = { sku: string; description: string; quantity: number };
 
+// ── Client-side SKU generation from description ───────────────────────────────
+const STOP_WORDS = new Set(['the','a','an','of','for','and','or','with','to','in','on','at','by']);
+
+function generateSkuFromDescription(description: string, existingSkus: string[]): string {
+  const words = description.trim().split(/\s+/).filter(Boolean);
+  const meaningful = words.filter(w => !STOP_WORDS.has(w.toLowerCase()));
+
+  const parts = meaningful.map(word => {
+    const clean = word.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!clean) return '';
+    // Keep codes that contain digits (T1000, 48V, K1) or are short (LWB, LED)
+    if (/[0-9]/.test(clean) && clean.length <= 7) return clean;
+    if (clean.length <= 4) return clean;
+    // Longer plain words → first letter only
+    return clean[0];
+  }).filter(Boolean);
+
+  const abbrev = parts.join('').slice(0, 10) || 'PART';
+  const base = `MTVC-P-${abbrev}`;
+  const upper = (s: string) => s.toUpperCase();
+
+  if (!existingSkus.some(s => upper(s) === upper(base))) return base;
+  for (let n = 2; n <= 99; n++) {
+    const candidate = `${base}-${n}`;
+    if (!existingSkus.some(s => upper(s) === upper(candidate))) return candidate;
+  }
+  return base;
+}
+
 interface SkuCatalogueEntry {
   sku: string;
   description: string;
@@ -27,14 +56,10 @@ interface SkuCatalogueEntry {
 function BomEditor({
   components,
   onChange,
-  generatePartSku,
 }: {
   components: SkuComponent[];
   onChange: (rows: SkuComponent[]) => void;
-  generatePartSku?: () => Promise<string>;
 }) {
-  const [generatingIdx, setGeneratingIdx] = useState<number | null>(null);
-
   const addRow = () => {
     onChange([...components, { sku: "", description: "", quantity: 1 }]);
   };
@@ -58,16 +83,12 @@ function BomEditor({
     onChange(rows);
   };
 
-  const handleDescriptionBlur = async (i: number) => {
+  const handleDescriptionBlur = (i: number) => {
     const row = components[i];
-    if (!row || row.sku.trim() || !row.description.trim() || !generatePartSku) return;
-    setGeneratingIdx(i);
-    try {
-      const sku = await generatePartSku();
-      update(i, { sku });
-    } catch { /* ignore */ } finally {
-      setGeneratingIdx(null);
-    }
+    if (!row || row.sku.trim() || !row.description.trim()) return;
+    const existingSkus = components.map(r => r.sku).filter(Boolean);
+    const sku = generateSkuFromDescription(row.description, existingSkus);
+    update(i, { sku });
   };
 
   return (
@@ -83,11 +104,10 @@ function BomEditor({
       {components.map((row, idx) => (
         <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-center">
           <Input
-            placeholder={generatingIdx === idx ? "Generating…" : "SKU"}
+            placeholder="SKU"
             value={row.sku}
             onChange={e => update(idx, { sku: e.target.value })}
             className="text-sm h-8 font-mono"
-            disabled={generatingIdx === idx}
             data-testid={`input-skumgr-bom-sku-${idx}`}
           />
           <Input
@@ -150,7 +170,6 @@ function BomDialog({
   initialComponents,
   onSave,
   isSaving,
-  generatePartSku,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -158,7 +177,6 @@ function BomDialog({
   initialComponents: SkuComponent[];
   onSave: (rows: SkuComponent[]) => void;
   isSaving: boolean;
-  generatePartSku?: () => Promise<string>;
 }) {
   const [rows, setRows] = useState<SkuComponent[]>(initialComponents);
 
@@ -177,7 +195,7 @@ function BomDialog({
           Component parts sent to the AutoTradeOS warehouse when this item is pushed.
           Leave empty if this item ships as a single unit identified by its own SKU.
         </p>
-        <BomEditor components={rows} onChange={setRows} generatePartSku={generatePartSku} />
+        <BomEditor components={rows} onChange={setRows} />
         <div className="flex gap-2 justify-end pt-2 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-skumgr-cancel-bom">
             Cancel
@@ -420,12 +438,6 @@ export default function AdminSkuManager() {
     onError: () => toast({ title: "Failed to generate SKUs", variant: "destructive" }),
   });
 
-  const generatePartSku = async (): Promise<string> => {
-    const res = await apiRequest("POST", "/api/admin/sku/generate", { type: "part" });
-    const data: any = await res.json();
-    return data?.sku ?? "";
-  };
-
   const canEdit = user?.adminRole === "full";
 
   const openBom = (type: "kit" | "upgrade", item: any) =>
@@ -659,7 +671,6 @@ export default function AdminSkuManager() {
           initialComponents={bomDialog.components}
           onSave={saveBom}
           isSaving={updateKitBom.isPending || updateUpgradeBom.isPending}
-          generatePartSku={canEdit ? generatePartSku : undefined}
         />
       )}
     </>
