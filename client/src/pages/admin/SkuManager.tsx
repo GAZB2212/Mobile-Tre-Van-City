@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import type { Kit, Upgrade } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search, QrCode, RefreshCw, Download, Printer } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search, QrCode, RefreshCw, Download, Printer, Upload, XCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -463,6 +463,94 @@ function StockBadge({ qty }: { qty: number | null | undefined }) {
   );
 }
 
+// ── CSV import results dialog ─────────────────────────────────────────────────
+function ImportResultsDialog({
+  open,
+  onOpenChange,
+  result,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  result: { updated: number; skipped: number; errors: string[] } | null;
+}) {
+  if (!result) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Import complete</DialogTitle>
+          <DialogDescription>
+            Cost prices have been applied from your CSV file.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 pt-1">
+          <div className="flex gap-4">
+            <div className="flex-1 rounded-md border bg-muted/40 px-4 py-3 text-center">
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{result.updated}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Updated</p>
+            </div>
+            <div className="flex-1 rounded-md border bg-muted/40 px-4 py-3 text-center">
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{result.skipped}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Skipped</p>
+            </div>
+          </div>
+          {result.errors.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-1">
+              <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+                <XCircle className="w-3.5 h-3.5" />
+                {result.errors.length} issue{result.errors.length !== 1 ? "s" : ""} found
+              </p>
+              <ul className="space-y-0.5 pl-5 list-disc text-xs text-muted-foreground">
+                {result.errors.slice(0, 10).map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+                {result.errors.length > 10 && (
+                  <li className="italic">…and {result.errors.length - 10} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end pt-2">
+          <Button onClick={() => onOpenChange(false)} data-testid="button-import-results-close">
+            Done
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── CSV parsing helper ────────────────────────────────────────────────────────
+function parseCostPriceCsv(text: string): Array<{ identifier: string; costPrice: number }> | { error: string } {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return { error: "The file appears to be empty." };
+
+  const rows: Array<{ identifier: string; costPrice: number }> = [];
+
+  // Detect if the first line is a header (non-numeric in the second column)
+  let startLine = 0;
+  const firstCols = lines[0].split(",");
+  if (firstCols.length >= 2) {
+    const secondCol = firstCols[1].trim().replace(/^["']|["']$/g, "");
+    if (isNaN(parseFloat(secondCol))) {
+      startLine = 1; // skip header row
+    }
+  }
+
+  for (let i = startLine; i < lines.length; i++) {
+    const parts = lines[i].split(",");
+    if (parts.length < 2) continue;
+    const identifier = parts[0].trim().replace(/^["']|["']$/g, "");
+    const priceStr = parts[1].trim().replace(/^["']|["']$/g, "").replace(/^£/, "");
+    const priceFloat = parseFloat(priceStr);
+    if (!identifier || isNaN(priceFloat)) continue;
+    rows.push({ identifier, costPrice: Math.round(priceFloat * 100) });
+  }
+
+  if (rows.length === 0) return { error: "No valid rows found. Check the format: SKU or ID, cost price (£)." };
+  return rows;
+}
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminSkuManager() {
   const { user } = useAuth() as { user: User | undefined };
@@ -492,6 +580,41 @@ export default function AdminSkuManager() {
   } | null>(null);
 
   const [catalogueSearch, setCatalogueSearch] = useState("");
+
+  // ── CSV cost price import ──────────────────────────────────────────────────
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+  const [importResult, setImportResult] = useState<{
+    updated: number;
+    skipped: number;
+    errors: string[];
+  } | null>(null);
+  const [importResultOpen, setImportResultOpen] = useState(false);
+
+  const importMutation = useMutation({
+    mutationFn: (rows: Array<{ identifier: string; costPrice: number }>) =>
+      apiRequest("POST", "/api/admin/sku/import-cost-prices", rows),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/kits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] });
+      setImportResult({ updated: data.updated ?? 0, skipped: data.skipped ?? 0, errors: data.errors ?? [] });
+      setImportResultOpen(true);
+    },
+    onError: () => toast({ title: "Import failed", description: "Could not process the file. Please try again.", variant: "destructive" }),
+  });
+
+  const handleCsvFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const parsed = parseCostPriceCsv(text);
+      if ("error" in parsed) {
+        toast({ title: "Could not read CSV", description: parsed.error, variant: "destructive" });
+        return;
+      }
+      importMutation.mutate(parsed);
+    };
+    reader.readAsText(file);
+  };
 
   // ── Upgrade grouping ──────────────────────────────────────────────────────
   const variantChildren = allUpgrades.filter(u => !!(u as any).parentId);
@@ -677,6 +800,19 @@ export default function AdminSkuManager() {
 
   return (
     <>
+      <input
+        ref={csvFileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        data-testid="input-csv-cost-price"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) handleCsvFile(file);
+          e.target.value = "";
+        }}
+      />
+
       <AdminPageHeader
         title="SKU Manager"
         subtitle="Assign AutoTradeOS stock-keeping units and bills of materials to packs and upgrades"
@@ -705,6 +841,21 @@ export default function AdminSkuManager() {
                     : "Never synced"}
                 </span>
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => csvFileInputRef.current?.click()}
+                    disabled={importMutation.isPending}
+                    data-testid="button-import-cost-prices"
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    {importMutation.isPending ? "Importing…" : "Import cost prices (CSV)"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Upload a two-column CSV (SKU or ID, cost price £) to bulk-set cost prices</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -982,6 +1133,13 @@ export default function AdminSkuManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CSV import results */}
+      <ImportResultsDialog
+        open={importResultOpen}
+        onOpenChange={setImportResultOpen}
+        result={importResult}
+      />
     </>
   );
 }

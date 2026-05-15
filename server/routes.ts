@@ -1440,6 +1440,95 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  app.post("/api/admin/sku/import-cost-prices", isFullAdmin, async (req, res) => {
+    try {
+      const rows = req.body;
+      if (!Array.isArray(rows)) {
+        return res.status(400).json({ error: "Expected an array of rows" });
+      }
+
+      let updated = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      // Load all kits and upgrades once
+      const allKits = await pool.query(`SELECT id, sku FROM kits`);
+      const allUpgrades = await pool.query(`SELECT id, sku FROM upgrades`);
+
+      // Build lookup maps: sku (normalised) → id, and id → type
+      const kitBySku = new Map<string, string>();
+      const kitById = new Map<string, boolean>();
+      for (const row of allKits.rows) {
+        if (row.sku) kitBySku.set(row.sku.trim().toLowerCase(), row.id);
+        kitById.set(row.id, true);
+      }
+      const upgradeBySku = new Map<string, string>();
+      const upgradeById = new Map<string, boolean>();
+      for (const row of allUpgrades.rows) {
+        if (row.sku) upgradeBySku.set(row.sku.trim().toLowerCase(), row.id);
+        upgradeById.set(row.id, true);
+      }
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rawIdentifier = String(row.identifier ?? "").trim();
+        const rawPrice = row.costPrice;
+
+        if (!rawIdentifier) {
+          skipped++;
+          continue;
+        }
+
+        // costPrice is in pence (integer) — already converted by client
+        const pence = typeof rawPrice === "number" && isFinite(rawPrice) ? Math.round(rawPrice) : null;
+        if (pence === null) {
+          errors.push(`Row ${i + 1}: invalid cost price "${rawPrice}"`);
+          skipped++;
+          continue;
+        }
+
+        const identifierLower = rawIdentifier.toLowerCase();
+
+        // Try kit by SKU first, then by ID
+        let matched = false;
+        if (kitBySku.has(identifierLower)) {
+          const id = kitBySku.get(identifierLower)!;
+          await pool.query(`UPDATE kits SET cost_price = $1 WHERE id = $2`, [pence, id]);
+          updated++;
+          matched = true;
+        } else if (kitById.has(rawIdentifier)) {
+          await pool.query(`UPDATE kits SET cost_price = $1 WHERE id = $2`, [pence, rawIdentifier]);
+          updated++;
+          matched = true;
+        }
+
+        if (!matched) {
+          // Try upgrade by SKU first, then by ID
+          if (upgradeBySku.has(identifierLower)) {
+            const id = upgradeBySku.get(identifierLower)!;
+            await pool.query(`UPDATE upgrades SET cost_price = $1 WHERE id = $2`, [pence, id]);
+            updated++;
+            matched = true;
+          } else if (upgradeById.has(rawIdentifier)) {
+            await pool.query(`UPDATE upgrades SET cost_price = $1 WHERE id = $2`, [pence, rawIdentifier]);
+            updated++;
+            matched = true;
+          }
+        }
+
+        if (!matched) {
+          errors.push(`Row ${i + 1}: no kit or upgrade found for "${rawIdentifier}"`);
+          skipped++;
+        }
+      }
+
+      res.json({ ok: true, updated, skipped, errors });
+    } catch (err) {
+      console.error("Cost price import:", err);
+      res.status(500).json({ error: "Failed to import cost prices" });
+    }
+  });
+
   app.post("/api/admin/sku/backfill", isFullAdmin, async (req, res) => {
     try {
       let count = 0;
