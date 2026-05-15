@@ -572,25 +572,41 @@ export default function AdminQuotes() {
     const headers = [
       "Date", "Customer Name", "Email", "Phone", "Company", 
       "Van", "Equipment Package", "Upgrades", "Notes",
-      "Subtotal (£)", "VAT (£)", "Total (£)"
+      "Subtotal (£)", "VAT (£)", "Total (£)",
+      "Equipment cost (£)", "Gross margin (£)", "Gross margin (%)"
     ];
 
     const csvRows = [
       headers.join(","),
-      ...filteredQuotes.map((quote) => [
-        quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB") : "Unknown",
-        `"${quote.userName}"`,
-        `"${quote.email}"`,
-        `"${quote.phone}"`,
-        `"${quote.company || ""}"`,
-        `"${getVanName(quote.vanId)}"`,
-        `"${getKitName(quote.kitId)}"`,
-        `"${getUpgradeNames(quote.selectedUpgradeIds)}"`,
-        `"${quote.notes || ""}"`,
-        (quote.estSubtotal / PENCE_PER_POUND).toFixed(2),
-        (quote.estVAT / PENCE_PER_POUND).toFixed(2),
-        (quote.estTotal / PENCE_PER_POUND).toFixed(2)
-      ].join(","))
+      ...filteredQuotes.map((quote) => {
+        const upgradeIds = (quote.selectedUpgradeIds as string[]) ?? [];
+        const upgradeQuantities = (quote.selectedUpgrades as Record<string, number>) || {};
+        const equipCostPence = computeEquipCost(quote.kitId, upgradeIds, upgradeQuantities);
+        const equipCostPounds = equipCostPence != null ? equipCostPence / PENCE_PER_POUND : null;
+        const subtotalPounds = quote.estSubtotal / PENCE_PER_POUND;
+        const grossMargin = equipCostPounds != null ? subtotalPounds - equipCostPounds : null;
+        const grossMarginPct = equipCostPounds != null && subtotalPounds > 0
+          ? ((subtotalPounds - equipCostPounds) / subtotalPounds) * 100
+          : null;
+
+        return [
+          quote.createdAt ? new Date(quote.createdAt).toLocaleDateString("en-GB") : "Unknown",
+          `"${quote.userName}"`,
+          `"${quote.email}"`,
+          `"${quote.phone}"`,
+          `"${quote.company || ""}"`,
+          `"${getVanName(quote.vanId)}"`,
+          `"${getKitName(quote.kitId)}"`,
+          `"${getUpgradeNames(quote.selectedUpgradeIds)}"`,
+          `"${quote.notes || ""}"`,
+          subtotalPounds.toFixed(2),
+          (quote.estVAT / PENCE_PER_POUND).toFixed(2),
+          (quote.estTotal / PENCE_PER_POUND).toFixed(2),
+          equipCostPounds != null ? equipCostPounds.toFixed(2) : "",
+          grossMargin != null ? grossMargin.toFixed(2) : "",
+          grossMarginPct != null ? grossMarginPct.toFixed(1) : ""
+        ].join(",");
+      })
     ];
 
     // Create and trigger download
