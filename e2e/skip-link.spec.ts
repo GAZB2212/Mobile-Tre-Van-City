@@ -138,7 +138,91 @@ test.describe("Skip link — keyboard focus reaches #main-content", () => {
     expect(await isMainContentFocused(page)).toBe(true);
   });
 
-  // ── Test 6: Admin page ──────────────────────────────────────────────────────
+  // ── Test 6: About page ──────────────────────────────────────────────────
+  test("/about — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/about");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 7: Training page ────────────────────────────────────────────────
+  test("/training — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/training");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 8: How it works page ────────────────────────────────────────────
+  test("/how-it-works — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/how-it-works");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 9: Business opportunity page ───────────────────────────────────
+  test("/business-opportunity — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/business-opportunity");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 10: Finance page ────────────────────────────────────────────────
+  test("/finance — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/finance");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 11: Van conversions SEO hub ────────────────────────────────────
+  test("/van-conversions — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/van-conversions");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 12: Mobile tyre vans SEO hub ───────────────────────────────────
+  test("/mobile-tyre-vans — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    await page.goto("/mobile-tyre-vans");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 13: Admin page ──────────────────────────────────────────────────────
   test("/admin/quotes — Tab then Enter moves focus to #main-content", async ({
     page,
   }) => {
