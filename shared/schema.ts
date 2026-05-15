@@ -67,7 +67,7 @@ export const kitServiceTypes = ["car", "commercial", "hybrid"] as const;
 export type KitServiceType = typeof kitServiceTypes[number];
 
 // SKU component type — used for bill-of-materials on kits and upgrades
-export type SkuComponent = { sku: string; description: string; quantity: number };
+export type SkuComponent = { sku: string; description: string; quantity: number; costPrice?: number | null };
 
 export const kits = pgTable("kits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -76,6 +76,7 @@ export const kits = pgTable("kits", {
   includes: json("includes").$type<string[]>().notNull().default([]),
   powerKw: decimal("power_kw").notNull(),
   price: integer("price").notNull(), // in pence
+  costPrice: integer("cost_price"), // cost price in pence, ex-VAT (nullable)
   euroSixCompatible: boolean("euro_six_compatible").notNull().default(false), // True for Euro 6 compatible kits
   serviceType: json("service_type").$type<KitServiceType[]>().notNull().default(["car", "commercial", "hybrid"]), // array of applicable service types; all 3 = show to everyone
   images: json("images").$type<string[]>().notNull().default([]),
@@ -129,6 +130,7 @@ export const upgrades = pgTable("upgrades", {
   description: text("description").notNull(),
   detailedInfo: text("detailed_info"), // Extended information shown in "More Info" modal
   price: integer("price").notNull(), // in pence
+  costPrice: integer("cost_price"), // cost price in pence, ex-VAT (nullable)
   images: json("images").$type<string[]>().notNull().default([]),
   videoUrl: text("video_url"), // YouTube, Vimeo, or direct video URL
   showVideo: boolean("show_video").notNull().default(false), // Toggle to show/hide video in More Info modal

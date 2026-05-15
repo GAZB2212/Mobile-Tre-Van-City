@@ -3628,6 +3628,45 @@ export default function AdminQuoteDetail() {
                     </span>
                   </div>
                 )}
+                {(() => {
+                  const selectedKit = kits.find(k => k.id === selectedKitId);
+                  let equipCost = 0;
+                  let hasAnyCost = false;
+                  if (selectedKit) {
+                    const bom = selectedKit.skuComponents;
+                    const bomHasCost = Array.isArray(bom) && bom.some(c => c.costPrice != null);
+                    if (bomHasCost) {
+                      equipCost += (bom as Array<{ costPrice?: number | null; quantity: number }>).reduce((s, c) => s + (c.costPrice ?? 0) * c.quantity, 0);
+                      hasAnyCost = true;
+                    } else if (selectedKit.costPrice != null) {
+                      equipCost += selectedKit.costPrice;
+                      hasAnyCost = true;
+                    }
+                  }
+                  selectedUpgradeIds.forEach(uid => {
+                    const u = upgrades.find(x => x.id === uid);
+                    if (!u) return;
+                    const qty = selectedUpgrades[uid] || 1;
+                    const bom = u.skuComponents;
+                    const bomHasCost = Array.isArray(bom) && bom.some(c => c.costPrice != null);
+                    if (bomHasCost) {
+                      equipCost += (bom as Array<{ costPrice?: number | null; quantity: number }>).reduce((s, c) => s + (c.costPrice ?? 0) * c.quantity, 0) * qty;
+                      hasAnyCost = true;
+                    } else if (u.costPrice != null) {
+                      equipCost += u.costPrice * qty;
+                      hasAnyCost = true;
+                    }
+                  });
+                  if (!hasAnyCost) return null;
+                  return (
+                    <div className="flex justify-between text-sm" data-testid="div-equipment-cost">
+                      <span className="text-muted-foreground">Equipment cost (ex. VAT)</span>
+                      <span className="font-medium text-muted-foreground" data-testid="text-equipment-cost">
+                        £{(equipCost / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal (ex. VAT)</span>
                   <span className="font-medium">

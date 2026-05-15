@@ -696,6 +696,14 @@ app.use((req, res, next) => {
             .then(() => log("✅ SKU/BOM columns ready"))
             .catch((err: Error) => console.error("SKU/BOM migration:", err.message));
 
+          // ── Cost price columns for kits and upgrades ──────────────────────
+          Promise.all([
+            pool.query(`ALTER TABLE kits ADD COLUMN IF NOT EXISTS cost_price INTEGER`),
+            pool.query(`ALTER TABLE upgrades ADD COLUMN IF NOT EXISTS cost_price INTEGER`),
+          ])
+            .then(() => log("✅ Cost price columns ready"))
+            .catch((err: Error) => console.error("Cost price migration:", err.message));
+
           // ── Mutual exclusivity: Silent Compressor (48V) vs Commercial Power Inversion ──
           // These two upgrades serve overlapping electrical/power roles and must not
           // both be selectable. We assign them the same exclusive_group so the

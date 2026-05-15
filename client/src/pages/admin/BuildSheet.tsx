@@ -24,6 +24,7 @@ function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuCom
   if (!hasSku && !hasBom) return null;
 
   const copyableSkus = hasBom ? (skuComponents ?? []).map(c => c.sku).filter(Boolean) : [];
+  const hasCostData = false; // Cost prices not shown on build sheets — admin-only
 
   const handleCopyAllSkus = () => {
     if (copyableSkus.length === 0) return;
@@ -74,18 +75,33 @@ function SkuBomInfo({ sku, skuComponents, bomId }: { sku?: string | null; skuCom
                   <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-28 print:text-black">Part SKU</th>
                   <th className="text-left px-2 py-1.5 font-medium text-muted-foreground print:text-black">Description</th>
                   <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10 print:text-black">Qty</th>
+                  {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Unit cost</th>}
+                  {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Row total</th>}
                 </tr>
               </thead>
               <tbody>
-                {skuComponents.map((c, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="px-2 py-1.5 font-mono text-muted-foreground break-words min-w-0 print:text-black">{c.sku}</td>
-                    <td className="px-2 py-1.5 text-muted-foreground print:text-black">
-                      <span className="break-words min-w-0">{c.description}</span>
-                    </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums print:text-black">{c.quantity}</td>
-                  </tr>
-                ))}
+                {skuComponents.map((c, i) => {
+                  const rowTotal = hasCostData && c.costPrice != null ? c.costPrice * c.quantity : null;
+                  return (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="px-2 py-1.5 font-mono text-muted-foreground break-words min-w-0 print:text-black">{c.sku}</td>
+                      <td className="px-2 py-1.5 text-muted-foreground print:text-black">
+                        <span className="break-words min-w-0">{c.description}</span>
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular-nums print:text-black">{c.quantity}</td>
+                      {hasCostData && (
+                        <td className="px-2 py-1.5 text-right tabular-nums print:text-black">
+                          {c.costPrice != null ? `£${(c.costPrice / 100).toFixed(2)}` : "—"}
+                        </td>
+                      )}
+                      {hasCostData && (
+                        <td className="px-2 py-1.5 text-right tabular-nums font-medium print:text-black">
+                          {rowTotal != null ? `£${(rowTotal / 100).toFixed(2)}` : "—"}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

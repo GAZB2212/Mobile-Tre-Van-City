@@ -15,7 +15,7 @@ import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronR
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type SkuComponent = { sku: string; description: string; quantity: number };
+type SkuComponent = { sku: string; description: string; quantity: number; costPrice?: number | null };
 
 // ── Client-side SKU generation from description ───────────────────────────────
 const STOP_WORDS = new Set(['the','a','an','of','for','and','or','with','to','in','on','at','by']);
@@ -84,7 +84,7 @@ function BomEditor({
       .slice(0, 8);
   }, [activeRow, skuQuery, catalogue]);
 
-  const addRow = () => onChange([...components, { sku: "", description: "", quantity: 1 }]);
+  const addRow = () => onChange([...components, { sku: "", description: "", quantity: 1, costPrice: null }]);
   const remove = (i: number) => onChange(components.filter((_, idx) => idx !== i));
   const update = (i: number, patch: Partial<SkuComponent>) => {
     const rows = [...components];
@@ -132,15 +132,16 @@ function BomEditor({
   return (
     <div className="space-y-2">
       {components.length > 0 && (
-        <div className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 text-xs font-medium text-muted-foreground px-1">
+        <div className="grid grid-cols-[1fr_2fr_72px_88px_auto] gap-2 text-xs font-medium text-muted-foreground px-1">
           <span>Part SKU</span>
           <span>Description</span>
           <span>Qty</span>
+          <span>Cost (£ ex VAT)</span>
           <span />
         </div>
       )}
       {components.map((row, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_auto] gap-2 items-start">
+        <div key={idx} className="grid grid-cols-[1fr_2fr_72px_88px_auto] gap-2 items-start">
           <div className="relative">
             <Input
               placeholder="SKU or search…"
@@ -185,6 +186,19 @@ function BomEditor({
             onChange={e => update(idx, { quantity: parseInt(e.target.value) || 1 })}
             className="text-sm h-8"
             data-testid={`input-skumgr-bom-qty-${idx}`}
+          />
+          <Input
+            type="number"
+            min={0}
+            step={0.01}
+            placeholder="0.00"
+            value={row.costPrice != null ? (row.costPrice / 100).toFixed(2) : ""}
+            onChange={e => {
+              const val = parseFloat(e.target.value);
+              update(idx, { costPrice: isNaN(val) ? null : Math.round(val * 100) });
+            }}
+            className="text-sm h-8"
+            data-testid={`input-skumgr-bom-cost-${idx}`}
           />
           <div className="flex gap-1">
             <Tooltip>
@@ -319,26 +333,72 @@ function SkuBadge({ sku }: { sku?: string | null }) {
   );
 }
 
+// ── Inline cost price input — saves on blur / Enter ──────────────────────────
+function InlineCostPriceInput({
+  value,
+  onSave,
+  isSaving,
+}: {
+  value: number | null | undefined;
+  onSave: (pence: number | null) => void;
+  isSaving?: boolean;
+}) {
+  const [draft, setDraft] = useState(value != null ? (value / 100).toFixed(2) : "");
+
+  const commit = () => {
+    const parsed = parseFloat(draft);
+    const pence = isNaN(parsed) ? null : Math.round(parsed * 100);
+    const current = value != null ? value : null;
+    if (pence !== current) onSave(pence);
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-muted-foreground">£</span>
+      <Input
+        type="number"
+        min={0}
+        step={0.01}
+        placeholder="0.00"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+        className={`h-8 text-sm w-24 ${isSaving ? "opacity-60" : ""}`}
+        disabled={isSaving}
+        data-testid="input-skumgr-cost-price"
+      />
+      <span className="text-xs text-muted-foreground whitespace-nowrap">ex VAT</span>
+    </div>
+  );
+}
+
 // ── Row layout shared by kit rows and upgrade rows ────────────────────────────
 function ItemRow({
   name,
   subtitle,
   sku,
+  costPrice,
   bomCount,
   canEdit,
   onSkuSave,
+  onCostPriceSave,
   onBomClick,
   isSavingSku,
+  isSavingCostPrice,
   indented,
 }: {
   name: string;
   subtitle?: string;
   sku?: string | null;
+  costPrice?: number | null;
   bomCount: number;
   canEdit: boolean;
   onSkuSave: (v: string) => void;
+  onCostPriceSave: (pence: number | null) => void;
   onBomClick: () => void;
   isSavingSku?: boolean;
+  isSavingCostPrice?: boolean;
   indented?: boolean;
 }) {
   return (
@@ -356,6 +416,7 @@ function ItemRow({
       {canEdit && (
         <>
           <InlineSkuInput value={sku} onSave={onSkuSave} isSaving={isSavingSku} />
+          <InlineCostPriceInput value={costPrice} onSave={onCostPriceSave} isSaving={isSavingCostPrice} />
           <Button
             size="sm"
             variant="outline"
@@ -461,6 +522,13 @@ export default function AdminSkuManager() {
     onError: () => toast({ title: "Failed to save SKU", variant: "destructive" }),
   });
 
+  const updateKitCostPrice = useMutation({
+    mutationFn: ({ id, costPrice }: { id: string; costPrice: number | null }) =>
+      apiRequest("PATCH", `/api/admin/kits/${id}`, { costPrice }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/kits"] }),
+    onError: () => toast({ title: "Failed to save cost price", variant: "destructive" }),
+  });
+
   const updateKitBom = useMutation({
     mutationFn: ({ id, skuComponents }: { id: string; skuComponents: SkuComponent[] | null }) =>
       apiRequest("PATCH", `/api/admin/kits/${id}`, { skuComponents }),
@@ -477,6 +545,13 @@ export default function AdminSkuManager() {
       apiRequest("PATCH", `/api/admin/upgrades/${id}`, { sku: sku || null }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] }),
     onError: () => toast({ title: "Failed to save SKU", variant: "destructive" }),
+  });
+
+  const updateUpgradeCostPrice = useMutation({
+    mutationFn: ({ id, costPrice }: { id: string; costPrice: number | null }) =>
+      apiRequest("PATCH", `/api/admin/upgrades/${id}`, { costPrice }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] }),
+    onError: () => toast({ title: "Failed to save cost price", variant: "destructive" }),
   });
 
   const updateUpgradeBom = useMutation({
@@ -577,12 +652,15 @@ export default function AdminSkuManager() {
                     key={kit.id}
                     name={kit.name}
                     subtitle={bomCount(kit) > 0 ? `${bomCount(kit)} BOM component${bomCount(kit) !== 1 ? "s" : ""}` : undefined}
-                    sku={(kit as any).sku}
+                    sku={kit.sku}
+                    costPrice={kit.costPrice ?? null}
                     bomCount={bomCount(kit)}
                     canEdit={canEdit}
                     onSkuSave={sku => updateKitSku.mutate({ id: kit.id, sku })}
+                    onCostPriceSave={costPrice => updateKitCostPrice.mutate({ id: kit.id, costPrice })}
                     onBomClick={() => openBom("kit", kit)}
                     isSavingSku={updateKitSku.isPending}
+                    isSavingCostPrice={updateKitCostPrice.isPending}
                   />
                 ))}
               </div>
@@ -599,12 +677,15 @@ export default function AdminSkuManager() {
                     key={u.id}
                     name={u.name}
                     subtitle={bomCount(u) > 0 ? `${bomCount(u)} BOM component${bomCount(u) !== 1 ? "s" : ""}` : undefined}
-                    sku={(u as any).sku}
+                    sku={u.sku}
+                    costPrice={u.costPrice ?? null}
                     bomCount={bomCount(u)}
                     canEdit={canEdit}
                     onSkuSave={sku => updateUpgradeSku.mutate({ id: u.id, sku })}
+                    onCostPriceSave={costPrice => updateUpgradeCostPrice.mutate({ id: u.id, costPrice })}
                     onBomClick={() => openBom("upgrade", u)}
                     isSavingSku={updateUpgradeSku.isPending}
+                    isSavingCostPrice={updateUpgradeCostPrice.isPending}
                   />
                 ))}
 
@@ -628,12 +709,15 @@ export default function AdminSkuManager() {
                           key={v.id}
                           name={v.name}
                           subtitle={bomCount(v) > 0 ? `${bomCount(v)} BOM component${bomCount(v) !== 1 ? "s" : ""}` : undefined}
-                          sku={(v as any).sku}
+                          sku={v.sku}
+                          costPrice={v.costPrice ?? null}
                           bomCount={bomCount(v)}
                           canEdit={canEdit}
                           onSkuSave={sku => updateUpgradeSku.mutate({ id: v.id, sku })}
+                          onCostPriceSave={costPrice => updateUpgradeCostPrice.mutate({ id: v.id, costPrice })}
                           onBomClick={() => openBom("upgrade", v)}
                           isSavingSku={updateUpgradeSku.isPending}
+                          isSavingCostPrice={updateUpgradeCostPrice.isPending}
                           indented
                         />
                       ))}
