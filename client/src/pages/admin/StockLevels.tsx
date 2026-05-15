@@ -586,7 +586,7 @@ export default function StockLevels() {
 
       {/* Deduction history dialog */}
       <Dialog open={!!historyItem} onOpenChange={(v) => { if (!v) setHistoryItem(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Deduction history — {historyItem?.sku}</DialogTitle>
             <DialogDescription>Last 30 deductions for this SKU.</DialogDescription>
@@ -594,27 +594,49 @@ export default function StockLevels() {
           {historyData.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No deductions recorded yet.</p>
           ) : (
-            <div className="max-h-80 overflow-y-auto rounded-md border">
+            <div className="max-h-96 overflow-y-auto rounded-md border">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
-                    <th className="text-left px-3 py-2 font-medium text-muted-foreground hidden sm:table-cell">Build ref</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Quote</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground hidden sm:table-cell">Item</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {historyData.map((d: any) => (
-                    <tr key={d.id} className="border-b last:border-0">
-                      <td className="px-3 py-1.5 text-muted-foreground">
-                        {new Date(d.createdAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
-                      </td>
-                      <td className="px-3 py-1.5 text-right tabular-nums">−{d.quantityDeducted}</td>
-                      <td className="px-3 py-1.5 text-muted-foreground truncate hidden sm:table-cell">
-                        {d.buildSheetRef || d.quoteId || <span className="opacity-40">—</span>}
-                      </td>
-                    </tr>
-                  ))}
+                  {historyData.map((d: any) => {
+                    const itemRef = d.kitId
+                      ? `Kit ${d.kitId.slice(0, 8)}`
+                      : d.upgradeId
+                      ? `Upgrade ${d.upgradeId.slice(0, 8)}`
+                      : null;
+                    return (
+                      <tr key={d.id} className="border-b last:border-0">
+                        <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">
+                          {new Date(d.createdAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">−{d.quantityDeducted}</td>
+                        <td className="px-3 py-1.5">
+                          {d.quoteId ? (
+                            <a
+                              href={`/admin/quotes/${d.quoteId}`}
+                              className="text-blue-600 hover:underline font-mono"
+                              title={d.buildSheetRef || d.quoteId}
+                              data-testid={`link-history-quote-${d.id}`}
+                            >
+                              #{d.quoteId.slice(0, 8)}
+                            </a>
+                          ) : (
+                            <span className="opacity-40">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-1.5 text-muted-foreground hidden sm:table-cell">
+                          {itemRef ?? <span className="opacity-40">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

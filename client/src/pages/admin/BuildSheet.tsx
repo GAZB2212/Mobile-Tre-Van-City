@@ -220,17 +220,19 @@ export default function BuildSheet() {
   // ── QR scan-to-deduct ───────────────────────────────────────────────────────
   // scannerTarget carries the expected SKU, BOM row quantity, and the composite
   // row key (bomId:rowIndex) used to track pick state per-row, not per-SKU
-  const [scannerTarget, setScannerTarget] = useState<{ sku: string; qty: number; rowKey: string } | null>(null);
+  const [scannerTarget, setScannerTarget] = useState<{ sku: string; qty: number; rowKey: string; kitId?: string; upgradeId?: string } | null>(null);
   // pickedBomRows is keyed by composite "bomId:rowIndex" — the same physical SKU
   // appearing in two different BOM sections tracks independently
   const [pickedBomRows, setPickedBomRows] = useState<Set<string>>(new Set());
 
   const deductMutation = useMutation({
-    mutationFn: async ({ sku, qty, rowKey }: { sku: string; qty: number; rowKey: string }) => {
+    mutationFn: async ({ sku, qty, rowKey, kitId, upgradeId }: { sku: string; qty: number; rowKey: string; kitId?: string; upgradeId?: string }) => {
       const res = await apiRequest("POST", `/api/admin/stock/${encodeURIComponent(sku)}/deduct`, {
         quantity: qty,
         quoteId,
         buildSheetRef: `Build sheet — quote ${quoteId}`,
+        kitId,
+        upgradeId,
       });
       return { data: await res.json(), rowKey };
     },
@@ -248,10 +250,20 @@ export default function BuildSheet() {
     },
   });
 
+  // Parse kit/upgrade IDs from the composite rowKey (format: "bomId:rowIndex").
+  // bomId is one of: "kit-{id}", "upgrade-{id}", "kit-upgrade-{id}"
+  const parseItemIds = (rowKey: string): { kitId?: string; upgradeId?: string } => {
+    const bomId = rowKey.substring(0, rowKey.lastIndexOf(":"));
+    if (bomId.startsWith("kit-upgrade-")) return { upgradeId: bomId.slice("kit-upgrade-".length) };
+    if (bomId.startsWith("upgrade-")) return { upgradeId: bomId.slice("upgrade-".length) };
+    if (bomId.startsWith("kit-")) return { kitId: bomId.slice("kit-".length) };
+    return {};
+  };
+
   // Called when a workshop user clicks the scan button on a specific BOM row.
   // rowKey is the composite "bomId:rowIndex" that uniquely identifies this row.
   const handleScanRow = (expectedSku: string, qty: number, rowKey: string) => {
-    setScannerTarget({ sku: expectedSku, qty, rowKey });
+    setScannerTarget({ sku: expectedSku, qty, rowKey, ...parseItemIds(rowKey) });
   };
 
   const handleScanResult = (scannedSku: string) => {
@@ -265,7 +277,7 @@ export default function BuildSheet() {
       });
       return;
     }
-    deductMutation.mutate({ sku: scannedSku, qty: target?.qty ?? 1, rowKey: target?.rowKey ?? "" });
+    deductMutation.mutate({ sku: scannedSku, qty: target?.qty ?? 1, rowKey: target?.rowKey ?? "", kitId: target?.kitId, upgradeId: target?.upgradeId });
   };
 
   // Checked items stored in localStorage per quote

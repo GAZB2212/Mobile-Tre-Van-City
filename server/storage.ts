@@ -160,7 +160,7 @@ export interface IStorage {
   getStockItem(sku: string): Promise<StockItem | undefined>;
   upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem>;
   adjustStockDelta(sku: string, delta: number): Promise<StockItem>;
-  deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string): Promise<StockItem>;
+  deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string, kitId?: string, upgradeId?: string): Promise<StockItem>;
   getLowStockCount(): Promise<number>;
   getStockDeductionHistory(sku: string, limit?: number): Promise<StockDeduction[]>;
   syncStockFromBom(defaultThreshold?: number): Promise<number>;
@@ -1823,7 +1823,7 @@ export class MemStorage implements IStorage {
   async upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem> {
     return { sku, description: data.description ?? "", onHand: data.onHand ?? 0, lowStockThreshold: data.lowStockThreshold ?? null, updatedAt: new Date() };
   }
-  async deductStock(sku: string, quantity: number): Promise<StockItem> {
+  async deductStock(sku: string, quantity: number, _quoteId?: string, _buildSheetRef?: string, _scannedBySession?: string, _kitId?: string, _upgradeId?: string): Promise<StockItem> {
     return { sku, description: "", onHand: Math.max(0, 0 - quantity), lowStockThreshold: null, updatedAt: new Date() };
   }
   async getLowStockCount(): Promise<number> { return 0; }
@@ -2988,7 +2988,7 @@ export class DbStorage implements IStorage {
     return rows[0];
   }
 
-  async deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string): Promise<StockItem> {
+  async deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string, kitId?: string, upgradeId?: string): Promise<StockItem> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -3004,9 +3004,9 @@ export class DbStorage implements IStorage {
         [sku, quantity]
       );
       await client.query(
-        `INSERT INTO stock_deductions (sku, quantity_deducted, quote_id, build_sheet_ref, scanned_by_session, created_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())`,
-        [sku, quantity, quoteId ?? null, buildSheetRef ?? "", scannedBySession ?? null]
+        `INSERT INTO stock_deductions (sku, quantity_deducted, quote_id, build_sheet_ref, scanned_by_session, kit_id, upgrade_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+        [sku, quantity, quoteId ?? null, buildSheetRef ?? "", scannedBySession ?? null, kitId ?? null, upgradeId ?? null]
       );
       await client.query('COMMIT');
       return rows[0];
@@ -3099,6 +3099,7 @@ export class DbStorage implements IStorage {
     const { rows } = await pool.query(
       `SELECT id, sku, quantity_deducted AS "quantityDeducted", quote_id AS "quoteId",
               build_sheet_ref AS "buildSheetRef", scanned_by_session AS "scannedBySession",
+              kit_id AS "kitId", upgrade_id AS "upgradeId",
               created_at AS "createdAt"
        FROM stock_deductions WHERE sku = $1 ORDER BY created_at DESC LIMIT $2`,
       [sku, limit]

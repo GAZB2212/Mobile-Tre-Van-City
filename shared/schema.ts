@@ -804,6 +804,8 @@ export const stockDeductions = pgTable("stock_deductions", {
   quoteId: varchar("quote_id").references(() => quotes.id),
   buildSheetRef: text("build_sheet_ref").notNull().default(""),
   scannedBySession: text("scanned_by_session"),
+  kitId: varchar("kit_id"),
+  upgradeId: varchar("upgrade_id"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_stock_deductions_sku").on(table.sku),

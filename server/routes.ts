@@ -9411,10 +9411,12 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   // POST deduct stock by scanning a QR code (basic admins — workshop staff)
   app.post("/api/admin/stock/:sku/deduct", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const { quantity = 1, quoteId, buildSheetRef } = req.body as {
+      const { quantity = 1, quoteId, buildSheetRef, kitId, upgradeId } = req.body as {
         quantity?: number;
         quoteId?: string;
         buildSheetRef?: string;
+        kitId?: string;
+        upgradeId?: string;
       };
       const qty = Math.max(1, Math.floor(Number(quantity) || 1));
       const sessionId = (req as any).sessionID ?? undefined;
@@ -9423,7 +9425,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         qty,
         quoteId,
         buildSheetRef,
-        sessionId
+        sessionId,
+        kitId,
+        upgradeId
       );
       res.json(item);
     } catch (err: any) {

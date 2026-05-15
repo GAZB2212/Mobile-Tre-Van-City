@@ -927,6 +927,10 @@ app.use((req, res, next) => {
         CREATE INDEX IF NOT EXISTS idx_stock_deductions_sku ON stock_deductions (sku);
         CREATE INDEX IF NOT EXISTS idx_stock_deductions_quote ON stock_deductions (quote_id);
       `).then(() => log("✅ Stock tracking tables ready"))
+        .then(() => pool.query(`
+          ALTER TABLE stock_deductions ADD COLUMN IF NOT EXISTS kit_id VARCHAR;
+          ALTER TABLE stock_deductions ADD COLUMN IF NOT EXISTS upgrade_id VARCHAR;
+        `)).then(() => log("✅ stock_deductions audit columns ready"))
         .catch((err: Error) => console.error("Stock tables migration:", err.message));
 
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
