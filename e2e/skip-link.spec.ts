@@ -63,11 +63,20 @@ async function isMainContentFocused(page: Page): Promise<boolean> {
 
 test.describe("Skip link — keyboard focus reaches #main-content", () => {
   /**
+   * Slugs resolved once before the suite runs.  Each is set to the first
+   * published record returned by the public API, or left as an empty string
+   * when the database has no matching records (the individual tests skip).
+   */
+  let vanSlug = "";
+  let blogSlug = "";
+
+  /**
    * Create the finance test user once before any test runs. The dev-only
    * endpoint is idempotent — it updates the user if the username already exists.
+   * Also resolves the van and blog slugs used by the detail-page tests.
    */
   test.beforeAll(async ({ request }) => {
-    const res = await request.post("/api/dev/create-test-user", {
+    const financeRes = await request.post("/api/dev/create-test-user", {
       data: {
         username: FINANCE_USERNAME,
         password: FINANCE_PASSWORD,
@@ -75,9 +84,25 @@ test.describe("Skip link — keyboard focus reaches #main-content", () => {
       },
     });
     expect(
-      res.ok(),
-      `Could not create finance test user: ${res.status()} ${await res.text()}`
+      financeRes.ok(),
+      `Could not create finance test user: ${financeRes.status()} ${await financeRes.text()}`
     ).toBe(true);
+
+    // Resolve the first published van slug.
+    const vansRes = await request.get("/api/vans");
+    if (vansRes.ok()) {
+      const vans = await vansRes.json();
+      const first = Array.isArray(vans) && vans.find((v: { slug?: string }) => v.slug);
+      if (first) vanSlug = first.slug as string;
+    }
+
+    // Resolve the first published blog post slug.
+    const blogRes = await request.get("/api/blog-posts");
+    if (blogRes.ok()) {
+      const posts = await blogRes.json();
+      const first = Array.isArray(posts) && posts.find((p: { slug?: string }) => p.slug);
+      if (first) blogSlug = first.slug as string;
+    }
   });
 
   // ── Test 1: Public home page ────────────────────────────────────────────────
@@ -249,6 +274,40 @@ test.describe("Skip link — keyboard focus reaches #main-content", () => {
     await loginAndStoreToken(page, FINANCE_USERNAME, FINANCE_PASSWORD);
 
     await page.goto("/finance-portal");
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 8: Van detail page ─────────────────────────────────────────────────
+  test("/stock/:slug — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    if (!vanSlug) {
+      test.skip(true, "No published van found in the database — skipping");
+      return;
+    }
+
+    await page.goto(`/stock/${vanSlug}`);
+    await page.waitForLoadState("networkidle");
+
+    await tabToSkipLinkAndActivate(page);
+
+    expect(await isMainContentFocused(page)).toBe(true);
+  });
+
+  // ── Test 9: Blog post detail page ───────────────────────────────────────────
+  test("/blog/:slug — Tab then Enter moves focus to #main-content", async ({
+    page,
+  }) => {
+    if (!blogSlug) {
+      test.skip(true, "No published blog post found in the database — skipping");
+      return;
+    }
+
+    await page.goto(`/blog/${blogSlug}`);
     await page.waitForLoadState("networkidle");
 
     await tabToSkipLinkAndActivate(page);
