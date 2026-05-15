@@ -29,6 +29,7 @@ import {
   RefreshCw,
   ListChecks,
   X,
+  Sparkles,
 } from "lucide-react";
 import { QrScannerModal } from "@/components/QrScannerModal";
 import { useLocation } from "wouter";
@@ -173,6 +174,9 @@ export default function StockLevels() {
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncThreshold, setSyncThreshold] = useState("2");
+  const [newlyImportedSkus, setNewlyImportedSkus] = useState<Set<string>>(new Set());
+  const [showNewOnly, setShowNewOnly] = useState(false);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Bulk threshold edit state
   const [bulkEditMode, setBulkEditMode] = useState(false);
@@ -219,16 +223,28 @@ export default function StockLevels() {
   const syncMutation = useMutation({
     mutationFn: async (defaultThreshold: number) => {
       const res = await apiRequest("POST", "/api/admin/stock/sync-from-bom", { defaultThreshold });
-      return res.json() as Promise<{ synced: number }>;
+      return res.json() as Promise<{ synced: number; newSkus: string[] }>;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
       setSyncDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/sync-from-bom/preview"] });
+
+      if (data.synced > 0 && data.newSkus?.length) {
+        const skuSet = new Set(data.newSkus);
+        setNewlyImportedSkus(skuSet);
+        setShowNewOnly(true);
+        if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+        highlightTimeoutRef.current = setTimeout(() => {
+          setNewlyImportedSkus(new Set());
+          setShowNewOnly(false);
+        }, 5 * 60 * 1000);
+      }
+
       toast({
         title: data.synced > 0 ? `${data.synced} new SKU${data.synced !== 1 ? "s" : ""} imported` : "Stock already up to date",
-        description: data.synced > 0 ? "New BOM components added at 0 on-hand." : "All BOM SKUs already have stock records.",
+        description: data.synced > 0 ? "New BOM components added at 0 on-hand. Showing new items only." : "All BOM SKUs already have stock records.",
       });
     },
     onError: (err: any) => toast({ title: "Sync failed", description: err.message, variant: "destructive" }),
@@ -253,10 +269,14 @@ export default function StockLevels() {
   });
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return items;
+    let list = items;
+    if (showNewOnly && newlyImportedSkus.size > 0) {
+      list = list.filter(i => newlyImportedSkus.has(i.sku));
+    }
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return items.filter(i => i.sku.toLowerCase().includes(q) || i.description.toLowerCase().includes(q));
-  }, [items, search]);
+    return list.filter(i => i.sku.toLowerCase().includes(q) || i.description.toLowerCase().includes(q));
+  }, [items, search, showNewOnly, newlyImportedSkus]);
 
   const lowCount = items.filter(i => i.lowStockThreshold != null && i.onHand <= i.lowStockThreshold).length;
 
@@ -425,7 +445,7 @@ export default function StockLevels() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
@@ -436,6 +456,17 @@ export default function StockLevels() {
               data-testid="input-stock-search"
             />
           </div>
+          {newlyImportedSkus.size > 0 && (
+            <Button
+              size="sm"
+              variant={showNewOnly ? "default" : "outline"}
+              onClick={() => setShowNewOnly(v => !v)}
+              data-testid="button-show-new-only"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+              {showNewOnly ? `Showing ${newlyImportedSkus.size} new` : `Show new (${newlyImportedSkus.size})`}
+            </Button>
+          )}
           <Badge variant="outline" className="no-default-active-elevate">{items.length} items</Badge>
         </div>
 
@@ -483,16 +514,22 @@ export default function StockLevels() {
                   </thead>
                   <tbody>
                     {filtered.map((item, idx) => {
+                      const isNew = newlyImportedSkus.has(item.sku);
                       const draftValue = bulkDrafts[item.sku] ?? "";
                       const draftNumeric = draftValue.trim() === "" ? null : Number(draftValue);
                       const isDirty = bulkEditMode && draftNumeric !== (item.lowStockThreshold ?? null);
                       return (
                         <tr
                           key={item.sku}
-                          className={`border-b last:border-0 transition-colors ${isDirty ? "bg-blue-500/5" : "hover:bg-muted/30"}`}
+                          className={`border-b last:border-0 transition-colors ${isDirty ? "bg-blue-500/5" : isNew ? "bg-emerald-500/10 hover:bg-emerald-500/15" : "hover:bg-muted/30"}`}
                           data-testid={`row-stock-${item.sku}`}
                         >
-                          <td className="px-3 py-2 font-mono text-xs">{item.sku}</td>
+                          <td className="px-3 py-2 font-mono text-xs">
+                            <span className="flex items-center gap-1.5">
+                              {isNew && <Sparkles className="w-3 h-3 text-emerald-500 shrink-0" aria-label="Newly imported" />}
+                              {item.sku}
+                            </span>
+                          </td>
                           <td className="px-3 py-2 text-muted-foreground max-w-xs truncate">{item.description || <span className="italic opacity-50">no description</span>}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold">{item.onHand}</td>
                           <td className="px-3 py-2 text-right tabular-nums text-muted-foreground hidden sm:table-cell">

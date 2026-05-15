@@ -163,7 +163,7 @@ export interface IStorage {
   deductStock(sku: string, quantity: number, quoteId?: string, buildSheetRef?: string, scannedBySession?: string, kitId?: string, upgradeId?: string): Promise<StockItem>;
   getLowStockCount(): Promise<number>;
   getStockDeductionHistory(sku: string, limit?: number): Promise<StockDeduction[]>;
-  syncStockFromBom(defaultThreshold?: number): Promise<number>;
+  syncStockFromBom(defaultThreshold?: number): Promise<{ synced: number; newSkus: string[] }>;
   previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }>;
 }
 
@@ -1816,7 +1816,7 @@ export class MemStorage implements IStorage {
   async deleteStaffPhone(_id: string): Promise<boolean> { return false; }
 
   async adjustStockDelta(_sku: string, _delta: number): Promise<StockItem> { return { sku: _sku, description: "", onHand: 0, lowStockThreshold: null, updatedAt: new Date() }; }
-  async syncStockFromBom(_defaultThreshold?: number): Promise<number> { return 0; }
+  async syncStockFromBom(_defaultThreshold?: number): Promise<{ synced: number; newSkus: string[] }> { return { synced: 0, newSkus: [] }; }
   async previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }> { return { totalBomSkus: 0, alreadyTracked: 0, newSkus: 0 }; }
   async getStockItems(): Promise<StockItem[]> { return []; }
   async getStockItem(_sku: string): Promise<StockItem | undefined> { return undefined; }
@@ -3057,7 +3057,7 @@ export class DbStorage implements IStorage {
     return { totalBomSkus, alreadyTracked, newSkus: totalBomSkus - alreadyTracked };
   }
 
-  async syncStockFromBom(defaultThreshold: number = 2): Promise<number> {
+  async syncStockFromBom(defaultThreshold: number = 2): Promise<{ synced: number; newSkus: string[] }> {
     const { rows: kitRows } = await pool.query(
       `SELECT sku_components FROM kits WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
     );
@@ -3075,16 +3075,16 @@ export class DbStorage implements IStorage {
         skuDescMap.set(s, c.description ?? "");
       }
     }
-    let synced = 0;
+    const newSkus: string[] = [];
     for (const [sku, desc] of skuDescMap) {
       const result = await pool.query(
         `INSERT INTO stock_items (sku, description, on_hand, low_stock_threshold, updated_at)
          VALUES ($1, $2, 0, $3, NOW()) ON CONFLICT (sku) DO NOTHING`,
         [sku, desc, defaultThreshold]
       );
-      if (result.rowCount && result.rowCount > 0) synced++;
+      if (result.rowCount && result.rowCount > 0) newSkus.push(sku);
     }
-    return synced;
+    return { synced: newSkus.length, newSkus };
   }
 
   async getLowStockCount(): Promise<number> {
