@@ -9455,6 +9455,17 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // GET BOM sync history log
+  app.get("/api/admin/stock/bom-sync-history", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit ?? "20"), 10) || 20));
+      const history = await storage.getBomSyncHistory(limit);
+      res.json(history);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // GET preview of how many new SKUs a BOM sync would import
   app.get("/api/admin/stock/sync-from-bom/preview", isAuthenticated, isFullAdmin, async (_req, res) => {
     try {

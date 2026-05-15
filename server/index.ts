@@ -933,6 +933,17 @@ app.use((req, res, next) => {
         `)).then(() => log("✅ stock_deductions audit columns ready"))
         .catch((err: Error) => console.error("Stock tables migration:", err.message));
 
+      // BOM sync history log table — capped to most recent 50 entries via trigger
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS bom_sync_log (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          synced_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          skus_imported INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_bom_sync_log_synced_at ON bom_sync_log (synced_at DESC);
+      `).then(() => log("✅ BOM sync log table ready"))
+        .catch((err: Error) => console.error("BOM sync log migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.

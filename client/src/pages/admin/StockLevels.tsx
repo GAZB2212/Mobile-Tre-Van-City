@@ -30,9 +30,16 @@ import {
   ListChecks,
   X,
   Sparkles,
+  ClipboardList,
 } from "lucide-react";
 import { QrScannerModal } from "@/components/QrScannerModal";
 import { useLocation } from "wouter";
+
+interface BomSyncEntry {
+  id: string;
+  syncedAt: string;
+  skusImported: number;
+}
 
 function StockBadge({ item }: { item: StockItem }) {
   const isLow = item.lowStockThreshold != null && item.onHand <= item.lowStockThreshold;
@@ -177,6 +184,7 @@ export default function StockLevels() {
   const [newlyImportedSkus, setNewlyImportedSkus] = useState<Set<string>>(new Set());
   const [showNewOnly, setShowNewOnly] = useState(false);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [syncHistoryOpen, setSyncHistoryOpen] = useState(false);
 
   // Bulk threshold edit state
   const [bulkEditMode, setBulkEditMode] = useState(false);
@@ -201,6 +209,13 @@ export default function StockLevels() {
     queryKey: ["/api/admin/stock/sync-from-bom/preview"],
     enabled: isFullAdmin,
   });
+
+  const { data: bomSyncHistory = [] } = useQuery<BomSyncEntry[]>({
+    queryKey: ["/api/admin/stock/bom-sync-history"],
+    enabled: isFullAdmin,
+  });
+
+  const lastSync = bomSyncHistory[0] ?? null;
 
   const { data: historyData = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/stock", historyItem?.sku, "history"],
@@ -230,6 +245,7 @@ export default function StockLevels() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
       setSyncDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/sync-from-bom/preview"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/bom-sync-history"] });
 
       if (data.synced > 0 && data.newSkus?.length) {
         const skuSet = new Set(data.newSkus);
@@ -376,16 +392,35 @@ export default function StockLevels() {
             ) : (
               <>
                 <div className="flex flex-col items-end gap-0.5">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
-                    disabled={syncMutation.isPending}
-                    data-testid="button-sync-from-bom"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-                    Sync from BOM
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSyncHistoryOpen(true)}
+                      title="View sync history"
+                      data-testid="button-bom-sync-history"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
+                      disabled={syncMutation.isPending}
+                      data-testid="button-sync-from-bom"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+                      Sync from BOM
+                    </Button>
+                  </div>
+                  {lastSync && (
+                    <p className="text-xs text-muted-foreground text-right" data-testid="text-last-sync">
+                      Last sync{" "}
+                      {new Date(lastSync.syncedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                      {" · "}
+                      {lastSync.skusImported === 0 ? "no new SKUs" : `${lastSync.skusImported} SKU${lastSync.skusImported !== 1 ? "s" : ""} imported`}
+                    </p>
+                  )}
                   {bomPreview && (
                     <p
                       className="text-xs text-muted-foreground text-right"
@@ -680,6 +715,49 @@ export default function StockLevels() {
           )}
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setHistoryItem(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* BOM sync history dialog */}
+      <Dialog open={syncHistoryOpen} onOpenChange={setSyncHistoryOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>BOM sync history</DialogTitle>
+            <DialogDescription>The last {bomSyncHistory.length} sync runs. Capped to 50 entries total.</DialogDescription>
+          </DialogHeader>
+          {bomSyncHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No syncs have been run yet.</p>
+          ) : (
+            <div className="max-h-80 overflow-y-auto rounded-md border" data-testid="table-bom-sync-history">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">SKUs imported</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bomSyncHistory.map((entry) => (
+                    <tr key={entry.id} className="border-b last:border-0">
+                      <td className="px-3 py-1.5 text-muted-foreground">
+                        {new Date(entry.syncedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                      </td>
+                      <td className="px-3 py-1.5 text-right tabular-nums">
+                        {entry.skusImported === 0 ? (
+                          <span className="text-muted-foreground">none</span>
+                        ) : (
+                          <Badge variant="outline" className="no-default-active-elevate text-xs">+{entry.skusImported}</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSyncHistoryOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

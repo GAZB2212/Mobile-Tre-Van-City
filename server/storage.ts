@@ -165,6 +165,8 @@ export interface IStorage {
   getStockDeductionHistory(sku: string, limit?: number): Promise<StockDeduction[]>;
   syncStockFromBom(defaultThreshold?: number): Promise<{ synced: number; newSkus: string[] }>;
   previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }>;
+  logBomSync(skusImported: number): Promise<void>;
+  getBomSyncHistory(limit?: number): Promise<Array<{ id: string; syncedAt: Date; skusImported: number }>>;
 }
 
 export class MemStorage implements IStorage {
@@ -1818,6 +1820,8 @@ export class MemStorage implements IStorage {
   async adjustStockDelta(_sku: string, _delta: number): Promise<StockItem> { return { sku: _sku, description: "", onHand: 0, lowStockThreshold: null, updatedAt: new Date() }; }
   async syncStockFromBom(_defaultThreshold?: number): Promise<{ synced: number; newSkus: string[] }> { return { synced: 0, newSkus: [] }; }
   async previewSyncFromBom(): Promise<{ totalBomSkus: number; alreadyTracked: number; newSkus: number }> { return { totalBomSkus: 0, alreadyTracked: 0, newSkus: 0 }; }
+  async logBomSync(_skusImported: number): Promise<void> {}
+  async getBomSyncHistory(_limit?: number): Promise<Array<{ id: string; syncedAt: Date; skusImported: number }>> { return []; }
   async getStockItems(): Promise<StockItem[]> { return []; }
   async getStockItem(_sku: string): Promise<StockItem | undefined> { return undefined; }
   async upsertStockItem(sku: string, data: Partial<InsertStockItem>): Promise<StockItem> {
@@ -3084,7 +3088,30 @@ export class DbStorage implements IStorage {
       );
       if (result.rowCount && result.rowCount > 0) newSkus.push(sku);
     }
+    await this.logBomSync(newSkus.length);
     return { synced: newSkus.length, newSkus };
+  }
+
+  async logBomSync(skusImported: number): Promise<void> {
+    await pool.query(
+      `INSERT INTO bom_sync_log (skus_imported) VALUES ($1)`,
+      [skusImported]
+    );
+    // Keep only the 50 most recent entries
+    await pool.query(
+      `DELETE FROM bom_sync_log WHERE id NOT IN (
+         SELECT id FROM bom_sync_log ORDER BY synced_at DESC LIMIT 50
+       )`
+    );
+  }
+
+  async getBomSyncHistory(limit: number = 20): Promise<Array<{ id: string; syncedAt: Date; skusImported: number }>> {
+    const { rows } = await pool.query(
+      `SELECT id, synced_at AS "syncedAt", skus_imported AS "skusImported"
+       FROM bom_sync_log ORDER BY synced_at DESC LIMIT $1`,
+      [limit]
+    );
+    return rows;
   }
 
   async getLowStockCount(): Promise<number> {
