@@ -70,8 +70,17 @@ function BomEditor({
   const suggestions = useMemo(() => {
     if (activeRow === null || !skuQuery.trim()) return [];
     const q = skuQuery.toLowerCase();
+    const seen = new Set<string>();
     return catalogue
-      .filter(e => e.sku.toLowerCase().includes(q) || e.description.toLowerCase().includes(q))
+      .filter(e => {
+        const key = e.sku.toLowerCase();
+        if (seen.has(key)) return false;
+        if (e.sku.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)) {
+          seen.add(key);
+          return true;
+        }
+        return false;
+      })
       .slice(0, 8);
   }, [activeRow, skuQuery, catalogue]);
 
