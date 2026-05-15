@@ -9376,6 +9376,26 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // POST bulk-update low-stock thresholds for multiple SKUs at once
+  app.post("/api/admin/stock/bulk-thresholds", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { updates } = req.body as { updates: { sku: string; threshold: number | null }[] };
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: "updates array is required" });
+      }
+      const results = await Promise.all(
+        updates.map(({ sku, threshold }) =>
+          storage.upsertStockItem(sku, {
+            lowStockThreshold: threshold != null ? Math.max(0, Math.trunc(Number(threshold))) : null,
+          })
+        )
+      );
+      res.json({ updated: results.length });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // POST sync stock_items from all BOM component SKUs (creates missing rows at on_hand=0)
   app.post("/api/admin/stock/sync-from-bom", isAuthenticated, isFullAdmin, async (req, res) => {
     try {

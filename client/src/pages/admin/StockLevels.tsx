@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +27,8 @@ import {
   TrendingDown,
   History,
   RefreshCw,
+  ListChecks,
+  X,
 } from "lucide-react";
 import { QrScannerModal } from "@/components/QrScannerModal";
 import { useLocation } from "wouter";
@@ -172,6 +174,11 @@ export default function StockLevels() {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncThreshold, setSyncThreshold] = useState("2");
 
+  // Bulk threshold edit state
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  // Map of sku -> draft threshold string (only tracks edited rows)
+  const [bulkDrafts, setBulkDrafts] = useState<Record<string, string>>({});
+
   // Stock levels are a full-admin feature
   const isFullAdmin = user?.adminRole === "full";
 
@@ -227,6 +234,24 @@ export default function StockLevels() {
     onError: (err: any) => toast({ title: "Sync failed", description: err.message, variant: "destructive" }),
   });
 
+  const bulkSaveMutation = useMutation({
+    mutationFn: async (updates: { sku: string; threshold: number | null }[]) => {
+      const res = await apiRequest("POST", "/api/admin/stock/bulk-thresholds", { updates });
+      return res.json() as Promise<{ updated: number }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stock/low-stock-count"] });
+      setBulkEditMode(false);
+      setBulkDrafts({});
+      toast({
+        title: `${data.updated} threshold${data.updated !== 1 ? "s" : ""} saved`,
+        description: "Low stock thresholds updated successfully.",
+      });
+    },
+    onError: (err: any) => toast({ title: "Save failed", description: err.message, variant: "destructive" }),
+  });
+
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
     const q = search.toLowerCase();
@@ -245,6 +270,55 @@ export default function StockLevels() {
     deductMutation.mutate({ sku, quantity: 1 });
   };
 
+  const handleEnterBulkEdit = () => {
+    // Initialise drafts from current data so every cell has a value
+    const drafts: Record<string, string> = {};
+    for (const item of items) {
+      drafts[item.sku] = item.lowStockThreshold != null ? String(item.lowStockThreshold) : "";
+    }
+    setBulkDrafts(drafts);
+    setBulkEditMode(true);
+  };
+
+  const handleCancelBulkEdit = () => {
+    setBulkEditMode(false);
+    setBulkDrafts({});
+  };
+
+  const handleBulkSaveAll = () => {
+    // Only send rows where the draft value differs from the current stored value
+    const updates: { sku: string; threshold: number | null }[] = [];
+    for (const item of items) {
+      const draft = bulkDrafts[item.sku] ?? "";
+      const draftValue = draft.trim() === "" ? null : Number(draft);
+      const current = item.lowStockThreshold ?? null;
+      const changed = draftValue !== current;
+      if (changed) {
+        updates.push({ sku: item.sku, threshold: draftValue });
+      }
+    }
+    if (updates.length === 0) {
+      toast({ title: "No changes to save" });
+      setBulkEditMode(false);
+      setBulkDrafts({});
+      return;
+    }
+    bulkSaveMutation.mutate(updates);
+  };
+
+  // Count pending changes for the save button label
+  const pendingChanges = useMemo(() => {
+    if (!bulkEditMode) return 0;
+    let count = 0;
+    for (const item of items) {
+      const draft = bulkDrafts[item.sku] ?? "";
+      const draftValue = draft.trim() === "" ? null : Number(draft);
+      const current = item.lowStockThreshold ?? null;
+      if (draftValue !== current) count++;
+    }
+    return count;
+  }, [bulkEditMode, bulkDrafts, items]);
+
   if (!isFullAdmin && user) return null;
 
   return (
@@ -254,40 +328,79 @@ export default function StockLevels() {
         description="Track on-hand quantities for BOM component parts"
         actions={
           <div className="flex gap-2 flex-wrap">
-            <div className="flex flex-col items-end gap-0.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
-                disabled={syncMutation.isPending}
-                data-testid="button-sync-from-bom"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-                Sync from BOM
-              </Button>
-              {bomPreview && (
-                <p
-                  className="text-xs text-muted-foreground text-right"
-                  data-testid="text-bom-preview"
+            {bulkEditMode ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelBulkEdit}
+                  disabled={bulkSaveMutation.isPending}
+                  data-testid="button-cancel-bulk-edit"
                 >
-                  {bomPreview.totalBomSkus === 0 ? (
-                    <>No BOM components defined yet</>
-                  ) : bomPreview.newSkus > 0 ? (
-                    <>{bomPreview.newSkus} new &middot; {bomPreview.alreadyTracked} tracked &middot; {bomPreview.totalBomSkus} total in BOM</>
-                  ) : (
-                    <>All {bomPreview.totalBomSkus} BOM SKU{bomPreview.totalBomSkus !== 1 ? "s" : ""} tracked</>
+                  <X className="w-3.5 h-3.5 mr-1.5" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkSaveAll}
+                  disabled={bulkSaveMutation.isPending}
+                  data-testid="button-save-all-thresholds"
+                >
+                  {bulkSaveMutation.isPending
+                    ? "Saving…"
+                    : pendingChanges > 0
+                      ? `Save ${pendingChanges} change${pendingChanges !== 1 ? "s" : ""}`
+                      : "Save all"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col items-end gap-0.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setSyncThreshold("2"); setSyncDialogOpen(true); }}
+                    disabled={syncMutation.isPending}
+                    data-testid="button-sync-from-bom"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+                    Sync from BOM
+                  </Button>
+                  {bomPreview && (
+                    <p
+                      className="text-xs text-muted-foreground text-right"
+                      data-testid="text-bom-preview"
+                    >
+                      {bomPreview.totalBomSkus === 0 ? (
+                        <>No BOM components defined yet</>
+                      ) : bomPreview.newSkus > 0 ? (
+                        <>{bomPreview.newSkus} new &middot; {bomPreview.alreadyTracked} tracked &middot; {bomPreview.totalBomSkus} total in BOM</>
+                      ) : (
+                        <>All {bomPreview.totalBomSkus} BOM SKU{bomPreview.totalBomSkus !== 1 ? "s" : ""} tracked</>
+                      )}
+                    </p>
                   )}
-                </p>
-              )}
-            </div>
-            <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)} data-testid="button-scan-stock">
-              <TrendingDown className="w-3.5 h-3.5 mr-1.5" />
-              Scan to deduct
-            </Button>
-            <Button size="sm" onClick={() => setEditItem("new")} data-testid="button-add-stock-item">
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Add item
-            </Button>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleEnterBulkEdit}
+                  disabled={items.length === 0}
+                  data-testid="button-edit-all-thresholds"
+                >
+                  <ListChecks className="w-3.5 h-3.5 mr-1.5" />
+                  Edit all thresholds
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setScannerOpen(true)} data-testid="button-scan-stock">
+                  <TrendingDown className="w-3.5 h-3.5 mr-1.5" />
+                  Scan to deduct
+                </Button>
+                <Button size="sm" onClick={() => setEditItem("new")} data-testid="button-add-stock-item">
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Add item
+                </Button>
+              </>
+            )}
           </div>
         }
       />
@@ -299,6 +412,15 @@ export default function StockLevels() {
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
             <p className="text-sm">
               <strong>{lowCount}</strong> part{lowCount !== 1 ? "s are" : " is"} at or below the low stock threshold.
+            </p>
+          </div>
+        )}
+
+        {bulkEditMode && (
+          <div className="flex items-center gap-3 rounded-md border border-blue-500/40 bg-blue-500/10 px-4 py-3">
+            <ListChecks className="w-4 h-4 text-blue-500 shrink-0" />
+            <p className="text-sm">
+              <strong>Threshold edit mode</strong> — edit values inline below, then click <strong>Save</strong> to apply only changed rows. Tab through cells to move quickly.
             </p>
           </div>
         )}
@@ -351,42 +473,95 @@ export default function StockLevels() {
                       <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
                       <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
                       <th className="text-right px-3 py-2 font-medium text-muted-foreground w-24">On hand</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground w-24 hidden sm:table-cell">Threshold</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground w-24 hidden sm:table-cell">
+                        Threshold{bulkEditMode && <span className="text-blue-500 font-normal"> (editing)</span>}
+                      </th>
                       <th className="text-left px-3 py-2 font-medium text-muted-foreground w-28">Status</th>
                       <th className="text-left px-3 py-2 font-medium text-muted-foreground w-36 hidden lg:table-cell">Last updated</th>
                       <th className="px-3 py-2 w-20" />
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((item) => (
-                      <tr key={item.sku} className="border-b last:border-0 hover:bg-muted/30 transition-colors" data-testid={`row-stock-${item.sku}`}>
-                        <td className="px-3 py-2 font-mono text-xs">{item.sku}</td>
-                        <td className="px-3 py-2 text-muted-foreground max-w-xs truncate">{item.description || <span className="italic opacity-50">no description</span>}</td>
-                        <td className="px-3 py-2 text-right tabular-nums font-semibold">{item.onHand}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground hidden sm:table-cell">
-                          {item.lowStockThreshold != null ? item.lowStockThreshold : <span className="opacity-40">—</span>}
-                        </td>
-                        <td className="px-3 py-2"><StockBadge item={item} /></td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground hidden lg:table-cell">
-                          {item.updatedAt
-                            ? new Date(item.updatedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })
-                            : <span className="opacity-40">—</span>}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1 justify-end">
-                            <Button size="icon" variant="ghost" title="View history" onClick={() => setHistoryItem(item)} data-testid={`button-history-${item.sku}`}>
-                              <History className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" title="Edit" onClick={() => setEditItem(item)} data-testid={`button-edit-stock-${item.sku}`}>
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {filtered.map((item, idx) => {
+                      const draftValue = bulkDrafts[item.sku] ?? "";
+                      const draftNumeric = draftValue.trim() === "" ? null : Number(draftValue);
+                      const isDirty = bulkEditMode && draftNumeric !== (item.lowStockThreshold ?? null);
+                      return (
+                        <tr
+                          key={item.sku}
+                          className={`border-b last:border-0 transition-colors ${isDirty ? "bg-blue-500/5" : "hover:bg-muted/30"}`}
+                          data-testid={`row-stock-${item.sku}`}
+                        >
+                          <td className="px-3 py-2 font-mono text-xs">{item.sku}</td>
+                          <td className="px-3 py-2 text-muted-foreground max-w-xs truncate">{item.description || <span className="italic opacity-50">no description</span>}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{item.onHand}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground hidden sm:table-cell">
+                            {bulkEditMode ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={draftValue}
+                                onChange={e => setBulkDrafts(prev => ({ ...prev, [item.sku]: e.target.value }))}
+                                placeholder="—"
+                                className={`h-7 w-20 ml-auto text-right text-xs px-2 ${isDirty ? "border-blue-400 ring-1 ring-blue-400/40" : ""}`}
+                                data-testid={`input-bulk-threshold-${item.sku}`}
+                                tabIndex={idx + 1}
+                              />
+                            ) : (
+                              item.lowStockThreshold != null ? item.lowStockThreshold : <span className="opacity-40">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2"><StockBadge item={item} /></td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground hidden lg:table-cell">
+                            {item.updatedAt
+                              ? new Date(item.updatedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })
+                              : <span className="opacity-40">—</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            {!bulkEditMode && (
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button size="icon" variant="ghost" title="View history" onClick={() => setHistoryItem(item)} data-testid={`button-history-${item.sku}`}>
+                                  <History className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" title="Edit" onClick={() => setEditItem(item)} data-testid={`button-edit-stock-${item.sku}`}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+              {bulkEditMode && (
+                <div className="flex items-center justify-between mt-3 gap-3 flex-wrap">
+                  <p className="text-xs text-muted-foreground">
+                    {pendingChanges > 0
+                      ? `${pendingChanges} row${pendingChanges !== 1 ? "s" : ""} changed — leave a cell blank to remove the threshold.`
+                      : "No changes yet. Edit the threshold column above."}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={handleCancelBulkEdit} disabled={bulkSaveMutation.isPending} data-testid="button-cancel-bulk-edit-footer">
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleBulkSaveAll}
+                      disabled={bulkSaveMutation.isPending}
+                      data-testid="button-save-all-thresholds-footer"
+                    >
+                      {bulkSaveMutation.isPending
+                        ? "Saving…"
+                        : pendingChanges > 0
+                          ? `Save ${pendingChanges} change${pendingChanges !== 1 ? "s" : ""}`
+                          : "Save all"}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
