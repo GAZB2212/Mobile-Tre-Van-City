@@ -9127,6 +9127,61 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
   // ── End Twilio / Click-to-Call ─────────────────────────────────────────────
 
+  // ── Dev-only test helpers (never available in production) ─────────────────
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.REPLIT_DEPLOYMENT !== '1' &&
+    process.env.E2E_TEST_MODE === '1'
+  ) {
+    /**
+     * POST /api/dev/create-test-user
+     * Creates (or resets) a user with a known password for e2e tests.
+     * Body: { username, password, adminRole }
+     * Only available in development with E2E_TEST_MODE=1 — never exposed in production.
+     */
+    app.post('/api/dev/create-test-user', async (req, res) => {
+      try {
+        const { username, password, adminRole = 'none', email } = req.body as {
+          username: string;
+          password: string;
+          adminRole?: string;
+          email?: string;
+        };
+        if (!username || !password) {
+          return res.status(400).json({ message: 'username and password are required' });
+        }
+        const passwordHash = await bcrypt.hash(password, 10);
+        const resolvedEmail = email || `${username}@e2e.test.local`;
+
+        const existing = await storage.getUserByUsername(username);
+        if (existing) {
+          await storage.updateUser(existing.id, {
+            passwordHash,
+            adminRole: adminRole as 'none' | 'basic' | 'full' | 'finance',
+            isAdmin: adminRole === 'full',
+          });
+          return res.json({ ok: true, action: 'updated', id: existing.id });
+        }
+
+        const newUser = await storage.createUser({
+          username,
+          email: resolvedEmail,
+          passwordHash,
+          adminRole: adminRole as 'none' | 'basic' | 'full' | 'finance',
+          isAdmin: adminRole === 'full',
+          firstName: null,
+          lastName: null,
+          profileImageUrl: null,
+        });
+        res.json({ ok: true, action: 'created', id: newUser.id });
+      } catch (err) {
+        console.error('Dev create-test-user error:', err);
+        res.status(500).json({ message: 'Failed to create test user' });
+      }
+    });
+  }
+  // ── End dev-only test helpers ──────────────────────────────────────────────
+
   const httpServer = createServer(app);
 
   return httpServer;
