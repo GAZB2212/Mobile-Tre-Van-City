@@ -63,6 +63,7 @@ import {
   Link2,
   Search,
   History,
+  PhoneCall,
 } from "lucide-react";
 import {
   Dialog,
@@ -3109,34 +3110,57 @@ export default function AdminQuoteDetail() {
                               const idx = event.noteIndex ?? 0;
                               const isCustomerEntry = note.author === 'Customer';
                               const isApprovedEntry = isCustomerEntry && note.text.toLowerCase().includes('confirmed');
-                              const isEditing = !isCustomerEntry && editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
+                              const isCallNote = !isCustomerEntry && note.text.toLowerCase().includes("call initiated");
+                              const isEditing = !isCustomerEntry && !isCallNote && editingNote?.noteType === 'admin' && editingNote?.timestamp === note.timestamp;
+
+                              // Parse staff label and customer number from call note text
+                              // New format: "Click-to-call initiated — staff: +447... (Label) → customer: +447..."
+                              // Legacy format: "Call initiated to +447..."
+                              let callStaffDisplay = "";
+                              let callCustomerNumber = "";
+                              if (isCallNote) {
+                                const staffMatch = note.text.match(/staff:\s*(\+[\d]+)\s*\(([^)]+)\)/i);
+                                const customerMatch = note.text.match(/customer:\s*(\+[\d]+)/i);
+                                const legacyToMatch = !customerMatch && note.text.match(/(?:initiated\s+to|call(?:ing)?\s+to|→)\s*(\+[\d]+)/i);
+                                if (staffMatch) callStaffDisplay = `${staffMatch[1]} (${staffMatch[2]})`;
+                                if (customerMatch) callCustomerNumber = customerMatch[1];
+                                else if (legacyToMatch) callCustomerNumber = legacyToMatch[1];
+                              }
+
                               return (
                                 <div key={i} className="relative flex gap-3">
                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 border ${
-                                    isCustomerEntry
-                                      ? isApprovedEntry
-                                        ? 'bg-accent/10 border-accent/20'
-                                        : 'bg-orange-500/10 border-orange-500/20'
-                                      : 'bg-muted border-border'
+                                    isCallNote
+                                      ? 'bg-blue-500/10 border-blue-500/20'
+                                      : isCustomerEntry
+                                        ? isApprovedEntry
+                                          ? 'bg-accent/10 border-accent/20'
+                                          : 'bg-orange-500/10 border-orange-500/20'
+                                        : 'bg-muted border-border'
                                   }`}>
-                                    {isCustomerEntry
-                                      ? isApprovedEntry
-                                        ? <CheckCircle className="w-3 h-3 text-accent" />
-                                        : <XCircle className="w-3 h-3 text-orange-500" />
-                                      : <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                                    {isCallNote
+                                      ? <PhoneCall className="w-3 h-3 text-blue-500" />
+                                      : isCustomerEntry
+                                        ? isApprovedEntry
+                                          ? <CheckCircle className="w-3 h-3 text-accent" />
+                                          : <XCircle className="w-3 h-3 text-orange-500" />
+                                        : <MessageSquare className="w-3 h-3 text-muted-foreground" />
                                     }
                                   </div>
                                   <div className="flex-1 min-w-0 pt-1">
                                     <div className="flex items-center justify-between gap-2 mb-1">
                                       <div className="flex items-center gap-1.5">
                                         <span className={`text-xs font-medium ${
-                                          isCustomerEntry ? (isApprovedEntry ? 'text-accent' : 'text-orange-500') : 'text-muted-foreground'
+                                          isCallNote ? 'text-blue-500' : isCustomerEntry ? (isApprovedEntry ? 'text-accent' : 'text-orange-500') : 'text-muted-foreground'
                                         }`}>
-                                          {note.author || 'Staff'}
+                                          {isCallNote ? 'Call' : (note.author || 'Staff')}
                                         </span>
                                         <span className="text-xs text-muted-foreground">· {fmtDate(event.ts)}</span>
+                                        {isCallNote && note.author && (
+                                          <span className="text-xs text-muted-foreground">· by {note.author}</span>
+                                        )}
                                       </div>
-                                      {!isCustomerEntry && !isEditing && (
+                                      {!isCustomerEntry && !isCallNote && !isEditing && (
                                         <div className="flex gap-1 shrink-0" style={{ visibility: 'visible' }}>
                                           <Button
                                             size="icon"
@@ -3163,7 +3187,23 @@ export default function AdminQuoteDetail() {
                                         </div>
                                       )}
                                     </div>
-                                    {isEditing ? (
+                                    {isCallNote ? (
+                                      <div className="text-sm space-y-0.5">
+                                        <p className="font-medium text-foreground">Call attempt</p>
+                                        {callStaffDisplay && (
+                                          <p className="text-xs text-muted-foreground">
+                                            <span className="font-medium">Staff:</span> {callStaffDisplay}
+                                          </p>
+                                        )}
+                                        {callCustomerNumber ? (
+                                          <p className="text-xs text-muted-foreground">
+                                            <span className="font-medium">Customer:</span> {callCustomerNumber}
+                                          </p>
+                                        ) : (
+                                          <p className="text-xs text-muted-foreground">{note.text}</p>
+                                        )}
+                                      </div>
+                                    ) : isEditing ? (
                                       <div className="space-y-2">
                                         <Textarea
                                           value={editingNote.text}

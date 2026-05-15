@@ -1092,15 +1092,52 @@ export default function AdminLeads() {
                         </p>
                         {crmNotes.length > 0 ? (
                           <div className="space-y-2 mb-3">
-                            {crmNotes.map((note, i) => (
-                              <div key={i} className="bg-muted rounded-md px-3 py-2">
-                                <p className="text-sm">{note.text}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {note.author && <span className="font-medium">{note.author} · </span>}
-                                  {formatNoteDate(note.timestamp)}
-                                </p>
-                              </div>
-                            ))}
+                            {crmNotes.map((note, i) => {
+                              // Broad detection: covers "Click-to-call initiated", "Call initiated to ...", and other legacy variants
+                              const isCallNote = note.text.toLowerCase().includes("call initiated");
+                              let callStaffDisplay = "";
+                              let callCustomerNumber = "";
+                              if (isCallNote) {
+                                // New format: "Click-to-call initiated — staff: +447... (Label) → customer: +447..."
+                                // Legacy format: "Call initiated to +447..."
+                                const staffMatch = note.text.match(/staff:\s*(\+[\d]+)\s*\(([^)]+)\)/i);
+                                const customerMatch = note.text.match(/customer:\s*(\+[\d]+)/i);
+                                const legacyToMatch = !customerMatch && note.text.match(/(?:initiated\s+to|call(?:ing)?\s+to|→)\s*(\+[\d]+)/i);
+                                if (staffMatch) callStaffDisplay = `${staffMatch[1]} (${staffMatch[2]})`;
+                                if (customerMatch) callCustomerNumber = customerMatch[1];
+                                else if (legacyToMatch) callCustomerNumber = legacyToMatch[1];
+                              }
+                              return (
+                                <div key={i} className={`rounded-md px-3 py-2 ${isCallNote ? 'bg-blue-500/5 border border-blue-500/20' : 'bg-muted'}`}>
+                                  {isCallNote ? (
+                                    <>
+                                      <p className="text-sm flex items-center gap-1.5 font-medium">
+                                        <PhoneCall className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                        <span className="text-blue-500">Call attempt</span>
+                                      </p>
+                                      {callStaffDisplay && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          <span className="font-medium">Staff:</span> {callStaffDisplay}
+                                        </p>
+                                      )}
+                                      {callCustomerNumber ? (
+                                        <p className="text-xs text-muted-foreground">
+                                          <span className="font-medium">Customer:</span> {callCustomerNumber}
+                                        </p>
+                                      ) : (
+                                        <p className="text-xs text-muted-foreground">{note.text}</p>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <p className="text-sm">{note.text}</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {note.author && <span className="font-medium">{note.author} · </span>}
+                                    {formatNoteDate(note.timestamp)}
+                                  </p>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground mb-3 italic">No notes yet.</p>
