@@ -889,6 +889,16 @@ app.use((req, res, next) => {
       `).then(() => log("✅ Staff phone numbers table ready"))
         .catch((err: Error) => console.error("Staff phone numbers migration:", err.message));
 
+      // SKU stock levels table (populated by AutoTradeOS webhook)
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS sku_stock_levels (
+          sku TEXT PRIMARY KEY,
+          stock_qty INTEGER NOT NULL DEFAULT 0,
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `).then(() => log("✅ SKU stock levels table ready"))
+        .catch((err: Error) => console.error("SKU stock levels migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.

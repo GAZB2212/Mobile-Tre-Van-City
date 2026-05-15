@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
 import type { Kit, Upgrade } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Wand2, Search, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -387,6 +387,7 @@ function ItemRow({
   isSavingSku,
   isSavingCostPrice,
   indented,
+  stockQty,
 }: {
   name: string;
   subtitle?: string;
@@ -400,6 +401,7 @@ function ItemRow({
   isSavingSku?: boolean;
   isSavingCostPrice?: boolean;
   indented?: boolean;
+  stockQty?: number | null;
 }) {
   return (
     <div className={`flex items-center gap-3 px-4 py-3 flex-wrap gap-y-2 ${indented ? "pl-10 border-t" : ""}`}>
@@ -412,6 +414,7 @@ function ItemRow({
           </p>
         )}
       </div>
+      <StockBadge qty={stockQty} />
       <SkuBadge sku={sku} />
       {canEdit && (
         <>
@@ -431,6 +434,34 @@ function ItemRow({
   );
 }
 
+// ── Stock level badge ─────────────────────────────────────────────────────────
+// qty === undefined  → no SKU on this item, render nothing
+// qty === null       → SKU exists but no stock data yet, render grey badge
+// qty === number     → actual stock level
+function StockBadge({ qty }: { qty: number | null | undefined }) {
+  if (qty === undefined) return null;
+  if (qty === null) return (
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground shrink-0">
+      Stock unknown
+    </span>
+  );
+  if (qty === 0) return (
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 shrink-0">
+      Out of stock
+    </span>
+  );
+  if (qty <= 3) return (
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 shrink-0">
+      Low: {qty}
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 shrink-0">
+      Stock: {qty}
+    </span>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminSkuManager() {
   const { user } = useAuth() as { user: User | undefined };
@@ -441,6 +472,15 @@ export default function AdminSkuManager() {
   });
   const { data: allUpgrades = [], isLoading: upgradesLoading } = useQuery<Upgrade[]>({
     queryKey: ["/api/admin/upgrades"],
+  });
+
+  const { data: stockLevels = {} } = useQuery<Record<string, { stockQty: number; updatedAt: string }>>({
+    queryKey: ["/api/admin/sku-stock"],
+    refetchInterval: 60_000,
+  });
+
+  const { data: siteSettings = {} } = useQuery<Record<string, string>>({
+    queryKey: ["/api/site-settings"],
   });
 
   const [bomDialog, setBomDialog] = useState<{
@@ -576,6 +616,24 @@ export default function AdminSkuManager() {
     onError: () => toast({ title: "Failed to generate SKUs", variant: "destructive" }),
   });
 
+  interface SkuSyncResponse {
+    ok: boolean;
+    items_sent: number;
+    synced_at: string;
+  }
+
+  const syncCatalogueMutation = useMutation<SkuSyncResponse, Error>({
+    mutationFn: () => apiRequest("POST", "/api/admin/sku-sync/push", {}).then(r => r.json() as Promise<SkuSyncResponse>),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/site-settings"] });
+      const sent = data.items_sent ?? 0;
+      toast({ title: `Catalogue synced — ${sent} item${sent !== 1 ? "s" : ""} sent to AutoTradeOS` });
+    },
+    onError: (err) => {
+      toast({ title: err.message || "Failed to sync catalogue", variant: "destructive" });
+    },
+  });
+
   const canEdit = user?.adminRole === "full";
 
   const openBom = (type: "kit" | "upgrade", item: any) =>
@@ -608,21 +666,45 @@ export default function AdminSkuManager() {
         subtitle="Assign AutoTradeOS stock-keeping units and bills of materials to packs and upgrades"
         actions={
           canEdit ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => backfillMutation.mutate()}
-                  disabled={backfillMutation.isPending}
-                  data-testid="button-sku-backfill"
-                >
-                  <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-                  {backfillMutation.isPending ? "Generating…" : `Generate Missing SKUs${missingSku > 0 ? ` (${missingSku})` : ""}`}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Auto-assign MTVC SKU codes to all items currently missing one</TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => syncCatalogueMutation.mutate()}
+                    disabled={syncCatalogueMutation.isPending}
+                    data-testid="button-sku-sync"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncCatalogueMutation.isPending ? "animate-spin" : ""}`} />
+                    {syncCatalogueMutation.isPending ? "Syncing…" : "Sync to AutoTradeOS"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Push the full SKU catalogue (prices + BOMs) to AutoTradeOS
+                  {siteSettings["sku_catalogue_last_sync"] ? (
+                    <span className="block text-xs mt-0.5 text-muted-foreground">
+                      Last synced: {new Date(siteSettings["sku_catalogue_last_sync"]).toLocaleString("en-GB")}
+                    </span>
+                  ) : null}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => backfillMutation.mutate()}
+                    disabled={backfillMutation.isPending}
+                    data-testid="button-sku-backfill"
+                  >
+                    <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                    {backfillMutation.isPending ? "Generating…" : `Generate Missing SKUs${missingSku > 0 ? ` (${missingSku})` : ""}`}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Auto-assign MTVC SKU codes to all items currently missing one</TooltipContent>
+              </Tooltip>
+            </div>
           ) : undefined
         }
       />
@@ -661,6 +743,7 @@ export default function AdminSkuManager() {
                     onBomClick={() => openBom("kit", kit)}
                     isSavingSku={updateKitSku.isPending}
                     isSavingCostPrice={updateKitCostPrice.isPending}
+                    stockQty={kit.sku ? (stockLevels[kit.sku]?.stockQty ?? null) : undefined}
                   />
                 ))}
               </div>
@@ -686,6 +769,7 @@ export default function AdminSkuManager() {
                     onBomClick={() => openBom("upgrade", u)}
                     isSavingSku={updateUpgradeSku.isPending}
                     isSavingCostPrice={updateUpgradeCostPrice.isPending}
+                    stockQty={u.sku ? (stockLevels[u.sku]?.stockQty ?? null) : undefined}
                   />
                 ))}
 
@@ -719,6 +803,7 @@ export default function AdminSkuManager() {
                           isSavingSku={updateUpgradeSku.isPending}
                           isSavingCostPrice={updateUpgradeCostPrice.isPending}
                           indented
+                          stockQty={v.sku ? (stockLevels[v.sku]?.stockQty ?? null) : undefined}
                         />
                       ))}
 

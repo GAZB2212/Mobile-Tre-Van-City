@@ -797,3 +797,11 @@ export const insertStaffPhoneSchema = createInsertSchema(staffPhoneNumbers).omit
 });
 export type InsertStaffPhone = z.infer<typeof insertStaffPhoneSchema>;
 export type StaffPhone = typeof staffPhoneNumbers.$inferSelect;
+
+// ─── SKU Stock Levels (updated by AutoTradeOS webhook) ───────────────────────
+export const skuStockLevels = pgTable("sku_stock_levels", {
+  sku: text("sku").primaryKey(),
+  stockQty: integer("stock_qty").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+export type SkuStockLevel = typeof skuStockLevels.$inferSelect;

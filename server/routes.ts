@@ -1466,6 +1466,131 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  // ── AutoTradeOS: catalogue sync push ───────────────────────────────────────
+  app.post("/api/admin/sku-sync/push", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const apiUrl = process.env.AUTOTRADEOS_API_URL;
+      const apiKey = process.env.AUTOTRADE_OS_API_KEY;
+      if (!apiUrl || !apiKey) {
+        return res.status(500).json({ error: "AutoTradeOS integration not configured — set AUTOTRADEOS_API_URL and AUTOTRADE_OS_API_KEY in secrets" });
+      }
+
+      const kitsResult = await pool.query(
+        `SELECT id, name, sku, price, cost_price, sku_components FROM kits WHERE published = true`
+      );
+      const upgradesResult = await pool.query(
+        `SELECT id, name, sku, price, cost_price, sku_components FROM upgrades WHERE published = true AND sku IS NOT NULL AND sku <> ''`
+      );
+
+      interface CatalogueBomEntry {
+        sku: string;
+        description: string;
+        quantity: number;
+        cost_price_pence: number;
+      }
+      interface CatalogueItem {
+        sku: string;
+        name: string;
+        type: "kit" | "upgrade";
+        sell_price_pence: number;
+        cost_price_pence: number;
+        bom: CatalogueBomEntry[];
+      }
+      interface AutoTradeOsReceiveResponse {
+        ok: boolean;
+        items_received?: number;
+      }
+
+      // SkuComponent rows stored in JSON: { sku, description, quantity, costPrice? }
+      type StoredBomComponent = { sku: string; description: string; quantity: number; costPrice?: number | null };
+
+      function parseBom(raw: unknown): StoredBomComponent[] {
+        if (Array.isArray(raw)) return raw as StoredBomComponent[];
+        if (typeof raw === "string" && raw) {
+          try { return JSON.parse(raw) as StoredBomComponent[]; } catch { /* fall through */ }
+        }
+        return [];
+      }
+
+      const items: CatalogueItem[] = [];
+
+      for (const kit of kitsResult.rows) {
+        if (!kit.sku) continue;
+        items.push({
+          sku: kit.sku as string,
+          name: kit.name as string,
+          type: "kit",
+          sell_price_pence: (kit.price as number) ?? 0,
+          cost_price_pence: (kit.cost_price as number) ?? 0,
+          bom: parseBom(kit.sku_components).map(c => ({
+            sku: c.sku,
+            description: c.description,
+            quantity: c.quantity,
+            cost_price_pence: c.costPrice ?? 0,
+          })),
+        });
+      }
+
+      for (const upg of upgradesResult.rows) {
+        if (!upg.sku) continue;
+        items.push({
+          sku: upg.sku as string,
+          name: upg.name as string,
+          type: "upgrade",
+          sell_price_pence: (upg.price as number) ?? 0,
+          cost_price_pence: (upg.cost_price as number) ?? 0,
+          bom: parseBom(upg.sku_components).map(c => ({
+            sku: c.sku,
+            description: c.description,
+            quantity: c.quantity,
+            cost_price_pence: c.costPrice ?? 0,
+          })),
+        });
+      }
+
+      const syncedAt = new Date().toISOString();
+      const payload = { source: "mtvc", synced_at: syncedAt, items };
+      const endpointUrl = `${apiUrl}/api/mtvc/receive-catalogue`;
+
+      const atResponse = await fetch(endpointUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify(payload),
+      });
+
+      if (!atResponse.ok) {
+        const text = await atResponse.text();
+        console.error(`AutoTradeOS catalogue sync failed: ${atResponse.status}`, text);
+        return res.status(502).json({ error: `AutoTradeOS returned HTTP ${atResponse.status}` });
+      }
+
+      const atResult = await atResponse.json() as AutoTradeOsReceiveResponse;
+      await storage.setSiteSetting("sku_catalogue_last_sync", syncedAt);
+
+      res.json({ ok: true, items_sent: items.length, autotradeos_response: atResult, synced_at: syncedAt });
+    } catch (err) {
+      console.error("SKU catalogue sync error:", err);
+      res.status(500).json({ error: "Failed to sync catalogue to AutoTradeOS" });
+    }
+  });
+
+  // ── AutoTradeOS: stock levels read (admin) ──────────────────────────────────
+  app.get("/api/admin/sku-stock", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT sku, stock_qty, updated_at FROM sku_stock_levels`
+      );
+      const map: Record<string, { stockQty: number; updatedAt: string }> = {};
+      for (const row of result.rows) {
+        map[row.sku] = { stockQty: row.stock_qty, updatedAt: row.updated_at };
+      }
+      res.json(map);
+    } catch (err) {
+      console.error("SKU stock read error:", err);
+      res.status(500).json({ error: "Failed to read stock levels" });
+    }
+  });
+
   // ── Equipment Packs ────────────────────────────────────────────────────────
 
   app.post("/api/admin/kits", isAuthenticated, isBasicAdmin, async (req, res) => {
@@ -4212,6 +4337,36 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     } catch (error) {
       console.error('Error saving quote correction:', error);
       res.status(500).json({ error: "Failed to save corrections" });
+    }
+  });
+
+  // ── AutoTradeOS: stock level webhook receiver (public, secret-validated) ──────
+  app.post("/api/webhooks/autotradeos/stock-update", async (req, res) => {
+    try {
+      const secret = process.env.AUTOTRADEOS_WEBHOOK_SECRET;
+      if (!secret || req.headers["x-webhook-secret"] !== secret) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const schema = z.object({
+        items: z.array(z.object({
+          sku: z.string(),
+          stock_qty: z.number().int(),
+        })),
+      });
+      const { items } = schema.parse(req.body);
+      for (const item of items) {
+        await pool.query(
+          `INSERT INTO sku_stock_levels (sku, stock_qty, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (sku) DO UPDATE SET stock_qty = $2, updated_at = NOW()`,
+          [item.sku, item.stock_qty]
+        );
+      }
+      res.json({ ok: true, updated: items.length });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: "Invalid payload" });
+      console.error("AutoTradeOS stock webhook error:", err);
+      res.status(500).json({ error: "Failed to update stock levels" });
     }
   });
 
