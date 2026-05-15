@@ -683,28 +683,28 @@ export default function AdminSkuManager() {
         actions={
           canEdit ? (
             <div className="flex items-center gap-2 flex-wrap">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => syncCatalogueMutation.mutate()}
-                    disabled={syncCatalogueMutation.isPending}
-                    data-testid="button-sku-sync"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncCatalogueMutation.isPending ? "animate-spin" : ""}`} />
-                    {syncCatalogueMutation.isPending ? "Syncing…" : "Sync to AutoTradeOS"}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Push the full SKU catalogue (prices + BOMs) to AutoTradeOS
-                  {siteSettings["sku_catalogue_last_sync"] ? (
-                    <span className="block text-xs mt-0.5 text-muted-foreground">
-                      Last synced: {new Date(siteSettings["sku_catalogue_last_sync"]).toLocaleString("en-GB")}
-                    </span>
-                  ) : null}
-                </TooltipContent>
-              </Tooltip>
+              <div className="flex flex-col items-start gap-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => syncCatalogueMutation.mutate()}
+                      disabled={syncCatalogueMutation.isPending}
+                      data-testid="button-sku-sync"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncCatalogueMutation.isPending ? "animate-spin" : ""}`} />
+                      {syncCatalogueMutation.isPending ? "Syncing…" : "Sync to AutoTradeOS"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Push the full SKU catalogue (prices + BOMs) to AutoTradeOS</TooltipContent>
+                </Tooltip>
+                <span className="text-xs text-muted-foreground" data-testid="text-sku-last-synced">
+                  {siteSettings["sku_catalogue_last_sync"]
+                    ? `Last synced: ${new Date(siteSettings["sku_catalogue_last_sync"]).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                    : "Never synced"}
+                </span>
+              </div>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
