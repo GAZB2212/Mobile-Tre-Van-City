@@ -1329,6 +1329,16 @@ export default function AdminQuotes() {
                             <TooltipContent>{quote.phone ? "Call via bridge" : "No phone number on record"}</TooltipContent>
                           </Tooltip>
                         )}
+                        {(() => {
+                          const equipCost = computeEquipCost(quote.kitId, quote.selectedUpgradeIds || [], quote.selectedUpgrades || {});
+                          if (equipCost === null) return <span className="text-xs text-muted-foreground" data-testid={`text-margin-na-${quote.id}`}>—</span>;
+                          const marginPct = quote.estSubtotal > 0 ? ((quote.estSubtotal - equipCost) / quote.estSubtotal) * 100 : 0;
+                          return (
+                            <Badge className={`text-[10px] px-1.5 py-0 border ${getMarginBadgeClass(marginPct)}`} data-testid={`badge-margin-${quote.id}`}>
+                              {marginPct.toFixed(0)}% margin
+                            </Badge>
+                          );
+                        })()}
                         <span className="font-bold text-sm" data-testid={`quote-total-${quote.id}`}>{formatPrice(quote.estTotal)}</span>
                         {isExpanded
                           ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
