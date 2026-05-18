@@ -30,6 +30,7 @@ const kitSchema = z.object({
   includes: z.array(z.string()).min(1, "At least one included item is required"),
   powerKw: z.string().min(1, "Power (kW) is required"),
   price: z.number().min(0, "Price must be positive"),
+  costPrice: z.number().min(0, "Cost price must be positive").optional().nullable(),
   euroSixCompatible: z.boolean().default(false),
   serviceType: z.array(z.enum(kitServiceTypes)).min(1, "Select at least one service type").default(["car", "commercial", "hybrid"]),
   images: z.array(z.string()).default([]),
@@ -124,6 +125,7 @@ export default function AdminKits() {
       includes: [],
       powerKw: "",
       price: 0,
+      costPrice: null,
       euroSixCompatible: false,
       serviceType: ["car", "commercial", "hybrid"] as const,
       images: [],
@@ -140,6 +142,7 @@ export default function AdminKits() {
         ...data,
         includes: data.includes,
         price: Math.round(data.price * 100), // Convert to pence
+        costPrice: data.costPrice != null ? Math.round(data.costPrice * 100) : null,
       };
       return apiRequest("POST", "/api/admin/kits", kitData);
     },
@@ -162,6 +165,7 @@ export default function AdminKits() {
         ...data,
         includes: data.includes,
         price: Math.round(data.price * 100), // Convert to pence
+        costPrice: data.costPrice != null ? Math.round(data.costPrice * 100) : null,
       };
       return apiRequest("PUT", `/api/admin/kits/${id}`, kitData);
     },
@@ -280,6 +284,7 @@ export default function AdminKits() {
       includes: kit.includes || [],
       powerKw: kit.powerKw,
       price: parseInt(kit.price.toString()) / 100, // Convert from pence
+      costPrice: kit.costPrice != null ? kit.costPrice / 100 : null,
       euroSixCompatible: kit.euroSixCompatible,
       serviceType: (Array.isArray(kit.serviceType) ? kit.serviceType : ["car", "commercial", "hybrid"]) as typeof kitServiceTypes[number][],
       images: kit.images || [],
@@ -554,6 +559,29 @@ export default function AdminKits() {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="costPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cost Price (£) <span className="font-normal text-muted-foreground">— ex VAT, optional</span></FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value === "" ? null : parseFloat(e.target.value))}
+                          data-testid="input-kit-cost-price"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">Used to calculate profit margin on quotes</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -1048,6 +1076,29 @@ export default function AdminKits() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="costPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost Price (£) <span className="font-normal text-muted-foreground">— ex VAT, optional</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value === "" ? null : parseFloat(e.target.value))}
+                        data-testid="input-edit-kit-cost-price"
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">Used to calculate profit margin on quotes</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

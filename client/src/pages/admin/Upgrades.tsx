@@ -85,8 +85,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 // Form validation schema - extend shared schema for price conversion
-const upgradeFormSchema = insertUpgradeSchema.omit({ price: true }).extend({
+const upgradeFormSchema = insertUpgradeSchema.omit({ price: true, costPrice: true }).extend({
   price: z.string().optional(),
+  costPrice: z.string().optional().nullable(),
   detailedInfo: z.string().optional().nullable(),
   videoUrl: z.string().optional().nullable(),
   showVideo: z.boolean().optional(),
@@ -111,6 +112,7 @@ type VariantOption = {
   id?: string;
   name: string;
   price: string;
+  costPrice: string;
   description: string;
   images: string[];
 };
@@ -700,6 +702,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
           id: v.id,
           name: v.variantName || "",
           price: penceToPounds(v.price),
+          costPrice: v.costPrice != null ? penceToPounds(v.costPrice) : "",
           description: v.description || "",
           images: v.images || [],
         })));
@@ -715,6 +718,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         videoUrl: upgrade.videoUrl || "",
         showVideo: upgrade.showVideo || false,
         price: hasChildren ? "" : penceToPounds(upgrade.price),
+        costPrice: upgrade.costPrice != null ? penceToPounds(upgrade.costPrice) : "",
         images: upgrade.images,
         parentId: upgrade.parentId || "",
         variantName: upgrade.variantName || "",
@@ -742,6 +746,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         videoUrl: "",
         showVideo: false,
         price: "",
+        costPrice: "",
         images: [],
         parentId: "",
         variantName: "",
@@ -776,6 +781,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
           id: v.id,
           name: v.variantName || "",
           price: penceToPounds(v.price),
+          costPrice: v.costPrice != null ? penceToPounds(v.costPrice) : "",
           description: v.description || "",
           images: v.images || [],
         }));
@@ -809,6 +815,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         const parentData = {
           ...data,
           price: 0,
+          costPrice: null,
           parentId: null,
           variantName: null,
         };
@@ -823,13 +830,14 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               description: variant.description || data.description,
               images: variant.images.length > 0 ? variant.images : [],
               price: poundsToPence(variant.price),
+              costPrice: variant.costPrice ? poundsToPence(variant.costPrice) : null,
               parentId: parentResult.id,
               variantName: variant.name,
               published: data.published,
               popular: data.popular || false,
               allowQuantity: data.allowQuantity || false,
               exclusiveGroup: data.exclusiveGroup || null,
-              sortOrder: index, // Add sortOrder based on position
+              sortOrder: index,
             })
           )
         );
@@ -840,6 +848,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         const upgradeData = {
           ...data,
           price: data.price ? poundsToPence(data.price) : 0,
+          costPrice: data.costPrice ? poundsToPence(data.costPrice) : null,
           parentId: null,
           variantName: null,
         };
@@ -873,6 +882,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         const parentData = {
           ...data,
           price: 0,
+          costPrice: null,
           parentId: null,
           variantName: null,
         };
@@ -913,13 +923,14 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
               description: variant.description || data.description,
               images: variant.images.length > 0 ? variant.images : [],
               price: poundsToPence(variant.price),
+              costPrice: variant.costPrice ? poundsToPence(variant.costPrice) : null,
               parentId: upgrade!.id,
               variantName: variant.name,
               published: data.published,
               popular: data.popular || false,
               allowQuantity: data.allowQuantity || false,
               exclusiveGroup: data.exclusiveGroup || null,
-              sortOrder: index, // Add sortOrder based on position
+              sortOrder: index,
             };
             
             if (variant.id) {
@@ -944,6 +955,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
         const upgradeData = {
           ...data,
           price: data.price ? poundsToPence(data.price) : 0,
+          costPrice: data.costPrice ? poundsToPence(data.costPrice) : null,
           parentId: null,
           variantName: null,
         };
@@ -1206,7 +1218,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                       }
                       form.setValue("price", "");
                       if (variants.length === 0) {
-                        setVariants([{ name: "", price: "", description: "", images: [] }]);
+                        setVariants([{ name: "", price: "", costPrice: "", description: "", images: [] }]);
                       }
                     } else {
                       // When disabling variants, restore cached price or require new entry
@@ -1245,6 +1257,32 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Cost price — shown for standalone upgrades only; variants carry their own cost price */}
+            {!upgrade?.parentId && !hasVariants && (
+              <FormField
+                control={form.control}
+                name="costPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost Price (£) <span className="font-normal text-muted-foreground">— ex VAT, optional</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        data-testid="input-upgrade-cost-price"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">Used to calculate profit margin on quotes</p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1362,6 +1400,25 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                           data-testid={`input-variant-price-${index}`}
                         />
                       </div>
+                      <div>
+                        <label className="text-sm font-medium mb-1 block">
+                          Cost Price (£) <span className="font-normal text-muted-foreground">— ex VAT, optional</span>
+                        </label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={variant.costPrice}
+                          onChange={(e) => {
+                            const newVariants = [...variants];
+                            newVariants[index].costPrice = e.target.value;
+                            setVariants(newVariants);
+                          }}
+                          data-testid={`input-variant-cost-price-${index}`}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Used to calculate profit margin on quotes</p>
+                      </div>
                       
                       <Textarea
                         placeholder="Variant description (optional - defaults to parent description)"
@@ -1405,7 +1462,7 @@ function UpgradeDialog({ upgrade, open, onOpenChange, allUpgrades }: UpgradeDial
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setVariants([...variants, { name: "", price: "", description: "", images: [] }])}
+                  onClick={() => setVariants([...variants, { name: "", price: "", costPrice: "", description: "", images: [] }])}
                   data-testid="button-add-variant"
                 >
                   <Plus className="h-4 w-4 mr-2" />
