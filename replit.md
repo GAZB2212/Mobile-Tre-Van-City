@@ -343,20 +343,31 @@ Three role levels enforced server-side on every route:
 | **Resend / SendGrid** | Transactional emails — quote confirmations, spec approval, finance applications, artwork proofs |
 | **Jigsaw Finance** | Finance application email routing to underwriter |
 | **Google Cloud Storage** | Image and video uploads via presigned URLs with ACL management |
-| **WrapGen** | 3D wrap render approval tracking — staff paste the WrapGen preview URL into the quote; customer approves on WrapGen's page; WrapGen fires a webhook (`POST /api/webhooks/wrapgen`) back to MTVC to record approval |
+| **WrapGen** | 3D wrap render auto-link and approval tracking — staff click "Open in WrapGen" from the customer profile; MTVC generates a one-time token; WrapGen opens with the token embedded and fires `POST /api/webhooks/wrapgen-link/:token` to auto-link the preview URL; customer approval fires `POST /api/webhooks/wrapgen` to record sign-off |
 
 ### WrapGen Artwork Approval Workflow
-WrapGen is a standalone external tool used by the design team. MTVC does **not** call the WrapGen API to create previews.
+WrapGen (`http://wrapgen.co.uk`) is a standalone external tool used by the design team. MTVC does **not** call the WrapGen API to create previews.
 
-1. Design team creates the artwork and uploads it to WrapGen — WrapGen generates the 3D render
-2. Staff paste the WrapGen preview URL into the quote's **Configuration tab** → "Wrap Artwork — WrapGen" card
-3. Staff copy the URL and share it with the customer directly (email, message, etc.)
-4. Customer views and approves the render on WrapGen's platform
-5. WrapGen fires `POST /api/webhooks/wrapgen` with `{ event: "artwork.approved", previewId, approvedByName, approvedAt }` — MTVC matches on `wrapgen_preview_id`, records approval, and appends an activity note
+#### Auto-link flow (primary)
+1. Staff open the customer profile in MTVC and click **"Open in WrapGen"** in the WrapGen 3D Renders card
+2. MTVC generates a 15-minute one-time token, stores it in `wrapgen_link_tokens`, and opens WrapGen at `http://wrapgen.co.uk?mtvc_token=TOKEN&mtvc_webhook=ENCODED_URL&mtvc_ref=QUOTE_REF`
+3. The design team creates the artwork and generates the 3D render in WrapGen
+4. WrapGen fires `POST /api/webhooks/wrapgen-link/:token` with `{ previewId, previewUrl }` — MTVC validates the token, saves `wrapgen_preview_url` and `wrapgen_preview_id` to the quote, and marks the token used
+5. The customer profile updates automatically (polled every 5 s) — the render appears as linked with "Awaiting Approval" status
 
-**Admin pages:** Quote detail → Configuration tab (when wrap upgrade selected) · `/admin/artwork-approvals` lists all linked previews with approval status and wrap type.
+#### Manual fallback
+If the artwork was created without going through MTVC, staff can expand "Paste URL manually instead" in the WrapGen 3D Renders card and paste the preview URL directly.
 
-**Webhook config in WrapGen:** `https://yourdomain.com/api/webhooks/wrapgen` (no secret header — endpoint is public and idempotent).
+#### Customer approval
+6. Staff share the WrapGen preview URL with the customer
+7. Customer views and approves the render on WrapGen's platform
+8. WrapGen fires `POST /api/webhooks/wrapgen` with `{ event: "artwork.approved", previewId, approvedByName, approvedAt }` — MTVC matches on `wrapgen_preview_id`, records approval timestamp and approver name, and appends an activity note to the quote
+
+**Admin pages:** Customer profile → WrapGen 3D Renders card · `/admin/artwork-approvals` lists all linked previews across all quotes with approval status.
+
+**Webhooks to configure in WrapGen:**
+- Auto-link: `POST https://yourdomain.com/api/webhooks/wrapgen-link/:token` (token embedded in the URL MTVC opens)
+- Approval: `POST https://yourdomain.com/api/webhooks/wrapgen` with `{ event: "artwork.approved", previewId, approvedByName, approvedAt }` (no secret header — public and idempotent)
 
 ---
 
