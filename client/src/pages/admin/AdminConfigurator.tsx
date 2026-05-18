@@ -173,6 +173,7 @@ export default function AdminConfigurator() {
   // ── Upgrades section state
   const [upgradeQuantities, setUpgradeQuantities] = useState<Record<string, number>>({});
   const [modalUpgrade, setModalUpgrade] = useState<{ upgrade: Upgrade; variants: Upgrade[] } | null>(null);
+  const [quantityPrompt, setQuantityPrompt] = useState<{ upgrade: Upgrade; pendingQty: number } | null>(null);
 
   // ── Custom extras state (bespoke items not in standard configurator)
   const [customExtras, setCustomExtras] = useState<Array<{id: string; description: string; pricePence: number}>>([]);
@@ -389,6 +390,11 @@ export default function AdminConfigurator() {
       removeUpgrade(upgradeId);
       purgeQuantities([upgradeId]);
     } else {
+      // For quantity upgrades being newly selected, prompt for quantity first
+      if (upgrade && (upgrade as any).allowQuantity) {
+        setQuantityPrompt({ upgrade, pendingQty: 1 });
+        return;
+      }
       const toRemove: string[] = [];
       if (upgrade) {
         const g = getExclusiveGroup(upgrade, all);
@@ -404,6 +410,28 @@ export default function AdminConfigurator() {
         purgeQuantities(toRemove);
       } else addUpgrade(upgradeId);
     }
+  };
+
+  const confirmQuantityPrompt = () => {
+    if (!quantityPrompt) return;
+    const { upgrade, pendingQty } = quantityPrompt;
+    const all = Object.values(filteredUpgrades).flat();
+    const toRemove: string[] = [];
+    const g = getExclusiveGroup(upgrade, all);
+    if (g) {
+      state.upgradeIds.forEach(id => {
+        const u = all.find(x => x.id === id);
+        if (u && getExclusiveGroup(u, all) === g && id !== upgrade.id) toRemove.push(id);
+      });
+    }
+    if (toRemove.length > 0) {
+      replaceUpgrades(toRemove, upgrade.id);
+      purgeQuantities(toRemove);
+    } else {
+      addUpgrade(upgrade.id);
+    }
+    setUpgradeQuantities(prev => ({ ...prev, [upgrade.id]: Math.max(1, pendingQty) }));
+    setQuantityPrompt(null);
   };
 
   const handleVariantSelect = (parentId: string, variantId: string | null, variantItems?: Upgrade[]) => {
@@ -1621,6 +1649,69 @@ export default function AdminConfigurator() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Quantity Prompt Dialog ─────────────────────────────── */}
+      <Dialog open={!!quantityPrompt} onOpenChange={o => { if (!o) setQuantityPrompt(null); }}>
+        <DialogContent className="sm:max-w-sm" data-testid="dialog-quantity-prompt">
+          {quantityPrompt && (
+            <>
+              <DialogHeader>
+                <DialogTitle>How many do you need?</DialogTitle>
+                <DialogDescription>
+                  <strong>{quantityPrompt.upgrade.name}</strong> supports multiple quantities.
+                  Set the number required — the price will update automatically.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium flex-1">Quantity</label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setQuantityPrompt(p => p ? { ...p, pendingQty: Math.max(1, p.pendingQty - 1) } : p)}
+                      disabled={quantityPrompt.pendingQty <= 1}
+                      data-testid="button-qty-decrease"
+                    >
+                      <span className="text-lg leading-none">−</span>
+                    </Button>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={quantityPrompt.pendingQty}
+                      onChange={e => setQuantityPrompt(p => p ? { ...p, pendingQty: Math.max(1, parseInt(e.target.value) || 1) } : p)}
+                      className="w-16 text-center"
+                      data-testid="input-qty-prompt"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setQuantityPrompt(p => p ? { ...p, pendingQty: Math.min(20, p.pendingQty + 1) } : p)}
+                      disabled={quantityPrompt.pendingQty >= 20}
+                      data-testid="button-qty-increase"
+                    >
+                      <span className="text-lg leading-none">+</span>
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Total: <strong>{fmt(quantityPrompt.upgrade.price * quantityPrompt.pendingQty)}</strong>
+                </p>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setQuantityPrompt(null)} data-testid="button-qty-cancel">
+                  Cancel
+                </Button>
+                <Button onClick={confirmQuantityPrompt} data-testid="button-qty-confirm">
+                  Add to Configuration
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* ── Commercial-with-kit Confirmation Dialog ────────────── */}
       {pendingCommercialType && (() => {
         const kitName = configData?.kits.find((k: any) => k.id === state.kitId)?.name ?? "the current pack";
