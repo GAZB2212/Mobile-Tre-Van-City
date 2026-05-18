@@ -2396,7 +2396,7 @@ export class DbStorage implements IStorage {
           .values({ id: randomUUID(), name, email, phone: phone ?? undefined })
           .onConflictDoUpdate({
             target: schema.customers.email,
-            targetWhere: sql`email IS NOT NULL AND email != ''`,
+            targetWhere: sql`email IS NOT NULL AND email != '' AND deleted_at IS NULL`,
             set: {
               phone: sql`COALESCE(customers.phone, EXCLUDED.phone)`,
               name: sql`CASE
@@ -2425,7 +2425,7 @@ export class DbStorage implements IStorage {
           .values({ id: randomUUID(), name, phone })
           .onConflictDoUpdate({
             target: schema.customers.phone,
-            targetWhere: sql`phone IS NOT NULL AND phone != ''`,
+            targetWhere: sql`phone IS NOT NULL AND phone != '' AND deleted_at IS NULL`,
             set: {
               name: sql`CASE
                 WHEN customers.name IS NULL OR customers.name = '' OR customers.name = 'AI Chat Contact'

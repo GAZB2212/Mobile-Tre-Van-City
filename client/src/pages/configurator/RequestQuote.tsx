@@ -99,9 +99,10 @@ export default function RequestQuote() {
 
   const submitQuoteMutation = useMutation({
     mutationFn: async (formData: QuoteFormData) => {
+      // Build selectedUpgrades using actual quantities from state
       const selectedUpgrades: Record<string, number> = {};
       state.upgradeIds.forEach(id => {
-        selectedUpgrades[id] = 1;
+        selectedUpgrades[id] = state.upgradeQuantities[id] ?? 1;
       });
 
       // Option A pricing
@@ -110,7 +111,7 @@ export default function RequestQuote() {
       else subtotal += ownVanPricePence;
       if (kit) subtotal += kit.price;
       upgrades.forEach(upgrade => {
-        subtotal += upgrade.price * (selectedUpgrades[upgrade.id] || 1);
+        subtotal += upgrade.price * (selectedUpgrades[upgrade.id] ?? 1);
       });
       trainingOptions.forEach(option => {
         subtotal += option.price;
@@ -118,13 +119,13 @@ export default function RequestQuote() {
       const vat = Math.round(subtotal * 0.2);
       const total = subtotal + vat;
 
-      // Option B pricing (compare mode — only van differs)
+      // Option B pricing (compare mode — only van differs; kit/upgrades shared from slot A)
       let subtotalB = 0;
       if (compareMode) {
         const vanBPrice = vanB?.price ?? slotB.customVanValue ?? 0;
         subtotalB = vanBPrice;
         if (kit) subtotalB += kit.price;
-        upgrades.forEach(upgrade => { subtotalB += upgrade.price; });
+        upgrades.forEach(upgrade => { subtotalB += upgrade.price * (selectedUpgrades[upgrade.id] ?? 1); });
         trainingOptions.forEach(option => { subtotalB += option.price; });
       }
       const vatB = Math.round(subtotalB * 0.2);
@@ -622,16 +623,19 @@ export default function RequestQuote() {
                       {upgrades.length > 0 && (
                         <div className="border-t pt-3 space-y-2">
                           <p className="font-medium text-sm mb-2">Selected Upgrades</p>
-                          {upgrades.map((upgrade) => (
-                            <div key={upgrade.id} className="flex justify-between text-sm pl-8">
-                              <span className="text-muted-foreground" data-testid={`text-summary-upgrade-${upgrade.id}`}>
-                                {upgrade.name}
-                              </span>
-                              <span className="font-medium" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
-                                {formatPrice(upgrade.price)}
-                              </span>
-                            </div>
-                          ))}
+                          {upgrades.map((upgrade) => {
+                            const qty = state.upgradeQuantities[upgrade.id] ?? 1;
+                            return (
+                              <div key={upgrade.id} className="flex justify-between text-sm pl-8">
+                                <span className="text-muted-foreground" data-testid={`text-summary-upgrade-${upgrade.id}`}>
+                                  {upgrade.name}{qty > 1 ? ` ×${qty}` : ''}
+                                </span>
+                                <span className="font-medium" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
+                                  {formatPrice(upgrade.price * qty)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
