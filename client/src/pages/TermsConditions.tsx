@@ -25,13 +25,13 @@ export default function TermsConditions() {
         <Card data-testid="card-terms-conditions">
           <CardHeader>
             <CardTitle className="text-4xl">Terms and Conditions</CardTitle>
-            <p className="text-muted-foreground">Last updated: November 2024</p>
+            <p className="text-muted-foreground">Last updated: November 2025</p>
           </CardHeader>
           <CardContent className="space-y-6 prose prose-invert max-w-none">
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-introduction">1. Introduction</h2>
               <p>
-                These Terms and Conditions ("Terms") govern your use of the Mobile Tyre Van Conversions website and services. By accessing or using our website, you agree to be bound by these Terms.
+                These Terms and Conditions ("Terms") govern your use of the Mobile Tyre Van City website and services. By accessing or using our website, you agree to be bound by these Terms.
               </p>
             </section>
 
@@ -40,10 +40,11 @@ export default function TermsConditions() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-definitions">2. Definitions</h2>
               <ul className="list-disc pl-6 space-y-2">
-                <li><strong>"Company", "we", "our", or "us"</strong> refers to Mobile Tyre Van Conversions</li>
+                <li><strong>"Company", "we", "our", or "us"</strong> refers to Mobile Tyre Van City, the operating entity of this website</li>
+                <li><strong>"Platform Owner"</strong> refers to GAJO Creative Ltd, the owner of the website platform and all associated Digital Assets</li>
                 <li><strong>"Customer", "you", or "your"</strong> refers to the person or entity using our services</li>
                 <li><strong>"Services"</strong> refers to van conversions, equipment installation, and related services</li>
-                <li><strong>"Website"</strong> refers to our online platform and configurator system</li>
+                <li><strong>"Website" or "Platform"</strong> refers to the online platform and configurator system owned by GAJO Creative Ltd and operated by Mobile Tyre Van City under arrangement</li>
               </ul>
             </section>
 
@@ -53,7 +54,7 @@ export default function TermsConditions() {
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-quotes">3. Quotes and Orders</h2>
               <p className="font-semibold">Quote Validity</p>
               <p>All quotes are valid for 30 days from the date of issue unless otherwise stated.</p>
-              
+
               <p className="font-semibold mt-4">Pricing</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>All prices are in GBP (£) and exclude VAT unless stated otherwise</li>
@@ -129,7 +130,7 @@ export default function TermsConditions() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-intellectual">8. Intellectual Property</h2>
               <p>
-                All content on our website, including text, images, designs, and configurator tools, is our property or used with permission. You may not reproduce, distribute, or create derivative works without our written consent.
+                All content displayed on this website, including text, images, designs, configurator tools, source code, databases, branding assets, and SEO infrastructure, is the sole and exclusive property of GAJO Creative Ltd. You may not reproduce, distribute, or create derivative works without the prior written consent of GAJO Creative Ltd. See Section 12 below for full details of platform ownership.
               </p>
             </section>
 
@@ -168,7 +169,7 @@ export default function TermsConditions() {
                 This website, including but not limited to its design, layout, source code, databases, content, graphics, branding assets, SEO infrastructure, and all associated digital materials (collectively, the "Digital Assets"), was designed and developed by GAJO Creative Ltd, a company registered in England and Wales (Company No. 16669280). All intellectual property rights in the Digital Assets, including copyright, database rights, and design rights, are and shall remain the sole and exclusive property of GAJO Creative Ltd, regardless of any commercial arrangement with the operating entity of this website.
               </p>
               <p className="mb-3">
-                No intellectual property rights in the Digital Assets are transferred or assigned to any third party by virtue of their use of or access to this website. Unauthorised reproduction, copying, distribution, or modification of any part of this website without the prior written consent of GAJO Creative Ltd is strictly prohibited.
+                No intellectual property rights in the Digital Assets are transferred or assigned to any third party by virtue of their use of or access to this website. The operating entity of this website uses the Platform under arrangement with GAJO Creative Ltd; such use does not constitute or imply any transfer of ownership, assignment of rights, or grant of perpetual licence. Unauthorised reproduction, copying, distribution, or modification of any part of this website without the prior written consent of GAJO Creative Ltd is strictly prohibited.
               </p>
               <p>
                 For licensing enquiries please contact: <a href="mailto:hello@gajocreative.co.uk" className="text-primary hover:underline">hello@gajocreative.co.uk</a>
@@ -179,11 +180,15 @@ export default function TermsConditions() {
 
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-contact">13. Contact Information</h2>
-              <p>For questions about these Terms, please contact us:</p>
+              <p>For service-related enquiries (orders, quotes, deliveries, customer service), please contact Mobile Tyre Van City:</p>
+              <div className="bg-muted p-4 rounded-lg mt-3 mb-4">
+                <p><strong>Email:</strong> info@mobiletyrevancity.co.uk</p>
+                <p><strong>Phone:</strong> 0151 203 8500</p>
+                <p><strong>Address:</strong> 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+              </div>
+              <p>For Platform / Digital Asset licensing enquiries, please contact GAJO Creative Ltd:</p>
               <div className="bg-muted p-4 rounded-lg mt-3">
-                <p><strong>Email:</strong> info@mobiletyravan.co.uk</p>
-                <p><strong>Phone:</strong> 01234 567890</p>
-                <p><strong>Address:</strong> Mobile Tyre Van Conversions, Business Address, UK</p>
+                <p><strong>Email:</strong> <a href="mailto:hello@gajocreative.co.uk" className="text-primary hover:underline">hello@gajocreative.co.uk</a></p>
               </div>
             </section>
           </CardContent>

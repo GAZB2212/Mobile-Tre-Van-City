@@ -1,0 +1,62 @@
+Cookie Policy
+Last updated: May 2026
+1. What Are Cookies
+Cookies are small text files that are placed on your device when you visit our website. They help us provide you with a better experience by remembering your preferences and understanding how you use our site.
+2. Types of Cookies We Use
+Essential Cookies
+Required for the website to function properly.
+
+Purpose: Enable core functionality such as security, network management, and accessibility
+Duration: Session or up to 1 year
+Can be disabled: No — these are necessary for the site to work
+
+Functional Cookies
+Remember your preferences and settings.
+
+Purpose: Remember choices like language, region, or theme preferences
+Examples: Cookie consent preferences, configurator saved progress
+Duration: Up to 1 year
+Can be disabled: Yes, but may affect functionality
+
+Analytics Cookies
+Help us understand how visitors use our site.
+
+Purpose: Collect anonymous information about visitor behaviour to improve our website
+Examples: Pages visited, time spent on site, navigation patterns
+Duration: Up to 2 years
+Can be disabled: Yes
+
+Marketing Cookies
+Track your activity to deliver relevant advertising.
+
+Purpose: Build a profile of your interests and show relevant ads
+Examples: Advertising network cookies, remarketing pixels
+Duration: Up to 2 years
+Can be disabled: Yes
+
+3. Specific Cookies Used
+Cookie NamePurposeTypeDurationcookie_consentStores your cookie preferencesEssential1 yearsession_idMaintains your session stateEssentialSessionconfigurator_stateSaves your configurator progressFunctional7 days_ga, _gidGoogle Analytics trackingAnalytics2 years / 24 hours
+4. How to Manage Cookies
+Cookie Consent Banner
+When you first visit our site, you'll see a cookie consent banner where you can choose which types of cookies to accept. You can change your preferences at any time using the cookie settings link in the footer.
+Browser Settings
+You can also control cookies through your browser settings. Most browsers allow you to:
+
+View and delete cookies
+Block third-party cookies
+Block cookies from specific sites
+Block all cookies
+Delete all cookies when you close your browser
+
+Please note that deleting or blocking cookies may impact your experience on our website and some features may not work properly.
+5. Third-Party Cookies
+Some cookies are placed by third-party services that appear on our pages. We do not control these cookies. Please check the third-party websites for more information:
+
+Google Analytics: Privacy Policy
+
+6. Updates to This Policy
+We may update this Cookie Policy from time to time to reflect changes in our practices or for legal reasons. We will notify you of any significant changes by posting a notice on our website.
+7. More Information
+For more information about how we handle your personal data, please read our Privacy Policy.
+If you have questions about our use of cookies, please contact us:
+Email: hello@gajocreative.co.uk

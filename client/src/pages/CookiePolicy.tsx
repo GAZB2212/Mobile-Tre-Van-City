@@ -25,7 +25,7 @@ export default function CookiePolicy() {
         <Card data-testid="card-cookie-policy">
           <CardHeader>
             <CardTitle className="text-4xl">Cookie Policy</CardTitle>
-            <p className="text-muted-foreground">Last updated: November 2024</p>
+            <p className="text-muted-foreground">Last updated: November 2025</p>
           </CardHeader>
           <CardContent className="space-y-6 prose prose-invert max-w-none">
             <section>
@@ -39,21 +39,21 @@ export default function CookiePolicy() {
 
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-types">2. Types of Cookies We Use</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <p className="font-semibold text-lg">Essential Cookies</p>
-                  <p className="text-sm text-muted-foreground mb-2">Required for the website to function properly</p>
+                  <p className="text-sm text-muted-foreground mb-2">Required for the website to function properly.</p>
                   <div className="bg-muted p-4 rounded-lg">
                     <p><strong>Purpose:</strong> Enable core functionality such as security, network management, and accessibility</p>
                     <p><strong>Duration:</strong> Session or up to 1 year</p>
-                    <p><strong>Can be disabled:</strong> No - these are necessary for the site to work</p>
+                    <p><strong>Can be disabled:</strong> No — these are necessary for the site to work</p>
                   </div>
                 </div>
 
                 <div>
                   <p className="font-semibold text-lg">Functional Cookies</p>
-                  <p className="text-sm text-muted-foreground mb-2">Remember your preferences and settings</p>
+                  <p className="text-sm text-muted-foreground mb-2">Remember your preferences and settings.</p>
                   <div className="bg-muted p-4 rounded-lg">
                     <p><strong>Purpose:</strong> Remember choices like language, region, or theme preferences</p>
                     <p><strong>Examples:</strong> Cookie consent preferences, configurator saved progress</p>
@@ -64,9 +64,9 @@ export default function CookiePolicy() {
 
                 <div>
                   <p className="font-semibold text-lg">Analytics Cookies</p>
-                  <p className="text-sm text-muted-foreground mb-2">Help us understand how visitors use our site</p>
+                  <p className="text-sm text-muted-foreground mb-2">Help us understand how visitors use our site.</p>
                   <div className="bg-muted p-4 rounded-lg">
-                    <p><strong>Purpose:</strong> Collect anonymous information about visitor behavior to improve our website</p>
+                    <p><strong>Purpose:</strong> Collect anonymous information about visitor behaviour to improve our website</p>
                     <p><strong>Examples:</strong> Pages visited, time spent on site, navigation patterns</p>
                     <p><strong>Duration:</strong> Up to 2 years</p>
                     <p><strong>Can be disabled:</strong> Yes</p>
@@ -75,7 +75,7 @@ export default function CookiePolicy() {
 
                 <div>
                   <p className="font-semibold text-lg">Marketing Cookies</p>
-                  <p className="text-sm text-muted-foreground mb-2">Track your activity to deliver relevant advertising</p>
+                  <p className="text-sm text-muted-foreground mb-2">Track your activity to deliver relevant advertising.</p>
                   <div className="bg-muted p-4 rounded-lg">
                     <p><strong>Purpose:</strong> Build a profile of your interests and show relevant ads</p>
                     <p><strong>Examples:</strong> Advertising network cookies, remarketing pixels</p>
@@ -186,8 +186,7 @@ export default function CookiePolicy() {
               </p>
               <p className="mt-3">If you have questions about our use of cookies, please contact us:</p>
               <div className="bg-muted p-4 rounded-lg mt-3">
-                <p><strong>Email:</strong> privacy@mobiletyravan.co.uk</p>
-                <p><strong>Phone:</strong> 01234 567890</p>
+                <p><strong>Email:</strong> <a href="mailto:hello@gajocreative.co.uk" className="text-primary hover:underline">hello@gajocreative.co.uk</a></p>
               </div>
             </section>
           </CardContent>
