@@ -1978,12 +1978,6 @@ export default function CustomerProfile() {
                       );
                     })()}
 
-                    {/* Webhook info */}
-                    <div className="bg-muted/50 rounded-md p-3 text-xs space-y-1">
-                      <p className="font-medium text-foreground">WrapGen webhook URL</p>
-                      <p className="font-mono text-muted-foreground break-all">{window.location.origin}/api/webhooks/wrapgen</p>
-                      <p className="text-muted-foreground">Add this to WrapGen so approvals are recorded automatically when the customer clicks Approve.</p>
-                    </div>
                   </CardContent>
                 </Card>
               );
