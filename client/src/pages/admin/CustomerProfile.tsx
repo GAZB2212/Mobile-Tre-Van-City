@@ -390,6 +390,7 @@ export default function CustomerProfile() {
   const [wrapgenEditUrls, setWrapgenEditUrls] = useState<Record<string, string>>({});
   const [wrapgenQuoteInputs, setWrapgenQuoteInputs] = useState<Record<string, string>>({});
   const [openingWrapgenForQuoteId, setOpeningWrapgenForQuoteId] = useState<string | null>(null);
+  const [wrapgenSelectedQuoteId, setWrapgenSelectedQuoteId] = useState<string>("");
 
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
@@ -1895,42 +1896,60 @@ export default function CustomerProfile() {
                       </div>
                     )}
 
-                    {/* Link new render to a quote */}
-                    {quotesWithoutWrapgen.length > 0 && (
-                      <div className="space-y-2">
-                        {quotesWithWrapgen.length === 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            Click to open WrapGen — the render will link back here automatically once created.
-                          </p>
-                        )}
-                        {quotesWithoutWrapgen.map((q: any) => (
-                          <div key={q.id} className="border rounded-md p-2.5 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-medium">{q.user_name || q.email || "Quote"}</span>
-                              <Badge variant="secondary" className="text-[10px] no-default-active-elevate capitalize">
-                                {(q.status ?? "").replace(/_/g, " ")}
+                    {/* Link new render — single button, dropdown only when multiple unlinked quotes */}
+                    {(() => {
+                      if (quotesWithoutWrapgen.length === 0 && quotes.length > 0) return null;
+
+                      const targetQuoteId = quotesWithoutWrapgen.length === 1
+                        ? quotesWithoutWrapgen[0].id
+                        : wrapgenSelectedQuoteId;
+
+                      return (
+                        <div className="space-y-3">
+                          {quotes.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              No quotes linked yet. Open WrapGen to start the artwork — once a quote is created for this customer, it will auto-link back here.
+                            </p>
+                          ) : quotesWithoutWrapgen.length > 1 && (
+                            <Select value={wrapgenSelectedQuoteId} onValueChange={setWrapgenSelectedQuoteId}>
+                              <SelectTrigger className="text-xs" data-testid="select-wrapgen-quote">
+                                <SelectValue placeholder="Select which quote to link…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {quotesWithoutWrapgen.map((q: any) => (
+                                  <SelectItem key={q.id} value={q.id} className="text-xs">
+                                    {q.user_name || q.email || "Quote"} — £{Number(q.est_total ?? 0).toLocaleString("en-GB")} · {(q.status ?? "").replace(/_/g, " ")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+
+                          <div className="flex gap-2">
+                            {openingWrapgenForQuoteId && openingWrapgenForQuoteId === targetQuoteId ? (
+                              <Badge className="text-[11px] gap-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 no-default-active-elevate py-1.5 px-3">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Waiting for WrapGen to call back…
                               </Badge>
-                              {openingWrapgenForQuoteId === q.id ? (
-                                <Badge className="ml-auto text-[10px] gap-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 no-default-active-elevate">
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  Waiting for WrapGen…
-                                </Badge>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  className="ml-auto"
-                                  onClick={() => generateWrapgenLinkMutation.mutate(q.id)}
-                                  disabled={generateWrapgenLinkMutation.isPending}
-                                  data-testid={`button-open-wrapgen-${q.id}`}
-                                >
-                                  {generateWrapgenLinkMutation.isPending && generateWrapgenLinkMutation.variables === q.id
-                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                                    : <ExternalLink className="w-3.5 h-3.5 mr-1.5" />}
-                                  Open in WrapGen
-                                </Button>
-                              )}
-                            </div>
-                            {/* Manual paste fallback */}
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => targetQuoteId
+                                  ? generateWrapgenLinkMutation.mutate(targetQuoteId)
+                                  : window.open("https://www.wrapgen.co.uk", "_blank")}
+                                disabled={generateWrapgenLinkMutation.isPending || (quotesWithoutWrapgen.length > 1 && !selectedQuoteId)}
+                                data-testid="button-open-wrapgen"
+                              >
+                                {generateWrapgenLinkMutation.isPending
+                                  ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                                  : <ExternalLink className="w-3.5 h-3.5 mr-1.5" />}
+                                Open in WrapGen
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Manual paste fallback */}
+                          {quotes.length > 0 && (
                             <details className="group">
                               <summary className="text-[11px] text-muted-foreground cursor-pointer hover:text-foreground select-none list-none flex items-center gap-1">
                                 <ChevronRight className="w-3 h-3 transition-transform group-open:rotate-90" />
@@ -1939,43 +1958,25 @@ export default function CustomerProfile() {
                               <div className="flex gap-2 mt-1.5">
                                 <Input
                                   placeholder="https://www.wrapgen.co.uk/preview/..."
-                                  value={wrapgenQuoteInputs[q.id] ?? ""}
-                                  onChange={e => setWrapgenQuoteInputs(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                  value={wrapgenQuoteInputs[targetQuoteId] ?? ""}
+                                  onChange={e => targetQuoteId && setWrapgenQuoteInputs(prev => ({ ...prev, [targetQuoteId]: e.target.value }))}
                                   className="text-xs"
-                                  data-testid={`input-wrapgen-manual-${q.id}`}
+                                  data-testid="input-wrapgen-manual"
                                 />
                                 <Button
                                   size="sm"
-                                  onClick={() => saveWrapgenUrlMutation.mutate({ quoteId: q.id, previewUrl: wrapgenQuoteInputs[q.id] ?? "" })}
-                                  disabled={!wrapgenQuoteInputs[q.id] || saveWrapgenUrlMutation.isPending}
-                                  data-testid={`button-save-wrapgen-manual-${q.id}`}
+                                  onClick={() => saveWrapgenUrlMutation.mutate({ quoteId: targetQuoteId, previewUrl: wrapgenQuoteInputs[targetQuoteId] ?? "" })}
+                                  disabled={!targetQuoteId || !wrapgenQuoteInputs[targetQuoteId] || saveWrapgenUrlMutation.isPending}
+                                  data-testid="button-save-wrapgen-manual"
                                 >
                                   <Save className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
                             </details>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* No quotes — show a plain Open in WrapGen button with a helpful note */}
-                    {quotes.length === 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">
-                          No quotes linked yet. Open WrapGen to start creating the artwork — once a quote exists for this customer, clicking the button from the quote row will auto-link the render back here.
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open("https://www.wrapgen.co.uk", "_blank")}
-                          data-testid="button-open-wrapgen-no-quote"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                          Open WrapGen
-                        </Button>
-                      </div>
-                    )}
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Webhook info */}
                     <div className="bg-muted/50 rounded-md p-3 text-xs space-y-1">
