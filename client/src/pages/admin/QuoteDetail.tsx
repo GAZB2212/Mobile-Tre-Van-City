@@ -102,6 +102,11 @@ interface AiConversationDetail {
 interface QuoteDetail extends Quote {
   customerName: string | null;
   aiConversation: AiConversationDetail | null;
+  // WrapGen artwork approval fields (added via server migration)
+  wrapgenPreviewId: string | null;
+  wrapgenPreviewUrl: string | null;
+  artworkApprovedAt: string | null;
+  artworkApprovedBy: string | null;
 }
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -458,7 +463,7 @@ export default function AdminQuoteDetail() {
       // Fall back to registration number if no description entered yet (e.g. submitted via configurator)
       setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
       setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
-      setWrapgenUrl((quote as any).wrapgenPreviewUrl ?? "");
+      setWrapgenUrl(quote.wrapgenPreviewUrl ?? "");
 
       // Set current configuration — use "custom" sentinel when no system van but custom details exist
       // Also detect custom van when only customVanValue or vanRegistration is set (e.g. from configurator flow)
@@ -2926,7 +2931,7 @@ export default function AdminQuoteDetail() {
                 <CardContent className="space-y-4">
 
                   {/* ── State 3: Approved ── */}
-                  {(quote as any).artworkApprovedAt ? (
+                  {quote.artworkApprovedAt ? (
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2" data-testid="section-wrapgen-approved">
                         <Badge variant="default" className="bg-accent text-accent-foreground no-default-active-elevate gap-1">
@@ -2934,24 +2939,24 @@ export default function AdminQuoteDetail() {
                           Artwork Approved
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          by {(quote as any).artworkApprovedBy || "customer"} &middot;{" "}
-                          {new Date((quote as any).artworkApprovedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                          by {quote.artworkApprovedBy || "customer"} &middot;{" "}
+                          {new Date(quote.artworkApprovedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
                         </span>
                       </div>
-                      {(quote as any).wrapgenPreviewUrl && (
+                      {quote.wrapgenPreviewUrl && (
                         <div>
                           <p className="text-xs text-muted-foreground mb-1.5">Approved render</p>
                           <div className="flex gap-2">
                             <Input
                               readOnly
-                              value={(quote as any).wrapgenPreviewUrl}
+                              value={quote.wrapgenPreviewUrl}
                               className="text-sm font-mono"
                               data-testid="input-wrapgen-url-display"
                             />
                             <Button
                               size="icon"
                               variant="outline"
-                              onClick={() => { navigator.clipboard.writeText((quote as any).wrapgenPreviewUrl); toast({ title: "URL copied" }); }}
+                              onClick={() => { navigator.clipboard.writeText(quote.wrapgenPreviewUrl!); toast({ title: "URL copied" }); }}
                               data-testid="button-copy-wrapgen-url"
                             >
                               <Copy className="w-4 h-4" />
@@ -2961,7 +2966,7 @@ export default function AdminQuoteDetail() {
                       )}
                     </div>
 
-                  ) : (quote as any).wrapgenPreviewUrl ? (
+                  ) : quote.wrapgenPreviewUrl ? (
                     /* ── State 2: Render linked, awaiting approval ── */
                     <div className="space-y-4" data-testid="section-wrapgen-pending">
                       <Badge variant="secondary" className="no-default-active-elevate gap-1.5">
@@ -2974,19 +2979,19 @@ export default function AdminQuoteDetail() {
                         <div className="flex gap-2">
                           <Input
                             readOnly
-                            value={(quote as any).wrapgenPreviewUrl}
+                            value={quote.wrapgenPreviewUrl}
                             className="text-sm font-mono"
                             data-testid="input-wrapgen-url-display"
                           />
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => { navigator.clipboard.writeText((quote as any).wrapgenPreviewUrl); toast({ title: "URL copied" }); }}
+                            onClick={() => { navigator.clipboard.writeText(quote.wrapgenPreviewUrl!); toast({ title: "URL copied" }); }}
                             data-testid="button-copy-wrapgen-url"
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
-                          <a href={(quote as any).wrapgenPreviewUrl} target="_blank" rel="noopener noreferrer">
+                          <a href={quote.wrapgenPreviewUrl} target="_blank" rel="noopener noreferrer">
                             <Button size="icon" variant="outline" data-testid="button-open-wrapgen-url">
                               <ExternalLink className="w-4 h-4" />
                             </Button>

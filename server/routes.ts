@@ -9690,7 +9690,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           v.make,
           v.model,
           v.year,
-          q.custom_van_description
+          q.custom_van_description,
+          -- Derive wrap type name from selected upgrade IDs joined to upgrades table
+          (
+            SELECT u.name
+            FROM upgrades u
+            WHERE u.id = ANY(q.selected_upgrade_ids)
+              AND (u.name ~* 'wrap|graphics|livery')
+            LIMIT 1
+          ) AS wrap_type_name
         FROM quotes q
         LEFT JOIN vans v ON v.id = q.van_id
         WHERE q.wrapgen_preview_id IS NOT NULL

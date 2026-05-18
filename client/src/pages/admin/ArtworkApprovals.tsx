@@ -22,6 +22,7 @@ interface ArtworkApprovalRow {
   model: string | null;
   year: number | null;
   custom_van_description: string | null;
+  wrap_type_name: string | null;
 }
 
 function vanLabel(row: ArtworkApprovalRow) {
@@ -108,12 +109,17 @@ export default function ArtworkApprovals() {
                     )}
                   </div>
 
-                  {/* Customer + van */}
+                  {/* Customer + van + wrap type */}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate" data-testid={`text-customer-${row.id}`}>
                       {row.user_name}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">{vanLabel(row)}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {vanLabel(row)}
+                      {row.wrap_type_name && (
+                        <span className="ml-1.5 text-muted-foreground/70">· {row.wrap_type_name}</span>
+                      )}
+                    </p>
                   </div>
 
                   {/* Dates */}

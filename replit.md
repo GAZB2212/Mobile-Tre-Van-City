@@ -343,6 +343,20 @@ Three role levels enforced server-side on every route:
 | **Resend / SendGrid** | Transactional emails — quote confirmations, spec approval, finance applications, artwork proofs |
 | **Jigsaw Finance** | Finance application email routing to underwriter |
 | **Google Cloud Storage** | Image and video uploads via presigned URLs with ACL management |
+| **WrapGen** | 3D wrap render approval tracking — staff paste the WrapGen preview URL into the quote; customer approves on WrapGen's page; WrapGen fires a webhook (`POST /api/webhooks/wrapgen`) back to MTVC to record approval |
+
+### WrapGen Artwork Approval Workflow
+WrapGen is a standalone external tool used by the design team. MTVC does **not** call the WrapGen API to create previews.
+
+1. Design team creates the artwork and uploads it to WrapGen — WrapGen generates the 3D render
+2. Staff paste the WrapGen preview URL into the quote's **Configuration tab** → "Wrap Artwork — WrapGen" card
+3. Staff copy the URL and share it with the customer directly (email, message, etc.)
+4. Customer views and approves the render on WrapGen's platform
+5. WrapGen fires `POST /api/webhooks/wrapgen` with `{ event: "artwork.approved", previewId, approvedByName, approvedAt }` — MTVC matches on `wrapgen_preview_id`, records approval, and appends an activity note
+
+**Admin pages:** Quote detail → Configuration tab (when wrap upgrade selected) · `/admin/artwork-approvals` lists all linked previews with approval status and wrap type.
+
+**Webhook config in WrapGen:** `https://yourdomain.com/api/webhooks/wrapgen` (no secret header — endpoint is public and idempotent).
 
 ---
 
