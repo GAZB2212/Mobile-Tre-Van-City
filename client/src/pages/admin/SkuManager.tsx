@@ -52,6 +52,7 @@ interface SkuCatalogueEntry {
   description: string;
   type: "Equipment Pack" | "Upgrade" | "BOM Part";
   source: string;
+  costPrice: number | null;
 }
 
 // ── BOM Editor ───────────────────────────────────────────────────────────────
@@ -677,12 +678,12 @@ export default function AdminSkuManager() {
     // Kit SKUs
     for (const kit of kits) {
       if ((kit as any).sku) {
-        entries.push({ sku: (kit as any).sku, description: kit.name, type: "Equipment Pack", source: kit.name });
+        entries.push({ sku: (kit as any).sku, description: kit.name, type: "Equipment Pack", source: kit.name, costPrice: (kit as any).costPrice ?? null });
       }
       // BOM parts from kits
       const parts: SkuComponent[] = (kit as any).skuComponents ?? [];
       for (const p of parts) {
-        if (p.sku) entries.push({ sku: p.sku, description: p.description || p.sku, type: "BOM Part", source: kit.name });
+        if (p.sku) entries.push({ sku: p.sku, description: p.description || p.sku, type: "BOM Part", source: kit.name, costPrice: null });
       }
     }
 
@@ -690,12 +691,12 @@ export default function AdminSkuManager() {
     for (const u of allUpgrades) {
       if ((u as any).hasVariants) continue; // parent groups have no SKU
       if ((u as any).sku) {
-        entries.push({ sku: (u as any).sku, description: u.name, type: "Upgrade", source: u.name });
+        entries.push({ sku: (u as any).sku, description: u.name, type: "Upgrade", source: u.name, costPrice: (u as any).costPrice ?? null });
       }
       // BOM parts from upgrades
       const parts: SkuComponent[] = (u as any).skuComponents ?? [];
       for (const p of parts) {
-        if (p.sku) entries.push({ sku: p.sku, description: p.description || p.sku, type: "BOM Part", source: u.name });
+        if (p.sku) entries.push({ sku: p.sku, description: p.description || p.sku, type: "BOM Part", source: u.name, costPrice: null });
       }
     }
 
@@ -1103,6 +1104,7 @@ export default function AdminSkuManager() {
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Description</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground w-32">Type</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Source Item</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Cost Price</th>
                         <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Stock</th>
                         <th className="w-10" />
                       </tr>
@@ -1110,7 +1112,7 @@ export default function AdminSkuManager() {
                     <tbody className="divide-y">
                       {filteredCatalogue.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                          <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
                             No SKUs match your search.
                           </td>
                         </tr>
@@ -1130,6 +1132,11 @@ export default function AdminSkuManager() {
                             </td>
                             <td className="px-4 py-2.5 text-xs text-muted-foreground hidden md:table-cell truncate max-w-48">
                               {entry.source}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs hidden md:table-cell tabular-nums">
+                              {entry.costPrice != null
+                                ? <span className="text-foreground">£{(entry.costPrice / 100).toFixed(2)}</span>
+                                : <span className="text-muted-foreground">—</span>}
                             </td>
                             <td className="px-4 py-2.5 hidden md:table-cell">
                               <StockBadge qty={entry.sku ? (stockLevels[entry.sku]?.stockQty ?? null) : undefined} />
