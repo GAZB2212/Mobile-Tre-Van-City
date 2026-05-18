@@ -1448,25 +1448,28 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
       }
 
       let updated = 0;
+      let overwritten = 0;
       let skipped = 0;
       const errors: string[] = [];
 
-      // Load all kits and upgrades once
-      const allKits = await pool.query(`SELECT id, sku FROM kits`);
-      const allUpgrades = await pool.query(`SELECT id, sku FROM upgrades`);
+      // Load all kits and upgrades once (include cost_price to detect overwrites)
+      const allKits = await pool.query(`SELECT id, sku, cost_price FROM kits`);
+      const allUpgrades = await pool.query(`SELECT id, sku, cost_price FROM upgrades`);
 
-      // Build lookup maps: sku (normalised) → id, and id → type
-      const kitBySku = new Map<string, string>();
+      // Build lookup maps: sku (normalised) → { id, hasCostPrice }, and id → hasCostPrice
+      const kitBySku = new Map<string, { id: string; hasCostPrice: boolean }>();
       const kitById = new Map<string, boolean>();
       for (const row of allKits.rows) {
-        if (row.sku) kitBySku.set(row.sku.trim().toLowerCase(), row.id);
-        kitById.set(row.id, true);
+        const hasCostPrice = row.cost_price !== null && row.cost_price !== undefined;
+        if (row.sku) kitBySku.set(row.sku.trim().toLowerCase(), { id: row.id, hasCostPrice });
+        kitById.set(row.id, hasCostPrice);
       }
-      const upgradeBySku = new Map<string, string>();
+      const upgradeBySku = new Map<string, { id: string; hasCostPrice: boolean }>();
       const upgradeById = new Map<string, boolean>();
       for (const row of allUpgrades.rows) {
-        if (row.sku) upgradeBySku.set(row.sku.trim().toLowerCase(), row.id);
-        upgradeById.set(row.id, true);
+        const hasCostPrice = row.cost_price !== null && row.cost_price !== undefined;
+        if (row.sku) upgradeBySku.set(row.sku.trim().toLowerCase(), { id: row.id, hasCostPrice });
+        upgradeById.set(row.id, hasCostPrice);
       }
 
       for (let i = 0; i < rows.length; i++) {
@@ -1492,26 +1495,34 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         // Try kit by SKU first, then by ID
         let matched = false;
         if (kitBySku.has(identifierLower)) {
-          const id = kitBySku.get(identifierLower)!;
-          await pool.query(`UPDATE kits SET cost_price = $1 WHERE id = $2`, [pence, id]);
-          updated++;
+          const entry = kitBySku.get(identifierLower)!;
+          await pool.query(`UPDATE kits SET cost_price = $1 WHERE id = $2`, [pence, entry.id]);
+          entry.hasCostPrice ? overwritten++ : updated++;
+          entry.hasCostPrice = true; // mark so duplicate rows in same CSV count as overwrites
+          kitById.set(entry.id, true);
           matched = true;
         } else if (kitById.has(rawIdentifier)) {
+          const hasCostPrice = kitById.get(rawIdentifier)!;
           await pool.query(`UPDATE kits SET cost_price = $1 WHERE id = $2`, [pence, rawIdentifier]);
-          updated++;
+          hasCostPrice ? overwritten++ : updated++;
+          kitById.set(rawIdentifier, true);
           matched = true;
         }
 
         if (!matched) {
           // Try upgrade by SKU first, then by ID
           if (upgradeBySku.has(identifierLower)) {
-            const id = upgradeBySku.get(identifierLower)!;
-            await pool.query(`UPDATE upgrades SET cost_price = $1 WHERE id = $2`, [pence, id]);
-            updated++;
+            const entry = upgradeBySku.get(identifierLower)!;
+            await pool.query(`UPDATE upgrades SET cost_price = $1 WHERE id = $2`, [pence, entry.id]);
+            entry.hasCostPrice ? overwritten++ : updated++;
+            entry.hasCostPrice = true; // mark so duplicate rows in same CSV count as overwrites
+            upgradeById.set(entry.id, true);
             matched = true;
           } else if (upgradeById.has(rawIdentifier)) {
+            const hasCostPrice = upgradeById.get(rawIdentifier)!;
             await pool.query(`UPDATE upgrades SET cost_price = $1 WHERE id = $2`, [pence, rawIdentifier]);
-            updated++;
+            hasCostPrice ? overwritten++ : updated++;
+            upgradeById.set(rawIdentifier, true);
             matched = true;
           }
         }
@@ -1522,7 +1533,7 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
         }
       }
 
-      res.json({ ok: true, updated, skipped, errors });
+      res.json({ ok: true, updated, overwritten, skipped, errors });
     } catch (err) {
       console.error("Cost price import:", err);
       res.status(500).json({ error: "Failed to import cost prices" });

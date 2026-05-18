@@ -472,7 +472,7 @@ function ImportResultsDialog({
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  result: { updated: number; skipped: number; errors: string[] } | null;
+  result: { updated: number; overwritten: number; skipped: number; errors: string[] } | null;
 }) {
   if (!result) return null;
   return (
@@ -491,10 +491,22 @@ function ImportResultsDialog({
               <p className="text-xs text-muted-foreground mt-0.5">Updated</p>
             </div>
             <div className="flex-1 rounded-md border bg-muted/40 px-4 py-3 text-center">
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{result.overwritten}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Overwritten</p>
+            </div>
+            <div className="flex-1 rounded-md border bg-muted/40 px-4 py-3 text-center">
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{result.skipped}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Skipped</p>
             </div>
           </div>
+          {result.overwritten > 0 && (
+            <div className="rounded-md border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 px-3 py-2 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-orange-500 dark:text-orange-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-orange-700 dark:text-orange-300">
+                <span className="font-semibold">{result.overwritten} item{result.overwritten !== 1 ? "s" : ""}</span> had an existing cost price that was replaced. Check this looks correct before continuing.
+              </p>
+            </div>
+          )}
           {result.errors.length > 0 && (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-1">
               <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
@@ -631,6 +643,7 @@ export default function AdminSkuManager() {
   const csvFileInputRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState<{
     updated: number;
+    overwritten: number;
     skipped: number;
     errors: string[];
   } | null>(null);
@@ -642,7 +655,7 @@ export default function AdminSkuManager() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/kits"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/upgrades"] });
-      setImportResult({ updated: data.updated ?? 0, skipped: data.skipped ?? 0, errors: data.errors ?? [] });
+      setImportResult({ updated: data.updated ?? 0, overwritten: data.overwritten ?? 0, skipped: data.skipped ?? 0, errors: data.errors ?? [] });
       setImportResultOpen(true);
     },
     onError: () => toast({ title: "Import failed", description: "Could not process the file. Please try again.", variant: "destructive" }),
