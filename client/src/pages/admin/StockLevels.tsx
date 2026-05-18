@@ -762,6 +762,33 @@ export default function StockLevels() {
             </div>
           )}
           <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-bom-sync-history-download"
+              onClick={async () => {
+                const res = await fetch("/api/admin/stock/bom-sync-history?limit=50", { credentials: "include" });
+                if (!res.ok) return;
+                const entries: BomSyncEntry[] = await res.json();
+                const rows = [
+                  ["When", "SKUs Imported"],
+                  ...entries.map((entry) => [
+                    new Date(entry.syncedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" }),
+                    String(entry.skusImported),
+                  ]),
+                ];
+                const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "bom-sync-history.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              Download CSV
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setSyncHistoryOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
