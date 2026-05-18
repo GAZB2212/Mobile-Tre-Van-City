@@ -9804,7 +9804,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       const base = `${req.protocol}://${req.get("host")}`;
       const webhookUrl = encodeURIComponent(`${base}/api/webhooks/wrapgen-link/${token}`);
-      const wrapgenUrl = `https://www.wrapgen.co.uk?mtvc_token=${token}&mtvc_webhook=${webhookUrl}&mtvc_ref=${quoteRef}`;
+      const wrapgenUrl = `http://wrapgen.co.uk?mtvc_token=${token}&mtvc_webhook=${webhookUrl}&mtvc_ref=${quoteRef}`;
 
       res.json({ token, wrapgenUrl });
     } catch (err) {
