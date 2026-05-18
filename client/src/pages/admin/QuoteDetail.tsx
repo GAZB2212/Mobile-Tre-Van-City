@@ -105,6 +105,7 @@ interface QuoteDetail extends Quote {
   // WrapGen artwork approval fields (added via server migration)
   wrapgenPreviewId: string | null;
   wrapgenPreviewUrl: string | null;
+  wrapgenProofSentAt: string | null;
   artworkApprovedAt: string | null;
   artworkApprovedBy: string | null;
 }
@@ -382,9 +383,11 @@ export default function AdminQuoteDetail() {
     // Poll for live updates — when in build (workshop progress) or awaiting finance decision
     // refetchIntervalInBackground: false pauses polling when the admin tab is not visible
     refetchInterval: (query) => {
-      const q = query.state.data as any;
+      const q = query.state.data as QuoteDetail | undefined;
       if (q?.status === "in_build") return 30_000;
       if (q?.status === "awaiting_finance") return 30_000;
+      // Poll while a WrapGen proof is sent but not yet approved — picks up webhook updates
+      if (q?.wrapgenPreviewUrl && !q.artworkApprovedAt) return 15_000;
       return false;
     },
     refetchIntervalInBackground: false,

@@ -15,6 +15,7 @@ interface ArtworkApprovalRow {
   wrapgen_preview_url: string;
   artwork_approved_at: string | null;
   artwork_approved_by: string | null;
+  wrapgen_proof_sent_at: string | null;
   created_at: string;
   status: string;
   selected_upgrade_ids: string[];
@@ -133,7 +134,9 @@ export default function ArtworkApprovals() {
                       </>
                     ) : (
                       <>
-                        <p>Sent {new Date(row.created_at).toLocaleDateString("en-GB", { dateStyle: "medium" })}</p>
+                        <p>
+                          Sent {new Date(row.wrapgen_proof_sent_at ?? row.created_at).toLocaleDateString("en-GB", { dateStyle: "medium" })}
+                        </p>
                         <p className="text-yellow-500">Pending</p>
                       </>
                     )}

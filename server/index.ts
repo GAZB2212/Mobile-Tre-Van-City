@@ -715,6 +715,7 @@ app.use((req, res, next) => {
           Promise.all([
             pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS wrapgen_preview_id TEXT`),
             pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS wrapgen_preview_url TEXT`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS wrapgen_proof_sent_at TIMESTAMPTZ`),
             pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS artwork_approved_at TIMESTAMPTZ`),
             pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS artwork_approved_by TEXT`),
           ])

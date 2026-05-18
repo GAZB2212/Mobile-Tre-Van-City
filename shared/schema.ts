@@ -288,6 +288,7 @@ export const quotes = pgTable("quotes", {
   // WrapGen artwork approval tracking
   wrapgenPreviewId: text("wrapgen_preview_id"),      // ID extracted from the WrapGen preview URL (used for webhook matching)
   wrapgenPreviewUrl: text("wrapgen_preview_url"),    // Full WrapGen 3D render URL shared with customer
+  wrapgenProofSentAt: timestamp("wrapgen_proof_sent_at", { withTimezone: true }), // When the proof URL was first/last saved by staff
   artworkApprovedAt: timestamp("artwork_approved_at", { withTimezone: true }), // Set by WrapGen webhook
   artworkApprovedBy: text("artwork_approved_by"),    // Approver name from WrapGen webhook payload
 

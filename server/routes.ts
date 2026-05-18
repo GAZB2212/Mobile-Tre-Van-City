@@ -9657,11 +9657,21 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   app.patch("/api/admin/quotes/:id/wrapgen-proof", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
       const { previewUrl } = z.object({ previewUrl: z.string().url("Must be a valid URL") }).parse(req.body);
-      // Extract the preview ID from the URL (last non-empty path segment).
-      // e.g. https://app.wrapgen.com/preview/abc123  →  "abc123"
-      const previewId = previewUrl.split("/").filter(Boolean).pop() ?? previewUrl;
+      // Safely extract the preview ID from the URL pathname only (no query strings or fragments).
+      // e.g. https://app.wrapgen.com/preview/abc123?token=x  →  "abc123"
+      let previewId: string;
+      try {
+        const parsed = new URL(previewUrl);
+        previewId = parsed.pathname.split("/").filter(Boolean).pop() ?? previewUrl;
+      } catch {
+        previewId = previewUrl.split("/").filter(Boolean).pop() ?? previewUrl;
+      }
       await pool.query(
-        `UPDATE quotes SET wrapgen_preview_id = $1, wrapgen_preview_url = $2 WHERE id = $3`,
+        `UPDATE quotes
+         SET wrapgen_preview_id    = $1,
+             wrapgen_preview_url   = $2,
+             wrapgen_proof_sent_at = NOW()
+         WHERE id = $3`,
         [previewId, previewUrl, req.params.id]
       );
       res.json({ ok: true, previewId, previewUrl });
@@ -9684,6 +9694,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           q.wrapgen_preview_url,
           q.artwork_approved_at,
           q.artwork_approved_by,
+          q.wrapgen_proof_sent_at,
           q.created_at,
           q.status,
           q.selected_upgrade_ids,
@@ -9702,7 +9713,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         FROM quotes q
         LEFT JOIN vans v ON v.id = q.van_id
         WHERE q.wrapgen_preview_id IS NOT NULL
-        ORDER BY q.created_at DESC
+        ORDER BY COALESCE(q.wrapgen_proof_sent_at, q.created_at) DESC
       `);
       res.json(rows);
     } catch (err) {
@@ -9731,6 +9742,14 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         ? approvedByName.trim()
         : "Customer";
 
+      // Idempotent: check whether this quote is already approved before writing.
+      // WrapGen may retry webhooks; we must not duplicate the timeline note.
+      const { rows: existing } = await pool.query(
+        `SELECT artwork_approved_at FROM quotes WHERE id = $1 LIMIT 1`,
+        [quoteId]
+      );
+      const alreadyApproved = existing[0]?.artwork_approved_at != null;
+
       await pool.query(
         `UPDATE quotes
          SET artwork_approved_at = $1,
@@ -9739,20 +9758,22 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         [approvedAtDate, approverName, quoteId]
       );
 
-      // Append an activity note so it shows up in the quote timeline
-      await pool.query(
-        `UPDATE quotes
-         SET admin_notes_history = COALESCE(admin_notes_history, '[]'::jsonb) || $1::jsonb
-         WHERE id = $2`,
-        [
-          JSON.stringify([{
-            text: `Wrap artwork approved via WrapGen by ${approverName}.`,
-            timestamp: approvedAtDate.toISOString(),
-            author: "WrapGen",
-          }]),
-          quoteId,
-        ]
-      );
+      // Append the timeline note only on first approval — skip if already recorded
+      if (!alreadyApproved) {
+        await pool.query(
+          `UPDATE quotes
+           SET admin_notes_history = COALESCE(admin_notes_history, '[]'::jsonb) || $1::jsonb
+           WHERE id = $2`,
+          [
+            JSON.stringify([{
+              text: `Wrap artwork approved via WrapGen by ${approverName}.`,
+              timestamp: approvedAtDate.toISOString(),
+              author: "WrapGen",
+            }]),
+            quoteId,
+          ]
+        );
+      }
 
       res.json({ ok: true });
     } catch (err) {
