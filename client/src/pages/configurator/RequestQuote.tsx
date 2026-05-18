@@ -119,7 +119,7 @@ export default function RequestQuote() {
       const vat = Math.round(subtotal * 0.2);
       const total = subtotal + vat;
 
-      // Option B pricing (compare mode — only van differs; kit/upgrades shared from slot A)
+      // Option B pricing (compare mode — only van differs; kit/upgrades/training are shared from slot A)
       let subtotalB = 0;
       if (compareMode) {
         const vanBPrice = vanB?.price ?? slotB.customVanValue ?? 0;
@@ -230,7 +230,7 @@ export default function RequestQuote() {
     if (!van) subtotal += ownVanPricePence;
     if (kit) subtotal += kit.price;
     upgrades.forEach(upgrade => {
-      subtotal += upgrade.price * 1; // Quantity is always 1 for now
+      subtotal += upgrade.price * (state.upgradeQuantities[upgrade.id] ?? 1);
     });
     trainingOptions.forEach(option => {
       subtotal += option.price;
@@ -556,7 +556,7 @@ export default function RequestQuote() {
                           {(() => {
                             const vanBPrice = vanB?.price ?? slotB.customVanValue ?? 0;
                             const kitPrice = kit?.price ?? 0;
-                            const upgsTotal = upgrades.reduce((s, u) => s + u.price, 0);
+                            const upgsTotal = upgrades.reduce((s, u) => s + u.price * (state.upgradeQuantities[u.id] ?? 1), 0);
                             const trainTotal = trainingOptions.reduce((s, t) => s + t.price, 0);
                             const subB = vanBPrice + kitPrice + upgsTotal + trainTotal;
                             const totalB = subB + Math.round(subB * 0.2);
@@ -569,7 +569,10 @@ export default function RequestQuote() {
                         <div className="text-xs text-muted-foreground bg-muted/30 rounded-md px-3 py-2 space-y-0.5">
                           <p className="font-medium text-foreground mb-1">Shared configuration (both options)</p>
                           {kit && <p>Pack: {kit.name} · {formatPrice(kit.price)}</p>}
-                          {upgrades.map(u => <p key={u.id}>{u.name} · {formatPrice(u.price)}</p>)}
+                          {upgrades.map(u => {
+                            const qty = state.upgradeQuantities[u.id] ?? 1;
+                            return <p key={u.id}>{u.name}{qty > 1 ? ` ×${qty}` : ''} · {formatPrice(u.price * qty)}</p>;
+                          })}
                           {trainingOptions.map(t => <p key={t.id}>{t.name} · {formatPrice(t.price)}</p>)}
                         </div>
                       )}

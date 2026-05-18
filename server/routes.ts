@@ -742,10 +742,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? Promise.all(emailSlotBUpgradeIds.map((uid) => storage.getUpgrade(uid)))
               : Promise.resolve([]),
           ]);
+          const emailSlotBUpgradesOrdered = await sortUpgradesByDisplayOrder(slotBUpgrades.filter(Boolean) as any[]);
+          // In compare mode, slot B shares quantities with slot A (same upgradeQuantities)
+          const emailQuantities: Record<string, number> = (validatedData.selectedUpgrades as Record<string, number>) || {};
           comparisonSlotBEmail = {
             vanTitle: slotBVan?.title ?? (emailSlotB.vanRegistration ? `Own van (${emailSlotB.vanRegistration})` : null),
             kitName: slotBKit?.name ?? null,
-            upgradeNames: (await sortUpgradesByDisplayOrder(slotBUpgrades.filter(Boolean) as any[])).map((u: any) => u.name),
+            upgradeNames: emailSlotBUpgradesOrdered.map((u: any) => {
+              const qty = emailQuantities[u.id] ?? 1;
+              return qty > 1 ? `${u.name} ×${qty}` : u.name;
+            }),
             estSubtotal: emailSlotB.estSubtotal,
             estVAT: emailSlotB.estVAT,
             estTotal: emailSlotB.estTotal,
@@ -780,7 +786,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quote,
           vanTitle: van?.title ?? null,
           kitName: kit?.name ?? null,
-          upgradeNames: (await sortUpgradesByDisplayOrder(upgrades.filter(Boolean) as any[])).map((u: any) => u.name),
+          upgradeNames: (await sortUpgradesByDisplayOrder(upgrades.filter(Boolean) as any[])).map((u: any) => {
+            const qty = (validatedData.selectedUpgrades as Record<string, number>)?.[u.id] ?? 1;
+            return qty > 1 ? `${u.name} ×${qty}` : u.name;
+          }),
           comparisonSlotB: comparisonSlotBEmail,
           financeInfoA: financeInfoA ?? undefined,
           financeInfoB: financeInfoB ?? undefined,
