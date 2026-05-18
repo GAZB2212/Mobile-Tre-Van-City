@@ -1936,7 +1936,7 @@ export default function CustomerProfile() {
                                 size="sm"
                                 onClick={() => targetQuoteId
                                   ? generateWrapgenLinkMutation.mutate(targetQuoteId)
-                                  : window.open("https://www.wrapgen.co.uk", "_blank")}
+                                  : window.open("http://wrapgen.co.uk", "_blank")}
                                 disabled={generateWrapgenLinkMutation.isPending || (quotesWithoutWrapgen.length > 1 && !selectedQuoteId)}
                                 data-testid="button-open-wrapgen"
                               >
