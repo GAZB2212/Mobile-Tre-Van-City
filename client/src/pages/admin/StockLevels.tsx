@@ -39,6 +39,7 @@ interface BomSyncEntry {
   id: string;
   syncedAt: string;
   skusImported: number;
+  triggeredBy: string | null;
 }
 
 function StockBadge({ item }: { item: StockItem }) {
@@ -734,14 +735,18 @@ export default function StockLevels() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">By</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">SKUs imported</th>
                   </tr>
                 </thead>
                 <tbody>
                   {bomSyncHistory.map((entry) => (
                     <tr key={entry.id} className="border-b last:border-0">
-                      <td className="px-3 py-1.5 text-muted-foreground">
+                      <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">
                         {new Date(entry.syncedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                      </td>
+                      <td className="px-3 py-1.5 text-muted-foreground">
+                        {entry.triggeredBy ?? <span className="italic">server startup</span>}
                       </td>
                       <td className="px-3 py-1.5 text-right tabular-nums">
                         {entry.skusImported === 0 ? (

@@ -9534,7 +9534,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     try {
       const { defaultThreshold } = req.body as { defaultThreshold?: number };
       const threshold = typeof defaultThreshold === "number" && defaultThreshold >= 0 ? Math.floor(defaultThreshold) : undefined;
-      const result = await storage.syncStockFromBom(threshold);
+      const sessionUser = (req.session as any)?.user;
+      const triggeredBy: string | undefined = sessionUser?.username ?? sessionUser?.email ?? undefined;
+      const result = await storage.syncStockFromBom(threshold, triggeredBy);
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
