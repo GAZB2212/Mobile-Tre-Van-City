@@ -3062,40 +3062,46 @@ export class DbStorage implements IStorage {
   }
 
   async syncStockFromBom(defaultThreshold: number = 2, triggeredBy?: string): Promise<{ synced: number; newSkus: string[] }> {
-    const { rows: kitRows } = await pool.query(
-      `SELECT sku_components FROM kits WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
-    );
-    const { rows: upgradeRows } = await pool.query(
-      `SELECT sku_components FROM upgrades WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
-    );
-    const allComponents = [
-      ...kitRows.flatMap((r: any) => (r.sku_components as any[]) || []),
-      ...upgradeRows.flatMap((r: any) => (r.sku_components as any[]) || []),
-    ];
-    const skuDescMap = new Map<string, string>();
-    for (const c of allComponents) {
-      const s = (c?.sku ?? "").trim();
-      if (s && !skuDescMap.has(s)) {
-        skuDescMap.set(s, c.description ?? "");
-      }
-    }
     const newSkus: string[] = [];
-    for (const [sku, desc] of skuDescMap) {
-      const result = await pool.query(
-        `INSERT INTO stock_items (sku, description, on_hand, low_stock_threshold, updated_at)
-         VALUES ($1, $2, 0, $3, NOW()) ON CONFLICT (sku) DO NOTHING`,
-        [sku, desc, defaultThreshold]
+    try {
+      const { rows: kitRows } = await pool.query(
+        `SELECT sku_components FROM kits WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
       );
-      if (result.rowCount && result.rowCount > 0) newSkus.push(sku);
+      const { rows: upgradeRows } = await pool.query(
+        `SELECT sku_components FROM upgrades WHERE sku_components IS NOT NULL AND jsonb_array_length(sku_components) > 0`
+      );
+      const allComponents = [
+        ...kitRows.flatMap((r: any) => (r.sku_components as any[]) || []),
+        ...upgradeRows.flatMap((r: any) => (r.sku_components as any[]) || []),
+      ];
+      const skuDescMap = new Map<string, string>();
+      for (const c of allComponents) {
+        const s = (c?.sku ?? "").trim();
+        if (s && !skuDescMap.has(s)) {
+          skuDescMap.set(s, c.description ?? "");
+        }
+      }
+      for (const [sku, desc] of skuDescMap) {
+        const result = await pool.query(
+          `INSERT INTO stock_items (sku, description, on_hand, low_stock_threshold, updated_at)
+           VALUES ($1, $2, 0, $3, NOW()) ON CONFLICT (sku) DO NOTHING`,
+          [sku, desc, defaultThreshold]
+        );
+        if (result.rowCount && result.rowCount > 0) newSkus.push(sku);
+      }
+      await this.logBomSync(newSkus.length, triggeredBy);
+      return { synced: newSkus.length, newSkus };
+    } catch (err: any) {
+      const errorMessage = err?.message ?? "Unknown error";
+      await this.logBomSync(newSkus.length, triggeredBy, errorMessage).catch(() => {});
+      throw err;
     }
-    await this.logBomSync(newSkus.length, triggeredBy);
-    return { synced: newSkus.length, newSkus };
   }
 
-  async logBomSync(skusImported: number, triggeredBy?: string): Promise<void> {
+  async logBomSync(skusImported: number, triggeredBy?: string, errorMessage?: string): Promise<void> {
     await pool.query(
-      `INSERT INTO bom_sync_log (skus_imported, triggered_by) VALUES ($1, $2)`,
-      [skusImported, triggeredBy ?? null]
+      `INSERT INTO bom_sync_log (skus_imported, triggered_by, error_message) VALUES ($1, $2, $3)`,
+      [skusImported, triggeredBy ?? null, errorMessage ?? null]
     );
     // Keep only the 50 most recent entries
     await pool.query(
@@ -3105,9 +3111,9 @@ export class DbStorage implements IStorage {
     );
   }
 
-  async getBomSyncHistory(limit: number = 20): Promise<Array<{ id: string; syncedAt: Date; skusImported: number; triggeredBy: string | null }>> {
+  async getBomSyncHistory(limit: number = 20): Promise<Array<{ id: string; syncedAt: Date; skusImported: number; triggeredBy: string | null; errorMessage: string | null }>> {
     const { rows } = await pool.query(
-      `SELECT id, synced_at AS "syncedAt", skus_imported AS "skusImported", triggered_by AS "triggeredBy"
+      `SELECT id, synced_at AS "syncedAt", skus_imported AS "skusImported", triggered_by AS "triggeredBy", error_message AS "errorMessage"
        FROM bom_sync_log ORDER BY synced_at DESC LIMIT $1`,
       [limit]
     );

@@ -40,6 +40,7 @@ interface BomSyncEntry {
   syncedAt: string;
   skusImported: number;
   triggeredBy: string | null;
+  errorMessage: string | null;
 }
 
 function StockBadge({ item }: { item: StockItem }) {
@@ -737,6 +738,7 @@ export default function StockLevels() {
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">By</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">SKUs imported</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Outcome</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -749,10 +751,23 @@ export default function StockLevels() {
                         {entry.triggeredBy ?? <span className="italic">server startup</span>}
                       </td>
                       <td className="px-3 py-1.5 text-right tabular-nums">
-                        {entry.skusImported === 0 ? (
+                        {entry.skusImported === 0 && !entry.errorMessage ? (
                           <span className="text-muted-foreground">none</span>
+                        ) : entry.errorMessage ? (
+                          <span className="text-muted-foreground">—</span>
                         ) : (
                           <Badge variant="outline" className="no-default-active-elevate text-xs">+{entry.skusImported}</Badge>
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        {entry.errorMessage ? (
+                          <span className="text-red-600 dark:text-red-400" title={entry.errorMessage}>
+                            Error: {entry.errorMessage.length > 60 ? entry.errorMessage.slice(0, 60) + "…" : entry.errorMessage}
+                          </span>
+                        ) : entry.skusImported > 0 ? (
+                          <span className="text-green-600 dark:text-green-400">Success</span>
+                        ) : (
+                          <span className="text-muted-foreground">No new SKUs</span>
                         )}
                       </td>
                     </tr>
@@ -771,10 +786,12 @@ export default function StockLevels() {
                 if (!res.ok) return;
                 const entries: BomSyncEntry[] = await res.json();
                 const rows = [
-                  ["When", "SKUs Imported"],
+                  ["When", "Triggered By", "SKUs Imported", "Outcome"],
                   ...entries.map((entry) => [
                     new Date(entry.syncedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" }),
+                    entry.triggeredBy ?? "server startup",
                     String(entry.skusImported),
+                    entry.errorMessage ? `Error: ${entry.errorMessage}` : entry.skusImported > 0 ? "Success" : "No new SKUs",
                   ]),
                 ];
                 const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");

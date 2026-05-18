@@ -972,6 +972,10 @@ app.use((req, res, next) => {
         .then(() => log("✅ bom_sync_log.triggered_by column ready"))
         .catch((err: Error) => console.error("BOM sync log triggered_by migration:", err.message));
 
+      pool.query(`ALTER TABLE bom_sync_log ADD COLUMN IF NOT EXISTS error_message TEXT`)
+        .then(() => log("✅ bom_sync_log.error_message column ready"))
+        .catch((err: Error) => console.error("BOM sync log error_message migration:", err.message));
+
       // Backfill: reprice existing £0 Max AI quotes and create missing draft quotes
       // for any completed conversations. Runs as a proper async function so we can do
       // JS-side price calculations with kit+upgrade DB lookups.
