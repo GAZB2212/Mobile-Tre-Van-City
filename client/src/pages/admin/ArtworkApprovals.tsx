@@ -37,7 +37,7 @@ export default function ArtworkApprovals() {
 
   const { data: rows = [], isLoading } = useQuery<ArtworkApprovalRow[]>({
     queryKey: ["/api/admin/artwork-approvals"],
-    enabled: !!(user?.adminRole && user.adminRole !== "none"),
+    enabled: !!(user?.adminRole && user.adminRole === "full"),
   });
 
   const approved = rows.filter(r => r.artwork_approved_at);

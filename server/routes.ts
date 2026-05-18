@@ -9683,7 +9683,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   });
 
   // List all quotes that have a WrapGen preview linked, for the artwork approvals dashboard.
-  app.get("/api/admin/artwork-approvals", isAuthenticated, isBasicAdmin, async (req, res) => {
+  app.get("/api/admin/artwork-approvals", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
       const { rows } = await pool.query(`
         SELECT
