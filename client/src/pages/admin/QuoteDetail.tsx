@@ -2921,8 +2921,8 @@ export default function AdminQuoteDetail() {
               </Card>
             )}
 
-            {/* WrapGen 3D Render Tracking — Configuration tab, wrap quotes only */}
-            {activeTab === "configuration" && hasWrapUpgrade && (
+            {/* WrapGen 3D Render Tracking — moved to Customer profile page */}
+            {false && activeTab === "configuration" && hasWrapUpgrade && (
               <Card data-testid="card-wrapgen-artwork">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

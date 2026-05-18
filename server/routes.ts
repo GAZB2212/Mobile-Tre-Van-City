@@ -7740,7 +7740,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows, artworkProofsRows, artworkMessagesRows] = await Promise.all([
         storage.getCustomerNotes(id),
         pool.query(`SELECT *, reassignment_history FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history, wrapgen_preview_url, wrapgen_preview_id, wrapgen_proof_sent_at, artwork_approved_at, artwork_approved_by FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
         // Records NOT currently owned by this customer but with any history entry mentioning them

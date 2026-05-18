@@ -20,7 +20,7 @@ import {
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
   Merge, Search, ShieldAlert, Scissors, UserCircle,
   ImageIcon, Upload, Send, ZoomIn, ChevronDown, ChevronUp,
-  MessageCircle, RefreshCw,
+  MessageCircle, RefreshCw, Copy, Loader2, CheckCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -386,6 +386,11 @@ export default function CustomerProfile() {
   const artworkInputRef = useRef<HTMLInputElement>(null);
   const [showEarlierRounds, setShowEarlierRounds] = useState(false);
 
+  // WrapGen 3D render state
+  const [wrapgenSelectedQuoteId, setWrapgenSelectedQuoteId] = useState<string>("");
+  const [wrapgenNewUrl, setWrapgenNewUrl] = useState<string>("");
+  const [wrapgenEditUrls, setWrapgenEditUrls] = useState<Record<string, string>>({});
+
   // Manual merge state
   const [showMergePanel, setShowMergePanel] = useState(false);
   const [mergeSearch, setMergeSearch] = useState("");
@@ -598,6 +603,19 @@ export default function CustomerProfile() {
       toast({ title: "Notes saved" });
     },
     onError: () => toast({ variant: "destructive", title: "Failed to save notes" }),
+  });
+
+  const saveWrapgenUrlMutation = useMutation({
+    mutationFn: ({ quoteId, previewUrl }: { quoteId: string; previewUrl: string }) =>
+      apiRequest("PATCH", `/api/admin/quotes/${quoteId}/wrapgen-proof`, { previewUrl }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers", id] });
+      setWrapgenNewUrl("");
+      setWrapgenSelectedQuoteId("");
+      setWrapgenEditUrls({});
+      toast({ title: "WrapGen render linked", description: "The 3D preview URL has been saved to the quote." });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to save WrapGen URL" }),
   });
 
   const handleArtworkCreateProof = async () => {
@@ -1755,6 +1773,152 @@ export default function CustomerProfile() {
                 )}
               </CardContent>
             </Card>
+
+            {/* WrapGen 3D Renders */}
+            {(() => {
+              const quotesWithWrapgen = quotes.filter((q: any) => q.wrapgen_preview_url);
+              const quotesWithoutWrapgen = quotes.filter((q: any) => !q.wrapgen_preview_url);
+              return (
+                <Card data-testid="panel-wrapgen-renders">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      WrapGen 3D Renders
+                      {quotesWithWrapgen.length > 0 && (
+                        <Badge className="ml-auto text-[10px] bg-muted text-muted-foreground no-default-active-elevate">
+                          {quotesWithWrapgen.length}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+
+                    {/* Existing linked renders */}
+                    {quotesWithWrapgen.length > 0 && (
+                      <div className="space-y-3">
+                        {quotesWithWrapgen.map((q: any) => (
+                          <div key={q.id} className="border rounded-md p-3 space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Link href={`/admin/quotes/${q.id}`} className="text-xs font-medium hover:underline">
+                                {q.user_name || q.email || "Quote"}
+                              </Link>
+                              <Badge variant="secondary" className="text-[10px] no-default-active-elevate capitalize">
+                                {(q.status ?? "").replace(/_/g, " ")}
+                              </Badge>
+                              {q.artwork_approved_at ? (
+                                <Badge className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 no-default-active-elevate gap-1 ml-auto">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Approved
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-[10px] no-default-active-elevate gap-1.5 ml-auto">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                                  Awaiting Approval
+                                </Badge>
+                              )}
+                            </div>
+                            {q.artwork_approved_at && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Approved by {q.artwork_approved_by || "customer"} ·{" "}
+                                {new Date(q.artwork_approved_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                              </p>
+                            )}
+                            <div className="flex gap-2">
+                              <Input
+                                readOnly={q.artwork_approved_at}
+                                value={q.artwork_approved_at ? q.wrapgen_preview_url : (wrapgenEditUrls[q.id] ?? q.wrapgen_preview_url)}
+                                onChange={e => !q.artwork_approved_at && setWrapgenEditUrls(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                className="text-xs font-mono"
+                                data-testid={`input-wrapgen-url-${q.id}`}
+                              />
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => { navigator.clipboard.writeText(q.wrapgen_preview_url); toast({ title: "URL copied" }); }}
+                                data-testid={`button-copy-wrapgen-${q.id}`}
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                              <a href={q.wrapgen_preview_url} target="_blank" rel="noopener noreferrer">
+                                <Button size="icon" variant="outline" data-testid={`button-open-wrapgen-${q.id}`}>
+                                  <ExternalLink className="w-4 h-4" />
+                                </Button>
+                              </a>
+                              {!q.artwork_approved_at && (wrapgenEditUrls[q.id] ?? "") !== q.wrapgen_preview_url && (wrapgenEditUrls[q.id] ?? "") !== "" && (
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => saveWrapgenUrlMutation.mutate({ quoteId: q.id, previewUrl: wrapgenEditUrls[q.id] })}
+                                  disabled={saveWrapgenUrlMutation.isPending}
+                                  data-testid={`button-save-wrapgen-${q.id}`}
+                                >
+                                  {saveWrapgenUrlMutation.isPending
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <Save className="w-4 h-4" />}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Link new render to a quote */}
+                    {quotesWithoutWrapgen.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          {quotesWithWrapgen.length === 0
+                            ? "Once the design team creates the artwork in WrapGen, paste the preview URL below to track customer approval."
+                            : "Link a 3D render to another quote:"}
+                        </p>
+                        <Select value={wrapgenSelectedQuoteId} onValueChange={setWrapgenSelectedQuoteId}>
+                          <SelectTrigger className="text-xs" data-testid="select-wrapgen-quote">
+                            <SelectValue placeholder="Select quote…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {quotesWithoutWrapgen.map((q: any) => (
+                              <SelectItem key={q.id} value={q.id} className="text-xs">
+                                {q.user_name || q.email || "Quote"} — {(q.status ?? "").replace(/_/g, " ")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="https://app.wrapgen.com/preview/..."
+                            value={wrapgenNewUrl}
+                            onChange={e => setWrapgenNewUrl(e.target.value)}
+                            className="text-xs"
+                            data-testid="input-wrapgen-new-url"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => saveWrapgenUrlMutation.mutate({ quoteId: wrapgenSelectedQuoteId, previewUrl: wrapgenNewUrl })}
+                            disabled={!wrapgenSelectedQuoteId || !wrapgenNewUrl || saveWrapgenUrlMutation.isPending}
+                            data-testid="button-save-wrapgen-new"
+                          >
+                            {saveWrapgenUrlMutation.isPending
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Save className="w-3.5 h-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {quotes.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">No linked quotes yet — WrapGen renders are attached per quote.</p>
+                    )}
+
+                    {/* Webhook info */}
+                    <div className="bg-muted/50 rounded-md p-3 text-xs space-y-1">
+                      <p className="font-medium text-foreground">WrapGen webhook URL</p>
+                      <p className="font-mono text-muted-foreground break-all">{window.location.origin}/api/webhooks/wrapgen</p>
+                      <p className="text-muted-foreground">Add this to WrapGen so approvals are recorded automatically when the customer clicks Approve.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Activity Timeline */}
             <Card>
