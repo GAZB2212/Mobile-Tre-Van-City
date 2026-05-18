@@ -25,13 +25,19 @@ export default function PrivacyPolicy() {
         <Card data-testid="card-privacy-policy">
           <CardHeader>
             <CardTitle className="text-4xl">Privacy Policy</CardTitle>
-            <p className="text-muted-foreground">Last updated: November 2024</p>
+            <p className="text-muted-foreground">Last updated: November 2025</p>
           </CardHeader>
           <CardContent className="space-y-6 prose prose-invert max-w-none">
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-introduction">1. Introduction</h2>
               <p>
-                Mobile Tyre Van Conversions ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our services.
+                Mobile Tyre Van City ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our services.
+              </p>
+              <p className="mt-3">
+                For the purposes of UK data protection law (UK GDPR and the Data Protection Act 2018), Mobile Tyre Van City is the data controller of personal information collected through this website and through our services.
+              </p>
+              <p className="mt-3">
+                The website platform itself is owned by GAJO Creative Ltd (Company No. 16669280). GAJO Creative Ltd does not control or process the personal data collected through this website in the ordinary course of its operation. See our <Link href="/terms" className="text-primary hover:underline">Terms and Conditions, Section 12</Link>, for further detail on platform ownership.
               </p>
             </section>
 
@@ -47,14 +53,14 @@ export default function PrivacyPolicy() {
                 <li>Subscribe to our newsletter</li>
                 <li>Fill out a contact form</li>
               </ul>
-              <p>This information may include:</p>
+              <p className="mt-3">This information may include:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Name and contact details (email, phone number)</li>
                 <li>Company information</li>
                 <li>Vehicle information and preferences</li>
                 <li>Finance application details (if applicable)</li>
               </ul>
-              
+
               <p className="font-semibold mt-4">Automatically Collected Information</p>
               <p>When you visit our website, we may automatically collect certain information about your device, including:</p>
               <ul className="list-disc pl-6 space-y-2">
@@ -71,7 +77,7 @@ export default function PrivacyPolicy() {
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-usage">3. How We Use Your Information</h2>
               <p>We use the information we collect to:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Process and fulfill your quote requests and orders</li>
+                <li>Process and fulfil your quote requests and orders</li>
                 <li>Communicate with you about our services</li>
                 <li>Improve our website and services</li>
                 <li>Send you marketing communications (with your consent)</li>
@@ -86,10 +92,13 @@ export default function PrivacyPolicy() {
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-sharing">4. Information Sharing and Disclosure</h2>
               <p>We do not sell your personal information. We may share your information with:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Service Providers:</strong> Third-party companies that help us operate our business (e.g., payment processors, email service providers)</li>
+                <li><strong>Service Providers:</strong> Third-party companies that help us operate our business (e.g., payment processors, email service providers, hosting providers)</li>
                 <li><strong>Finance Partners:</strong> If you apply for finance, we may share relevant information with our finance partners</li>
                 <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
               </ul>
+              <p className="mt-3">
+                We do not share personal data with GAJO Creative Ltd as part of our normal business operations. GAJO Creative Ltd, as the platform owner, may have technical access to the platform infrastructure for the purposes of maintenance, security, and platform integrity, but does not process personal data for its own purposes.
+              </p>
             </section>
 
             <Separator />
@@ -106,7 +115,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-security">6. Data Security</h2>
               <p>
-                We implement appropriate technical and organizational measures to protect your personal information. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.
+                We implement appropriate technical and organisational measures to protect your personal information. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.
               </p>
             </section>
 
@@ -124,7 +133,11 @@ export default function PrivacyPolicy() {
                 <li><strong>Objection:</strong> Object to processing of your data</li>
                 <li><strong>Withdraw Consent:</strong> Withdraw consent at any time</li>
               </ul>
-              <p>To exercise these rights, please contact us using the details below.</p>
+              <p className="mt-3">To exercise these rights, please contact us using the details below.</p>
+              <p className="mt-3">
+                You also have the right to lodge a complaint with the Information Commissioner's Office (ICO) at{" "}
+                <a href="https://ico.org.uk" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">ico.org.uk</a>.
+              </p>
             </section>
 
             <Separator />
@@ -132,7 +145,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-retention">8. Data Retention</h2>
               <p>
-                We retain your personal information only for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required by law.
+                We retain your personal information only for as long as necessary to fulfil the purposes outlined in this Privacy Policy, unless a longer retention period is required by law.
               </p>
             </section>
 
@@ -149,11 +162,15 @@ export default function PrivacyPolicy() {
 
             <section>
               <h2 className="text-2xl font-semibold mb-3" data-testid="text-section-contact">10. Contact Us</h2>
-              <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
+              <p>For privacy-related enquiries and to exercise your data rights, please contact us:</p>
+              <div className="bg-muted p-4 rounded-lg mt-3 mb-4">
+                <p><strong>Email:</strong> <a href="mailto:privacy@mobiletyrevancity.co.uk" className="text-primary hover:underline">privacy@mobiletyrevancity.co.uk</a></p>
+                <p><strong>Phone:</strong> 0151 203 8500</p>
+                <p><strong>Address:</strong> 5-7 Bassendale Road, Bromborough, Wirral, CH62 3QL</p>
+              </div>
+              <p>For platform / Digital Asset licensing enquiries, please contact GAJO Creative Ltd:</p>
               <div className="bg-muted p-4 rounded-lg mt-3">
-                <p><strong>Email:</strong> privacy@mobiletyravan.co.uk</p>
-                <p><strong>Phone:</strong> 01234 567890</p>
-                <p><strong>Address:</strong> Mobile Tyre Van Conversions, Business Address, UK</p>
+                <p><strong>Email:</strong> <a href="mailto:hello@gajocreative.co.uk" className="text-primary hover:underline">hello@gajocreative.co.uk</a></p>
               </div>
             </section>
           </CardContent>
