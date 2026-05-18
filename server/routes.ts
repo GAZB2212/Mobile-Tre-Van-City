@@ -9706,7 +9706,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           (
             SELECT u.name
             FROM upgrades u
-            WHERE u.id = ANY(q.selected_upgrade_ids)
+            WHERE q.selected_upgrade_ids IS NOT NULL
+              AND u.id = ANY(q.selected_upgrade_ids)
               AND (u.name ~* 'wrap|graphics|livery')
             LIMIT 1
           ) AS wrap_type_name

@@ -929,6 +929,15 @@ export default function AdminQuoteDetail() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
+  // Detect whether any wrap/graphics upgrade is selected — used to show the WrapGen card.
+  // Must stay here (before any early return) to satisfy the Rules of Hooks.
+  const hasWrapUpgrade = useMemo(() => {
+    const wrapPat = /wrap|graphics|livery/i;
+    return upgrades
+      .filter(u => selectedUpgradeIds.includes(u.id))
+      .some(u => wrapPat.test(u.name) || wrapPat.test(u.category));
+  }, [upgrades, selectedUpgradeIds]);
+
   if (!user?.adminRole || user.adminRole === "none") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1248,13 +1257,6 @@ export default function AdminQuoteDetail() {
   // Pricing for the currently viewed slot (A = live edited, B = live recalculated with slotB's van)
   const isComparison = !!(quote?.comparisonConfig?.slotA && quote?.comparisonConfig?.slotB);
 
-  // Detect whether any wrap/graphics upgrade is selected — used to show the WrapGen card
-  const hasWrapUpgrade = useMemo(() => {
-    const wrapPat = /wrap|graphics|livery/i;
-    return upgrades
-      .filter(u => selectedUpgradeIds.includes(u.id))
-      .some(u => wrapPat.test(u.name) || wrapPat.test(u.category));
-  }, [upgrades, selectedUpgradeIds]);
   const slotBStored = quote?.comparisonConfig?.slotB;
 
   // Live recalculation for Option B — uses slot B's van but the same kit/upgrades as Option A
