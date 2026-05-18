@@ -682,17 +682,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quote = await storage.createQuote(quoteData);
 
       // Auto-link / create a unified Customer record (non-blocking, best-effort)
-      const customerName = validatedData.name ?? validatedData.userName ?? validatedData.email ?? "Unknown";
-      const customerEmail = validatedData.email ?? null;
-      const customerPhone = validatedData.phone ?? null;
-      if (customerName || customerEmail || customerPhone) {
-        storage.findOrCreateCustomer(customerEmail, customerPhone, customerName as string)
-          .then(customer =>
-            storage.linkQuoteToCustomer(quote.id, customer.id, "System (auto-link)")
-              .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, customerEmail, customerPhone))
-          )
-          .catch(err => console.error("Customer auto-link (quote) error:", err?.message));
-      }
+      // Use || (not ??) so empty strings fall through to the "Unknown" fallback
+      const customerName = validatedData.name || validatedData.userName || validatedData.email || "Unknown";
+      const customerEmail = validatedData.email || null;
+      const customerPhone = validatedData.phone || null;
+      storage.findOrCreateCustomer(customerEmail, customerPhone, customerName as string)
+        .then(customer =>
+          storage.linkQuoteToCustomer(quote.id, customer.id, "System (auto-link)")
+            .then(() => storage.backfillLeadsAndQuotesForCustomer(customer.id, customerEmail, customerPhone))
+        )
+        .catch(err => console.error("Customer auto-link (quote) error:", err?.message));
 
       // For comparison quotes, generate a choose-option token immediately so the initial
       // customer confirmation email can include secure selection links.

@@ -787,10 +787,10 @@ app.use((req, res, next) => {
                   await pool.query(`UPDATE leads SET customer_id = $1 WHERE id = $2`, [customerId, row.id]);
                 } catch { /* skip individual row errors */ }
               }
-              // Backfill from quotes (email or phone required)
+              // Backfill from quotes — includes name-only quotes (no email/phone)
               const quotesToLink = await pool.query(`
                 SELECT id, user_name, email, phone FROM quotes
-                WHERE customer_id IS NULL AND (email IS NOT NULL OR phone IS NOT NULL)
+                WHERE customer_id IS NULL
               `);
               for (const row of quotesToLink.rows) {
                 try {
