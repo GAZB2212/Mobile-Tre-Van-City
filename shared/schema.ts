@@ -285,6 +285,12 @@ export const quotes = pgTable("quotes", {
     reassignedAt: string;
   }>>().notNull().default([]),                           // Full audit chain of all reassignments
 
+  // WrapGen artwork approval tracking
+  wrapgenPreviewId: text("wrapgen_preview_id"),      // ID extracted from the WrapGen preview URL (used for webhook matching)
+  wrapgenPreviewUrl: text("wrapgen_preview_url"),    // Full WrapGen 3D render URL shared with customer
+  artworkApprovedAt: timestamp("artwork_approved_at", { withTimezone: true }), // Set by WrapGen webhook
+  artworkApprovedBy: text("artwork_approved_by"),    // Approver name from WrapGen webhook payload
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),

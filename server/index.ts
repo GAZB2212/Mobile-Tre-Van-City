@@ -711,6 +711,16 @@ app.use((req, res, next) => {
             .then(() => log("✅ Cost price columns ready"))
             .catch((err: Error) => console.error("Cost price migration:", err.message));
 
+          // ── WrapGen artwork approval columns ──────────────────────────────
+          Promise.all([
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS wrapgen_preview_id TEXT`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS wrapgen_preview_url TEXT`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS artwork_approved_at TIMESTAMPTZ`),
+            pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS artwork_approved_by TEXT`),
+          ])
+            .then(() => log("✅ WrapGen artwork columns ready"))
+            .catch((err: Error) => console.error("WrapGen migration:", err.message));
+
           // ── Mutual exclusivity: Silent Compressor (48V) vs Commercial Power Inversion ──
           // These two upgrades serve overlapping electrical/power roles and must not
           // both be selectable. We assign them the same exclusive_group so the

@@ -9649,6 +9649,110 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
     });
   }
+  // ── WrapGen artwork approval integration ──────────────────────────────────
+
+  // Save (or update) the WrapGen 3D render URL against a quote.
+  // The design team uploads artwork to WrapGen externally; staff paste the
+  // resulting preview URL here so MTVC can track customer approval via webhook.
+  app.patch("/api/admin/quotes/:id/wrapgen-proof", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const { previewUrl } = z.object({ previewUrl: z.string().url("Must be a valid URL") }).parse(req.body);
+      // Extract the preview ID from the URL (last non-empty path segment).
+      // e.g. https://app.wrapgen.com/preview/abc123  →  "abc123"
+      const previewId = previewUrl.split("/").filter(Boolean).pop() ?? previewUrl;
+      await pool.query(
+        `UPDATE quotes SET wrapgen_preview_id = $1, wrapgen_preview_url = $2 WHERE id = $3`,
+        [previewId, previewUrl, req.params.id]
+      );
+      res.json({ ok: true, previewId, previewUrl });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ error: err.errors[0]?.message ?? "Invalid URL" });
+      console.error("WrapGen proof save error:", err);
+      res.status(500).json({ error: "Failed to save WrapGen proof URL" });
+    }
+  });
+
+  // List all quotes that have a WrapGen preview linked, for the artwork approvals dashboard.
+  app.get("/api/admin/artwork-approvals", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { rows } = await pool.query(`
+        SELECT
+          q.id,
+          q.user_name,
+          q.email,
+          q.wrapgen_preview_id,
+          q.wrapgen_preview_url,
+          q.artwork_approved_at,
+          q.artwork_approved_by,
+          q.created_at,
+          q.status,
+          q.selected_upgrade_ids,
+          v.make,
+          v.model,
+          v.year,
+          q.custom_van_description
+        FROM quotes q
+        LEFT JOIN vans v ON v.id = q.van_id
+        WHERE q.wrapgen_preview_id IS NOT NULL
+        ORDER BY q.created_at DESC
+      `);
+      res.json(rows);
+    } catch (err) {
+      console.error("Artwork approvals list error:", err);
+      res.status(500).json({ error: "Failed to load artwork approvals" });
+    }
+  });
+
+  // Public webhook — called by WrapGen when a customer approves their artwork proof.
+  // No secret header required (WrapGen does not send one); endpoint is idempotent.
+  app.post("/api/webhooks/wrapgen", async (req, res) => {
+    try {
+      const { event, previewId, approvedByName, approvedAt } = req.body ?? {};
+      if (event !== "artwork.approved") return res.json({ ok: true, skipped: true });
+      if (!previewId) return res.status(400).json({ error: "Missing previewId" });
+
+      const { rows } = await pool.query(
+        `SELECT id FROM quotes WHERE wrapgen_preview_id = $1 LIMIT 1`,
+        [String(previewId)]
+      );
+      if (rows.length === 0) return res.json({ ok: true, skipped: true }); // unknown preview — ignore
+
+      const quoteId: string = rows[0].id;
+      const approvedAtDate = approvedAt ? new Date(approvedAt) : new Date();
+      const approverName: string = typeof approvedByName === "string" && approvedByName.trim()
+        ? approvedByName.trim()
+        : "Customer";
+
+      await pool.query(
+        `UPDATE quotes
+         SET artwork_approved_at = $1,
+             artwork_approved_by  = $2
+         WHERE id = $3`,
+        [approvedAtDate, approverName, quoteId]
+      );
+
+      // Append an activity note so it shows up in the quote timeline
+      await pool.query(
+        `UPDATE quotes
+         SET admin_notes_history = COALESCE(admin_notes_history, '[]'::jsonb) || $1::jsonb
+         WHERE id = $2`,
+        [
+          JSON.stringify([{
+            text: `Wrap artwork approved via WrapGen by ${approverName}.`,
+            timestamp: approvedAtDate.toISOString(),
+            author: "WrapGen",
+          }]),
+          quoteId,
+        ]
+      );
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("WrapGen webhook error:", err);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
   // ── End dev-only test helpers ──────────────────────────────────────────────
 
   const httpServer = createServer(app);
