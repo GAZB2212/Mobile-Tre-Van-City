@@ -1529,6 +1529,39 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
     }
   });
 
+  app.get("/api/admin/sku/cost-price-template", isFullAdmin, async (req, res) => {
+    try {
+      const kits = await pool.query(
+        `SELECT sku, name FROM kits WHERE sku IS NOT NULL AND sku <> '' ORDER BY name`
+      );
+      const upgrades = await pool.query(
+        `SELECT sku, name FROM upgrades WHERE sku IS NOT NULL AND sku <> '' ORDER BY name`
+      );
+
+      const rows: Array<{ sku: string; name: string }> = [
+        ...kits.rows,
+        ...upgrades.rows,
+      ];
+
+      const escape = (s: string) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+
+      let csv = "SKU,Item Name,Cost Price (£)\r\n";
+      for (const row of rows) {
+        csv += `${escape(row.sku)},${escape(row.name)},\r\n`;
+      }
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="cost-price-template.csv"'
+      );
+      res.send(csv);
+    } catch (err) {
+      console.error("Cost price template:", err);
+      res.status(500).json({ error: "Failed to generate template" });
+    }
+  });
+
   app.post("/api/admin/sku/backfill", isFullAdmin, async (req, res) => {
     try {
       let count = 0;

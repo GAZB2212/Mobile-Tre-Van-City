@@ -522,27 +522,72 @@ function ImportResultsDialog({
 }
 
 // ── CSV parsing helper ────────────────────────────────────────────────────────
+/** Parse a single CSV line respecting double-quoted fields (RFC 4180 subset). */
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let i = 0;
+  while (i <= line.length) {
+    if (line[i] === '"') {
+      // Quoted field
+      let field = "";
+      i++; // skip opening quote
+      while (i < line.length) {
+        if (line[i] === '"' && line[i + 1] === '"') {
+          field += '"';
+          i += 2;
+        } else if (line[i] === '"') {
+          i++; // skip closing quote
+          break;
+        } else {
+          field += line[i++];
+        }
+      }
+      fields.push(field);
+      if (line[i] === ",") i++; // skip comma after field
+    } else {
+      // Unquoted field — read up to next comma or end
+      const end = line.indexOf(",", i);
+      if (end === -1) {
+        fields.push(line.slice(i).trim());
+        break;
+      } else {
+        fields.push(line.slice(i, end).trim());
+        i = end + 1;
+      }
+    }
+  }
+  return fields;
+}
+
 function parseCostPriceCsv(text: string): Array<{ identifier: string; costPrice: number }> | { error: string } {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length === 0) return { error: "The file appears to be empty." };
 
   const rows: Array<{ identifier: string; costPrice: number }> = [];
 
-  // Detect if the first line is a header (non-numeric in the second column)
+  // Detect header and determine which column holds the cost price.
+  // 3-column template: SKU | Item Name | Cost Price (£)  → price at index 2
+  // Legacy 2-column:   SKU | Cost Price (£)              → price at index 1
   let startLine = 0;
-  const firstCols = lines[0].split(",");
-  if (firstCols.length >= 2) {
-    const secondCol = firstCols[1].trim().replace(/^["']|["']$/g, "");
-    if (isNaN(parseFloat(secondCol))) {
-      startLine = 1; // skip header row
+  let priceColIndex = 1;
+
+  const headerCols = parseCsvLine(lines[0]);
+  if (headerCols.length >= 2) {
+    // If the second column is non-numeric it's a header row
+    if (isNaN(parseFloat(headerCols[1]))) {
+      startLine = 1;
+      // 3-column template has a third column header
+      if (headerCols.length >= 3) {
+        priceColIndex = 2;
+      }
     }
   }
 
   for (let i = startLine; i < lines.length; i++) {
-    const parts = lines[i].split(",");
-    if (parts.length < 2) continue;
-    const identifier = parts[0].trim().replace(/^["']|["']$/g, "");
-    const priceStr = parts[1].trim().replace(/^["']|["']$/g, "").replace(/^£/, "");
+    const parts = parseCsvLine(lines[i]);
+    if (parts.length <= priceColIndex) continue;
+    const identifier = parts[0].trim();
+    const priceStr = parts[priceColIndex].trim().replace(/^£/, "");
     const priceFloat = parseFloat(priceStr);
     if (!identifier || isNaN(priceFloat)) continue;
     rows.push({ identifier, costPrice: Math.round(priceFloat * 100) });
@@ -841,6 +886,36 @@ export default function AdminSkuManager() {
                     : "Never synced"}
                 </span>
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/admin/sku/cost-price-template", {
+                          credentials: "include",
+                        });
+                        if (!res.ok) throw new Error("Failed to download template");
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "cost-price-template.csv";
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      } catch {
+                        toast({ title: "Download failed", description: "Could not download the template. Please try again.", variant: "destructive" });
+                      }
+                    }}
+                    data-testid="button-download-cost-price-template"
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Download template
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download a pre-filled CSV with all SKUs — add cost prices and re-import</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
