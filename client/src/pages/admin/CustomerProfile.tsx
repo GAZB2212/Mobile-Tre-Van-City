@@ -1959,8 +1959,22 @@ export default function CustomerProfile() {
                       </div>
                     )}
 
+                    {/* No quotes — show a plain Open in WrapGen button with a helpful note */}
                     {quotes.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">No linked quotes yet — WrapGen renders are attached per quote.</p>
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          No quotes linked yet. Open WrapGen to start creating the artwork — once a quote exists for this customer, clicking the button from the quote row will auto-link the render back here.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open("https://www.wrapgen.co.uk", "_blank")}
+                          data-testid="button-open-wrapgen-no-quote"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                          Open WrapGen
+                        </Button>
+                      </div>
                     )}
 
                     {/* Webhook info */}
