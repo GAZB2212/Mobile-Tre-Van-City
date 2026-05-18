@@ -141,7 +141,7 @@ function SlotSummary({
   const isOwnVan = !slot.vanId;
   const vanPrice = van?.price || slot.customVanValue || 0;
   const kitPrice = kit?.price || 0;
-  const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
+  const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price * (slot.upgradeQuantities[upgrade.id] ?? 1), 0);
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
 
   const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
@@ -345,7 +345,7 @@ function CompareSummary({
   ) => {
     const vanPrice = van?.price || slot.customVanValue || 0;
     const kitPrice = kit?.price || 0;
-    const upgradesTotal = (upgrades || []).reduce((s, u) => s + u.price, 0);
+    const upgradesTotal = (upgrades || []).reduce((s, u) => s + u.price * (slot.upgradeQuantities[u.id] ?? 1), 0);
     const trainingTotal = (training || []).reduce((s, t) => s + t.price, 0);
     const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
     const vat = Math.round(subtotal * 0.2);
@@ -474,7 +474,7 @@ export function ConfiguratorSummary({
   const ownVanPrice = (vanDetailsOpen && state.customVanValue) ? state.customVanValue : 0;
   const vanPrice = van?.price || ownVanPrice;
   const kitPrice = kit?.price || 0;
-  const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
+  const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price * (state.upgradeQuantities[upgrade.id] ?? 1), 0);
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
 
   const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
@@ -591,18 +591,21 @@ export function ConfiguratorSummary({
                       </p>
                     </div>
                     <div className="pl-6 space-y-1">
-                      {upgrades.map((upgrade) => (
-                        <div key={upgrade.id} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground truncate pr-2" data-testid={`text-summary-upgrade-name-${upgrade.id}`}>
-                            {upgrade.name}
-                          </span>
-                          {showPricing && (
-                            <span className="font-medium whitespace-nowrap" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
-                              {formatPrice(upgrade.price)}
+                      {upgrades.map((upgrade) => {
+                        const qty = state.upgradeQuantities[upgrade.id] ?? 1;
+                        return (
+                          <div key={upgrade.id} className="flex justify-between text-sm">
+                            <span className="text-muted-foreground truncate pr-2" data-testid={`text-summary-upgrade-name-${upgrade.id}`}>
+                              {upgrade.name}{qty > 1 ? ` ×${qty}` : ''}
                             </span>
-                          )}
-                        </div>
-                      ))}
+                            {showPricing && (
+                              <span className="font-medium whitespace-nowrap" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
+                                {formatPrice(upgrade.price * qty)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : null}
