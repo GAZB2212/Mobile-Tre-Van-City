@@ -9783,6 +9783,83 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── WrapGen auto-link: generate a one-time token for a quote ─────────────
+  // Staff click "Open in WrapGen" in MTVC — this generates a short-lived token
+  // and returns a WrapGen URL with the token embedded. WrapGen then fires back
+  // to /api/webhooks/wrapgen-link/:token when the preview is created.
+  app.post("/api/admin/quotes/:id/wrapgen-link-token", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      await pool.query(
+        `INSERT INTO wrapgen_link_tokens (token, quote_id, expires_at) VALUES ($1, $2, $3)`,
+        [token, id, expiresAt]
+      );
+
+      const { rows } = await pool.query(`SELECT user_name, email FROM quotes WHERE id = $1`, [id]);
+      const quote = rows[0];
+      const quoteRef = encodeURIComponent(quote?.user_name || quote?.email || "Quote");
+
+      const base = `${req.protocol}://${req.get("host")}`;
+      const webhookUrl = encodeURIComponent(`${base}/api/webhooks/wrapgen-link/${token}`);
+      const wrapgenUrl = `https://www.wrapgen.co.uk?mtvc_token=${token}&mtvc_webhook=${webhookUrl}&mtvc_ref=${quoteRef}`;
+
+      res.json({ token, wrapgenUrl });
+    } catch (err) {
+      console.error("WrapGen link token error:", err);
+      res.status(500).json({ error: "Failed to generate link token" });
+    }
+  });
+
+  // ── WrapGen auto-link: receive preview URL back from WrapGen ──────────────
+  // WrapGen POSTs here when a preview is generated for a session that was
+  // opened from MTVC. Public endpoint — protected by the one-time token.
+  app.post("/api/webhooks/wrapgen-link/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { previewId, previewUrl } = req.body ?? {};
+
+      if (!previewUrl) return res.status(400).json({ error: "Missing previewUrl" });
+
+      const { rows } = await pool.query(
+        `SELECT quote_id, expires_at, used_at FROM wrapgen_link_tokens WHERE token = $1 LIMIT 1`,
+        [token]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: "Token not found" });
+
+      const { quote_id, expires_at, used_at } = rows[0];
+      if (used_at) return res.json({ ok: true, skipped: true, reason: "already used" });
+      if (new Date(expires_at) < new Date()) return res.status(410).json({ error: "Token expired — please generate a new link from MTVC" });
+
+      // Derive previewId from the URL if not sent separately
+      const resolvedPreviewId = previewId ?? (() => {
+        try { return new URL(String(previewUrl)).pathname.split("/").filter(Boolean).pop() ?? token; }
+        catch { return token; }
+      })();
+
+      await pool.query(
+        `UPDATE quotes
+         SET wrapgen_preview_id    = $1,
+             wrapgen_preview_url   = $2,
+             wrapgen_proof_sent_at = NOW()
+         WHERE id = $3`,
+        [String(resolvedPreviewId), String(previewUrl), quote_id]
+      );
+
+      await pool.query(
+        `UPDATE wrapgen_link_tokens SET used_at = NOW() WHERE token = $1`,
+        [token]
+      );
+
+      res.json({ ok: true, quoteId: quote_id });
+    } catch (err) {
+      console.error("WrapGen link webhook error:", err);
+      res.status(500).json({ error: "Failed to process WrapGen link" });
+    }
+  });
+
   // ── End dev-only test helpers ──────────────────────────────────────────────
 
   const httpServer = createServer(app);

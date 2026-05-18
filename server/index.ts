@@ -722,6 +722,19 @@ app.use((req, res, next) => {
             .then(() => log("✅ WrapGen artwork columns ready"))
             .catch((err: Error) => console.error("WrapGen migration:", err.message));
 
+          // ── WrapGen auto-link tokens ───────────────────────────────────────
+          pool.query(`
+            CREATE TABLE IF NOT EXISTS wrapgen_link_tokens (
+              token      TEXT        PRIMARY KEY,
+              quote_id   TEXT        NOT NULL,
+              created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+              expires_at TIMESTAMPTZ NOT NULL,
+              used_at    TIMESTAMPTZ
+            )
+          `)
+            .then(() => log("✅ WrapGen link tokens table ready"))
+            .catch((err: Error) => console.error("WrapGen link tokens migration:", err.message));
+
           // ── Mutual exclusivity: Silent Compressor (48V) vs Commercial Power Inversion ──
           // These two upgrades serve overlapping electrical/power roles and must not
           // both be selectable. We assign them the same exclusive_group so the
