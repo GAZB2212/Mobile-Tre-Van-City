@@ -1086,6 +1086,14 @@ export default function BuildSheet() {
                           {entry.kind === "upgrade" ? (
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-baseline gap-x-2">
+                                {(() => {
+                                  const qty = quote.selectedUpgrades?.[entry.upgrade.id] || 1;
+                                  return qty > 1 ? (
+                                    <span className="font-bold text-accent print:text-black text-base flex-shrink-0" data-testid={`text-kit-upgrade-qty-${entry.upgrade.id}`}>
+                                      {qty}&times;
+                                    </span>
+                                  ) : null;
+                                })()}
                                 <span
                                   className={`text-sm font-semibold ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
                                   data-testid={`text-kit-includes-${idx}`}
