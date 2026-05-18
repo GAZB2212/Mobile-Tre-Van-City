@@ -4523,11 +4523,28 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       }
       // Return only safe fields needed for the approval page
       const ref = quote.id.slice(0, 8).toUpperCase();
+
+      // Resolve upgrade names and quantities from selectedUpgrades (Record<id, qty>)
+      const selectedUpgradesMap: Record<string, number> = (quote.selectedUpgrades as Record<string, number>) || {};
+      const upgradeIds = Object.keys(selectedUpgradesMap);
+      let upgradesWithQty: Array<{ name: string; quantity: number }> = [];
+      if (upgradeIds.length > 0) {
+        const allUpgrades = await storage.getUpgrades();
+        const sorted = await sortUpgradesByDisplayOrder(
+          allUpgrades.filter(u => upgradeIds.includes(u.id))
+        );
+        upgradesWithQty = sorted.map(u => ({
+          name: u.variantName ? `${u.name} — ${u.variantName}` : u.name,
+          quantity: selectedUpgradesMap[u.id] ?? 1,
+        }));
+      }
+
       res.json({
         ref,
         customerName: quote.userName,
         specApprovalStatus: quote.specApprovalStatus || null,
         specApprovalComments: quote.specApprovalComments || null,
+        upgrades: upgradesWithQty,
       });
     } catch (error) {
       console.error('Error fetching spec approval:', error);

@@ -15,6 +15,7 @@ type ApprovalInfo = {
   customerName: string;
   specApprovalStatus: "approved" | "rejected" | null;
   specApprovalComments: string | null;
+  upgrades: Array<{ name: string; quantity: number }>;
 };
 
 export default function SpecApproval() {
@@ -166,6 +167,27 @@ export default function SpecApproval() {
               Please let us know whether the van conversion specification we discussed looks correct.
             </p>
           </div>
+
+          {/* Upgrade summary */}
+          {info.upgrades && info.upgrades.length > 0 && (
+            <Card data-testid="card-spec-upgrades">
+              <CardContent className="py-4 px-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Your Equipment</p>
+                <ul className="space-y-1.5">
+                  {info.upgrades.map((upgrade, i) => (
+                    <li key={i} className="flex items-center justify-between gap-4 text-sm" data-testid={`item-upgrade-${i}`}>
+                      <span className="text-foreground">{upgrade.name}</span>
+                      {upgrade.quantity > 1 && (
+                        <span className="text-accent font-medium whitespace-nowrap" data-testid={`text-upgrade-qty-${i}`}>
+                          ×{upgrade.quantity}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Choice cards */}
           <div className="grid grid-cols-2 gap-4">
