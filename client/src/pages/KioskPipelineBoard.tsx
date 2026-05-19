@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
@@ -14,16 +14,8 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOUR: Record<string, string> = {
   deposit_taken: "bg-lime-600",
   finance_approved: "bg-sky-600",
-  in_build: "bg-orange-600",
+  in_build: "bg-orange-500",
 };
-
-// Slide durations in ms — progress view is quick, full stage list gets longer
-const SLIDE_DURATIONS = [
-  4000,  // Slide 0: Progress ring + summary
-  9000,  // Slide 1: Full stages list (needs reading time)
-  5000,  // Slide 2: QR code
-];
-const TOTAL_CYCLE = SLIDE_DURATIONS.reduce((a, b) => a + b, 0);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,7 +28,7 @@ function parseDbDate(val: Date | string | null | undefined): Date | null {
 function fmtDate(val: Date | string | null | undefined): string {
   const d = parseDbDate(val);
   if (!d) return "—";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
 function daysUntil(val: Date | string | null | undefined): number | null {
@@ -57,7 +49,6 @@ interface KioskQuote {
   statusChangedAt: string | null;
   targetCompletionDate: string | null;
   userName: string | null;
-  phone: string | null;
   company: string | null;
   vanId: string | null;
   customVanDescription: string | null;
@@ -78,7 +69,7 @@ interface KioskData {
   upgrades: KioskUpgrade[];
 }
 
-// ── Stage generation (same logic as server + workshop page) ───────────────────
+// ── Stage generation ──────────────────────────────────────────────────────────
 
 const wrapPat = /wrap|graphics|livery/i;
 const wallPat = /interior.wall/i;
@@ -117,60 +108,29 @@ function normaliseCompleted(raw: Array<string | { id: string; initials: string }
 // ── Clock ─────────────────────────────────────────────────────────────────────
 
 function LiveClock() {
-  const [time, setTime] = useState(() => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  );
   useEffect(() => {
-    const id = setInterval(() => setTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })), 10000);
+    const id = setInterval(
+      () => setTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })),
+      10000
+    );
     return () => clearInterval(id);
   }, []);
   return <span>{time}</span>;
 }
 
-// ── Progress ring ─────────────────────────────────────────────────────────────
+// ── Job card — fully static, no animation ────────────────────────────────────
 
-function ProgressRing({ pct, done, total, allDone }: { pct: number; done: number; total: number; allDone: boolean }) {
-  const r = 48;
-  const circ = 2 * Math.PI * r;
-  const dash = (pct / 100) * circ;
-  return (
-    <svg width="118" height="118" viewBox="0 0 118 118">
-      <circle cx="59" cy="59" r={r} fill="none" stroke="#27272a" strokeWidth="10" />
-      <circle
-        cx="59" cy="59" r={r} fill="none"
-        stroke={allDone ? "#84cc16" : "#38bdf8"}
-        strokeWidth="10" strokeLinecap="round"
-        strokeDasharray={`${dash} ${circ}`}
-        strokeDashoffset={0}
-        transform="rotate(-90 59 59)"
-        style={{ transition: "stroke-dasharray 0.6s ease" }}
-      />
-      <text x="59" y="55" textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="20" fontWeight="900">{pct}%</text>
-      <text x="59" y="73" textAnchor="middle" dominantBaseline="middle" fill="#a1a1aa" fontSize="11">{done}/{total}</text>
-    </svg>
-  );
-}
-
-// ── Slide dots ────────────────────────────────────────────────────────────────
-
-function SlideDots({ slide, total }: { slide: number; total: number }) {
-  return (
-    <div className="flex items-center justify-center gap-1.5">
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} className={`rounded-full transition-all duration-300 ${i === slide ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-zinc-600"}`} />
-      ))}
-    </div>
-  );
-}
-
-// ── Job card ──────────────────────────────────────────────────────────────────
-
-function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
+function JobCard({
+  q, van, kit, selectedUpgrades,
+}: {
   q: KioskQuote;
   van: { make: string; model: string; year: number | null } | undefined;
   kit: { name: string } | undefined;
   selectedUpgrades: KioskUpgrade[];
-  cardIndex: number;
 }) {
-  // Build the single authoritative stage list — this mirrors exactly what the workshop team sees
   const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades);
   const completed = normaliseCompleted(q.completedBuildStages);
   const completedMap = new Map(completed.map((c) => [c.id, c.initials]));
@@ -182,201 +142,147 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
 
   const vanLabel = van
     ? `${van.year ?? ""} ${van.make} ${van.model}`.trim()
-    : q.customVanDescription || "—";
+    : q.customVanDescription || null;
 
   const days = daysUntil(q.targetCompletionDate);
-  const dueColour = days === null ? "text-zinc-500"
+  const dueColour =
+    days === null ? "text-zinc-600"
     : days < 0 ? "text-red-400"
     : days === 0 ? "text-orange-400"
     : days <= 3 ? "text-yellow-400"
-    : "text-lime-400";
+    : "text-zinc-400";
 
-  // Per-card slide timer, staggered by card index
-  const [slide, setSlide] = useState(0);
-  const slideRef = useRef(0);
+  // Split stages into done (most recent first) and pending (in order)
+  const doneStages = stages.filter((s) => completedMap.has(s.id));
+  const pendingStages = stages.filter((s) => !completedMap.has(s.id));
+
   const workshopUrl = q.confirmationToken
     ? `${window.location.origin}/workshop/${q.confirmationToken}`
     : null;
-  const numSlides = workshopUrl ? 3 : 2;
-
-  useEffect(() => {
-    const offset = (cardIndex % 6) * (TOTAL_CYCLE / 6);
-    let startSlide = 0;
-    let acc = 0;
-    for (let i = 0; i < numSlides; i++) {
-      acc += SLIDE_DURATIONS[i];
-      if (offset < acc) { startSlide = i; break; }
-    }
-    slideRef.current = startSlide;
-    setSlide(startSlide);
-
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      const next = (slideRef.current + 1) % numSlides;
-      slideRef.current = next;
-      setSlide(next);
-      return SLIDE_DURATIONS[next];
-    };
-    const schedule = (delay: number) => { timer = setTimeout(() => { schedule(tick()); }, delay); };
-    schedule(SLIDE_DURATIONS[startSlide]);
-    return () => clearTimeout(timer);
-  }, [cardIndex, numSlides]);
 
   return (
-    <div className={`rounded-xl border flex flex-col ${allDone ? "border-lime-500/60" : "border-zinc-700"} bg-zinc-900`}>
+    <div
+      className={`rounded-lg border flex flex-col overflow-hidden ${
+        allDone ? "border-lime-500/50 bg-zinc-900" : "border-zinc-800 bg-zinc-900"
+      }`}
+    >
+      {/* ── Top accent bar (colour-coded progress) ── */}
+      <div
+        className={`h-1 shrink-0 transition-all ${allDone ? "bg-lime-400" : pct > 50 ? "bg-sky-400" : pct > 0 ? "bg-orange-400" : "bg-zinc-700"}`}
+        style={{ width: `${Math.max(pct, 3)}%` }}
+      />
 
-      {/* ── Pinned header ─────────────────────────────────────────────── */}
-      <div className="p-3 border-b border-zinc-800 space-y-2">
-        {/* Name row */}
+      {/* ── Header ─────────────────────────────────── */}
+      <div className="px-3 pt-2 pb-1.5 shrink-0 border-b border-zinc-800">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-base font-black text-white leading-tight truncate">{q.userName || "—"}</p>
-            {q.company && <p className="text-xs text-zinc-400 truncate">{q.company}</p>}
+            <p className="text-sm font-black text-white leading-tight truncate">{q.userName || "—"}</p>
+            {q.company && <p className="text-[10px] text-zinc-500 truncate leading-tight">{q.company}</p>}
           </div>
-          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
+          <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
             {STATUS_LABEL[q.status] ?? q.status}
           </span>
         </div>
 
-        {/* Reg + van */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Reg + van label */}
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           {q.vanRegistration && (
-            <span className="text-xs font-extrabold tracking-widest bg-yellow-400 text-black px-2 py-0.5 rounded font-mono uppercase shrink-0">
+            <span className="text-[9px] font-extrabold tracking-widest bg-yellow-400 text-black px-1.5 py-0.5 rounded font-mono uppercase shrink-0">
               {q.vanRegistration}
             </span>
           )}
-          <span className="text-xs text-zinc-400 truncate">{vanLabel}</span>
+          {vanLabel && (
+            <span className="text-[9px] text-zinc-500 truncate">{vanLabel}</span>
+          )}
         </div>
 
-        {/* Kit name */}
+        {/* Kit */}
         {kit && (
-          <p className="text-xs font-semibold text-sky-400 truncate">{kit.name}</p>
+          <p className="text-[9px] font-medium text-sky-400 truncate mt-0.5">{kit.name}</p>
         )}
 
-        {/* Progress bar — always visible in header */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] uppercase tracking-widest text-zinc-600">Build progress</span>
-            <span className={`text-[10px] font-bold tabular-nums ${allDone ? "text-lime-400" : "text-sky-400"}`}>
+        {/* Progress bar */}
+        <div className="mt-1.5">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[8px] uppercase tracking-widest text-zinc-700">Progress</span>
+            <span className={`text-[9px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-300"}`}>
               {doneCount}/{total} — {pct}%
             </span>
           </div>
           <div className="h-1.5 rounded-full bg-zinc-800">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${allDone ? "bg-lime-400" : "bg-sky-500"}`}
-              style={{ width: `${pct}%` }}
+              className={`h-full rounded-full ${allDone ? "bg-lime-400" : "bg-sky-500"}`}
+              style={{ width: `${pct}%`, transition: "width 0.5s ease" }}
             />
           </div>
         </div>
+      </div>
 
-        {/* Due date */}
-        <div className={`flex items-center justify-between text-[10px] ${dueColour}`}>
-          <span className="text-zinc-700 uppercase tracking-widest">Due out</span>
-          <span className="font-bold tabular-nums">
-            {q.targetCompletionDate
-              ? `${fmtDate(q.targetCompletionDate)}${days !== null ? ` · ${days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}` : ""}`
-              : "No due date"}
-          </span>
+      {/* ── Build stages ────────────────────────────── */}
+      <div className="flex-1 overflow-hidden px-3 py-1.5">
+        <div className="space-y-0.5">
+          {/* Pending stages first — these are what's left to do */}
+          {pendingStages.map((s, i) => (
+            <div key={s.id} className="flex items-center gap-1.5 min-w-0">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${i === 0 ? "bg-sky-500" : "bg-zinc-700"}`} />
+              <span className={`text-[9px] leading-tight truncate ${i === 0 ? "text-white font-semibold" : "text-zinc-500"}`}>
+                {s.label}
+              </span>
+              {i === 0 && (
+                <span className="text-[8px] text-sky-600 shrink-0 font-semibold">← next</span>
+              )}
+            </div>
+          ))}
+
+          {/* Divider only when we have both */}
+          {pendingStages.length > 0 && doneStages.length > 0 && (
+            <div className="border-t border-zinc-800 my-1" />
+          )}
+
+          {/* Done stages — compact, struck through, with initials */}
+          {doneStages.map((s) => {
+            const initials = completedMap.get(s.id);
+            return (
+              <div key={s.id} className="flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full shrink-0 bg-lime-600" />
+                <span className="text-[9px] leading-tight truncate flex-1 line-through text-zinc-700">
+                  {s.label}
+                </span>
+                {initials && (
+                  <span className="text-[8px] font-bold text-zinc-700 shrink-0">{initials}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── Sliding content area ──────────────────────────────────────── */}
-      <div className="flex-1 relative overflow-hidden" style={{ minHeight: "200px" }}>
-
-        {/* Slide 0 — Progress ring + quick stage summary */}
-        <div className={`absolute inset-0 p-3 flex flex-col items-center justify-center gap-3 transition-opacity duration-500 ${slide === 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <ProgressRing pct={pct} done={doneCount} total={total} allDone={allDone} />
-          {(() => {
-            const recent = stages.filter((s) => completedMap.has(s.id)).slice(-2);
-            const upcoming = stages.filter((s) => !completedMap.has(s.id)).slice(0, 3);
-            return (
-              <div className="flex flex-col gap-1 w-full max-w-xs">
-                {recent.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-lime-500 shrink-0" />
-                    <span className="text-[10px] text-zinc-500 line-through truncate flex-1">{s.label}</span>
-                    {completedMap.get(s.id) && (
-                      <span className="text-[9px] font-bold text-zinc-600 shrink-0">{completedMap.get(s.id)}</span>
-                    )}
-                  </div>
-                ))}
-                {upcoming.map((s, i) => (
-                  <div key={s.id} className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full shrink-0 ${i === 0 ? "bg-sky-500" : "bg-zinc-700"}`} />
-                    <span className={`text-[10px] truncate flex-1 ${i === 0 ? "text-white font-semibold" : "text-zinc-600"}`}>{s.label}</span>
-                    {i === 0 && <span className="text-[9px] text-sky-600 shrink-0">Next</span>}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+      {/* ── Footer ──────────────────────────────────── */}
+      <div className="shrink-0 px-3 py-1.5 border-t border-zinc-800 flex items-center justify-between gap-2">
+        <div className={`text-[9px] ${dueColour}`}>
+          {q.targetCompletionDate ? (
+            <>
+              <span className="font-bold">{fmtDate(q.targetCompletionDate)}</span>
+              {days !== null && (
+                <span className="ml-1 opacity-70">
+                  {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-zinc-700">No due date</span>
+          )}
         </div>
 
-        {/* Slide 1 — Full build stages list (the single source of truth) */}
-        <div className={`absolute inset-0 p-3 flex flex-col gap-1.5 transition-opacity duration-500 ${slide === 1 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <p className="text-[9px] uppercase tracking-widest text-zinc-600 shrink-0 mb-0.5">Build Sheet</p>
-          <div className="flex-1 overflow-hidden flex flex-col gap-0.5">
-            {stages.map((stage) => {
-              const done = completedMap.has(stage.id);
-              const initials = completedMap.get(stage.id) ?? null;
-              return (
-                <div key={stage.id} className="flex items-center gap-2 min-w-0">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${done ? "bg-lime-500" : "bg-zinc-700"}`} />
-                  <span className={`text-[10px] truncate flex-1 leading-tight ${done ? "line-through text-zinc-600" : "text-zinc-200"}`}>
-                    {stage.label}
-                  </span>
-                  {done && initials && (
-                    <span className="text-[8px] font-bold text-zinc-600 shrink-0">{initials}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Slide 2 — QR code */}
+        {/* Tiny QR code in corner — scannable if someone walks to TV */}
         {workshopUrl && (
-          <div className={`absolute inset-0 p-3 flex flex-col items-center justify-center gap-3 transition-opacity duration-500 ${slide === 2 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-            <p className="text-[10px] uppercase tracking-widest text-zinc-500">Scan to update build</p>
-            <div className="bg-white p-2.5 rounded-lg">
-              <QRCodeSVG value={workshopUrl} size={130} level="M" />
-            </div>
-            <p className="text-[9px] text-zinc-700 font-mono text-center break-all px-2">{workshopUrl}</p>
+          <div className="bg-white rounded p-0.5 shrink-0">
+            <QRCodeSVG value={workshopUrl} size={28} level="M" />
           </div>
         )}
       </div>
-
-      {/* Slide indicator dots */}
-      <div className="py-2 border-t border-zinc-800">
-        <SlideDots slide={slide} total={numSlides} />
-      </div>
     </div>
   );
-}
-
-// ── Page-level auto-scroll ────────────────────────────────────────────────────
-
-function useAutoScroll(enabled: boolean) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    const el = ref.current;
-    if (!el) return;
-    let pos = 0;
-    let dir = 1;
-    let paused = false;
-    let pauseTimer: ReturnType<typeof setTimeout>;
-    const id = setInterval(() => {
-      if (paused || !el) return;
-      pos += dir * 0.5;
-      const max = el.scrollHeight - el.clientHeight;
-      if (pos >= max) { pos = max; dir = -1; paused = true; pauseTimer = setTimeout(() => { paused = false; }, 4000); }
-      if (pos <= 0) { pos = 0; dir = 1; paused = true; pauseTimer = setTimeout(() => { paused = false; }, 4000); }
-      el.scrollTop = pos;
-    }, 16);
-    return () => { clearInterval(id); clearTimeout(pauseTimer); };
-  }, [enabled]);
-  return ref;
 }
 
 // ── Main board ────────────────────────────────────────────────────────────────
@@ -399,10 +305,6 @@ export default function KioskPipelineBoard() {
     staleTime: 0,
   });
 
-  const committedQuotes = data?.quotes.filter((q) => COMMITTED_STATUSES.has(q.status)) ?? [];
-  const needsScroll = committedQuotes.length > 6;
-  const scrollRef = useAutoScroll(needsScroll && !isLoading && !isError);
-
   if (isLoading) {
     return (
       <div className="h-screen bg-zinc-950 flex items-center justify-center">
@@ -421,55 +323,63 @@ export default function KioskPipelineBoard() {
     );
   }
 
-  const cols = committedQuotes.length <= 2 ? "grid-cols-1 max-w-3xl mx-auto w-full"
-    : committedQuotes.length <= 4 ? "grid-cols-2"
-    : "grid-cols-3";
+  const committedQuotes = data.quotes.filter((q) => COMMITTED_STATUSES.has(q.status));
+  const n = committedQuotes.length;
+
+  // Pick column count and force grid to fill the screen height exactly
+  const cols = n <= 2 ? 2 : n <= 4 ? 2 : n <= 6 ? 3 : n <= 9 ? 3 : 4;
+  const rows = Math.ceil(n / cols);
 
   return (
-    <div className="h-screen bg-zinc-950 text-white flex flex-col select-none" style={{ cursor: "none" }}>
-
+    <div
+      className="h-screen bg-zinc-950 text-white flex flex-col overflow-hidden select-none"
+      style={{ cursor: "none" }}
+    >
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-6 py-3 bg-zinc-900 border-b border-zinc-800">
-        <div className="flex items-center gap-4">
+      <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
-          <h1 className="text-2xl font-black tracking-tight text-white">Workshop Pipeline</h1>
-          <span className="text-zinc-500 text-sm">
-            {committedQuotes.length} active job{committedQuotes.length !== 1 ? "s" : ""}
-          </span>
+          <h1 className="text-lg font-black tracking-tight text-white">Workshop Pipeline</h1>
+          <span className="text-zinc-600 text-xs">{n} active job{n !== 1 ? "s" : ""}</span>
         </div>
-        <div className="flex items-center gap-6 text-zinc-400 text-sm">
-          <span>auto-refreshes every 30s</span>
-          <span className="text-white font-bold text-lg tabular-nums"><LiveClock /></span>
+        <div className="flex items-center gap-4 text-zinc-500 text-xs">
+          <span>refreshes every 30s</span>
+          <span className="text-white font-bold text-base tabular-nums"><LiveClock /></span>
         </div>
       </div>
 
-      {/* Grid */}
-      {committedQuotes.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
-          <p className="text-6xl font-black mb-4">—</p>
-          <p className="text-2xl font-semibold">Nothing in build right now</p>
+      {/* Grid — fills remaining height exactly, no scroll */}
+      {n === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-zinc-600">
+          <p className="text-5xl font-black mb-3">—</p>
+          <p className="text-xl font-semibold">No active jobs right now</p>
         </div>
       ) : (
-        <div ref={scrollRef} className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-          <div className={`grid ${cols} gap-4 p-4`}>
-            {committedQuotes.map((q, i) => {
-              const van = data.vans.find((v) => v.id === q.vanId);
-              const kit = data.kits.find((k) => k.id === q.kitId);
-              const selectedUpgrades = data.upgrades.filter((u) =>
-                (q.selectedUpgradeIds ?? []).includes(u.id)
-              );
-              return (
-                <JobCard
-                  key={q.id}
-                  q={q}
-                  van={van}
-                  kit={kit}
-                  selectedUpgrades={selectedUpgrades}
-                  cardIndex={i}
-                />
-              );
-            })}
-          </div>
+        <div
+          className="flex-1 p-2 gap-2"
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gridTemplateRows: `repeat(${rows}, 1fr)`,
+            minHeight: 0,
+          }}
+        >
+          {committedQuotes.map((q) => {
+            const van = data.vans.find((v) => v.id === q.vanId);
+            const kit = data.kits.find((k) => k.id === q.kitId);
+            const selectedUpgrades = data.upgrades.filter((u) =>
+              (q.selectedUpgradeIds ?? []).includes(u.id)
+            );
+            return (
+              <JobCard
+                key={q.id}
+                q={q}
+                van={van}
+                kit={kit}
+                selectedUpgrades={selectedUpgrades}
+              />
+            );
+          })}
         </div>
       )}
     </div>
