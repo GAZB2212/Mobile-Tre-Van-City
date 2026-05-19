@@ -63,7 +63,7 @@ function fmtGBP(pence: number) {
 }
 
 function customerName(q: Quote): string {
-  return [q.firstName, q.lastName].filter(Boolean).join(" ") || q.email || "Unknown";
+  return q.userName || q.email || "Unknown";
 }
 
 const POLL_INTERVAL_MS = 60_000;
@@ -558,6 +558,9 @@ export default function AdminDashboard() {
                             data-testid={`link-pipeline-quote-${q.id}`}
                           >
                             <p className="text-sm font-medium truncate">{customerName(q)}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {q.company ? q.company : <span className="italic">No company</span>}
+                            </p>
                             {q.vanTitle && (
                               <p className="text-xs text-muted-foreground truncate">{q.vanTitle}</p>
                             )}
