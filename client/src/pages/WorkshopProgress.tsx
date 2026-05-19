@@ -137,12 +137,15 @@ export default function WorkshopProgress() {
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-yellow-400">Workshop Build Sheet</p>
-            {data.vanRegistration && (
-              <h1 className="text-3xl font-bold font-mono tracking-widest text-white">
-                {data.vanRegistration}
-              </h1>
+            <h1 className="text-xl font-bold text-white leading-tight">{data.customerName}</h1>
+            {data.company && (
+              <p className="text-yellow-400/80 text-sm font-medium">{data.company}</p>
             )}
-            <p className="text-zinc-400 text-sm">{data.company ?? data.customerName}</p>
+            {data.vanRegistration && (
+              <p className="text-2xl font-bold font-mono tracking-widest text-zinc-300 pt-1">
+                {data.vanRegistration}
+              </p>
+            )}
           </div>
           <div className="text-right shrink-0">
             <p className="text-3xl font-bold text-yellow-400">{pct}%</p>
