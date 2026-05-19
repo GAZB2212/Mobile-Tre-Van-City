@@ -81,6 +81,7 @@ const AdminCustomerProfile = lazy(() => import("@/pages/admin/CustomerProfile"))
 const AdminSkuManager = lazy(() => import("@/pages/admin/SkuManager"));
 const AdminStockLevels = lazy(() => import("@/pages/admin/StockLevels"));
 const AdminArtworkApprovals = lazy(() => import("@/pages/admin/ArtworkApprovals"));
+const AdminPipelineBoard = lazy(() => import("@/pages/admin/PipelineBoard"));
 const FinancePortal = lazy(() => import("@/pages/FinancePortal"));
 
 function Router() {
@@ -156,6 +157,7 @@ function Router() {
       <Route path="/admin/sku-manager">{() => <AdminLayout><AdminSkuManager /></AdminLayout>}</Route>
       <Route path="/admin/stock">{() => <AdminLayout><AdminStockLevels /></AdminLayout>}</Route>
       <Route path="/admin/artwork-approvals">{() => <AdminLayout><AdminArtworkApprovals /></AdminLayout>}</Route>
+      <Route path="/admin/pipeline-board">{() => <AdminPipelineBoard />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

@@ -59,6 +59,7 @@ import {
   X,
   Tags,
   Palette,
+  MonitorPlay,
 } from "lucide-react";
 import {
   Popover,
@@ -92,6 +93,7 @@ const navGroups: { label: string; items: NavItem[]; collapsible?: boolean; defau
       { title: "Calendar", href: "/admin/calendar", icon: Calendar, requiredRole: "basic" },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3, requiredRole: "basic" },
       { title: "Artwork Approvals", href: "/admin/artwork-approvals", icon: Palette, requiredRole: "full" },
+      { title: "Pipeline Board", href: "/admin/pipeline-board", icon: MonitorPlay, requiredRole: "basic" },
     ],
   },
   {
