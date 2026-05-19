@@ -85,15 +85,15 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap
         </p>
       )}
       {hasBom && skuComponents && (
-        <>
+        <div className="print:hidden">
           {allPicked && (
-            <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium print:hidden mb-1">
+            <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium mb-1">
               <Check className="w-3.5 h-3.5" />
               All parts picked
             </div>
           )}
           {copyableSkus.length > 0 && (
-            <div className="flex items-center gap-2 print:hidden">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -119,13 +119,13 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap
             <table className="w-full text-xs table-fixed">
               <thead>
                 <tr className="border-b bg-muted/60">
-                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-28 print:text-black">Part SKU</th>
-                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground print:text-black">Description</th>
-                  <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10 print:text-black">Qty</th>
-                  {stockMap && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-16 print:hidden">Stock</th>}
-                  {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Unit cost</th>}
-                  {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20 print:text-black">Row total</th>}
-                  {onScanRow && <th className="w-16 print:hidden" />}
+                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-28">Part SKU</th>
+                  <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Description</th>
+                  <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-10">Qty</th>
+                  {stockMap && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-16">Stock</th>}
+                  {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20">Unit cost</th>}
+                  {hasCostData && <th className="text-right px-2 py-1.5 font-medium text-muted-foreground w-20">Row total</th>}
+                  {onScanRow && <th className="w-16" />}
                 </tr>
               </thead>
               <tbody>
@@ -135,13 +135,13 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap
                   const isPicked = !!pickedRows?.has(thisKey);
                   return (
                     <tr key={i} className={`border-b last:border-0 ${isPicked ? "bg-green-500/5" : ""}`}>
-                      <td className="px-2 py-1.5 font-mono text-muted-foreground break-words min-w-0 print:text-black">{c.sku}</td>
-                      <td className="px-2 py-1.5 text-muted-foreground print:text-black">
+                      <td className="px-2 py-1.5 font-mono text-muted-foreground break-words min-w-0">{c.sku}</td>
+                      <td className="px-2 py-1.5 text-muted-foreground">
                         <span className="break-words min-w-0">{c.description}</span>
                       </td>
-                      <td className="px-2 py-1.5 text-right tabular-nums print:text-black">{c.quantity}</td>
+                      <td className="px-2 py-1.5 text-right tabular-nums">{c.quantity}</td>
                       {stockMap && (
-                        <td className="px-2 py-1.5 text-right print:hidden">
+                        <td className="px-2 py-1.5 text-right">
                           {c.sku && stockMap.has(c.sku) ? (
                             <StockBadge
                               onHand={stockMap.get(c.sku)!.onHand}
@@ -153,17 +153,17 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap
                         </td>
                       )}
                       {hasCostData && (
-                        <td className="px-2 py-1.5 text-right tabular-nums print:text-black">
+                        <td className="px-2 py-1.5 text-right tabular-nums">
                           {c.costPrice != null ? `£${(c.costPrice / 100).toFixed(2)}` : "—"}
                         </td>
                       )}
                       {hasCostData && (
-                        <td className="px-2 py-1.5 text-right tabular-nums font-medium print:text-black">
+                        <td className="px-2 py-1.5 text-right tabular-nums font-medium">
                           {rowTotal != null ? `£${(rowTotal / 100).toFixed(2)}` : "—"}
                         </td>
                       )}
                       {onScanRow && (
-                        <td className="px-1 py-1 text-center print:hidden">
+                        <td className="px-1 py-1 text-center">
                           {c.sku ? (
                             isPicked ? (
                               <span
@@ -193,7 +193,7 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
