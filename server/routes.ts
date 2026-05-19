@@ -510,6 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public build progress page — looked up by confirmationToken (no auth required)
   app.get("/api/build-progress-public/:token", async (req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       const quotes = await storage.getQuotes();
       const quote = quotes.find((q) => q.confirmationToken === req.params.token);
       if (!quote) return res.status(404).json({ error: "Not found" });
@@ -10100,6 +10101,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
   // Deliberately excludes email, financial details, internal notes, etc.
   app.get("/api/kiosk/pipeline/:token", async (req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       const settings = await storage.getSiteSettings();
       const validToken = settings["pipeline_kiosk_token"];
       if (!validToken || req.params.token !== validToken) {
