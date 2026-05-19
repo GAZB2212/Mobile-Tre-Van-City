@@ -9898,6 +9898,78 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // ── Kiosk pipeline board ────────────────────────────────────────────────────
+
+  // GET  /api/admin/pipeline-board/kiosk-token
+  // Returns the current kiosk token (any admin can view — they need it to share the URL)
+  app.get("/api/admin/pipeline-board/kiosk-token", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json({ token: settings["pipeline_kiosk_token"] || null });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch kiosk token" });
+    }
+  });
+
+  // POST /api/admin/pipeline-board/kiosk-token/regenerate
+  // Creates a new 64-char hex token, invalidating the old URL (full admin only)
+  app.post("/api/admin/pipeline-board/kiosk-token/regenerate", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const token = crypto.randomBytes(32).toString("hex");
+      await storage.setSiteSetting("pipeline_kiosk_token", token);
+      res.json({ token });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to regenerate kiosk token" });
+    }
+  });
+
+  // GET /api/kiosk/pipeline/:token
+  // Public (no login), token-gated.  Returns the minimal data needed by the wallboard.
+  // Deliberately excludes email, financial details, internal notes, etc.
+  app.get("/api/kiosk/pipeline/:token", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      const validToken = settings["pipeline_kiosk_token"];
+      if (!validToken || req.params.token !== validToken) {
+        return res.status(401).json({ error: "Invalid or expired kiosk token" });
+      }
+
+      const COMMITTED = new Set(["deposit_taken", "finance_approved", "in_build"]);
+      const [allQuotes, vans, kits, upgrades] = await Promise.all([
+        storage.getQuotes(),
+        storage.getVans(),
+        storage.getKits(),
+        storage.getUpgrades(),
+      ]);
+
+      const quotes = allQuotes
+        .filter((q) => COMMITTED.has(q.status))
+        .map((q) => ({
+          id: q.id,
+          status: q.status,
+          statusChangedAt: q.statusChangedAt,
+          targetCompletionDate: q.targetCompletionDate,
+          userName: q.userName,
+          phone: q.phone,
+          company: q.company,
+          vanId: q.vanId,
+          customVanDescription: q.customVanDescription,
+          kitId: q.kitId,
+          selectedUpgradeIds: q.selectedUpgradeIds ?? [],
+        }));
+
+      res.json({
+        quotes,
+        vans: vans.map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year })),
+        kits: kits.map((k) => ({ id: k.id, name: k.name })),
+        upgrades: upgrades.map((u) => ({ id: u.id, name: u.name })),
+      });
+    } catch (err) {
+      console.error("Kiosk pipeline error:", err);
+      res.status(500).json({ error: "Failed to fetch pipeline data" });
+    }
+  });
+
   // ── End dev-only test helpers ──────────────────────────────────────────────
 
   const httpServer = createServer(app);

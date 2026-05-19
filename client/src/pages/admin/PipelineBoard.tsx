@@ -1,10 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import type { Quote, Van, Kit, Upgrade } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Tv2, Copy, RefreshCw, Check } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
 
@@ -27,7 +30,7 @@ const STATUS_COLOUR: Record<string, string> = {
  */
 function parseDbDate(val: Date | string | null | undefined): Date | null {
   if (!val) return null;
-  const d = val instanceof Date ? val : new Date(val);
+  const d = val instanceof Date ? val : new Date(val as string);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -87,6 +90,113 @@ function DueChip({ val }: { val: Date | string | null | undefined }) {
   );
 }
 
+function KioskUrlPanel({ isFullAdmin }: { isFullAdmin: boolean }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
+
+  const { data } = useQuery<{ token: string | null }>({
+    queryKey: ["/api/admin/pipeline-board/kiosk-token"],
+  });
+
+  const regenerateMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/pipeline-board/kiosk-token/regenerate"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pipeline-board/kiosk-token"] });
+      toast({ title: "Kiosk URL regenerated", description: "The old URL will no longer work." });
+    },
+  });
+
+  const token = data?.token ?? null;
+  const kioskUrl = token
+    ? `${window.location.origin}/pipeline-board/${token}`
+    : null;
+
+  function handleCopy() {
+    if (!kioskUrl) return;
+    navigator.clipboard.writeText(kioskUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 mb-8">
+      <div className="flex items-center gap-2 mb-3">
+        <Tv2 className="w-5 h-5 text-lime-400" />
+        <h2 className="text-lg font-bold text-white">Kiosk Mode</h2>
+        <span className="text-zinc-400 text-sm">— open this URL on any TV or screen, no login needed</span>
+      </div>
+
+      {token ? (
+        <div className="flex items-center gap-2 flex-wrap">
+          <code
+            className="flex-1 min-w-0 bg-zinc-800 border border-zinc-600 text-zinc-200 text-sm px-3 py-2 rounded font-mono truncate"
+            data-testid="text-kiosk-url"
+          >
+            {kioskUrl}
+          </code>
+          <Button
+            variant="outline"
+            size="default"
+            onClick={handleCopy}
+            data-testid="button-copy-kiosk-url"
+            className="shrink-0"
+          >
+            {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+            {copied ? "Copied" : "Copy URL"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="default"
+            onClick={() => window.open(kioskUrl!, "_blank")}
+            data-testid="button-open-kiosk"
+            className="shrink-0"
+          >
+            <ExternalLink className="w-4 h-4 mr-1.5" />
+            Open
+          </Button>
+          {isFullAdmin && (
+            <Button
+              variant="ghost"
+              size="default"
+              onClick={() => {
+                if (confirm("This will invalidate the current kiosk URL. Any TV using the old link will show an error. Continue?")) {
+                  regenerateMutation.mutate();
+                }
+              }}
+              disabled={regenerateMutation.isPending}
+              data-testid="button-regenerate-kiosk"
+              className="shrink-0 text-zinc-400 hover:text-white"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${regenerateMutation.isPending ? "animate-spin" : ""}`} />
+              Reset URL
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <p className="text-zinc-400 text-sm">No kiosk URL yet.</p>
+          {isFullAdmin && (
+            <Button
+              size="default"
+              onClick={() => regenerateMutation.mutate()}
+              disabled={regenerateMutation.isPending}
+              data-testid="button-generate-kiosk"
+            >
+              <Tv2 className="w-4 h-4 mr-1.5" />
+              Generate Kiosk URL
+            </Button>
+          )}
+          {!isFullAdmin && (
+            <p className="text-zinc-500 text-sm">Ask a full admin to generate one.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PipelineBoard() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -132,6 +242,7 @@ export default function PipelineBoard() {
   if (!isAuthenticated || !user?.adminRole || user.adminRole === "none") return null;
 
   const committedQuotes = quotes.filter((q) => COMMITTED_STATUSES.has(q.status));
+  const isFullAdmin = user.adminRole === "full";
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white px-6 py-6">
@@ -149,6 +260,9 @@ export default function PipelineBoard() {
           Admin
         </Link>
       </div>
+
+      {/* Kiosk URL panel */}
+      <KioskUrlPanel isFullAdmin={isFullAdmin} />
 
       {committedQuotes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-zinc-500">
