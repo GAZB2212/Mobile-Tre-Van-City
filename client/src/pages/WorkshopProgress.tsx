@@ -2,19 +2,21 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/queryClient";
-import { CheckCircle2, Circle, Loader2, Wrench, ChevronRight, X } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Wrench, ChevronRight, X, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
 const NAME_KEY = "workshop:name";
 
+type CompletedStage = { id: string; initials: string | null };
+
 type BuildProgressData = {
   customerName: string;
   vanRegistration: string | null;
   company: string | null;
   stages: Array<{ id: string; label: string; section?: string }>;
-  completedStageIds: string[];
+  completedStages: CompletedStage[];
 };
 
 export default function WorkshopProgress() {
@@ -27,8 +29,9 @@ export default function WorkshopProgress() {
   const [nameInput, setNameInput] = useState("");
 
   // Two-step confirmation state
-  const [selected, setSelected] = useState<string | null>(null); // tapped but not saved
-  const [saving, setSaving] = useState<string | null>(null);     // in-flight
+  const [selected, setSelected] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [undoError, setUndoError] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery<BuildProgressData>({
     queryKey: [`/api/build-progress-public/${token}`],
@@ -43,17 +46,22 @@ export default function WorkshopProgress() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stageId, completed, initials: staffName }),
-      }).then((r) => {
-        if (!r.ok) throw new Error("Failed");
+      }).then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.error ?? "Failed");
+        }
         return r.json();
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [`/api/build-progress-public/${token}`] });
       setSaving(null);
       setSelected(null);
+      setUndoError(null);
     },
-    onError: () => {
+    onError: (err: Error) => {
       setSaving(null);
+      setUndoError(err.message);
     },
   });
 
@@ -64,15 +72,17 @@ export default function WorkshopProgress() {
     setStaffName(trimmed);
   }
 
-  function handleTap(stageId: string) {
-    if (saving) return;
+  function handleTap(stageId: string, lockedByOther: boolean) {
+    if (saving || lockedByOther) return;
+    setUndoError(null);
     setSelected((prev) => (prev === stageId ? null : stageId));
   }
 
   function handleConfirm() {
     if (!selected || saving) return;
-    const isDone = completedSet.has(selected);
+    const isDone = completedMap.has(selected);
     setSaving(selected);
+    setUndoError(null);
     stageMutation.mutate({ stageId: selected, completed: !isDone });
   }
 
@@ -137,13 +147,17 @@ export default function WorkshopProgress() {
     );
   }
 
-  const completedSet = new Set(data.completedStageIds);
-  const doneCount = data.completedStageIds.length;
+  // Build a map of stageId → initials (null for legacy bare-string entries)
+  const completedMap = new Map<string, string | null>(
+    (data.completedStages ?? []).map((s) => [s.id, s.initials])
+  );
+
+  const doneCount = completedMap.size;
   const totalCount = data.stages.length;
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   const selectedStage = selected ? data.stages.find((s) => s.id === selected) : null;
-  const selectedIsDone = selected ? completedSet.has(selected) : false;
+  const selectedIsDone = selected ? completedMap.has(selected) : false;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pb-36">
@@ -182,10 +196,28 @@ export default function WorkshopProgress() {
           Tap a job to select it, then press the confirm button to save
         </p>
 
+        {/* Undo error banner */}
+        {undoError && (
+          <div className="flex items-center gap-3 bg-red-900/30 border border-red-700/50 rounded-lg px-4 py-3">
+            <Lock className="w-4 h-4 text-red-400 shrink-0" />
+            <p className="text-sm text-red-300">{undoError}</p>
+            <button
+              type="button"
+              className="ml-auto text-red-500"
+              onClick={() => setUndoError(null)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Stage list */}
         <div className="space-y-2" data-testid="workshop-stage-list">
           {data.stages.map((stage) => {
-            const isDone = completedSet.has(stage.id);
+            const isDone = completedMap.has(stage.id);
+            const completedBy = isDone ? completedMap.get(stage.id) : null;
+            const isMyStage = isDone && (!completedBy || completedBy === staffName);
+            const lockedByOther = isDone && !!completedBy && completedBy !== staffName;
             const isSelected = selected === stage.id;
             const isSaving = saving === stage.id;
 
@@ -193,37 +225,56 @@ export default function WorkshopProgress() {
               <button
                 key={stage.id}
                 type="button"
-                onClick={() => handleTap(stage.id)}
-                disabled={!!saving}
+                onClick={() => handleTap(stage.id, lockedByOther)}
+                disabled={!!saving || lockedByOther}
                 data-testid={`workshop-stage-${stage.id}`}
                 className={[
                   "w-full flex items-center gap-4 px-4 py-4 rounded-lg text-left transition-all",
                   isSelected
                     ? "bg-amber-400/15 border border-amber-400/60 scale-[1.01]"
+                    : lockedByOther
+                    ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70 cursor-not-allowed"
                     : isDone
                     ? "bg-yellow-400/10 border border-yellow-400/30"
                     : "bg-zinc-900 border border-zinc-800",
                   saving && !isSaving ? "opacity-40" : "",
                 ].join(" ")}
               >
+                {/* Icon */}
                 {isSaving ? (
                   <Loader2 className="w-6 h-6 shrink-0 animate-spin text-yellow-400" />
+                ) : lockedByOther ? (
+                  <Lock className="w-6 h-6 shrink-0 text-zinc-600" />
                 ) : isDone ? (
                   <CheckCircle2 className={`w-6 h-6 shrink-0 ${isSelected ? "text-amber-400" : "text-yellow-400"}`} />
                 ) : (
                   <Circle className={`w-6 h-6 shrink-0 ${isSelected ? "text-amber-400" : "text-zinc-600"}`} />
                 )}
+
+                {/* Label */}
                 <span className={[
                   "flex-1 font-medium text-sm",
-                  isDone && !isSelected ? "line-through text-zinc-500" : isSelected ? "text-white" : "text-white",
+                  lockedByOther ? "line-through text-zinc-600" :
+                  isDone && !isSelected ? "line-through text-zinc-500" :
+                  isSelected ? "text-white" : "text-white",
                 ].join(" ")}>
                   {stage.label}
                 </span>
-                {isSelected && (
+
+                {/* Right-side badge */}
+                {lockedByOther && completedBy ? (
+                  <span className="shrink-0 text-[10px] font-bold text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded uppercase tracking-wide">
+                    {completedBy}
+                  </span>
+                ) : isDone && completedBy && isMyStage ? (
+                  <span className="shrink-0 text-[10px] font-bold text-yellow-600 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded uppercase tracking-wide">
+                    {completedBy}
+                  </span>
+                ) : isSelected ? (
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest shrink-0">
                     Selected
                   </span>
-                )}
+                ) : null}
               </button>
             );
           })}
@@ -242,7 +293,7 @@ export default function WorkshopProgress() {
 
         {/* Footer */}
         <div className="flex items-center justify-between text-xs text-zinc-600 pt-2">
-          <span>Signed in as <span className="text-zinc-400">{staffName}</span></span>
+          <span>Signed in as <span className="text-zinc-400 font-semibold">{staffName}</span></span>
           <button
             type="button"
             className="underline"
@@ -250,6 +301,8 @@ export default function WorkshopProgress() {
               try { localStorage.removeItem(NAME_KEY); } catch {}
               setStaffName("");
               setNameInput("");
+              setSelected(null);
+              setUndoError(null);
             }}
           >
             Change name
@@ -258,30 +311,33 @@ export default function WorkshopProgress() {
         <p className="text-center text-xs text-zinc-700 pb-4">Mobile Tyre Van City — Workshop</p>
       </div>
 
-      {/* Sticky confirm bar — only shows when a stage is selected */}
+      {/* Sticky confirm bar */}
       {selectedStage && (
         <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 px-4 py-4 z-50">
           <div className="max-w-lg mx-auto space-y-3">
             <p className="text-sm text-zinc-400 text-center leading-snug">
               <span className="font-semibold text-white">{selectedStage.label}</span>
               {" — "}
-              {selectedIsDone ? "mark as not done?" : "confirm this is complete?"}
+              {selectedIsDone
+                ? <span className="text-zinc-300">undo completion?</span>
+                : <span className="text-white">mark as done for <span className="text-yellow-400 font-bold">{staffName}</span>?</span>
+              }
             </p>
             <div className="flex gap-3">
               <Button
                 variant="ghost"
                 className="flex-1 h-12 border border-zinc-700 text-zinc-400"
-                onClick={() => setSelected(null)}
+                onClick={() => { setSelected(null); setUndoError(null); }}
                 data-testid="button-workshop-cancel"
               >
                 <X className="w-4 h-4 mr-1" />
                 Cancel
               </Button>
               <Button
-                className={`flex-2 flex-1 h-12 text-base font-bold ${
+                className={`flex-1 h-12 text-base font-bold ${
                   selectedIsDone
-                    ? "bg-zinc-700 text-white"
-                    : "bg-yellow-400 text-black"
+                    ? "bg-zinc-700 text-white hover:bg-zinc-600"
+                    : "bg-yellow-400 text-black hover:bg-yellow-300"
                 }`}
                 onClick={handleConfirm}
                 disabled={!!saving}

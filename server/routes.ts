@@ -556,14 +556,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const rawCompleted = ((quote as any).completedBuildStages ?? []) as Array<string | { id: string; initials: string }>;
-      const completedStageIds = rawCompleted.map((e) => (typeof e === "string" ? e : e.id));
+      const completedStages = rawCompleted.map((e) =>
+        typeof e === "string" ? { id: e, initials: null } : { id: e.id, initials: e.initials ?? null }
+      );
 
       res.json({
         customerName: quote.userName,
         vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
         company: quote.company ?? null,
         stages,
-        completedStageIds,
+        completedStages,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch build progress" });
@@ -584,6 +586,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).parse(req.body);
 
       const raw = ((quote as any).completedBuildStages ?? []) as Array<string | { id: string; initials: string }>;
+
+      // Undo protection: only the person who marked a stage done can undo it
+      if (!body.completed) {
+        const existing = raw.find((e) => (typeof e === "string" ? e : e.id) === body.stageId);
+        if (existing && typeof existing !== "string" && existing.initials && existing.initials !== body.initials) {
+          return res.status(403).json({ error: `This stage was completed by ${existing.initials} — only they can undo it.` });
+        }
+      }
 
       let updated: Array<string | { id: string; initials: string }>;
       if (body.completed) {
