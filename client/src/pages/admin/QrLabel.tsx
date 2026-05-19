@@ -78,11 +78,16 @@ export default function QrLabel() {
         }
         .qr-side {
           width: 25mm;
+          height: 25mm;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 1.5mm;
           flex-shrink: 0;
+        }
+        .qr-side svg {
+          width: 22mm !important;
+          height: 22mm !important;
         }
         .info-side {
           flex: 1;
