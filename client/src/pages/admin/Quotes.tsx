@@ -126,7 +126,6 @@ import {
   XCircle,
   RefreshCw,
   PhoneCall,
-  User,
   Building2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1023,7 +1022,7 @@ export default function AdminQuotes() {
                             >
                               <CardContent className="p-3 space-y-1.5">
                                 <div className="flex items-start gap-1.5 flex-wrap">
-                                  <User className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                                  <UserIcon className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
                                   <p className="font-semibold text-sm truncate flex-1 min-w-0">{quote.userName}</p>
                                   {(quote as any).aiSessionId && (
                                     <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1 text-[10px] px-1.5 py-0" data-testid={`badge-max-ai-kanban-${quote.id}`}>

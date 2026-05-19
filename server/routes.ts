@@ -11,6 +11,7 @@ import { setupAuth, isAuthenticated, isAdmin, isBasicAdmin, isFullAdmin, isFinan
 import { buildVanMeta } from "./seo";
 import { generateAiBlogPost } from "./blogGenerator";
 import { computePopularityIntelligence, formatPopularityBlock } from "./popularityIntelligence";
+import { chromium } from "playwright";
 import { 
   insertVanSchema, 
   insertKitSchema, 
@@ -503,6 +504,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
       res.status(500).json({ error: "Failed to update build progress" });
+    }
+  });
+
+  // Build sheet PDF download — renders the build sheet page headlessly and returns an A4 PDF
+  app.get("/api/admin/quotes/:id/build-sheet.pdf", isAuthenticated, isBasicAdmin, async (req, res) => {
+    const quoteId = req.params.id;
+    const port = parseInt(process.env.PORT || "5000", 10);
+    const baseUrl = `http://localhost:${port}`;
+    const targetUrl = `${baseUrl}/admin/quotes/${quoteId}/build-sheet`;
+
+    // Extract the session cookie so the headless browser can access admin pages
+    const sessionCookie = req.headers.cookie ?? "";
+
+    let browser;
+    try {
+      browser = await chromium.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+      const context = await browser.newContext({
+        extraHTTPHeaders: { cookie: sessionCookie },
+      });
+      const page = await context.newPage();
+
+      // Block media/video to speed up the render
+      await page.route("**/*.mp4", route => route.abort());
+      await page.route("**/*.webm", route => route.abort());
+
+      await page.goto(targetUrl, { waitUntil: "networkidle", timeout: 30000 });
+
+      // Build filename from quote data — strip unsafe characters for Content-Disposition
+      const sanitize = (s: string) => s.replace(/\s+/g, "").replace(/[^\w-]/g, "");
+      const quote = await storage.getQuote(quoteId);
+      const customerName = sanitize(quote?.userName ?? "");
+      const reg = sanitize(((quote as any)?.vanRegistration ?? "")).toUpperCase();
+      const parts = ["BuildSheet", customerName, reg].filter(Boolean);
+      const filename = `${parts.join("-")}.pdf`;
+
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "14mm", bottom: "14mm", left: "12mm", right: "12mm" },
+      });
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Content-Length", pdfBuffer.length);
+      res.send(Buffer.from(pdfBuffer));
+    } catch (err) {
+      console.error("[PDF] Build sheet PDF generation failed:", err);
+      res.status(500).json({ error: "PDF generation failed" });
+    } finally {
+      if (browser) await browser.close();
     }
   });
 

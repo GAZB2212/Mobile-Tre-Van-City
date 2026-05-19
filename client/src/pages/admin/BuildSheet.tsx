@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check, ScanLine } from "lucide-react";
+import { ArrowLeft, Printer, FileDown, Loader2, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check, ScanLine } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -622,6 +622,35 @@ export default function BuildSheet() {
 
   const handlePrint = () => { window.print(); };
 
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!quoteId || pdfDownloading) return;
+    setPdfDownloading(true);
+    try {
+      const response = await fetch(`/api/admin/quotes/${quoteId}/build-sheet.pdf`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("PDF generation failed");
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      const filename = match?.[1] ?? `BuildSheet-${quoteId}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "PDF download failed", description: "Could not generate the PDF. Please try printing instead.", variant: "destructive" });
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
   if (isLoading || isLoadingQuotes) {
     return (
       <div className="min-h-screen bg-background">
@@ -742,6 +771,10 @@ export default function BuildSheet() {
               <Button onClick={handlePrint} data-testid="button-print">
                 <Printer className="w-4 h-4 mr-2" />
                 Print Build Sheet
+              </Button>
+              <Button variant="outline" onClick={handleDownloadPdf} disabled={pdfDownloading} data-testid="button-download-pdf">
+                {pdfDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                {pdfDownloading ? "Generating…" : "Download PDF"}
               </Button>
               {user?.adminRole === "full" && (
                 <Button
