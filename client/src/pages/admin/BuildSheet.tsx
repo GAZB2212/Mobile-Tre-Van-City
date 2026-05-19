@@ -969,10 +969,15 @@ export default function BuildSheet() {
         <div className="mb-8 flex items-start justify-between gap-6">
           <div className="flex-1 text-center">
             <h1 className="text-3xl font-bold mb-1" data-testid="text-page-title">Van Build Sheet</h1>
-            <p className="text-xl font-semibold mb-2 print:text-black" data-testid="text-build-sheet-company">
-              {quote.company || quote.userName}
+            <p className="text-xl font-semibold print:text-black" data-testid="text-build-sheet-name">
+              {quote.userName}
             </p>
-            <p className="text-muted-foreground print:text-black">
+            {quote.company && (
+              <p className="text-lg font-medium mb-2 print:text-black" data-testid="text-build-sheet-company">
+                {quote.company}
+              </p>
+            )}
+            <p className="text-muted-foreground print:text-black mt-2">
               Quote Reference: <strong>{quote.id.substring(0, 8).toUpperCase()}</strong>
             </p>
             <p className="text-sm text-muted-foreground print:text-black">Date: {formatDate(quote.createdAt)}</p>
