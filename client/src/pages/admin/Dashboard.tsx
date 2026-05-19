@@ -39,6 +39,7 @@ import {
   BellOff,
   BellRing,
   AlertTriangle,
+  Printer,
 } from "lucide-react";
 import {
   Tooltip,
@@ -570,15 +571,26 @@ export default function AdminDashboard() {
                               {fmtGBP(q.estTotal)}
                             </span>
                           )}
-                          <Link
-                            href={`/admin/quotes/${q.id}?tab=configuration&from=quotes`}
-                            className="shrink-0 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover-elevate"
-                            data-testid={`link-pipeline-edit-config-${q.id}`}
-                            title="Edit configuration"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Edit Config
-                          </Link>
+                          <div className="shrink-0 flex items-center gap-1">
+                            <Link
+                              href={`/admin/quotes/${q.id}?tab=configuration&from=quotes`}
+                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover-elevate"
+                              data-testid={`link-pipeline-edit-config-${q.id}`}
+                              title="Edit configuration"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Edit Config
+                            </Link>
+                            <Link
+                              href={`/admin/quotes/${q.id}/build-sheet`}
+                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover-elevate"
+                              data-testid={`link-pipeline-build-sheet-${q.id}`}
+                              title="Build sheet"
+                            >
+                              <Printer className="w-3 h-3" />
+                              Build Sheet
+                            </Link>
+                          </div>
                         </div>
                       ))}
                     </div>
