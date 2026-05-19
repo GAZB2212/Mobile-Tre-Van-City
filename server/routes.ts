@@ -9956,13 +9956,19 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           customVanDescription: q.customVanDescription,
           kitId: q.kitId,
           selectedUpgradeIds: q.selectedUpgradeIds ?? [],
+          // Build sheet progress — completedBuildStages entries are either a bare stage-id string
+          // (legacy) or { id, initials } (current format with staff initials)
+          completedBuildStages: (q.completedBuildStages ?? []) as Array<string | { id: string; initials: string }>,
+          // Custom stage list overrides the auto-generated one; null means auto-generate
+          customBuildStages: (q.customBuildStages ?? null) as Array<{ id: string; label: string }> | null,
         }));
 
       res.json({
         quotes,
         vans: vans.map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year })),
         kits: kits.map((k) => ({ id: k.id, name: k.name })),
-        upgrades: upgrades.map((u) => ({ id: u.id, name: u.name })),
+        // Include category so the client can detect wrap/interior-wall upgrades for stage generation
+        upgrades: upgrades.map((u) => ({ id: u.id, name: u.name, category: u.category ?? "" })),
       });
     } catch (err) {
       console.error("Kiosk pipeline error:", err);

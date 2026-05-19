@@ -43,9 +43,9 @@ function daysUntil(val: Date | string | null | undefined): number | null {
   return Math.round((targetUtc.getTime() - todayUtc.getTime()) / 86_400_000);
 }
 
-function DueChip({ val }: { val: Date | string | null | undefined }) {
+function DueChip({ val }: { val: string | null }) {
   if (!parseDbDate(val)) {
-    return <span className="text-sm font-semibold opacity-30">No due date</span>;
+    return <span className="text-xs font-semibold opacity-30">No due date</span>;
   }
   const days = daysUntil(val);
   if (days === null) return null;
@@ -66,10 +66,17 @@ function DueChip({ val }: { val: Date | string | null | undefined }) {
     : `${days}d left`;
   return (
     <div className={`text-right ${colour}`}>
-      <div className="text-lg font-black leading-tight tabular-nums">{fmtDate(val)}</div>
-      <div className="text-xs font-semibold mt-0.5">{label}</div>
+      <div className="text-base font-black leading-tight tabular-nums">{fmtDate(val)}</div>
+      <div className="text-[10px] font-semibold mt-0.5">{label}</div>
     </div>
   );
+}
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface StageEntry {
+  id: string;
+  initials: string | null; // null = not yet completed
 }
 
 interface KioskQuote {
@@ -84,14 +91,142 @@ interface KioskQuote {
   customVanDescription: string | null;
   kitId: string | null;
   selectedUpgradeIds: string[];
+  completedBuildStages: Array<string | { id: string; initials: string }>;
+  customBuildStages: Array<{ id: string; label: string }> | null;
+}
+
+interface KioskUpgrade {
+  id: string;
+  name: string;
+  category: string;
 }
 
 interface KioskData {
   quotes: KioskQuote[];
   vans: { id: string; make: string; model: string; year: number | null }[];
   kits: { id: string; name: string }[];
-  upgrades: { id: string; name: string }[];
+  upgrades: KioskUpgrade[];
 }
+
+// ── Stage helpers ───────────────────────────────────────────────────────────
+
+const wrapPat = /wrap|graphics|livery/i;
+const wallPat = /interior.wall/i;
+
+function isWrap(u: KioskUpgrade) {
+  return wrapPat.test(u.name) || wrapPat.test(u.category);
+}
+function isWall(u: KioskUpgrade) {
+  return wallPat.test(u.name) || wallPat.test(u.category);
+}
+
+/** Replicates QuoteDetail.tsx autoGenerateStages() */
+function generateStages(
+  kitName: string | null,
+  selectedUpgrades: KioskUpgrade[],
+): Array<{ id: string; label: string }> {
+  const stages: Array<{ id: string; label: string }> = [];
+  stages.push({ id: "prep", label: "Van Preparation" });
+  if (kitName) stages.push({ id: "kit", label: `Install ${kitName}` });
+
+  const nonWrap = selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u));
+  const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
+  const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
+
+  for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+
+  if (wrapOnly.length > 0) {
+    stages.push({ id: "artwork_sent", label: "Artwork Sent" });
+    stages.push({ id: "artwork_approved", label: "Artwork Approved" });
+    stages.push({ id: "wrap_printed", label: "Wrap Printed" });
+  }
+  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+
+  if (wallOnly.length > 0) {
+    stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" });
+    stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved" });
+    stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered" });
+  }
+  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+
+  stages.push({ id: "final_checks", label: "Final Checks" });
+  stages.push({ id: "valet", label: "Valet & Handover" });
+  return stages;
+}
+
+/** Normalise completedBuildStages entries to { id, initials } */
+function normaliseCompleted(raw: Array<string | { id: string; initials: string }>): StageEntry[] {
+  return raw.map((entry) =>
+    typeof entry === "string"
+      ? { id: entry, initials: null }
+      : { id: entry.id, initials: entry.initials ?? null },
+  );
+}
+
+// ── Build stage list component ──────────────────────────────────────────────
+
+function BuildStageList({
+  stages,
+  completed,
+}: {
+  stages: Array<{ id: string; label: string }>;
+  completed: StageEntry[];
+}) {
+  const completedIds = new Set(completed.map((c) => c.id));
+  const initialsMap = new Map(completed.map((c) => [c.id, c.initials]));
+  const doneCount = stages.filter((s) => completedIds.has(s.id)).length;
+  const total = stages.length;
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+  return (
+    <div>
+      {/* Progress header */}
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[10px] uppercase tracking-widest text-zinc-500">Build</p>
+        <span className="text-[10px] font-bold text-zinc-400 tabular-nums">
+          {doneCount}/{total}
+        </span>
+      </div>
+
+      {/* Thin progress bar */}
+      <div className="w-full h-1 bg-zinc-700 rounded-full mb-2 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            pct === 100 ? "bg-lime-400" : "bg-sky-500"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Stage chips */}
+      <div className="flex flex-wrap gap-1">
+        {stages.map((stage) => {
+          const done = completedIds.has(stage.id);
+          const initials = initialsMap.get(stage.id) ?? null;
+          return (
+            <span
+              key={stage.id}
+              className={`inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded border ${
+                done
+                  ? "bg-zinc-800/50 border-zinc-700 text-zinc-600 line-through"
+                  : "bg-zinc-800 border-zinc-600 text-zinc-200"
+              }`}
+            >
+              {stage.label}
+              {done && initials && (
+                <span className="ml-0.5 text-[8px] font-bold text-zinc-500 no-underline not-italic">
+                  {initials}
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
 
 export default function KioskPipelineBoard() {
   const params = useParams<{ token: string }>();
@@ -130,7 +265,6 @@ export default function KioskPipelineBoard() {
 
   const committedQuotes = data.quotes.filter((q) => COMMITTED_STATUSES.has(q.status));
 
-  // Pick column count based on card count so everything fills the screen sensibly
   const colClass =
     committedQuotes.length <= 2
       ? "grid-cols-2"
@@ -168,11 +302,17 @@ export default function KioskPipelineBoard() {
             const van = data.vans.find((v) => v.id === q.vanId);
             const kit = data.kits.find((k) => k.id === q.kitId);
             const selectedUpgrades = data.upgrades.filter((u) =>
-              (q.selectedUpgradeIds ?? []).includes(u.id)
+              (q.selectedUpgradeIds ?? []).includes(u.id),
             );
             const vanLabel = van
               ? `${van.year} ${van.make} ${van.model}`
               : q.customVanDescription || "—";
+
+            // Build stages — use custom list if staff overrode it, otherwise auto-generate
+            const stages =
+              q.customBuildStages ??
+              generateStages(kit?.name ?? null, selectedUpgrades);
+            const completed = normaliseCompleted(q.completedBuildStages);
 
             return (
               <div
@@ -185,7 +325,9 @@ export default function KioskPipelineBoard() {
                   <div className="min-w-0">
                     <p className="text-xl font-black leading-tight truncate">{q.userName}</p>
                     {q.company && (
-                      <p className="text-xs text-zinc-400 font-semibold truncate mt-0.5">{q.company}</p>
+                      <p className="text-xs text-zinc-400 font-semibold truncate mt-0.5">
+                        {q.company}
+                      </p>
                     )}
                     {q.phone && (
                       <p className="text-xs text-zinc-300 mt-0.5">{q.phone}</p>
@@ -208,31 +350,21 @@ export default function KioskPipelineBoard() {
                 {kit && (
                   <div className="shrink-0">
                     <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Pack</p>
-                    <p className="text-sm font-semibold text-white leading-tight">{kit.name}</p>
+                    <p className="text-xs font-semibold text-white leading-tight">{kit.name}</p>
                   </div>
                 )}
 
-                {/* Upgrades — allow to scroll within the card if there are many */}
-                {selectedUpgrades.length > 0 && (
-                  <div className="flex-1 min-h-0 overflow-hidden">
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Upgrades</p>
-                    <div className="flex flex-wrap gap-1 overflow-hidden">
-                      {selectedUpgrades.map((u) => (
-                        <span
-                          key={u.id}
-                          className="bg-zinc-800 border border-zinc-600 text-zinc-300 text-[10px] font-medium px-1.5 py-0.5 rounded"
-                        >
-                          {u.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Build stages — fills remaining space */}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <BuildStageList stages={stages} completed={completed} />
+                </div>
 
                 {/* Due out — pinned to bottom */}
-                <div className="mt-auto pt-2 border-t border-zinc-700 shrink-0 flex items-end justify-between gap-2">
+                <div className="pt-2 border-t border-zinc-700 shrink-0 flex items-end justify-between gap-2">
                   <div>
-                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Due out</p>
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">
+                      Due out
+                    </p>
                     {q.statusChangedAt && (
                       <p className="text-[10px] text-zinc-600">
                         Since {fmtDate(q.statusChangedAt)}
