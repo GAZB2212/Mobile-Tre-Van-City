@@ -89,6 +89,7 @@ interface KioskQuote {
   company: string | null;
   vanId: string | null;
   customVanDescription: string | null;
+  vanRegistration: string | null;
   kitId: string | null;
   selectedUpgradeIds: string[];
   completedBuildStages: Array<string | { id: string; initials: string }>;
@@ -320,21 +321,25 @@ export default function KioskPipelineBoard() {
                 className="bg-zinc-900 rounded-lg border border-zinc-700 p-3 flex flex-col gap-2 min-h-0 overflow-hidden"
                 data-testid={`card-kiosk-${q.id}`}
               >
-                {/* Name + badge */}
+                {/* Name row + badge */}
                 <div className="flex items-start justify-between gap-2 shrink-0">
-                  <div className="min-w-0">
-                    <p className="text-xl font-black leading-tight truncate">{q.userName}</p>
-                    {q.company && (
-                      <p className="text-xs text-zinc-400 font-semibold truncate mt-0.5">
-                        {q.company}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-black leading-tight truncate">{q.userName}</p>
+                    {/* Company · reg · phone all on one line */}
+                    {(q.company || q.vanRegistration || q.phone) && (
+                      <p className="text-[11px] text-zinc-400 leading-tight mt-0.5 truncate">
+                        {[
+                          q.company,
+                          q.vanRegistration,
+                          q.phone,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
-                    )}
-                    {q.phone && (
-                      <p className="text-xs text-zinc-300 mt-0.5">{q.phone}</p>
                     )}
                   </div>
                   <Badge
-                    className={`shrink-0 text-xs font-bold px-2 py-0.5 no-default-active-elevate ${STATUS_COLOUR[q.status] ?? "bg-zinc-700 text-white"}`}
+                    className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 no-default-active-elevate ${STATUS_COLOUR[q.status] ?? "bg-zinc-700 text-white"}`}
                   >
                     {STATUS_LABEL[q.status] ?? q.status}
                   </Badge>
