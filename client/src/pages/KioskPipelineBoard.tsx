@@ -241,7 +241,7 @@ export default function KioskPipelineBoard() {
       return res.json();
     },
     enabled: !!token,
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
     refetchIntervalInBackground: true,
     retry: false,
   });
@@ -283,7 +283,7 @@ export default function KioskPipelineBoard() {
           </h1>
           <p className="text-zinc-400 text-xs mt-0.5">
             {committedQuotes.length} active job{committedQuotes.length !== 1 ? "s" : ""}
-            &nbsp;·&nbsp;auto-refreshes every 60 s
+            &nbsp;·&nbsp;auto-refreshes every 30 s
           </p>
         </div>
         <div className="text-zinc-600 text-xs tabular-nums">
@@ -351,6 +351,23 @@ export default function KioskPipelineBoard() {
                   <div className="shrink-0">
                     <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Pack</p>
                     <p className="text-xs font-semibold text-white leading-tight">{kit.name}</p>
+                  </div>
+                )}
+
+                {/* Upgrades */}
+                {selectedUpgrades.length > 0 && (
+                  <div className="shrink-0">
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Upgrades</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedUpgrades.map((u) => (
+                        <span
+                          key={u.id}
+                          className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-600 text-zinc-200"
+                        >
+                          {u.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 

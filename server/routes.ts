@@ -10110,8 +10110,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const [allQuotes, vans, kits, upgrades] = await Promise.all([
         storage.getQuotes(),
         storage.getVans(),
-        storage.getKits(),
-        storage.getUpgrades(),
+        storage.getKitsAdmin(),
+        storage.getAllUpgradesAdmin(),
       ]);
 
       const quotes = allQuotes
