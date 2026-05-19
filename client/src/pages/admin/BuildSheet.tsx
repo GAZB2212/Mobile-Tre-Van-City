@@ -685,26 +685,26 @@ export default function BuildSheet() {
 
           /* ── Page-break control ─────────────────────────────────── */
 
-          /* Small cards (Customer Info, Van Spec, Artwork) — avoid splitting
-             when the card is short enough to fit in the remaining page space.
-             Browsers silently ignore this on cards that are taller than the
-             remaining space, which is fine — the forced breaks below handle
-             the large sections explicitly. */
-          .rounded-lg,
-          .rounded-md {
+          /* Scoped break-inside: applied only to intentional section cards and
+             the workshop instructions block via the print-section class.
+             This avoids the problem of the blanket .rounded-lg rule: browsers
+             silently ignore break-inside: avoid on elements taller than the
+             remaining page space, which can cascade to unrelated elements. */
+          .print-section {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
 
-          /* Card header must stay with its content — never orphaned at bottom of page */
-          .rounded-lg > div:first-child,
-          .rounded-md > div:first-child {
+          /* Card header must stay with its content — never orphaned at the
+             bottom of a page. shadcn-card is set on every Card component;
+             its first child is always the CardHeader div. */
+          .shadcn-card > div:first-child {
             break-after: avoid !important;
             page-break-after: avoid !important;
           }
 
-          /* Force the heavy sections to always start at the top of a fresh page.
-             Applied via .print-page-break on the Card element in JSX. */
+          /* Force the heavy sections to always start at the top of a fresh
+             page. Applied via .print-page-break on the Card element in JSX. */
           .print-page-break {
             break-before: page !important;
             page-break-before: always !important;
@@ -714,12 +714,6 @@ export default function BuildSheet() {
           .border-b {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
-          }
-
-          /* Workshop instructions + signature block */
-          .print-page-break-instructions {
-            break-before: page !important;
-            page-break-before: always !important;
           }
 
           /* ── Checkbox square ───────────────────────────────────── */
@@ -956,7 +950,7 @@ export default function BuildSheet() {
         <div className="space-y-6">
 
           {/* Customer Info */}
-          <Card>
+          <Card className="print-section">
             <CardHeader>
               <CardTitle>Customer Information</CardTitle>
             </CardHeader>
@@ -1004,7 +998,7 @@ export default function BuildSheet() {
 
           {/* Van Spec */}
           {van ? (
-            <Card>
+            <Card className="print-section">
               <CardHeader>
                 <CardTitle>Base Vehicle Specification</CardTitle>
               </CardHeader>
@@ -1057,7 +1051,7 @@ export default function BuildSheet() {
             </Card>
           ) : (quote as any).vanRegistration ? (
             /* No stock van linked, but a registration was recorded — show a minimal van details card */
-            <Card>
+            <Card className="print-section">
               <CardHeader>
                 <CardTitle>Van Details</CardTitle>
               </CardHeader>
@@ -1080,7 +1074,7 @@ export default function BuildSheet() {
             const hasBrandedInteriorWalls = upgrades.some(u => isBrandedInteriorWallUpgrade(u));
             if (!hasWrap && !hasBrandedInteriorWalls) return null;
             return (
-              <Card data-testid="card-artwork-design">
+              <Card className="print-section" data-testid="card-artwork-design">
                 <CardHeader>
                   <CardTitle>Artwork &amp; Design</CardTitle>
                 </CardHeader>
@@ -1140,7 +1134,7 @@ export default function BuildSheet() {
 
           {/* Kit Items — with checkboxes */}
           {kit && (
-            <Card className="print-page-break">
+            <Card className="print-page-break print-section">
               <CardHeader>
                 <CardTitle>Equipment Package — Items to Install</CardTitle>
               </CardHeader>
@@ -1227,7 +1221,7 @@ export default function BuildSheet() {
 
           {/* Upgrades — with checkboxes (superseding upgrades are shown in the kit section above) */}
           {regularUpgrades.length > 0 && (
-            <Card className="print-page-break">
+            <Card className="print-page-break print-section">
               <CardHeader>
                 <CardTitle>Additional Equipment &amp; Upgrades — Items to Install</CardTitle>
               </CardHeader>
@@ -1298,7 +1292,7 @@ export default function BuildSheet() {
 
           {/* Bespoke Extras */}
           {((quote as any).customExtras as Array<{id: string; description: string; pricePence: number}> | undefined)?.length ? (
-            <Card>
+            <Card className="print-section">
               <CardHeader>
                 <CardTitle>Bespoke Extras</CardTitle>
               </CardHeader>
@@ -1334,7 +1328,7 @@ export default function BuildSheet() {
           ) : null}
 
           {/* Build Status */}
-          <Card className="print-page-break">
+          <Card className="print-page-break print-section">
             <CardHeader>
               <CardTitle>Build Status</CardTitle>
             </CardHeader>
@@ -1364,7 +1358,7 @@ export default function BuildSheet() {
         </div>
 
         {/* Workshop instructions */}
-        <div className="mt-8 p-4 border rounded-md print:border-black print-page-break-instructions">
+        <div className="mt-8 p-4 border rounded-md print:border-black print-section">
           <p className="text-sm font-bold mb-2">Build Team Instructions</p>
           <ul className="text-sm space-y-1 list-disc list-inside">
             <li>Verify all equipment and parts are available before starting build</li>
