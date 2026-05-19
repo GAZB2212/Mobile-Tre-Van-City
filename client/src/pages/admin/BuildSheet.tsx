@@ -652,6 +652,11 @@ export default function BuildSheet() {
     <>
       {/* Print-override styles injected into head via a style tag */}
       <style>{`
+        @page {
+          size: A4;
+          margin: 14mm 12mm 14mm 12mm;
+        }
+
         @media print {
           body, html {
             background: #ffffff !important;
@@ -663,6 +668,56 @@ export default function BuildSheet() {
             border-color: #000000 !important;
             box-shadow: none !important;
           }
+
+          /* ── Page-break control ─────────────────────────────────── */
+
+          /* Each section card must not split across pages */
+          .rounded-lg,
+          .rounded-md {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* Card header must stay with its content — never orphaned at bottom of page */
+          .rounded-lg > div:first-child {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+
+          /* Individual checklist rows stay together */
+          .border-b {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* BOM sub-tables: keep header with body, keep rows together */
+          table {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          thead {
+            display: table-header-group;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+          tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* Workshop instructions + signature block at the bottom */
+          .mt-8 {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* Print-only footer */
+          .mt-6 {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* ── Checkbox square ───────────────────────────────────── */
           .print-checkbox-square {
             display: inline-block !important;
             width: 14px !important;
