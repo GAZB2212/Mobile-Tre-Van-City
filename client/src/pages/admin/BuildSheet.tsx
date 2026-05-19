@@ -429,7 +429,14 @@ export default function BuildSheet() {
 
   const stockBuildId = (quote as any)?.stockBuildId as string | undefined;
   const qrUrl = stockBuildId ? `https://autotradeportal.com/van-build-scan/${stockBuildId}` : undefined;
-  const progressUrl = `${window.location.origin}/admin/quotes/${quoteId}/build-progress`;
+
+  const { data: tokenData } = useQuery<{ token: string }>({
+    queryKey: [`/api/admin/quotes/${quoteId}/progress-token`],
+    enabled: !!quoteId,
+  });
+  const progressUrl = tokenData?.token
+    ? `${window.location.origin}/workshop/${tokenData.token}`
+    : `${window.location.origin}/admin/quotes/${quoteId}/build-progress`;
 
   const kit = kits.find((k) => k.id === quote?.kitId);
   const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds?.includes(u.id));
