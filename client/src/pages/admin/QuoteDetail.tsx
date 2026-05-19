@@ -477,8 +477,9 @@ export default function AdminQuoteDetail() {
       // displayed date matches what was originally saved (stored as UTC midnight).
       const tcd = quote.targetCompletionDate;
       if (tcd) {
-        const d = tcd instanceof Date ? tcd : new Date(tcd as unknown as string);
-        setTargetCompletionDate(isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0]);
+        // Drizzle types this as Date|null but JSON serialisation sends it as a string at runtime
+        const d = tcd instanceof Date ? tcd : typeof tcd === "string" ? new Date(tcd) : null;
+        setTargetCompletionDate(d && !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : "");
       } else {
         setTargetCompletionDate("");
       }
