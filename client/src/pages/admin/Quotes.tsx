@@ -1084,15 +1084,26 @@ export default function AdminQuotes() {
                                   </span>
                                 )}
                                 <div className="pt-1 border-t border-border/50 flex items-center justify-between gap-2">
-                                  <Link
-                                    href={`/admin/quotes/${quote.id}?tab=configuration&from=quotes`}
-                                    onClick={e => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                                    data-testid={`link-edit-config-kanban-${quote.id}`}
-                                  >
-                                    <Settings className="w-3 h-3" />
-                                    Edit Config
-                                  </Link>
+                                  <div className="flex items-center gap-3">
+                                    <Link
+                                      href={`/admin/quotes/${quote.id}?tab=configuration&from=quotes`}
+                                      onClick={e => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                                      data-testid={`link-edit-config-kanban-${quote.id}`}
+                                    >
+                                      <Settings className="w-3 h-3" />
+                                      Edit Config
+                                    </Link>
+                                    <Link
+                                      href={`/admin/quotes/${quote.id}/build-sheet`}
+                                      onClick={e => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                                      data-testid={`link-build-sheet-kanban-${quote.id}`}
+                                    >
+                                      <Printer className="w-3 h-3" />
+                                      Build Sheet
+                                    </Link>
+                                  </div>
                                   {twilioConfigured && staffPhones.length > 0 && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
