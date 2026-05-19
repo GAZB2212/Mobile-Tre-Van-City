@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { getAuthToken } from "@/lib/queryClient";
 import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -628,8 +629,10 @@ export default function BuildSheet() {
     if (!quoteId || pdfDownloading) return;
     setPdfDownloading(true);
     try {
+      const token = getAuthToken();
       const response = await fetch(`/api/admin/quotes/${quoteId}/build-sheet.pdf`, {
         credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) throw new Error("PDF generation failed");
       const blob = await response.blob();
