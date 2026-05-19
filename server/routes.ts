@@ -10131,6 +10131,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           kitId: q.kitId,
           selectedUpgradeIds: q.selectedUpgradeIds ?? [],
           vanRegistration: q.vanRegistration ?? null,
+          confirmationToken: q.confirmationToken ?? null,
           // Build sheet progress — completedBuildStages entries are either a bare stage-id string
           // (legacy) or { id, initials } (current format with staff initials)
           completedBuildStages: (q.completedBuildStages ?? []) as Array<string | { id: string; initials: string }>,
