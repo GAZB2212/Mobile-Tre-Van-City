@@ -80,7 +80,7 @@ function SkuBomInfo({ sku, skuComponents, bomId, onScanRow, pickedRows, stockMap
   return (
     <div className="mt-0.5 space-y-0.5">
       {hasSku && (
-        <p className="text-xs font-mono text-muted-foreground print:text-black">
+        <p className="text-xs font-mono text-muted-foreground print:hidden">
           SKU: <span className="font-semibold">{sku}</span>
         </p>
       )}
@@ -254,6 +254,20 @@ export default function BuildSheet() {
     isAuthenticated: boolean;
     isLoading: boolean;
   };
+
+  // ── Print tips dismissal ────────────────────────────────────────────────────
+  const PRINT_TIPS_KEY = "build-sheet-print-tips-dismissed";
+  const [printTipsDismissed, setPrintTipsDismissed] = useState<boolean>(
+    () => localStorage.getItem(PRINT_TIPS_KEY) === "true"
+  );
+  const dismissPrintTips = () => {
+    localStorage.setItem(PRINT_TIPS_KEY, "true");
+    setPrintTipsDismissed(true);
+  };
+
+  // Detect browser for targeted print tips
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isChrome = /chrome/i.test(navigator.userAgent) && !/edge|opr\//i.test(navigator.userAgent);
 
   // ── QR scan-to-deduct ───────────────────────────────────────────────────────
   // scannerTarget carries the expected SKU, BOM row quantity, and the composite
@@ -758,6 +772,30 @@ export default function BuildSheet() {
             </>
           }
         />
+        {!printTipsDismissed && (
+          <div className="mx-4 mb-3 mt-1 flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-4 py-3 text-sm text-blue-800 dark:text-blue-200" data-testid="div-print-tips">
+            <Printer className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500 dark:text-blue-400" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium mb-0.5">Print tips — hide browser headers &amp; footers</p>
+              {isSafari ? (
+                <p className="text-blue-700 dark:text-blue-300">In Safari: File &rarr; Print &rarr; uncheck <strong>Print headers and footers</strong>.</p>
+              ) : isChrome ? (
+                <p className="text-blue-700 dark:text-blue-300">In Chrome: File &rarr; Print &rarr; <strong>More settings</strong> &rarr; uncheck <strong>Headers and footers</strong>.</p>
+              ) : (
+                <p className="text-blue-700 dark:text-blue-300">In your browser's print dialog, look for a <strong>Headers and footers</strong> option and uncheck it for a clean print.</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={dismissPrintTips}
+              className="flex-shrink-0 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 transition-colors"
+              data-testid="button-dismiss-print-tips"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Last push summary — always visible to full admins when there's history ── */}
