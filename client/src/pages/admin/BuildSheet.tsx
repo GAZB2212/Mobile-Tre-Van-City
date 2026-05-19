@@ -685,7 +685,11 @@ export default function BuildSheet() {
 
           /* ── Page-break control ─────────────────────────────────── */
 
-          /* Each section card must not split across pages */
+          /* Small cards (Customer Info, Van Spec, Artwork) — avoid splitting
+             when the card is short enough to fit in the remaining page space.
+             Browsers silently ignore this on cards that are taller than the
+             remaining space, which is fine — the forced breaks below handle
+             the large sections explicitly. */
           .rounded-lg,
           .rounded-md {
             break-inside: avoid !important;
@@ -693,9 +697,17 @@ export default function BuildSheet() {
           }
 
           /* Card header must stay with its content — never orphaned at bottom of page */
-          .rounded-lg > div:first-child {
+          .rounded-lg > div:first-child,
+          .rounded-md > div:first-child {
             break-after: avoid !important;
             page-break-after: avoid !important;
+          }
+
+          /* Force the heavy sections to always start at the top of a fresh page.
+             Applied via .print-page-break on the Card element in JSX. */
+          .print-page-break {
+            break-before: page !important;
+            page-break-before: always !important;
           }
 
           /* Individual checklist rows stay together */
@@ -704,31 +716,10 @@ export default function BuildSheet() {
             page-break-inside: avoid !important;
           }
 
-          /* BOM sub-tables: keep header with body, keep rows together */
-          table {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-          thead {
-            display: table-header-group;
-            break-after: avoid !important;
-            page-break-after: avoid !important;
-          }
-          tr {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          /* Workshop instructions + signature block at the bottom */
-          .mt-8 {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          /* Print-only footer */
-          .mt-6 {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
+          /* Workshop instructions + signature block */
+          .print-page-break-instructions {
+            break-before: page !important;
+            page-break-before: always !important;
           }
 
           /* ── Checkbox square ───────────────────────────────────── */
@@ -1149,7 +1140,7 @@ export default function BuildSheet() {
 
           {/* Kit Items — with checkboxes */}
           {kit && (
-            <Card>
+            <Card className="print-page-break">
               <CardHeader>
                 <CardTitle>Equipment Package — Items to Install</CardTitle>
               </CardHeader>
@@ -1236,7 +1227,7 @@ export default function BuildSheet() {
 
           {/* Upgrades — with checkboxes (superseding upgrades are shown in the kit section above) */}
           {regularUpgrades.length > 0 && (
-            <Card>
+            <Card className="print-page-break">
               <CardHeader>
                 <CardTitle>Additional Equipment &amp; Upgrades — Items to Install</CardTitle>
               </CardHeader>
@@ -1343,7 +1334,7 @@ export default function BuildSheet() {
           ) : null}
 
           {/* Build Status */}
-          <Card>
+          <Card className="print-page-break">
             <CardHeader>
               <CardTitle>Build Status</CardTitle>
             </CardHeader>
@@ -1373,7 +1364,7 @@ export default function BuildSheet() {
         </div>
 
         {/* Workshop instructions */}
-        <div className="mt-8 p-4 border rounded-md print:border-black">
+        <div className="mt-8 p-4 border rounded-md print:border-black print-page-break-instructions">
           <p className="text-sm font-bold mb-2">Build Team Instructions</p>
           <ul className="text-sm space-y-1 list-disc list-inside">
             <li>Verify all equipment and parts are available before starting build</li>
