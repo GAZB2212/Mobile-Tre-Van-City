@@ -321,13 +321,18 @@ export default function KioskPipelineBoard() {
                 className="bg-zinc-900 rounded-lg border border-zinc-700 p-3 flex flex-col gap-2 min-h-0 overflow-hidden"
                 data-testid={`card-kiosk-${q.id}`}
               >
-                {/* Single header line: name · company · reg · phone + badge */}
+                {/* Header: name + reg on top line + status badge */}
                 <div className="flex items-center justify-between gap-2 shrink-0 min-w-0">
-                  <p className="text-sm font-black leading-tight truncate min-w-0 flex-1">
-                    {[q.userName, q.company, q.vanRegistration, q.phone]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <p className="text-sm font-black leading-tight truncate min-w-0">
+                      {q.userName || "—"}
+                    </p>
+                    {q.vanRegistration && (
+                      <span className="shrink-0 text-[11px] font-extrabold tracking-wider bg-yellow-400 text-black px-1.5 py-0.5 rounded uppercase">
+                        {q.vanRegistration}
+                      </span>
+                    )}
+                  </div>
                   <Badge
                     className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 no-default-active-elevate ${STATUS_COLOUR[q.status] ?? "bg-zinc-700 text-white"}`}
                   >
