@@ -121,7 +121,7 @@ function LiveClock() {
   return <span>{time}</span>;
 }
 
-// ── Job card — fully static, no animation ────────────────────────────────────
+// ── Job card — compact: name / progress / QR only ───────────────────────────
 
 function JobCard({
   q, van, kit, selectedUpgrades,
@@ -133,9 +133,9 @@ function JobCard({
 }) {
   const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades);
   const completed = normaliseCompleted(q.completedBuildStages);
-  const completedMap = new Map(completed.map((c) => [c.id, c.initials]));
+  const completedIds = new Set(completed.map((c) => c.id));
 
-  const doneCount = stages.filter((s) => completedMap.has(s.id)).length;
+  const doneCount = stages.filter((s) => completedIds.has(s.id)).length;
   const total = stages.length;
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
   const allDone = doneCount === total && total > 0;
@@ -150,134 +150,89 @@ function JobCard({
     : days < 0 ? "text-red-400"
     : days === 0 ? "text-orange-400"
     : days <= 3 ? "text-yellow-400"
-    : "text-zinc-400";
-
-  // Split stages into done (most recent first) and pending (in order)
-  const doneStages = stages.filter((s) => completedMap.has(s.id));
-  const pendingStages = stages.filter((s) => !completedMap.has(s.id));
+    : "text-zinc-500";
 
   const workshopUrl = q.confirmationToken
     ? `${window.location.origin}/workshop/${q.confirmationToken}`
     : null;
 
+  // Progress bar colour
+  const barColour = allDone ? "bg-lime-400" : pct > 50 ? "bg-sky-400" : pct > 0 ? "bg-orange-400" : "bg-zinc-700";
+
   return (
-    <div
-      className={`rounded-lg border flex flex-col overflow-hidden ${
-        allDone ? "border-lime-500/50 bg-zinc-900" : "border-zinc-800 bg-zinc-900"
-      }`}
-    >
-      {/* ── Top accent bar (colour-coded progress) ── */}
-      <div
-        className={`h-1 shrink-0 transition-all ${allDone ? "bg-lime-400" : pct > 50 ? "bg-sky-400" : pct > 0 ? "bg-orange-400" : "bg-zinc-700"}`}
-        style={{ width: `${Math.max(pct, 3)}%` }}
-      />
+    <div className={`rounded-lg border flex flex-col overflow-hidden ${allDone ? "border-lime-500/40" : "border-zinc-800"} bg-zinc-900`}>
 
-      {/* ── Header ─────────────────────────────────── */}
-      <div className="px-3 pt-2 pb-1.5 shrink-0 border-b border-zinc-800">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-black text-white leading-tight truncate">{q.userName || "—"}</p>
-            {q.company && <p className="text-[10px] text-zinc-500 truncate leading-tight">{q.company}</p>}
-          </div>
-          <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
-            {STATUS_LABEL[q.status] ?? q.status}
-          </span>
-        </div>
-
-        {/* Reg + van label */}
-        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          {q.vanRegistration && (
-            <span className="text-[9px] font-extrabold tracking-widest bg-yellow-400 text-black px-1.5 py-0.5 rounded font-mono uppercase shrink-0">
-              {q.vanRegistration}
-            </span>
-          )}
-          {vanLabel && (
-            <span className="text-[9px] text-zinc-500 truncate">{vanLabel}</span>
-          )}
-        </div>
-
-        {/* Kit */}
-        {kit && (
-          <p className="text-[9px] font-medium text-sky-400 truncate mt-0.5">{kit.name}</p>
-        )}
-
-        {/* Progress bar */}
-        <div className="mt-1.5">
-          <div className="flex items-center justify-between mb-0.5">
-            <span className="text-[8px] uppercase tracking-widest text-zinc-700">Progress</span>
-            <span className={`text-[9px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-300"}`}>
-              {doneCount}/{total} — {pct}%
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-zinc-800">
-            <div
-              className={`h-full rounded-full ${allDone ? "bg-lime-400" : "bg-sky-500"}`}
-              style={{ width: `${pct}%`, transition: "width 0.5s ease" }}
-            />
-          </div>
-        </div>
+      {/* Full-width progress stripe at very top */}
+      <div className="h-1.5 bg-zinc-800 shrink-0">
+        <div className={`h-full rounded-r-full ${barColour}`} style={{ width: `${Math.max(pct, 2)}%` }} />
       </div>
 
-      {/* ── Build stages ────────────────────────────── */}
-      <div className="flex-1 overflow-hidden px-3 py-1.5">
-        <div className="space-y-0.5">
-          {/* Pending stages first — these are what's left to do */}
-          {pendingStages.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-1.5 min-w-0">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${i === 0 ? "bg-sky-500" : "bg-zinc-700"}`} />
-              <span className={`text-[9px] leading-tight truncate ${i === 0 ? "text-white font-semibold" : "text-zinc-500"}`}>
-                {s.label}
-              </span>
-              {i === 0 && (
-                <span className="text-[8px] text-sky-600 shrink-0 font-semibold">← next</span>
-              )}
+      {/* Main content */}
+      <div className="flex flex-1 items-center gap-3 px-3 py-2 min-w-0">
+
+        {/* Left: customer info + progress */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+
+          {/* Name + status */}
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-white leading-tight truncate">{q.userName || "—"}</p>
+              {q.company && <p className="text-[10px] text-zinc-500 truncate leading-none mt-0.5">{q.company}</p>}
             </div>
-          ))}
+            <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
+              {STATUS_LABEL[q.status] ?? q.status}
+            </span>
+          </div>
 
-          {/* Divider only when we have both */}
-          {pendingStages.length > 0 && doneStages.length > 0 && (
-            <div className="border-t border-zinc-800 my-1" />
-          )}
+          {/* Reg + van */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {q.vanRegistration && (
+              <span className="text-[9px] font-extrabold tracking-widest bg-yellow-400 text-black px-1.5 py-0.5 rounded font-mono uppercase shrink-0">
+                {q.vanRegistration}
+              </span>
+            )}
+            {vanLabel && <span className="text-[9px] text-zinc-500 truncate">{vanLabel}</span>}
+          </div>
 
-          {/* Done stages — compact, struck through, with initials */}
-          {doneStages.map((s) => {
-            const initials = completedMap.get(s.id);
-            return (
-              <div key={s.id} className="flex items-center gap-1.5 min-w-0">
-                <span className="w-2 h-2 rounded-full shrink-0 bg-lime-600" />
-                <span className="text-[9px] leading-tight truncate flex-1 line-through text-zinc-700">
-                  {s.label}
-                </span>
-                {initials && (
-                  <span className="text-[8px] font-bold text-zinc-700 shrink-0">{initials}</span>
+          {/* Kit */}
+          {kit && <p className="text-[9px] text-sky-400 truncate">{kit.name}</p>}
+
+          {/* Progress count + bar */}
+          <div>
+            <div className="flex justify-between items-center mb-0.5">
+              <span className={`text-[9px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-300"}`}>
+                {doneCount} / {total} stages — {pct}%
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-zinc-800">
+              <div className={`h-full rounded-full ${barColour}`} style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+
+          {/* Due date */}
+          <p className={`text-[9px] ${dueColour}`}>
+            {q.targetCompletionDate ? (
+              <>
+                <span className="font-semibold">{fmtDate(q.targetCompletionDate)}</span>
+                {days !== null && (
+                  <span className="ml-1 opacity-70">
+                    {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}
+                  </span>
                 )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Footer ──────────────────────────────────── */}
-      <div className="shrink-0 px-3 py-1.5 border-t border-zinc-800 flex items-center justify-between gap-2">
-        <div className={`text-[9px] ${dueColour}`}>
-          {q.targetCompletionDate ? (
-            <>
-              <span className="font-bold">{fmtDate(q.targetCompletionDate)}</span>
-              {days !== null && (
-                <span className="ml-1 opacity-70">
-                  {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="text-zinc-700">No due date</span>
-          )}
+              </>
+            ) : (
+              <span className="text-zinc-700">No due date</span>
+            )}
+          </p>
         </div>
 
-        {/* Tiny QR code in corner — scannable if someone walks to TV */}
+        {/* Right: QR code — scan for full breakdown */}
         {workshopUrl && (
-          <div className="bg-white rounded p-0.5 shrink-0">
-            <QRCodeSVG value={workshopUrl} size={28} level="M" />
+          <div className="shrink-0 flex flex-col items-center gap-1">
+            <div className="bg-white rounded p-1">
+              <QRCodeSVG value={workshopUrl} size={56} level="M" />
+            </div>
+            <span className="text-[8px] text-zinc-700 text-center leading-tight">scan to<br />update</span>
           </div>
         )}
       </div>
