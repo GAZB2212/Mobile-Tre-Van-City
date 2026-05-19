@@ -288,6 +288,7 @@ export default function AdminQuoteDetail() {
   const [customerConfirmed, setCustomerConfirmed] = useState(false);
   const [vanRegistration, setVanRegistration] = useState("");
   const [vanMileage, setVanMileage] = useState("");
+  const [quoteNotes, setQuoteNotes] = useState("");
   
   // Note editing state - stores { noteType, timestamp, text } when editing a note
   const [editingNote, setEditingNote] = useState<{ noteType: 'admin' | 'customer'; timestamp: string; text: string } | null>(null);
@@ -450,6 +451,7 @@ export default function AdminQuoteDetail() {
       setCustomerConfirmed(quote.customerConfirmed ?? false);
       setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
       setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
+      setQuoteNotes(quote.notes ?? "");
       setDiscountType(quote.discountType as any || "");
       // Convert discount from pence to pounds for fixed amounts
       if (quote.discountValue) {
@@ -923,6 +925,7 @@ export default function AdminQuoteDetail() {
     if (discountValue !== origDiscountValue) return true;
     if (vanRegistration !== (quote.vanRegistration ?? quote.customVanDescription ?? "")) return true;
     if (vanMileage !== (quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "")) return true;
+    if (quoteNotes !== (quote.notes ?? "")) return true;
     if (customerConfirmed !== (quote.customerConfirmed ?? false)) return true;
     const serverStageIds = (quote.completedBuildStages || []).map((s: any) => typeof s === "string" ? s : s.id).sort();
     if (JSON.stringify([...completedBuildStages].sort()) !== JSON.stringify(serverStageIds)) return true;
@@ -1200,6 +1203,7 @@ export default function AdminQuoteDetail() {
       customerConfirmed,
       vanRegistration: vanRegistration.trim() || null,
       vanMileage: vanMileage.trim() ? parseInt(vanMileage.trim()) : null,
+      notes: quoteNotes.trim() || null,
       // Update stored pricing values to match recalculated prices
       estSubtotal: currentPricing.subtotal,
       estDiscount: currentPricing.discount,
@@ -2625,6 +2629,20 @@ export default function AdminQuoteDetail() {
                       <Plus className="w-3.5 h-3.5 mr-1" />Add
                     </Button>
                   </div>
+                </div>
+
+                {/* Customer Notes */}
+                <div className="space-y-2">
+                  <Label htmlFor="quote-notes">Customer Notes</Label>
+                  <p className="text-xs text-muted-foreground">Notes the customer submitted with their quote request</p>
+                  <Textarea
+                    id="quote-notes"
+                    value={quoteNotes}
+                    onChange={(e) => setQuoteNotes(e.target.value)}
+                    placeholder="No notes submitted"
+                    rows={3}
+                    data-testid="textarea-customer-notes"
+                  />
                 </div>
 
                 {/* Discount */}

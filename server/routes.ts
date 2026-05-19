@@ -3146,6 +3146,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         vanMileage: z.number().int().nullable().optional(),
         // Customer confirmation flag
         customerConfirmed: z.boolean().optional(),
+        // Customer notes (from configurator form, editable by staff)
+        notes: z.string().nullable().optional(),
         // Customer info fields
         userName: z.string().optional(),
         email: z.string().email().optional(),
