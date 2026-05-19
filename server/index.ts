@@ -722,6 +722,11 @@ app.use((req, res, next) => {
             .then(() => log("✅ WrapGen artwork columns ready"))
             .catch((err: Error) => console.error("WrapGen migration:", err.message));
 
+          // ── Pipeline wallboard: target completion date ─────────────────────
+          pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS target_completion_date TIMESTAMP`)
+            .then(() => log("✅ target_completion_date column ready"))
+            .catch((err: Error) => console.error("target_completion_date migration:", err.message));
+
           // ── WrapGen auto-link tokens ───────────────────────────────────────
           pool.query(`
             CREATE TABLE IF NOT EXISTS wrapgen_link_tokens (

@@ -372,6 +372,9 @@ export default function AdminQuoteDetail() {
   // WrapGen artwork approval — URL pasted by staff after design team creates the render
   const [wrapgenUrl, setWrapgenUrl] = useState("");
 
+  // Pipeline wallboard — due-out date (YYYY-MM-DD string for the date input)
+  const [targetCompletionDate, setTargetCompletionDate] = useState<string>("");
+
   // Custom extras — bespoke items not in standard configurator
   const [customExtras, setCustomExtras] = useState<Array<{id: string; description: string; pricePence: number}>>([]);
   const [newExtraDescription, setNewExtraDescription] = useState('');
@@ -467,6 +470,10 @@ export default function AdminQuoteDetail() {
       setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
       setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
       setWrapgenUrl(quote.wrapgenPreviewUrl ?? "");
+
+      // Pipeline wallboard due-out date
+      const tcd = (quote as any).targetCompletionDate;
+      setTargetCompletionDate(tcd ? new Date(tcd).toISOString().split("T")[0] : "");
 
       // Set current configuration — use "custom" sentinel when no system van but custom details exist
       // Also detect custom van when only customVanValue or vanRegistration is set (e.g. from configurator flow)
@@ -1207,6 +1214,9 @@ export default function AdminQuoteDetail() {
       updates.customVanValue = null;
     }
     updates.kitId = selectedKitId;
+
+    // Include due-out date (null clears it)
+    updates.targetCompletionDate = targetCompletionDate ? new Date(targetCompletionDate).toISOString() : null;
     
     updateMutation.mutate(updates);
   };
@@ -1936,6 +1946,21 @@ export default function AdminQuoteDetail() {
                   </CardContent>
                 </>)}
 
+
+                {/* ── Due Out Date (Pipeline Wallboard) ── */}
+                <Separator />
+                <CardContent className="pt-3 pb-4">
+                  <Label htmlFor="target-completion-date" className="text-xs text-muted-foreground">Due out date</Label>
+                  <Input
+                    id="target-completion-date"
+                    type="date"
+                    data-testid="input-target-completion-date"
+                    className="mt-1"
+                    value={targetCompletionDate}
+                    onChange={(e) => setTargetCompletionDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Shown on the pipeline wallboard. Save changes to apply.</p>
+                </CardContent>
 
                 {/* ── Manual Status Override ── */}
                 <Separator />

@@ -292,6 +292,9 @@ export const quotes = pgTable("quotes", {
   artworkApprovedAt: timestamp("artwork_approved_at", { withTimezone: true }), // Set by WrapGen webhook
   artworkApprovedBy: text("artwork_approved_by"),    // Approver name from WrapGen webhook payload
 
+  // Wallboard / workshop scheduling
+  targetCompletionDate: timestamp("target_completion_date"), // Staff-set due-out date shown on the pipeline wallboard
+
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_quotes_user_id").on(table.userId),
