@@ -17,10 +17,10 @@ const STATUS_COLOUR: Record<string, string> = {
   in_build: "bg-orange-600",
 };
 
-// Slide durations in milliseconds
+// Slide durations in ms — progress view is quick, full stage list gets longer
 const SLIDE_DURATIONS = [
-  3500,  // Slide 0: Build progress %
-  7000,  // Slide 1: Kit & upgrades
+  4000,  // Slide 0: Progress ring + summary
+  9000,  // Slide 1: Full stages list (needs reading time)
   5000,  // Slide 2: QR code
 ];
 const TOTAL_CYCLE = SLIDE_DURATIONS.reduce((a, b) => a + b, 0);
@@ -51,8 +51,6 @@ function daysUntil(val: Date | string | null | undefined): number | null {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface StageEntry { id: string; initials: string | null; }
-
 interface KioskQuote {
   id: string;
   status: string;
@@ -80,7 +78,7 @@ interface KioskData {
   upgrades: KioskUpgrade[];
 }
 
-// ── Stage generation ──────────────────────────────────────────────────────────
+// ── Stage generation (same logic as server + workshop page) ───────────────────
 
 const wrapPat = /wrap|graphics|livery/i;
 const wallPat = /interior.wall/i;
@@ -110,8 +108,10 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   return stages;
 }
 
-function normaliseCompleted(raw: Array<string | { id: string; initials: string }>): StageEntry[] {
-  return raw.map((e) => typeof e === "string" ? { id: e, initials: null } : { id: e.id, initials: e.initials ?? null });
+function normaliseCompleted(raw: Array<string | { id: string; initials: string }>) {
+  return raw.map((e) =>
+    typeof e === "string" ? { id: e, initials: null } : { id: e.id, initials: e.initials ?? null }
+  );
 }
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
@@ -127,40 +127,29 @@ function LiveClock() {
 
 // ── Progress ring ─────────────────────────────────────────────────────────────
 
-function ProgressRing({ pct, done, total }: { pct: number; done: number; total: number }) {
-  const r = 52;
+function ProgressRing({ pct, done, total, allDone }: { pct: number; done: number; total: number; allDone: boolean }) {
+  const r = 48;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
-  const allDone = done === total && total > 0;
   return (
-    <div className="flex flex-col items-center gap-3">
-      <svg width="130" height="130" viewBox="0 0 130 130">
-        <circle cx="65" cy="65" r={r} fill="none" stroke="#27272a" strokeWidth="10" />
-        <circle
-          cx="65" cy="65" r={r} fill="none"
-          stroke={allDone ? "#84cc16" : "#38bdf8"}
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-          strokeDashoffset={0}
-          transform="rotate(-90 65 65)"
-          style={{ transition: "stroke-dasharray 0.6s ease" }}
-        />
-        <text x="65" y="60" textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="22" fontWeight="900">
-          {pct}%
-        </text>
-        <text x="65" y="80" textAnchor="middle" dominantBaseline="middle" fill="#a1a1aa" fontSize="11">
-          {done}/{total}
-        </text>
-      </svg>
-      <p className={`text-sm font-bold ${allDone ? "text-lime-400" : "text-sky-400"}`}>
-        {allDone ? "Complete" : "In Progress"}
-      </p>
-    </div>
+    <svg width="118" height="118" viewBox="0 0 118 118">
+      <circle cx="59" cy="59" r={r} fill="none" stroke="#27272a" strokeWidth="10" />
+      <circle
+        cx="59" cy="59" r={r} fill="none"
+        stroke={allDone ? "#84cc16" : "#38bdf8"}
+        strokeWidth="10" strokeLinecap="round"
+        strokeDasharray={`${dash} ${circ}`}
+        strokeDashoffset={0}
+        transform="rotate(-90 59 59)"
+        style={{ transition: "stroke-dasharray 0.6s ease" }}
+      />
+      <text x="59" y="55" textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="20" fontWeight="900">{pct}%</text>
+      <text x="59" y="73" textAnchor="middle" dominantBaseline="middle" fill="#a1a1aa" fontSize="11">{done}/{total}</text>
+    </svg>
   );
 }
 
-// ── Slide dot indicator ───────────────────────────────────────────────────────
+// ── Slide dots ────────────────────────────────────────────────────────────────
 
 function SlideDots({ slide, total }: { slide: number; total: number }) {
   return (
@@ -172,7 +161,7 @@ function SlideDots({ slide, total }: { slide: number; total: number }) {
   );
 }
 
-// ── Job card (with internal slideshow) ───────────────────────────────────────
+// ── Job card ──────────────────────────────────────────────────────────────────
 
 function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
   q: KioskQuote;
@@ -181,16 +170,19 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
   selectedUpgrades: KioskUpgrade[];
   cardIndex: number;
 }) {
+  // Build the single authoritative stage list — this mirrors exactly what the workshop team sees
   const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades);
   const completed = normaliseCompleted(q.completedBuildStages);
-  const completedIds = new Set(completed.map((c) => c.id));
-  const initialsMap = new Map(completed.map((c) => [c.id, c.initials]));
-  const doneCount = stages.filter((s) => completedIds.has(s.id)).length;
+  const completedMap = new Map(completed.map((c) => [c.id, c.initials]));
+
+  const doneCount = stages.filter((s) => completedMap.has(s.id)).length;
   const total = stages.length;
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
   const allDone = doneCount === total && total > 0;
 
-  const vanLabel = van ? `${van.year ?? ""} ${van.make} ${van.model}`.trim() : q.customVanDescription || "—";
+  const vanLabel = van
+    ? `${van.year ?? ""} ${van.make} ${van.model}`.trim()
+    : q.customVanDescription || "—";
 
   const days = daysUntil(q.targetCompletionDate);
   const dueColour = days === null ? "text-zinc-500"
@@ -199,16 +191,16 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
     : days <= 3 ? "text-yellow-400"
     : "text-lime-400";
 
-  // Per-card slide timer, offset by card index so cards aren't in sync
+  // Per-card slide timer, staggered by card index
   const [slide, setSlide] = useState(0);
   const slideRef = useRef(0);
-  const numSlides = q.confirmationToken ? 3 : 2;
+  const workshopUrl = q.confirmationToken
+    ? `${window.location.origin}/workshop/${q.confirmationToken}`
+    : null;
+  const numSlides = workshopUrl ? 3 : 2;
 
   useEffect(() => {
-    // Stagger start by card index (up to 4s spread)
     const offset = (cardIndex % 6) * (TOTAL_CYCLE / 6);
-    let elapsed = 0;
-    // Work out which slide we'd be on at `offset` ms into the cycle
     let startSlide = 0;
     let acc = 0;
     for (let i = 0; i < numSlides; i++) {
@@ -218,40 +210,34 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
     slideRef.current = startSlide;
     setSlide(startSlide);
 
+    let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
       const next = (slideRef.current + 1) % numSlides;
       slideRef.current = next;
       setSlide(next);
       return SLIDE_DURATIONS[next];
     };
-
-    let timer: ReturnType<typeof setTimeout>;
-    const schedule = (delay: number) => {
-      timer = setTimeout(() => { schedule(tick()); }, delay);
-    };
+    const schedule = (delay: number) => { timer = setTimeout(() => { schedule(tick()); }, delay); };
     schedule(SLIDE_DURATIONS[startSlide]);
     return () => clearTimeout(timer);
   }, [cardIndex, numSlides]);
 
-  const workshopUrl = q.confirmationToken
-    ? `${window.location.origin}/workshop/${q.confirmationToken}`
-    : null;
-
   return (
-    <div className={`rounded-xl border flex flex-col ${allDone ? "border-lime-500/60 bg-zinc-900" : "border-zinc-700 bg-zinc-900"}`}>
+    <div className={`rounded-xl border flex flex-col ${allDone ? "border-lime-500/60" : "border-zinc-700"} bg-zinc-900`}>
 
-      {/* ── Pinned header — always visible ─────────────────────────────── */}
-      <div className="p-3 border-b border-zinc-800 flex flex-col gap-2">
-        {/* Name + status */}
+      {/* ── Pinned header ─────────────────────────────────────────────── */}
+      <div className="p-3 border-b border-zinc-800 space-y-2">
+        {/* Name row */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-base font-black text-white leading-tight truncate">{q.userName || "—"}</p>
-            {q.company && <p className="text-xs text-zinc-400 truncate leading-tight">{q.company}</p>}
+            {q.company && <p className="text-xs text-zinc-400 truncate">{q.company}</p>}
           </div>
           <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
             {STATUS_LABEL[q.status] ?? q.status}
           </span>
         </div>
+
         {/* Reg + van */}
         <div className="flex items-center gap-2 flex-wrap">
           {q.vanRegistration && (
@@ -261,9 +247,31 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
           )}
           <span className="text-xs text-zinc-400 truncate">{vanLabel}</span>
         </div>
-        {/* Due date strip */}
+
+        {/* Kit name */}
+        {kit && (
+          <p className="text-xs font-semibold text-sky-400 truncate">{kit.name}</p>
+        )}
+
+        {/* Progress bar — always visible in header */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[9px] uppercase tracking-widest text-zinc-600">Build progress</span>
+            <span className={`text-[10px] font-bold tabular-nums ${allDone ? "text-lime-400" : "text-sky-400"}`}>
+              {doneCount}/{total} — {pct}%
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-zinc-800">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${allDone ? "bg-lime-400" : "bg-sky-500"}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Due date */}
         <div className={`flex items-center justify-between text-[10px] ${dueColour}`}>
-          <span className="text-zinc-600 uppercase tracking-widest">Due out</span>
+          <span className="text-zinc-700 uppercase tracking-widest">Due out</span>
           <span className="font-bold tabular-nums">
             {q.targetCompletionDate
               ? `${fmtDate(q.targetCompletionDate)}${days !== null ? ` · ${days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}` : ""}`
@@ -272,56 +280,58 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
         </div>
       </div>
 
-      {/* ── Slide area ──────────────────────────────────────────────────── */}
-      <div className="flex-1 relative overflow-hidden" style={{ minHeight: "220px" }}>
+      {/* ── Sliding content area ──────────────────────────────────────── */}
+      <div className="flex-1 relative overflow-hidden" style={{ minHeight: "200px" }}>
 
-        {/* Slide 0 — Build progress */}
+        {/* Slide 0 — Progress ring + quick stage summary */}
         <div className={`absolute inset-0 p-3 flex flex-col items-center justify-center gap-3 transition-opacity duration-500 ${slide === 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <p className="text-[10px] uppercase tracking-widest text-zinc-500">Build Progress</p>
-          <ProgressRing pct={pct} done={doneCount} total={total} />
-          {/* Compact stage row — last 3 done + next 3 upcoming */}
+          <ProgressRing pct={pct} done={doneCount} total={total} allDone={allDone} />
           {(() => {
-            const recent = stages.filter((s) => completedIds.has(s.id)).slice(-3);
-            const upcoming = stages.filter((s) => !completedIds.has(s.id)).slice(0, 3);
+            const recent = stages.filter((s) => completedMap.has(s.id)).slice(-2);
+            const upcoming = stages.filter((s) => !completedMap.has(s.id)).slice(0, 3);
             return (
-              <div className="flex flex-wrap gap-1 justify-center">
+              <div className="flex flex-col gap-1 w-full max-w-xs">
                 {recent.map((s) => (
-                  <span key={s.id} className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/50 border border-zinc-700 text-zinc-500 line-through">
-                    {s.label}
-                    {initialsMap.get(s.id) && <span className="ml-0.5 text-[8px] no-underline text-zinc-600"> {initialsMap.get(s.id)}</span>}
-                  </span>
+                  <div key={s.id} className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-lime-500 shrink-0" />
+                    <span className="text-[10px] text-zinc-500 line-through truncate flex-1">{s.label}</span>
+                    {completedMap.get(s.id) && (
+                      <span className="text-[9px] font-bold text-zinc-600 shrink-0">{completedMap.get(s.id)}</span>
+                    )}
+                  </div>
                 ))}
-                {upcoming.map((s) => (
-                  <span key={s.id} className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-600 text-zinc-200">
-                    {s.label}
-                  </span>
+                {upcoming.map((s, i) => (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <span className={`w-3 h-3 rounded-full shrink-0 ${i === 0 ? "bg-sky-500" : "bg-zinc-700"}`} />
+                    <span className={`text-[10px] truncate flex-1 ${i === 0 ? "text-white font-semibold" : "text-zinc-600"}`}>{s.label}</span>
+                    {i === 0 && <span className="text-[9px] text-sky-600 shrink-0">Next</span>}
+                  </div>
                 ))}
               </div>
             );
           })()}
         </div>
 
-        {/* Slide 1 — Kit & Upgrades */}
-        <div className={`absolute inset-0 p-3 flex flex-col gap-2 transition-opacity duration-500 ${slide === 1 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <p className="text-[10px] uppercase tracking-widest text-zinc-500 shrink-0">Kit &amp; Upgrades</p>
-          {kit && (
-            <div className="shrink-0">
-              <p className="text-xs font-bold text-white leading-snug">{kit.name}</p>
-            </div>
-          )}
-          {selectedUpgrades.length > 0 ? (
-            <div className="flex-1 overflow-hidden">
-              <div className="flex flex-wrap gap-1 content-start">
-                {selectedUpgrades.map((u) => (
-                  <span key={u.id} className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-600 text-zinc-200 leading-tight">
-                    {u.name}
+        {/* Slide 1 — Full build stages list (the single source of truth) */}
+        <div className={`absolute inset-0 p-3 flex flex-col gap-1.5 transition-opacity duration-500 ${slide === 1 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          <p className="text-[9px] uppercase tracking-widest text-zinc-600 shrink-0 mb-0.5">Build Sheet</p>
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5">
+            {stages.map((stage) => {
+              const done = completedMap.has(stage.id);
+              const initials = completedMap.get(stage.id) ?? null;
+              return (
+                <div key={stage.id} className="flex items-center gap-2 min-w-0">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${done ? "bg-lime-500" : "bg-zinc-700"}`} />
+                  <span className={`text-[10px] truncate flex-1 leading-tight ${done ? "line-through text-zinc-600" : "text-zinc-200"}`}>
+                    {stage.label}
                   </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-zinc-600 italic">No extras added</p>
-          )}
+                  {done && initials && (
+                    <span className="text-[8px] font-bold text-zinc-600 shrink-0">{initials}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Slide 2 — QR code */}
@@ -329,14 +339,14 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
           <div className={`absolute inset-0 p-3 flex flex-col items-center justify-center gap-3 transition-opacity duration-500 ${slide === 2 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
             <p className="text-[10px] uppercase tracking-widest text-zinc-500">Scan to update build</p>
             <div className="bg-white p-2.5 rounded-lg">
-              <QRCodeSVG value={workshopUrl} size={140} level="M" />
+              <QRCodeSVG value={workshopUrl} size={130} level="M" />
             </div>
-            <p className="text-[9px] text-zinc-600 font-mono text-center break-all px-2">{workshopUrl}</p>
+            <p className="text-[9px] text-zinc-700 font-mono text-center break-all px-2">{workshopUrl}</p>
           </div>
         )}
       </div>
 
-      {/* ── Slide indicator dots ─────────────────────────────────────────── */}
+      {/* Slide indicator dots */}
       <div className="py-2 border-t border-zinc-800">
         <SlideDots slide={slide} total={numSlides} />
       </div>
@@ -344,7 +354,7 @@ function JobCard({ q, van, kit, selectedUpgrades, cardIndex }: {
   );
 }
 
-// ── Auto-scroll (page level) ──────────────────────────────────────────────────
+// ── Page-level auto-scroll ────────────────────────────────────────────────────
 
 function useAutoScroll(enabled: boolean) {
   const ref = useRef<HTMLDivElement>(null);
@@ -445,7 +455,9 @@ export default function KioskPipelineBoard() {
             {committedQuotes.map((q, i) => {
               const van = data.vans.find((v) => v.id === q.vanId);
               const kit = data.kits.find((k) => k.id === q.kitId);
-              const selectedUpgrades = data.upgrades.filter((u) => (q.selectedUpgradeIds ?? []).includes(u.id));
+              const selectedUpgrades = data.upgrades.filter((u) =>
+                (q.selectedUpgradeIds ?? []).includes(u.id)
+              );
               return (
                 <JobCard
                   key={q.id}
