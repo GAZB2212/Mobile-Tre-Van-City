@@ -472,8 +472,16 @@ export default function AdminQuoteDetail() {
       setWrapgenUrl(quote.wrapgenPreviewUrl ?? "");
 
       // Pipeline wallboard due-out date
+      // targetCompletionDate is typed as Date|null by Drizzle but arrives as an ISO string after
+      // JSON serialisation.  Accept both forms and extract the YYYY-MM-DD portion in UTC so the
+      // displayed date matches what was originally saved (stored as UTC midnight).
       const tcd = quote.targetCompletionDate;
-      setTargetCompletionDate(tcd ? new Date(tcd as unknown as string).toISOString().split("T")[0] : "");
+      if (tcd) {
+        const d = tcd instanceof Date ? tcd : new Date(tcd as unknown as string);
+        setTargetCompletionDate(isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0]);
+      } else {
+        setTargetCompletionDate("");
+      }
 
       // Set current configuration — use "custom" sentinel when no system van but custom details exist
       // Also detect custom van when only customVanValue or vanRegistration is set (e.g. from configurator flow)
@@ -1215,8 +1223,10 @@ export default function AdminQuoteDetail() {
     }
     updates.kitId = selectedKitId;
 
-    // Include due-out date (null clears it)
-    updates.targetCompletionDate = targetCompletionDate ? new Date(targetCompletionDate).toISOString() : null;
+    // Include due-out date (null clears it).
+    // Append explicit UTC midnight so the stored timestamp always represents noon-midnight UTC
+    // regardless of where the browser's timezone sits, preventing off-by-one calendar days.
+    updates.targetCompletionDate = targetCompletionDate ? `${targetCompletionDate}T00:00:00.000Z` : null;
     
     updateMutation.mutate(updates);
   };

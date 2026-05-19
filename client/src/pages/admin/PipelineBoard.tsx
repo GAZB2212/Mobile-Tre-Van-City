@@ -20,42 +20,68 @@ const STATUS_COLOUR: Record<string, string> = {
   in_build: "bg-red-600 text-white",
 };
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+/**
+ * DB timestamp columns are typed as `Date | null` by Drizzle's $inferSelect, but arrive
+ * over the wire as ISO strings after JSON serialisation.  This helper normalises both
+ * forms to a JS Date so callers never need type-escape casts.
+ */
+function parseDbDate(val: Date | string | null | undefined): Date | null {
+  if (!val) return null;
+  const d = val instanceof Date ? val : new Date(val);
+  return isNaN(d.getTime()) ? null : d;
 }
 
-function daysUntil(iso: string | null | undefined): number | null {
-  if (!iso) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(iso);
-  target.setHours(0, 0, 0, 0);
-  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+/**
+ * Format a DB date value as a human-readable date, comparing in UTC so the displayed
+ * calendar day is not shifted by the browser's local timezone offset.
+ */
+function fmtDate(val: Date | string | null | undefined): string {
+  const d = parseDbDate(val);
+  if (!d) return "—";
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
-function DueChip({ iso }: { iso: string | null | undefined }) {
-  if (!iso) return <span className="text-4xl font-bold opacity-30">No due date</span>;
-  const days = daysUntil(iso);
+/**
+ * Return the number of calendar days between now and the given date, comparing in UTC
+ * to avoid timezone-induced off-by-one errors.  Negative = overdue.
+ */
+function daysUntil(val: Date | string | null | undefined): number | null {
+  const d = parseDbDate(val);
+  if (!d) return null;
+  const todayUtc = new Date();
+  todayUtc.setUTCHours(0, 0, 0, 0);
+  const targetUtc = new Date(d);
+  targetUtc.setUTCHours(0, 0, 0, 0);
+  return Math.round((targetUtc.getTime() - todayUtc.getTime()) / 86_400_000);
+}
+
+function DueChip({ val }: { val: Date | string | null | undefined }) {
+  if (!parseDbDate(val)) return <span className="text-4xl font-bold opacity-30">No due date</span>;
+  const days = daysUntil(val);
   if (days === null) return null;
   const overdue = days < 0;
-  const today = days === 0;
+  const isToday = days === 0;
   const soon = days > 0 && days <= 2;
   const colour = overdue
     ? "text-red-400"
-    : today
+    : isToday
     ? "text-orange-400"
     : soon
     ? "text-yellow-400"
     : "text-lime-400";
   const label = overdue
     ? `${Math.abs(days)}d overdue`
-    : today
+    : isToday
     ? "Due today"
     : `${days}d left`;
   return (
     <div className={`text-right ${colour}`}>
-      <div className="text-5xl font-black leading-none tabular-nums">{fmtDate(iso)}</div>
+      <div className="text-5xl font-black leading-none tabular-nums">{fmtDate(val)}</div>
       <div className="text-2xl font-semibold mt-1">{label}</div>
     </div>
   );
@@ -89,7 +115,6 @@ export default function PipelineBoard() {
     staleTime: 300_000,
   });
 
-  // Redirect if not authed
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/login";
@@ -199,14 +224,14 @@ export default function PipelineBoard() {
                 {/* Status since */}
                 {q.statusChangedAt && (
                   <p className="text-sm text-zinc-500">
-                    In this stage since {fmtDate(q.statusChangedAt as unknown as string)}
+                    In this stage since {fmtDate(q.statusChangedAt)}
                   </p>
                 )}
 
                 {/* Due out — pushed to bottom */}
                 <div className="mt-auto pt-4 border-t border-zinc-700">
                   <p className="text-xs uppercase tracking-widest text-zinc-500 mb-2">Due out</p>
-                  <DueChip iso={q.targetCompletionDate as string | null | undefined} />
+                  <DueChip val={q.targetCompletionDate} />
                 </div>
               </div>
             );
