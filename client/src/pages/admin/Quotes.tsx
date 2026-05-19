@@ -126,6 +126,8 @@ import {
   XCircle,
   RefreshCw,
   PhoneCall,
+  User,
+  Building2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -1020,8 +1022,9 @@ export default function AdminQuotes() {
                               onClick={() => setLocation(`/admin/quotes/${quote.id}`)}
                             >
                               <CardContent className="p-3 space-y-1.5">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="font-semibold text-sm truncate">{quote.userName}</p>
+                                <div className="flex items-start gap-1.5 flex-wrap">
+                                  <User className="w-3 h-3 mt-0.5 shrink-0 text-muted-foreground" />
+                                  <p className="font-semibold text-sm truncate flex-1 min-w-0">{quote.userName}</p>
                                   {(quote as any).aiSessionId && (
                                     <Badge className="shrink-0 bg-[#8bc440]/15 text-[#5a8a1a] dark:text-[#8bc440] border border-[#8bc440]/30 gap-1 text-[10px] px-1.5 py-0" data-testid={`badge-max-ai-kanban-${quote.id}`}>
                                       <Bot className="w-2.5 h-2.5" />
@@ -1035,9 +1038,10 @@ export default function AdminQuotes() {
                                     </Badge>
                                   )}
                                 </div>
-                                {quote.company && (
-                                  <p className="text-xs text-muted-foreground truncate">{quote.company}</p>
-                                )}
+                                <div className="flex items-center gap-1.5">
+                                  <Building2 className="w-3 h-3 shrink-0 text-muted-foreground" />
+                                  <p className="text-xs text-muted-foreground truncate">{quote.company || "—"}</p>
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   {getVanName(quote.vanId)} {quote.kitId ? `· ${getKitName(quote.kitId)}` : ""}
                                 </p>
