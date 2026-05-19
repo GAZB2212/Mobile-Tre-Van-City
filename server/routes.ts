@@ -510,7 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public build progress page — looked up by confirmationToken (no auth required)
   app.get("/api/build-progress-public/:token", async (req, res) => {
     try {
-      const quotes = await storage.getAllQuotes();
+      const quotes = await storage.getQuotes();
       const quote = quotes.find((q) => q.confirmationToken === req.params.token);
       if (!quote) return res.status(404).json({ error: "Not found" });
 
@@ -572,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public workshop stage tick — no auth, token acts as the key
   app.patch("/api/build-progress-public/:token/stage", async (req, res) => {
     try {
-      const quotes = await storage.getAllQuotes();
+      const quotes = await storage.getQuotes();
       const quote = quotes.find((q) => q.confirmationToken === req.params.token);
       if (!quote) return res.status(404).json({ error: "Not found" });
 
