@@ -36,7 +36,7 @@ const kitSchema = z.object({
   images: z.array(z.string()).default([]),
   published: z.boolean().default(true),
   sku: z.string().optional().nullable(),
-  skuComponents: z.array(z.object({ sku: z.string(), description: z.string(), quantity: z.number().min(1) })).optional().nullable(),
+  skuComponents: z.array(z.object({ sku: z.string(), description: z.string(), quantity: z.number().min(1), costPrice: z.number().optional().nullable() })).optional().nullable(),
 });
 
 type KitFormData = z.infer<typeof kitSchema>;

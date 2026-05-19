@@ -1772,6 +1772,11 @@ Keep it professional, concise, and sales-focused. Do not include pricing or warr
   app.put("/api/admin/kits/:id", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const kitData = insertKitSchema.partial().parse(req.body);
+      // General form save must never wipe an existing BOM — only the dedicated
+      // SKU Manager PATCH endpoint is allowed to set skuComponents to null.
+      if (kitData.skuComponents === null || kitData.skuComponents === undefined) {
+        delete (kitData as any).skuComponents;
+      }
       const kit = await storage.updateKit(req.params.id, kitData);
       if (!kit) {
         return res.status(404).json({ error: "Kit not found" });
@@ -2350,6 +2355,12 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         return res.status(400).json({ 
           error: "Variant upgrades must have a price greater than 0" 
         });
+      }
+
+      // General form save must never wipe an existing BOM — only the dedicated
+      // SKU Manager PATCH endpoint is allowed to set skuComponents to null.
+      if (upgradeData.skuComponents === null || upgradeData.skuComponents === undefined) {
+        delete (upgradeData as any).skuComponents;
       }
       
       const upgrade = await storage.updateUpgrade(req.params.id, upgradeData);

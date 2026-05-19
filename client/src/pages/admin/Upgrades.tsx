@@ -102,7 +102,7 @@ const upgradeFormSchema = insertUpgradeSchema.omit({ price: true, costPrice: tru
   supersedesKitItems: z.string().optional(), // newline-separated in the form, converted to array on submit
   exclusiveGroup: z.string().optional().nullable(),
   sku: z.string().optional().nullable(),
-  skuComponents: z.array(z.object({ sku: z.string(), description: z.string(), quantity: z.number().min(1) })).optional().nullable(),
+  skuComponents: z.array(z.object({ sku: z.string(), description: z.string(), quantity: z.number().min(1), costPrice: z.number().optional().nullable() })).optional().nullable(),
 });
 
 type UpgradeFormData = z.infer<typeof upgradeFormSchema>;
