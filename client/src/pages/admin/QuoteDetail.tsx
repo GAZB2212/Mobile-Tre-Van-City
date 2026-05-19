@@ -472,8 +472,8 @@ export default function AdminQuoteDetail() {
       setWrapgenUrl(quote.wrapgenPreviewUrl ?? "");
 
       // Pipeline wallboard due-out date
-      const tcd = (quote as any).targetCompletionDate;
-      setTargetCompletionDate(tcd ? new Date(tcd).toISOString().split("T")[0] : "");
+      const tcd = quote.targetCompletionDate;
+      setTargetCompletionDate(tcd ? new Date(tcd as unknown as string).toISOString().split("T")[0] : "");
 
       // Set current configuration — use "custom" sentinel when no system van but custom details exist
       // Also detect custom van when only customVanValue or vanRegistration is set (e.g. from configurator flow)

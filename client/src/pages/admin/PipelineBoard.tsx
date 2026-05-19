@@ -61,14 +61,10 @@ function DueChip({ iso }: { iso: string | null | undefined }) {
   );
 }
 
-interface WallboardQuote extends Quote {
-  targetCompletionDate?: string | null;
-}
-
 export default function PipelineBoard() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  const { data: quotes = [] } = useQuery<WallboardQuote[]>({
+  const { data: quotes = [] } = useQuery<Quote[]>({
     queryKey: ["/api/admin/quotes"],
     enabled: !!(user?.adminRole && user.adminRole !== "none"),
     refetchInterval: 60_000,
@@ -210,7 +206,7 @@ export default function PipelineBoard() {
                 {/* Due out — pushed to bottom */}
                 <div className="mt-auto pt-4 border-t border-zinc-700">
                   <p className="text-xs uppercase tracking-widest text-zinc-500 mb-2">Due out</p>
-                  <DueChip iso={(q as any).targetCompletionDate} />
+                  <DueChip iso={q.targetCompletionDate as string | null | undefined} />
                 </div>
               </div>
             );

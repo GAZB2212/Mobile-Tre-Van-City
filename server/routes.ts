@@ -3020,6 +3020,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         })).optional(),
         // Manual customer profile link
         customerId: z.string().nullable().optional(),
+        // Pipeline wallboard — due-out date
+        targetCompletionDate: z.string().nullable().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
