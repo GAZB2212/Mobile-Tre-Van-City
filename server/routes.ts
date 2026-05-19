@@ -10126,9 +10126,19 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         storage.getAllUpgradesAdmin(),
       ]);
 
-      const quotes = allQuotes
-        .filter((q) => COMMITTED.has(q.status))
-        .map((q) => ({
+      // Ensure every committed quote has a confirmationToken so the QR code works
+      const committedRaw = allQuotes.filter((q) => COMMITTED.has(q.status));
+      await Promise.all(
+        committedRaw
+          .filter((q) => !q.confirmationToken)
+          .map(async (q) => {
+            const token = crypto.randomBytes(32).toString("hex");
+            await storage.updateQuote(q.id, { confirmationToken: token } as any);
+            q.confirmationToken = token; // mutate in-memory so the map below picks it up
+          })
+      );
+
+      const quotes = committedRaw.map((q) => ({
           id: q.id,
           status: q.status,
           statusChangedAt: q.statusChangedAt,
