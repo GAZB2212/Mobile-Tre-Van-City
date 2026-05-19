@@ -83,6 +83,8 @@ const AdminStockLevels = lazy(() => import("@/pages/admin/StockLevels"));
 const AdminArtworkApprovals = lazy(() => import("@/pages/admin/ArtworkApprovals"));
 const AdminPipelineBoard = lazy(() => import("@/pages/admin/PipelineBoard"));
 const KioskPipelineBoard = lazy(() => import("@/pages/KioskPipelineBoard"));
+const CustomerBuildProgress = lazy(() => import("@/pages/BuildProgress"));
+const QrLabel = lazy(() => import("@/pages/admin/QrLabel"));
 const FinancePortal = lazy(() => import("@/pages/FinancePortal"));
 
 function Router() {
@@ -113,6 +115,7 @@ function Router() {
       <Route path="/quote/confirm/:token" component={QuoteConfirmation} />
       <Route path="/spec-approval/:token" component={SpecApproval} />
       <Route path="/artwork-approval/:token" component={ArtworkApproval} />
+      <Route path="/build-progress/:token" component={CustomerBuildProgress} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
@@ -141,6 +144,7 @@ function Router() {
       <Route path="/admin/quotes">{() => <AdminLayout><AdminQuotes /></AdminLayout>}</Route>
       <Route path="/admin/quotes/:id/build-sheet">{(params) => <AdminLayout><BuildSheet /></AdminLayout>}</Route>
       <Route path="/admin/quotes/:id/build-progress">{(params) => <AdminLayout><BuildProgress /></AdminLayout>}</Route>
+      <Route path="/admin/quotes/:id/qr-label">{() => <QrLabel />}</Route>
       <Route path="/admin/quotes/:id">{(params) => <AdminLayout><AdminQuoteDetail /></AdminLayout>}</Route>
       <Route path="/admin/leads">{() => <AdminLayout><AdminLeads /></AdminLayout>}</Route>
       <Route path="/admin/users">{() => <AdminLayout><AdminUsers /></AdminLayout>}</Route>

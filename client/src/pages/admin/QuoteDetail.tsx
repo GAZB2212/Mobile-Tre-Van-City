@@ -38,6 +38,7 @@ import {
   Send,
   Percent,
   MessageSquare,
+  QrCode,
   Settings,
   ChevronDown,
   ChevronUp,
@@ -2914,6 +2915,19 @@ export default function AdminQuoteDetail() {
                             data-testid="admin-progress-bar"
                           />
                         </div>
+                      </div>
+
+                      {/* QR label print */}
+                      <div className="pt-3 border-t flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/admin/quotes/${id}/qr-label`, "_blank")}
+                          data-testid="button-print-qr-label"
+                        >
+                          <QrCode className="w-4 h-4 mr-2" />
+                          Print QR Sticker
+                        </Button>
                       </div>
                     </div>
                   )}

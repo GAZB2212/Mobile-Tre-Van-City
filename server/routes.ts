@@ -507,6 +507,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public build progress page — looked up by confirmationToken (no auth required)
+  app.get("/api/build-progress-public/:token", async (req, res) => {
+    try {
+      const quotes = await storage.getAllQuotes();
+      const quote = quotes.find((q) => q.confirmationToken === req.params.token);
+      if (!quote) return res.status(404).json({ error: "Not found" });
+
+      const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
+      const allUpgrades = await storage.getAllUpgradesAdmin();
+      const selectedUpgrades = allUpgrades.filter(
+        (u) => Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id)
+      );
+
+      // Generate stages the same way the kiosk board does (client-side logic mirrored here)
+      const isWrap = (u: { category?: string | null }) =>
+        (u.category ?? "").toLowerCase().includes("wrap");
+      const isWall = (u: { category?: string | null }) =>
+        (u.category ?? "").toLowerCase().includes("interior wall");
+
+      const customStages = (quote as any).customBuildStages as Array<{ id: string; label: string }> | null;
+      let stages: Array<{ id: string; label: string }>;
+      if (customStages && customStages.length > 0) {
+        stages = customStages;
+      } else {
+        stages = [];
+        stages.push({ id: "prep", label: "Van Preparation" });
+        if (kit) stages.push({ id: "kit", label: `Install ${kit.name}` });
+        const nonWrap = selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u));
+        const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
+        const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
+        for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+        if (wrapOnly.length > 0) {
+          stages.push({ id: "artwork_sent", label: "Artwork Sent" });
+          stages.push({ id: "artwork_approved", label: "Artwork Approved" });
+          stages.push({ id: "wrap_printed", label: "Wrap Printed" });
+        }
+        for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+        if (wallOnly.length > 0) {
+          stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" });
+          stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved" });
+          stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered" });
+        }
+        for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+        stages.push({ id: "final_checks", label: "Final Checks" });
+        stages.push({ id: "valet", label: "Valet & Handover" });
+      }
+
+      const rawCompleted = ((quote as any).completedBuildStages ?? []) as Array<string | { id: string; initials: string }>;
+      const completedStageIds = rawCompleted.map((e) => (typeof e === "string" ? e : e.id));
+
+      res.json({
+        customerName: quote.userName,
+        vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
+        company: quote.company ?? null,
+        stages,
+        completedStageIds,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch build progress" });
+    }
+  });
+
+  // Return (or generate) the confirmationToken for QR label printing
+  app.get("/api/admin/quotes/:id/progress-token", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      let quote = await storage.getQuote(req.params.id);
+      if (!quote) return res.status(404).json({ error: "Not found" });
+
+      let token = quote.confirmationToken;
+      if (!token) {
+        const { randomBytes } = await import("crypto");
+        token = randomBytes(24).toString("hex");
+        await storage.updateQuote(req.params.id, { confirmationToken: token } as any);
+      }
+
+      const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
+      res.json({
+        token,
+        vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
+        userName: quote.userName,
+        company: quote.company ?? null,
+        kitName: kit?.name ?? null,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get progress token" });
+    }
+  });
+
   // Build sheet PDF download — renders the build sheet page headlessly and returns an A4 PDF
   app.get("/api/admin/quotes/:id/build-sheet.pdf", isAuthenticated, isBasicAdmin, async (req, res) => {
     const quoteId = req.params.id;
