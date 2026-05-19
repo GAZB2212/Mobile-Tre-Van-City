@@ -3,7 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, FileDown, Loader2, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check, ScanLine } from "lucide-react";
+import { ArrowLeft, Printer, FileDown, Loader2, Send, AlertTriangle, CheckCircle2, XCircle, X, History, ClipboardList, Check, ScanLine, QrCode } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import type { Quote, Van, Kit, Upgrade, FinancePlan } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -775,6 +775,10 @@ export default function BuildSheet() {
               <Button variant="outline" onClick={handleDownloadPdf} disabled={pdfDownloading} data-testid="button-download-pdf">
                 {pdfDownloading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
                 {pdfDownloading ? "Generating…" : "Download PDF"}
+              </Button>
+              <Button variant="outline" onClick={() => window.open(`/admin/quotes/${quoteId}/qr-label`, "_blank")} data-testid="button-print-qr-sticker">
+                <QrCode className="w-4 h-4 mr-2" />
+                Print QR Sticker
               </Button>
               {user?.adminRole === "full" && (
                 <Button
