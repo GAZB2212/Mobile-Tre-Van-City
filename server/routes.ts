@@ -569,6 +569,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public workshop stage tick — no auth, token acts as the key
+  app.patch("/api/build-progress-public/:token/stage", async (req, res) => {
+    try {
+      const quotes = await storage.getAllQuotes();
+      const quote = quotes.find((q) => q.confirmationToken === req.params.token);
+      if (!quote) return res.status(404).json({ error: "Not found" });
+
+      const body = z.object({
+        stageId: z.string(),
+        completed: z.boolean(),
+        initials: z.string().min(1).max(10),
+      }).parse(req.body);
+
+      const raw = ((quote as any).completedBuildStages ?? []) as Array<string | { id: string; initials: string }>;
+
+      let updated: Array<string | { id: string; initials: string }>;
+      if (body.completed) {
+        const alreadyIn = raw.some((e) => (typeof e === "string" ? e : e.id) === body.stageId);
+        updated = alreadyIn ? raw : [...raw, { id: body.stageId, initials: body.initials.toUpperCase() }];
+      } else {
+        updated = raw.filter((e) => (typeof e === "string" ? e : e.id) !== body.stageId);
+      }
+
+      await storage.updateQuote(quote.id, { completedBuildStages: updated } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(500).json({ error: "Failed to update stage" });
+    }
+  });
+
   // Return (or generate) the confirmationToken for QR label printing
   app.get("/api/admin/quotes/:id/progress-token", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

@@ -84,6 +84,7 @@ const AdminArtworkApprovals = lazy(() => import("@/pages/admin/ArtworkApprovals"
 const AdminPipelineBoard = lazy(() => import("@/pages/admin/PipelineBoard"));
 const KioskPipelineBoard = lazy(() => import("@/pages/KioskPipelineBoard"));
 const CustomerBuildProgress = lazy(() => import("@/pages/BuildProgress"));
+const WorkshopProgress = lazy(() => import("@/pages/WorkshopProgress"));
 const QrLabel = lazy(() => import("@/pages/admin/QrLabel"));
 const FinancePortal = lazy(() => import("@/pages/FinancePortal"));
 
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/spec-approval/:token" component={SpecApproval} />
       <Route path="/artwork-approval/:token" component={ArtworkApproval} />
       <Route path="/build-progress/:token" component={CustomerBuildProgress} />
+      <Route path="/workshop/:token" component={WorkshopProgress} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />

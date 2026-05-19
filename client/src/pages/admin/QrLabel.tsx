@@ -45,7 +45,7 @@ export default function QrLabel() {
     );
   }
 
-  const progressUrl = `${window.location.origin}/build-progress/${data.token}`;
+  const progressUrl = `${window.location.origin}/workshop/${data.token}`;
   const reg = data.vanRegistration ?? "";
   const name = data.userName;
   const kit = data.kitName;
