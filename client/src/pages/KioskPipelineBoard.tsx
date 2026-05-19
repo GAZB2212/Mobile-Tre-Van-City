@@ -44,7 +44,9 @@ function daysUntil(val: Date | string | null | undefined): number | null {
 }
 
 function DueChip({ val }: { val: Date | string | null | undefined }) {
-  if (!parseDbDate(val)) return <span className="text-4xl font-bold opacity-30">No due date</span>;
+  if (!parseDbDate(val)) {
+    return <span className="text-sm font-semibold opacity-30">No due date</span>;
+  }
   const days = daysUntil(val);
   if (days === null) return null;
   const overdue = days < 0;
@@ -64,8 +66,8 @@ function DueChip({ val }: { val: Date | string | null | undefined }) {
     : `${days}d left`;
   return (
     <div className={`text-right ${colour}`}>
-      <div className="text-5xl font-black leading-none tabular-nums">{fmtDate(val)}</div>
-      <div className="text-2xl font-semibold mt-1">{label}</div>
+      <div className="text-lg font-black leading-tight tabular-nums">{fmtDate(val)}</div>
+      <div className="text-xs font-semibold mt-0.5">{label}</div>
     </div>
   );
 }
@@ -110,51 +112,58 @@ export default function KioskPipelineBoard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-400" />
+      <div className="h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-lime-400" />
       </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-white gap-4">
-        <div className="text-6xl font-black text-red-400">Access Denied</div>
-        <p className="text-zinc-400 text-xl">This kiosk link is invalid or has been reset.</p>
-        <p className="text-zinc-500 text-base">Ask an admin to generate a new kiosk URL.</p>
+      <div className="h-screen bg-zinc-950 flex flex-col items-center justify-center text-white gap-3">
+        <div className="text-4xl font-black text-red-400">Access Denied</div>
+        <p className="text-zinc-400 text-base">This kiosk link is invalid or has been reset.</p>
+        <p className="text-zinc-500 text-sm">Ask an admin to generate a new kiosk URL.</p>
       </div>
     );
   }
 
   const committedQuotes = data.quotes.filter((q) => COMMITTED_STATUSES.has(q.status));
 
+  // Pick column count based on card count so everything fills the screen sensibly
+  const colClass =
+    committedQuotes.length <= 2
+      ? "grid-cols-2"
+      : committedQuotes.length <= 4
+      ? "grid-cols-2 xl:grid-cols-4"
+      : "grid-cols-3";
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-white px-6 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="h-screen overflow-hidden bg-zinc-950 text-white flex flex-col px-4 py-3 gap-3">
+      {/* Compact header */}
+      <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-white">Workshop Pipeline</h1>
-          <p className="text-zinc-400 text-lg mt-1">
+          <h1 className="text-2xl font-black tracking-tight text-white leading-none">
+            Workshop Pipeline
+          </h1>
+          <p className="text-zinc-400 text-xs mt-0.5">
             {committedQuotes.length} active job{committedQuotes.length !== 1 ? "s" : ""}
             &nbsp;·&nbsp;auto-refreshes every 60 s
           </p>
         </div>
-        <img
-          src="/media/logo.png"
-          alt="Mobile Tyre Van City"
-          className="h-10 opacity-60"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-        />
+        <div className="text-zinc-600 text-xs tabular-nums">
+          {new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+        </div>
       </div>
 
       {committedQuotes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-zinc-500">
-          <div className="text-7xl font-black mb-4">—</div>
-          <p className="text-2xl font-semibold">Nothing in build</p>
-          <p className="text-lg mt-2">No committed jobs at the moment.</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
+          <div className="text-5xl font-black mb-3">—</div>
+          <p className="text-xl font-semibold">Nothing in build</p>
+          <p className="text-sm mt-1">No committed jobs at the moment.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className={`flex-1 grid ${colClass} gap-3 min-h-0`}>
           {committedQuotes.map((q) => {
             const van = data.vans.find((v) => v.id === q.vanId);
             const kit = data.kits.find((k) => k.id === q.kitId);
@@ -168,50 +177,50 @@ export default function KioskPipelineBoard() {
             return (
               <div
                 key={q.id}
-                className="bg-zinc-900 rounded-xl border border-zinc-700 p-6 flex flex-col gap-5 min-h-[340px]"
+                className="bg-zinc-900 rounded-lg border border-zinc-700 p-3 flex flex-col gap-2 min-h-0 overflow-hidden"
                 data-testid={`card-kiosk-${q.id}`}
               >
-                {/* Top row: name + status badge */}
-                <div className="flex items-start justify-between gap-3">
+                {/* Name + badge */}
+                <div className="flex items-start justify-between gap-2 shrink-0">
                   <div className="min-w-0">
-                    <p className="text-3xl font-black leading-tight truncate">{q.userName}</p>
+                    <p className="text-xl font-black leading-tight truncate">{q.userName}</p>
                     {q.company && (
-                      <p className="text-xl text-zinc-400 font-semibold mt-0.5 truncate">{q.company}</p>
+                      <p className="text-xs text-zinc-400 font-semibold truncate mt-0.5">{q.company}</p>
                     )}
                     {q.phone && (
-                      <p className="text-lg text-zinc-300 mt-1">{q.phone}</p>
+                      <p className="text-xs text-zinc-300 mt-0.5">{q.phone}</p>
                     )}
                   </div>
                   <Badge
-                    className={`shrink-0 text-base font-bold px-3 py-1 no-default-active-elevate ${STATUS_COLOUR[q.status] ?? "bg-zinc-700 text-white"}`}
+                    className={`shrink-0 text-xs font-bold px-2 py-0.5 no-default-active-elevate ${STATUS_COLOUR[q.status] ?? "bg-zinc-700 text-white"}`}
                   >
                     {STATUS_LABEL[q.status] ?? q.status}
                   </Badge>
                 </div>
 
                 {/* Van */}
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-zinc-500 mb-1">Van</p>
-                  <p className="text-xl font-bold text-white">{vanLabel}</p>
+                <div className="shrink-0">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Van</p>
+                  <p className="text-sm font-bold text-white leading-tight">{vanLabel}</p>
                 </div>
 
                 {/* Kit */}
                 {kit && (
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-zinc-500 mb-1">Pack</p>
-                    <p className="text-lg font-semibold text-white">{kit.name}</p>
+                  <div className="shrink-0">
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Pack</p>
+                    <p className="text-sm font-semibold text-white leading-tight">{kit.name}</p>
                   </div>
                 )}
 
-                {/* Upgrades */}
+                {/* Upgrades — allow to scroll within the card if there are many */}
                 {selectedUpgrades.length > 0 && (
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-zinc-500 mb-1.5">Upgrades</p>
-                    <div className="flex flex-wrap gap-1.5">
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Upgrades</p>
+                    <div className="flex flex-wrap gap-1 overflow-hidden">
                       {selectedUpgrades.map((u) => (
                         <span
                           key={u.id}
-                          className="bg-zinc-800 border border-zinc-600 text-zinc-200 text-sm font-medium px-2.5 py-0.5 rounded"
+                          className="bg-zinc-800 border border-zinc-600 text-zinc-300 text-[10px] font-medium px-1.5 py-0.5 rounded"
                         >
                           {u.name}
                         </span>
@@ -220,16 +229,16 @@ export default function KioskPipelineBoard() {
                   </div>
                 )}
 
-                {/* Status since */}
-                {q.statusChangedAt && (
-                  <p className="text-sm text-zinc-500">
-                    In this stage since {fmtDate(q.statusChangedAt)}
-                  </p>
-                )}
-
-                {/* Due out — pushed to bottom */}
-                <div className="mt-auto pt-4 border-t border-zinc-700">
-                  <p className="text-xs uppercase tracking-widest text-zinc-500 mb-2">Due out</p>
+                {/* Due out — pinned to bottom */}
+                <div className="mt-auto pt-2 border-t border-zinc-700 shrink-0 flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-0.5">Due out</p>
+                    {q.statusChangedAt && (
+                      <p className="text-[10px] text-zinc-600">
+                        Since {fmtDate(q.statusChangedAt)}
+                      </p>
+                    )}
+                  </div>
                   <DueChip val={q.targetCompletionDate} />
                 </div>
               </div>

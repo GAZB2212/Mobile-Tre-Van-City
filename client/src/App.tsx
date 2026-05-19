@@ -167,13 +167,13 @@ function Router() {
 
 function PublicChatBubble() {
   const [location] = useLocation();
-  if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal")) return null;
+  if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal") || location.startsWith("/pipeline-board")) return null;
   return <ChatBubble />;
 }
 
 function AIWidget() {
   const [location] = useLocation();
-  if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal")) return null;
+  if (location.startsWith("/admin") || location === "/login" || location.startsWith("/finance-portal") || location.startsWith("/pipeline-board")) return null;
   return <AIChatWidget />;
 }
 
