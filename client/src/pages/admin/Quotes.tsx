@@ -417,32 +417,34 @@ export default function AdminQuotes() {
   const upgradeDisplay = (u: { name: string; variantName?: string | null }) =>
     (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
 
-  // Variant groups are radio-style in the configurator — only one variant per
-  // parent should ever surface. If a saved quote has multiple variants of the
-  // same parent (legacy or admin-edited data), keep the LAST one selected.
-  const dedupeByParent = (list: typeof upgrades): typeof upgrades => {
+  // Variant groups are radio-style in the configurator. The configurator
+  // shows the FIRST variant in the saved array per parent, so we follow
+  // the same rule everywhere upgrades are listed.
+  const dedupeByParent = (upgradeIds: string[]): typeof upgrades => {
+    const byId = new Map(upgrades.map((u) => [u.id, u] as const));
     const seen = new Set<string>();
-    return [...list]
-      .reverse()
-      .filter((u: any) => {
-        const pid = u.parentId as string | null | undefined;
-        if (!pid) return true;
-        if (seen.has(pid)) return false;
+    const out: typeof upgrades = [];
+    for (const id of upgradeIds) {
+      const u = byId.get(id);
+      if (!u) continue;
+      const pid = (u as any).parentId as string | null | undefined;
+      if (pid) {
+        if (seen.has(pid)) continue;
         seen.add(pid);
-        return true;
-      })
-      .reverse();
+      }
+      out.push(u);
+    }
+    return out;
   };
 
   const getUpgradeNames = (upgradeIds: string[]): string => {
     if (!upgradeIds.length) return "No upgrades";
-    const selectedUpgrades = upgrades.filter((u) => upgradeIds.includes(u.id));
-    return dedupeByParent(selectedUpgrades).map(upgradeDisplay).join(", ");
+    return dedupeByParent(upgradeIds).map(upgradeDisplay).join(", ");
   };
 
   const getUpgradeList = (upgradeIds: string[]): string[] => {
     if (!upgradeIds.length) return [];
-    return dedupeByParent(upgrades.filter((u) => upgradeIds.includes(u.id))).map(upgradeDisplay);
+    return dedupeByParent(upgradeIds).map(upgradeDisplay);
   };
 
   const computeEquipCost = (kitId: string | null, upgradeIds: string[], upgradeQuantities: Record<string, number>): number | null => {

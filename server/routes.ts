@@ -517,25 +517,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
       const allUpgrades = await storage.getAllUpgradesAdmin();
-      const selectedUpgradesUnsorted = allUpgrades.filter(
-        (u) => Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id)
-      );
-      // Dedupe by parentId — variant groups are radio-style in the configurator,
-      // so only one variant per parent should ever appear on the workshop floor.
-      // If a saved quote contains multiple variants of the same parent (legacy
-      // or admin-edited data), keep the LAST one — matches configurator's
-      // last-write-wins behaviour for exclusive groups.
+      // Dedupe by parentId — variant groups are radio-style in the configurator.
+      // The configurator picks the FIRST variant in `selectedUpgradeIds` that
+      // belongs to a given parent (see client SelectUpgrades.tsx), so we
+      // follow the exact same rule on the workshop floor. Iterate the saved
+      // array in order, keep first-per-parent.
+      const savedOrder = (Array.isArray(quote.selectedUpgradeIds) ? quote.selectedUpgradeIds : []) as string[];
+      const upgradesById = new Map(allUpgrades.map((u) => [u.id, u] as const));
       const seenParents = new Set<string>();
-      const dedupedUpgrades = [...selectedUpgradesUnsorted]
-        .reverse()
-        .filter((u: any) => {
-          const pid = u.parentId as string | null | undefined;
-          if (!pid) return true;
-          if (seenParents.has(pid)) return false;
+      const dedupedUpgrades: any[] = [];
+      for (const id of savedOrder) {
+        const u: any = upgradesById.get(id);
+        if (!u) continue;
+        const pid = u.parentId as string | null | undefined;
+        if (pid) {
+          if (seenParents.has(pid)) continue;
           seenParents.add(pid);
-          return true;
-        })
-        .reverse();
+        }
+        dedupedUpgrades.push(u);
+      }
       // Sort by category then sortOrder so every quote renders in the same order
       const selectedUpgrades = await sortUpgradesByDisplayOrder(dedupedUpgrades as any[]);
 

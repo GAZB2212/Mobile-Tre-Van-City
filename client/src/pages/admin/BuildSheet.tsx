@@ -439,23 +439,26 @@ export default function BuildSheet() {
     : `${window.location.origin}/admin/quotes/${quoteId}/build-progress`;
 
   const kit = kits.find((k) => k.id === quote?.kitId);
-  // Dedupe by parentId — only one variant per parent group should ever appear
-  // (this mirrors the configurator's radio behaviour for variant groups).
-  // If a saved quote ended up with two variants of the same parent (e.g.
-  // "Standard Light Pack" AND "Upgraded Light Pack"), we keep the LAST one
-  // selected — matching the configurator's last-write-wins behaviour.
-  const upgradesRaw = allUpgrades.filter((u) => quote?.selectedUpgradeIds?.includes(u.id));
+  // Dedupe by parentId — only one variant per parent should ever appear
+  // (mirrors the configurator's radio behaviour). The configurator shows the
+  // FIRST variant in `selectedUpgradeIds` that belongs to a given parent
+  // (see SelectUpgrades.tsx: `state.upgradeIds.find(...)`), so we follow the
+  // exact same rule here. Iterate in the saved array order, keep the first
+  // variant per parent, drop the rest.
+  const savedOrder = (quote?.selectedUpgradeIds as string[] | undefined) ?? [];
+  const upgradesById = new Map(allUpgrades.map((u) => [u.id, u] as const));
   const seenParents = new Set<string>();
-  const upgrades = [...upgradesRaw]
-    .reverse()
-    .filter((u) => {
-      const pid = (u as any).parentId as string | null | undefined;
-      if (!pid) return true;
-      if (seenParents.has(pid)) return false;
+  const upgrades: typeof allUpgrades = [];
+  for (const id of savedOrder) {
+    const u = upgradesById.get(id);
+    if (!u) continue;
+    const pid = (u as any).parentId as string | null | undefined;
+    if (pid) {
+      if (seenParents.has(pid)) continue;
       seenParents.add(pid);
-      return true;
-    })
-    .reverse();
+    }
+    upgrades.push(u);
+  }
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
 
   // ── Build-sheet supersession logic ──────────────────────────────────────────
