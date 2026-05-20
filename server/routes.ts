@@ -780,24 +780,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Strip duplicate variants from a quote's selectedUpgradeIds: only one
   // variant per parent group should ever be saved (the configurator UI is
-  // radio-style). When duplicates exist (legacy / admin-edit / Max AI map),
-  // keep the HIGHEST-priced one — assume the customer upgraded to the
-  // premium option. Returns the cleaned id list.
+  // radio-style). Rule: keep the FIRST occurrence per parent in the saved
+  // array — this exactly mirrors the configurator's display logic
+  // (`state.upgradeIds.find(...)` in SelectUpgrades.tsx), so whatever
+  // variant the customer sees in the configurator is the one that gets
+  // saved and built.
   const dedupeUpgradeIdsByParent = async (ids: string[]): Promise<string[]> => {
     if (!Array.isArray(ids) || ids.length === 0) return [];
     const fetched = await Promise.all(ids.map((id) => storage.getUpgrade(id)));
-    const bestByParent = new Map<string, { id: string; price: number }>();
+    const seenParents = new Set<string>();
     const out: string[] = [];
     for (let i = 0; i < ids.length; i++) {
       const u: any = fetched[i];
       if (!u) { out.push(ids[i]); continue; }
       const pid = u.parentId as string | null | undefined;
       if (!pid) { out.push(ids[i]); continue; }
-      const prev = bestByParent.get(pid);
-      const price = (u.price ?? 0) as number;
-      if (!prev || price > prev.price) bestByParent.set(pid, { id: ids[i], price });
+      if (seenParents.has(pid)) continue;
+      seenParents.add(pid);
+      out.push(ids[i]);
     }
-    for (const { id } of bestByParent.values()) out.push(id);
     return out;
   };
 

@@ -230,8 +230,9 @@ app.use((req, res, next) => {
       // One-time idempotent backfill: strip duplicate variants from every
       // quote's selectedUpgradeIds. Variant groups are radio-style in the
       // configurator so only one variant per parent should ever be stored.
-      // When duplicates exist (legacy / admin-edit / Max AI), keep the
-      // HIGHEST-priced one — assume the customer upgraded.
+      // Rule: keep the FIRST occurrence per parent in the saved array —
+      // mirrors the configurator's display rule exactly, so whatever the
+      // customer sees in their configurator is what gets saved & built.
       pool.query(`
         WITH dup_quotes AS (
           SELECT q.id, q.selected_upgrade_ids
@@ -240,7 +241,7 @@ app.use((req, res, next) => {
             AND array_length(q.selected_upgrade_ids, 1) > 1
         ),
         expanded AS (
-          SELECT q.id AS quote_id, u.id AS upgrade_id, u.parent_id, u.price,
+          SELECT q.id AS quote_id, u.id AS upgrade_id, u.parent_id,
                  array_position(q.selected_upgrade_ids, u.id) AS pos
           FROM dup_quotes q
           JOIN upgrades u ON u.id = ANY(q.selected_upgrade_ids)
@@ -249,7 +250,7 @@ app.use((req, res, next) => {
           SELECT DISTINCT ON (quote_id, COALESCE(parent_id, upgrade_id))
                  quote_id, upgrade_id, pos
           FROM expanded
-          ORDER BY quote_id, COALESCE(parent_id, upgrade_id), price DESC NULLS LAST, pos ASC
+          ORDER BY quote_id, COALESCE(parent_id, upgrade_id), pos ASC
         ),
         cleaned AS (
           SELECT quote_id,
