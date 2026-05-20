@@ -1224,29 +1224,22 @@ export default function BuildSheet() {
                                     </span>
                                   ) : null;
                                 })()}
-                                <span
-                                  className={`text-sm font-semibold ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
-                                  data-testid={`text-kit-includes-${idx}`}
-                                >
-                                  {(entry.upgrade as any)._displayName ?? entry.upgrade.name}
-                                </span>
-                                {/* Show variant/option label when available */}
                                 {(() => {
-                                  const parentName = (entry.upgrade as any)._displayName ?? entry.upgrade.name;
-                                  const variantLabel = (entry.upgrade as any).variantName ||
-                                    ((entry.upgrade as any)._displayName && (entry.upgrade as any)._displayName !== entry.upgrade.name ? entry.upgrade.name : null);
-                                  const is48v = /48v/i.test(parentName);
-                                  return variantLabel ? (
-                                    is48v ? (
-                                      <span className="text-sm font-bold text-foreground print:text-black">
-                                        {variantLabel}
-                                      </span>
-                                    ) : (
-                                      <span className="text-xs font-medium text-muted-foreground print:text-black">
-                                        — {variantLabel}
-                                      </span>
-                                    )
-                                  ) : null;
+                                  // Prefer the variant_name when set — in production the parent
+                                  // name is often duplicated across siblings (e.g. all CCTV
+                                  // variants are stored as "Van Online CCTV/NVR System"), so the
+                                  // variant_name is the only distinguishing label.
+                                  const variantName = ((entry.upgrade as any).variantName ?? "").trim();
+                                  const fallbackName = (entry.upgrade as any)._displayName ?? entry.upgrade.name;
+                                  const primary = variantName || fallbackName;
+                                  return (
+                                    <span
+                                      className={`text-sm font-semibold ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                                      data-testid={`text-kit-includes-${idx}`}
+                                    >
+                                      {primary}
+                                    </span>
+                                  );
                                 })()}
                                 <span className="text-xs font-bold uppercase tracking-wide text-accent print:text-black">
                                   (Upgraded)
@@ -1300,37 +1293,23 @@ export default function BuildSheet() {
                                 {quantity}&times;
                               </span>
                             )}
-                            {/* If this is a variant, show parent name + selected option */}
-                            {(upgrade as any).parentId ? (() => {
-                              const parent = allUpgrades.find(p => p.id === (upgrade as any).parentId);
-                              const variantLabel = (upgrade as any).variantName || upgrade.name;
-                              const is48v = /48v/i.test(parent?.name ?? "");
+                            {/* Show the variant_name (sibling label) as the primary
+                                heading when available — in production several
+                                upgrades share the same parent name (e.g. all CCTV
+                                variants are "Van Online CCTV/NVR System"), so the
+                                variant_name is the only distinguishing label. */}
+                            {(() => {
+                              const variantName = ((upgrade as any).variantName ?? "").trim();
+                              const primary = variantName || upgrade.name;
                               return (
-                                <>
-                                  {parent && (
-                                    <span className={`text-sm font-semibold text-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`} data-testid={`text-upgrade-name-${upgrade.id}`}>
-                                      {parent.name}
-                                    </span>
-                                  )}
-                                  {is48v ? (
-                                    <span className={`text-sm font-bold text-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`}>
-                                      {variantLabel}
-                                    </span>
-                                  ) : (
-                                    <span className={`text-sm font-medium text-muted-foreground print:text-black ${isChecked(itemKey) ? 'line-through' : ''}`}>
-                                      — {variantLabel}
-                                    </span>
-                                  )}
-                                </>
+                                <p
+                                  className={`font-semibold text-sm ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
+                                  data-testid={`text-upgrade-name-${upgrade.id}`}
+                                >
+                                  {primary}
+                                </p>
                               );
-                            })() : (
-                              <p
-                                className={`font-semibold text-sm ${isChecked(itemKey) ? 'line-through text-muted-foreground print:no-underline print:text-black' : ''}`}
-                                data-testid={`text-upgrade-name-${upgrade.id}`}
-                              >
-                                {upgrade.name}
-                              </p>
-                            )}
+                            })()}
                           </div>
                           <SkuBomInfo sku={upgrade.sku} skuComponents={upgrade.skuComponents} bomId={`upgrade-${upgrade.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                         </div>

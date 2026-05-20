@@ -74,7 +74,14 @@ interface KioskQuote {
   customBuildStages: Array<{ id: string; label: string }> | null;
 }
 
-interface KioskUpgrade { id: string; name: string; category: string; }
+interface KioskUpgrade { id: string; name: string; category: string; variantName?: string | null; }
+
+// When two upgrades share the same parent name (e.g. all four CCTV variants are
+// stored as "Van Online CCTV/NVR System"), the variant_name is the only thing
+// that distinguishes them on the workshop floor. Prefer the variant name
+// whenever it's set so the kiosk doesn't show "CCTV" twice.
+const displayLabel = (u: { name: string; variantName?: string | null }) =>
+  (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
 
 interface KioskData {
   quotes: KioskQuote[];
@@ -120,7 +127,7 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
 
   for (const u of nonWrap) {
-    stages.push({ id: `upg_${u.id}`, label: u.name });
+    stages.push({ id: `upg_${u.id}`, label: displayLabel(u) });
     if (isBusinessPack(u)) {
       stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
       stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
@@ -131,13 +138,13 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
     stages.push({ id: "artwork_approved", label: "Artwork Approved" });
     stages.push({ id: "wrap_printed", label: "Wrap Printed" });
   }
-  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: displayLabel(u) });
   if (wallOnly.length > 0) {
     stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" });
     stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved" });
     stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered" });
   }
-  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: displayLabel(u) });
   stages.push({ id: "final_checks", label: "Final Checks" });
   stages.push({ id: "valet", label: "Valet & Handover" });
   return stages;

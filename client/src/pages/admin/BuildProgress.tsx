@@ -76,7 +76,7 @@ export default function BuildProgress() {
     upgrades: BuildProgressData["upgrades"]
   ): ActiveStage[] => {
     const upgradeLabel = (u: BuildProgressData["upgrades"][0]) =>
-      u.variantName ? `${u.name} — ${u.variantName}` : u.name;
+      (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
     const interiorWallPattern = /interior.wall/i;
     const wrapGraphicsPattern = /wrap|graphic/i;
     const isInteriorWall = (u: { name: string; category: string }) =>
