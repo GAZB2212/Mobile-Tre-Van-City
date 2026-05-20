@@ -97,7 +97,11 @@ interface KioskData {
 const isWrap = (u: { category?: string | null; name?: string | null }) => {
   const c = (u.category ?? "").toLowerCase();
   const n = (u.name ?? "").toLowerCase();
-  return c.includes("wrap") || c.includes("graphic") || n.includes("graphic pack");
+  // Full Wrap / Half Wrap live in the "branding" category, so also sniff
+  // the name for "wrap"/"graphic" — otherwise the artwork stages never get
+  // generated for those upgrades and the kiosk skips Artwork Approved.
+  return c.includes("wrap") || c.includes("graphic") ||
+    n.includes("wrap") || n.includes("graphic");
 };
 const isWall = (u: { category?: string | null }) =>
   (u.category ?? "").toLowerCase().includes("interior wall");
