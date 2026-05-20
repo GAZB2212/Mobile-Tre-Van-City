@@ -778,10 +778,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Strip duplicate variants from a quote's selectedUpgradeIds: only one
+  // variant per parent group should ever be saved (the configurator UI is
+  // radio-style). When duplicates exist (legacy / admin-edit / Max AI map),
+  // keep the HIGHEST-priced one — assume the customer upgraded to the
+  // premium option. Returns the cleaned id list.
+  const dedupeUpgradeIdsByParent = async (ids: string[]): Promise<string[]> => {
+    if (!Array.isArray(ids) || ids.length === 0) return [];
+    const fetched = await Promise.all(ids.map((id) => storage.getUpgrade(id)));
+    const bestByParent = new Map<string, { id: string; price: number }>();
+    const out: string[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      const u: any = fetched[i];
+      if (!u) { out.push(ids[i]); continue; }
+      const pid = u.parentId as string | null | undefined;
+      if (!pid) { out.push(ids[i]); continue; }
+      const prev = bestByParent.get(pid);
+      const price = (u.price ?? 0) as number;
+      if (!prev || price > prev.price) bestByParent.set(pid, { id: ids[i], price });
+    }
+    for (const { id } of bestByParent.values()) out.push(id);
+    return out;
+  };
+
   app.post("/api/quotes", async (req, res) => {
     try {
       const validatedData = insertQuoteSchema.parse(req.body);
-      
+
+      // Dedupe variant duplicates before pricing & saving
+      if (Array.isArray(validatedData.selectedUpgradeIds) && validatedData.selectedUpgradeIds.length > 0) {
+        validatedData.selectedUpgradeIds = await dedupeUpgradeIdsByParent(validatedData.selectedUpgradeIds as string[]);
+      }
+
       // Fetch all referenced entities to recalculate prices server-side
       const selectedUpgradeIds = (validatedData.selectedUpgradeIds || []) as string[];
       const selectedTrainingOptionIds = (validatedData.trainingOptionIds || []) as string[];
@@ -3329,7 +3357,12 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         if (!quote) {
           return res.status(404).json({ error: "Quote not found" });
         }
-        
+
+        // Dedupe variants on incoming upgrade list before recalculation
+        if (Array.isArray(validatedData.selectedUpgradeIds) && validatedData.selectedUpgradeIds.length > 0) {
+          validatedData.selectedUpgradeIds = await dedupeUpgradeIdsByParent(validatedData.selectedUpgradeIds as string[]);
+        }
+
         // Get the configuration (use updated values or fall back to existing)
         const vanId = 'vanId' in validatedData ? validatedData.vanId : quote.vanId;
         const customVanValue = 'customVanValue' in validatedData ? validatedData.customVanValue : (quote as any).customVanValue;

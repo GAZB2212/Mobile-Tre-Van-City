@@ -226,6 +226,49 @@ app.use((req, res, next) => {
       backfillSkus().catch(err => {
         console.error("Failed to backfill SKUs:", err);
       });
+
+      // One-time idempotent backfill: strip duplicate variants from every
+      // quote's selectedUpgradeIds. Variant groups are radio-style in the
+      // configurator so only one variant per parent should ever be stored.
+      // When duplicates exist (legacy / admin-edit / Max AI), keep the
+      // HIGHEST-priced one — assume the customer upgraded.
+      pool.query(`
+        WITH dup_quotes AS (
+          SELECT q.id, q.selected_upgrade_ids
+          FROM quotes q
+          WHERE q.selected_upgrade_ids IS NOT NULL
+            AND array_length(q.selected_upgrade_ids, 1) > 1
+        ),
+        expanded AS (
+          SELECT q.id AS quote_id, u.id AS upgrade_id, u.parent_id, u.price,
+                 array_position(q.selected_upgrade_ids, u.id) AS pos
+          FROM dup_quotes q
+          JOIN upgrades u ON u.id = ANY(q.selected_upgrade_ids)
+        ),
+        winners AS (
+          SELECT DISTINCT ON (quote_id, COALESCE(parent_id, upgrade_id))
+                 quote_id, upgrade_id, pos
+          FROM expanded
+          ORDER BY quote_id, COALESCE(parent_id, upgrade_id), price DESC NULLS LAST, pos ASC
+        ),
+        cleaned AS (
+          SELECT quote_id,
+                 array_agg(upgrade_id ORDER BY pos) AS new_ids
+          FROM winners
+          GROUP BY quote_id
+        )
+        UPDATE quotes q
+        SET selected_upgrade_ids = c.new_ids
+        FROM cleaned c
+        WHERE q.id = c.quote_id
+          AND q.selected_upgrade_ids <> c.new_ids
+      `).then((r) => {
+        if ((r as any).rowCount && (r as any).rowCount > 0) {
+          log(`✅ Deduped variant upgrades on ${(r as any).rowCount} quotes`);
+        }
+      }).catch((err: Error) => {
+        console.error("Quote upgrade dedupe backfill:", err.message);
+      });
       // Rename all ATS- prefixed SKUs to MTVC- (one-time idempotent migration)
       Promise.all([
         pool.query(`UPDATE kits SET sku = REPLACE(sku, 'ATS-', 'MTVC-') WHERE sku LIKE 'ATS-%'`),
