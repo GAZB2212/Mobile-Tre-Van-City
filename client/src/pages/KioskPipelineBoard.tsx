@@ -446,6 +446,24 @@ function JobCard({
               >
                 Kev<span className="ml-2 opacity-70 text-base">(KJ)</span>
               </Button>
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "HM" })}
+                data-testid="button-stage-hm"
+              >
+                HM
+              </Button>
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "RM" })}
+                data-testid="button-stage-rm"
+              >
+                RM
+              </Button>
             </div>
           </div>
           <DialogFooter>
