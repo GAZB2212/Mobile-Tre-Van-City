@@ -10147,6 +10147,36 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // POST /api/kiosk/pipeline/:token/status
+  // Token-gated status change from the kiosk (currently only In Build -> In Workshop)
+  app.post("/api/kiosk/pipeline/:token/status", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      const validToken = settings["pipeline_kiosk_token"];
+      if (!validToken || req.params.token !== validToken) {
+        return res.status(401).json({ error: "Invalid or expired kiosk token" });
+      }
+      const body = z.object({
+        quoteId: z.string().min(1),
+        status: z.enum(["in_workshop", "in_build"]),
+      }).parse(req.body);
+      const quote = await storage.getQuote(body.quoteId);
+      if (!quote) return res.status(404).json({ error: "Quote not found" });
+      // Only allow the two safe transitions from the kiosk
+      const allowed =
+        (quote.status === "in_build"     && body.status === "in_workshop") ||
+        (quote.status === "in_workshop"  && body.status === "in_build");
+      if (!allowed) {
+        return res.status(400).json({ error: `Cannot move ${quote.status} -> ${body.status} from kiosk` });
+      }
+      await storage.updateQuote(quote.id, { status: body.status } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(500).json({ error: "Failed to update status" });
+    }
+  });
+
   // GET /api/kiosk/pipeline/:token
   // Public (no login), token-gated.  Returns the minimal data needed by the wallboard.
   // Deliberately excludes email, financial details, internal notes, etc.

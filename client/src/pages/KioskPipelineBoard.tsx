@@ -5,7 +5,6 @@ import { QRCodeSVG } from "qrcode.react";
 import { Lock, Circle, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
@@ -185,7 +184,7 @@ function JobCard({
   const { token } = useParams<{ token: string }>();
   const tapState = useRef<{ id: string | null; count: number; timer: any }>({ id: null, count: 0, timer: null });
   const [tickDialog, setTickDialog] = useState<{ stageId: string; label: string } | null>(null);
-  const [initialsInput, setInitialsInput] = useState("");
+  const [statusDialog, setStatusDialog] = useState<{ next: "in_workshop" | "in_build" } | null>(null);
 
   const tickMutation = useMutation({
     mutationFn: async ({ stageId, initials }: { stageId: string; initials: string }) => {
@@ -198,26 +197,49 @@ function JobCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/kiosk/pipeline", token] });
       setTickDialog(null);
-      setInitialsInput("");
     },
-    onError: (err: any) => {
-      // eslint-disable-next-line no-alert
-      alert(`Could not save: ${err?.message ?? "unknown error"}`);
-    },
+    onError: (err: any) => alert(`Could not save: ${err?.message ?? "unknown error"}`),
   });
 
-  const handleStageTap = (stageId: string, label: string, alreadyDone: boolean) => {
-    if (alreadyDone) return;
+  const statusMutation = useMutation({
+    mutationFn: async ({ next }: { next: "in_workshop" | "in_build" }) => {
+      const res = await apiRequest("POST", `/api/kiosk/pipeline/${token}/status`, {
+        quoteId: q.id, status: next,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kiosk/pipeline", token] });
+      setStatusDialog(null);
+    },
+    onError: (err: any) => alert(`Could not update status: ${err?.message ?? "unknown error"}`),
+  });
+
+  // Generic triple-tap (within 600ms) — keyed so adjacent rows/badges don't share counts
+  const handleTripleTap = (key: string, onTriple: () => void) => {
     const s = tapState.current;
     if (s.timer) clearTimeout(s.timer);
-    if (s.id !== stageId) { s.id = stageId; s.count = 0; }
+    if (s.id !== key) { s.id = key; s.count = 0; }
     s.count += 1;
     if (s.count >= 3) {
       s.id = null; s.count = 0;
-      setTickDialog({ stageId, label });
+      onTriple();
       return;
     }
     s.timer = setTimeout(() => { s.id = null; s.count = 0; }, 600);
+  };
+
+  const handleStageTap = (stageId: string, label: string, alreadyDone: boolean) => {
+    if (alreadyDone) return;
+    handleTripleTap(`stage:${stageId}`, () => setTickDialog({ stageId, label }));
+  };
+
+  const handleStatusTap = () => {
+    if (q.status === "in_build") {
+      handleTripleTap(`status:${q.id}`, () => setStatusDialog({ next: "in_workshop" }));
+    } else if (q.status === "in_workshop") {
+      handleTripleTap(`status:${q.id}`, () => setStatusDialog({ next: "in_build" }));
+    }
   };
 
   const doneCount = stages.filter((s) => completedIds.has(s.id)).length;
@@ -289,11 +311,19 @@ function JobCard({
         </div>
       </div>
 
-      {/* Status + due-date strip */}
+      {/* Status + due-date strip — triple-tap the badge to toggle In Build <-> In Workshop */}
       <div className="flex items-center justify-between gap-2 -mt-1">
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
+        <button
+          type="button"
+          onClick={handleStatusTap}
+          disabled={q.status !== "in_build" && q.status !== "in_workshop"}
+          className={`text-[11px] font-bold px-2 py-1 rounded text-white select-none ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"} ${
+            q.status === "in_build" || q.status === "in_workshop" ? "active:opacity-70 cursor-pointer" : ""
+          }`}
+          data-testid={`button-kiosk-status-${q.id}`}
+        >
           {STATUS_LABEL[q.status] ?? q.status}
-        </span>
+        </button>
         <p className={`text-[10px] ${dueColour}`}>
           {q.targetCompletionDate ? (
             <>
@@ -378,34 +408,66 @@ function JobCard({
         </div>
       )}
 
-      {/* Triple-tap initials dialog */}
-      <Dialog open={tickDialog !== null} onOpenChange={(open) => { if (!open) { setTickDialog(null); setInitialsInput(""); } }}>
+      {/* Triple-tap stage-tick dialog — preset name buttons (no keyboard on the kiosk) */}
+      <Dialog open={tickDialog !== null} onOpenChange={(open) => { if (!open) setTickDialog(null); }}>
         <DialogContent data-testid="dialog-stage-tick">
           <DialogHeader>
             <DialogTitle>Tick "{tickDialog?.label}"</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">Enter your initials to mark this stage complete.</p>
-            <Input
-              autoFocus
-              maxLength={4}
-              value={initialsInput}
-              onChange={(e) => setInitialsInput(e.target.value.toUpperCase())}
-              placeholder="e.g. JS"
-              className="text-lg font-bold uppercase tracking-widest text-center"
-              data-testid="input-stage-initials"
-            />
+            <p className="text-sm text-muted-foreground">Who's ticking this off?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "GB" })}
+                data-testid="button-stage-gaz"
+              >
+                Gaz<span className="ml-2 opacity-70 text-base">(GB)</span>
+              </Button>
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "KJ" })}
+                data-testid="button-stage-kev"
+              >
+                Kev<span className="ml-2 opacity-70 text-base">(KJ)</span>
+              </Button>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setTickDialog(null); setInitialsInput(""); }} data-testid="button-stage-cancel">
+            <Button variant="ghost" onClick={() => setTickDialog(null)} data-testid="button-stage-cancel">
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Triple-tap status dialog — confirm In Build <-> In Workshop */}
+      <Dialog open={statusDialog !== null} onOpenChange={(open) => { if (!open) setStatusDialog(null); }}>
+        <DialogContent data-testid="dialog-kiosk-status">
+          <DialogHeader>
+            <DialogTitle>
+              Move to {statusDialog ? STATUS_LABEL[statusDialog.next] : ""}?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            {q.userName ? `${q.userName}'s` : "This"} build will be moved from
+            {" "}<span className="font-semibold">{STATUS_LABEL[q.status] ?? q.status}</span> to
+            {" "}<span className="font-semibold">{statusDialog ? STATUS_LABEL[statusDialog.next] : ""}</span>.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setStatusDialog(null)} data-testid="button-status-cancel">
               Cancel
             </Button>
             <Button
-              disabled={initialsInput.trim().length === 0 || tickMutation.isPending}
-              onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: initialsInput.trim() })}
-              data-testid="button-stage-confirm"
+              disabled={statusMutation.isPending}
+              onClick={() => statusDialog && statusMutation.mutate({ next: statusDialog.next })}
+              data-testid="button-status-confirm"
             >
-              {tickMutation.isPending ? "Saving..." : "Confirm"}
+              {statusMutation.isPending ? "Saving..." : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>
