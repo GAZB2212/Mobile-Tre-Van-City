@@ -84,7 +84,20 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   stages.push({ id: "prep", label: "Van Preparation" });
   if (kitName) stages.push({ id: "kit", label: `Install ${kitName}` });
 
-  const nonWrap = selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u));
+  // Priority upgrades sit directly after the install pack so every kiosk card
+  // groups the headline kit add-ons (48V Silent Compressor, Super Spin, T4000 Pro)
+  // in the same place regardless of selection order.
+  const priorityRank = (name: string): number => {
+    const n = name.toLowerCase();
+    if (n.includes("48v")) return 0;
+    if (n.includes("super spin")) return 1;
+    if (n.includes("t4000") || n.includes("t-4000")) return 2;
+    return 99;
+  };
+  const orderByPriority = <T extends { name: string }>(items: T[]) =>
+    [...items].sort((a, b) => priorityRank(a.name) - priorityRank(b.name));
+
+  const nonWrap = orderByPriority(selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u)));
   const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
   const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
 

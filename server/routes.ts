@@ -517,15 +517,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
       const allUpgrades = await storage.getAllUpgradesAdmin();
-      const selectedUpgrades = allUpgrades.filter(
+      const selectedUpgradesUnsorted = allUpgrades.filter(
         (u) => Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id)
       );
+      // Sort by category then sortOrder so every quote renders in the same order
+      const selectedUpgrades = await sortUpgradesByDisplayOrder(selectedUpgradesUnsorted as any[]);
 
       // Generate stages the same way the kiosk board does (client-side logic mirrored here)
       const isWrap = (u: { category?: string | null }) =>
         (u.category ?? "").toLowerCase().includes("wrap");
       const isWall = (u: { category?: string | null }) =>
         (u.category ?? "").toLowerCase().includes("interior wall");
+      // Priority upgrades that always sit right after the install pack
+      const priorityRank = (name: string): number => {
+        const n = name.toLowerCase();
+        if (n.includes("48v")) return 0;
+        if (n.includes("super spin")) return 1;
+        if (n.includes("t4000") || n.includes("t-4000")) return 2;
+        return 99;
+      };
+      const orderByPriority = <T extends { name: string }>(items: T[]) =>
+        [...items].sort((a, b) => priorityRank(a.name) - priorityRank(b.name));
 
       const customStages = (quote as any).customBuildStages as Array<{ id: string; label: string }> | null;
       let stages: Array<{ id: string; label: string }>;
@@ -535,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stages = [];
         stages.push({ id: "prep", label: "Van Preparation" });
         if (kit) stages.push({ id: "kit", label: `Install ${kit.name}` });
-        const nonWrap = selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u));
+        const nonWrap = orderByPriority(selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u)));
         const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
         const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
         for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
@@ -10163,8 +10175,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         quotes,
         vans: vans.map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year })),
         kits: kits.map((k) => ({ id: k.id, name: k.name })),
-        // Include category so the client can detect wrap/interior-wall upgrades for stage generation
-        upgrades: upgrades.map((u) => ({ id: u.id, name: u.name, category: u.category ?? "" })),
+        // Include category so the client can detect wrap/interior-wall upgrades for stage generation.
+        // Pre-sorted by catalogue display order so kiosk cards render upgrades consistently.
+        upgrades: (await sortUpgradesByDisplayOrder(upgrades as any[])).map((u: any) => ({ id: u.id, name: u.name, category: u.category ?? "" })),
       });
     } catch (err) {
       console.error("Kiosk pipeline error:", err);
