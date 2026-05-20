@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
+import { Lock, Circle } from "lucide-react";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
 
@@ -212,21 +213,36 @@ function JobCard({
           {stages.length > 0 && (
             <div className="space-y-1">
               <p className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Build Stages</p>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+              <div className="grid grid-cols-2 gap-1">
                 {stages.map((s) => {
                   const done = completedIds.has(s.id);
                   const entry = completed.find((c) => c.id === s.id);
                   return (
-                    <div key={s.id} className="flex items-center gap-1">
-                      <span className={`w-3 h-3 shrink-0 rounded-sm border flex items-center justify-center text-[8px] font-black ${done ? "bg-lime-500 border-lime-500 text-black" : "border-zinc-700 text-transparent"}`}>
-                        {done ? "✓" : ""}
-                      </span>
-                      <span className={`text-[10px] leading-tight ${done ? "text-zinc-500 line-through" : "text-zinc-300"}`}>
+                    <div
+                      key={s.id}
+                      className={`flex items-center gap-1.5 px-1.5 py-1 rounded ${
+                        done
+                          ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70"
+                          : "bg-zinc-900 border border-zinc-800"
+                      }`}
+                    >
+                      {done ? (
+                        <Lock className="w-3 h-3 shrink-0 text-zinc-600" />
+                      ) : (
+                        <Circle className="w-3 h-3 shrink-0 text-zinc-600" />
+                      )}
+                      <span
+                        className={`flex-1 min-w-0 text-[10px] leading-tight truncate ${
+                          done ? "line-through text-zinc-600" : "text-zinc-300"
+                        }`}
+                      >
                         {s.label}
-                        {done && entry?.initials && (
-                          <span className="ml-1 text-zinc-600 no-underline">({entry.initials})</span>
-                        )}
                       </span>
+                      {done && entry?.initials && (
+                        <span className="shrink-0 text-[8px] font-bold text-zinc-500 bg-zinc-800 px-1 py-0.5 rounded uppercase tracking-wide">
+                          {entry.initials}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
