@@ -441,7 +441,7 @@ export default function KioskPipelineBoard() {
             className="p-2 gap-2"
             style={{
               display: "grid",
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             }}
           >
             {committedQuotes.map((q) => {
