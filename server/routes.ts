@@ -10297,7 +10297,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         kits: kits.map((k) => ({ id: k.id, name: k.name })),
         // Include category so the client can detect wrap/interior-wall upgrades for stage generation.
         // Pre-sorted by catalogue display order so kiosk cards render upgrades consistently.
-        upgrades: (await sortUpgradesByDisplayOrder(upgrades as any[])).map((u: any) => ({ id: u.id, name: u.name, category: u.category ?? "" })),
+        // variantName is the distinguishing sibling label — without it the
+        // kiosk shows the shared parent name twice (e.g. "Van Online CCTV/NVR
+        // System" for every CCTV variant, "Light Pack" for both light packs).
+        upgrades: (await sortUpgradesByDisplayOrder(upgrades as any[])).map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          category: u.category ?? "",
+          variantName: u.variantName ?? null,
+        })),
       });
     } catch (err) {
       console.error("Kiosk pipeline error:", err);
