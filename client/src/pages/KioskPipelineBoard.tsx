@@ -72,19 +72,37 @@ interface KioskData {
 
 // ── Stage generation ──────────────────────────────────────────────────────────
 
-const wrapPat = /wrap|graphics|livery/i;
-const wallPat = /interior.wall/i;
+// Stage generation — mirrors server/routes.ts /api/build-progress-public/:token
+// so the kiosk shows the IDENTICAL stage list the lads see when they scan the QR
+const isWrap = (u: { category?: string | null }) =>
+  (u.category ?? "").toLowerCase().includes("wrap");
+const isWall = (u: { category?: string | null }) =>
+  (u.category ?? "").toLowerCase().includes("interior wall");
 
 function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]) {
   const stages: { id: string; label: string }[] = [];
   stages.push({ id: "prep", label: "Van Preparation" });
   if (kitName) stages.push({ id: "kit", label: `Install ${kitName}` });
-  if (selectedUpgrades.some((u) => wrapPat.test(u.name)))
-    stages.push({ id: "wrap", label: "Wrap / Livery" });
-  if (selectedUpgrades.some((u) => wallPat.test(u.name)))
-    stages.push({ id: "wall", label: "Interior Wall Lining" });
-  stages.push({ id: "qa", label: "Quality Check" });
-  stages.push({ id: "handover", label: "Handover" });
+
+  const nonWrap = selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u));
+  const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
+  const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
+
+  for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+  if (wrapOnly.length > 0) {
+    stages.push({ id: "artwork_sent", label: "Artwork Sent" });
+    stages.push({ id: "artwork_approved", label: "Artwork Approved" });
+    stages.push({ id: "wrap_printed", label: "Wrap Printed" });
+  }
+  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+  if (wallOnly.length > 0) {
+    stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" });
+    stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved" });
+    stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered" });
+  }
+  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
+  stages.push({ id: "final_checks", label: "Final Checks" });
+  stages.push({ id: "valet", label: "Valet & Handover" });
   return stages;
 }
 
@@ -167,7 +185,7 @@ function JobCard({
           <p className="text-[10px] font-semibold uppercase tracking-widest text-yellow-400">Workshop Build Sheet</p>
           <h2 className="text-base font-bold text-white leading-tight truncate">{q.userName || "—"}</h2>
           {q.company && (
-            <p className="text-yellow-400/80 text-sm font-medium truncate">{q.company}</p>
+            <p className="text-yellow-400/80 text-base font-bold leading-tight truncate">{q.company}</p>
           )}
           {q.vanRegistration && (
             <div className="pt-1">
@@ -270,25 +288,6 @@ function JobCard({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Upgrades & options — reference list */}
-      {upgradeCategories.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Upgrades & Options</p>
-          {upgradeCategories.map(([cat, items]) => (
-            <div key={cat}>
-              <p className="text-[10px] text-zinc-600 leading-none mb-1">{cat}</p>
-              <div className="flex flex-wrap gap-1">
-                {items.map((u) => (
-                  <span key={u.id} className="text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded leading-tight">
-                    {u.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
       )}
 
