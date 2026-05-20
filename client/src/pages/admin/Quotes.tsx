@@ -417,15 +417,32 @@ export default function AdminQuotes() {
   const upgradeDisplay = (u: { name: string; variantName?: string | null }) =>
     (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
 
+  // Variant groups are radio-style in the configurator — only one variant per
+  // parent should ever surface. If a saved quote has multiple variants of the
+  // same parent (legacy or admin-edited data), keep the LAST one selected.
+  const dedupeByParent = (list: typeof upgrades): typeof upgrades => {
+    const seen = new Set<string>();
+    return [...list]
+      .reverse()
+      .filter((u: any) => {
+        const pid = u.parentId as string | null | undefined;
+        if (!pid) return true;
+        if (seen.has(pid)) return false;
+        seen.add(pid);
+        return true;
+      })
+      .reverse();
+  };
+
   const getUpgradeNames = (upgradeIds: string[]): string => {
     if (!upgradeIds.length) return "No upgrades";
     const selectedUpgrades = upgrades.filter((u) => upgradeIds.includes(u.id));
-    return selectedUpgrades.map(upgradeDisplay).join(", ");
+    return dedupeByParent(selectedUpgrades).map(upgradeDisplay).join(", ");
   };
 
   const getUpgradeList = (upgradeIds: string[]): string[] => {
     if (!upgradeIds.length) return [];
-    return upgrades.filter((u) => upgradeIds.includes(u.id)).map(upgradeDisplay);
+    return dedupeByParent(upgrades.filter((u) => upgradeIds.includes(u.id))).map(upgradeDisplay);
   };
 
   const computeEquipCost = (kitId: string | null, upgradeIds: string[], upgradeQuantities: Record<string, number>): number | null => {
