@@ -156,7 +156,7 @@ function JobCard({
   const upgradeCategories = Object.entries(upgradesByCategory);
 
   return (
-    <div className={`rounded-lg border flex flex-col overflow-hidden ${allDone ? "border-lime-500/40" : "border-zinc-800"} bg-zinc-900`}>
+    <div className={`rounded-lg border flex flex-col overflow-hidden ${allDone ? "border-zinc-800 bg-zinc-950 opacity-50 grayscale" : "border-zinc-800 bg-zinc-900"}`}>
 
       {/* Progress header at top — bar + count */}
       <div className="shrink-0 bg-zinc-950 border-b border-zinc-800">
