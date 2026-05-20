@@ -158,9 +158,19 @@ function JobCard({
   return (
     <div className={`rounded-lg border flex flex-col overflow-hidden ${allDone ? "border-lime-500/40" : "border-zinc-800"} bg-zinc-900`}>
 
-      {/* Full-width progress stripe at very top */}
-      <div className="h-1.5 bg-zinc-800 shrink-0">
-        <div className={`h-full rounded-r-full ${barColour}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+      {/* Progress header at top — bar + count */}
+      <div className="shrink-0 bg-zinc-950 border-b border-zinc-800">
+        <div className="h-3 bg-zinc-800">
+          <div className={`h-full ${barColour}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+        </div>
+        <div className="flex items-center justify-between px-3 py-1">
+          <span className={`text-[10px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-300"}`}>
+            {doneCount} / {total} stages
+          </span>
+          <span className={`text-[10px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-400"}`}>
+            {pct}%
+          </span>
+        </div>
       </div>
 
       {/* Main content */}
@@ -173,7 +183,7 @@ function JobCard({
           <div className="flex items-start justify-between gap-1.5">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-white leading-tight">{q.userName || "—"}</p>
-              {q.company && <p className="text-[10px] text-zinc-500 leading-none mt-0.5">{q.company}</p>}
+              {q.company && <p className="text-sm font-black text-white leading-tight mt-0.5">{q.company}</p>}
             </div>
             <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
               {STATUS_LABEL[q.status] ?? q.status}
