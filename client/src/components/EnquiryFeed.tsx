@@ -66,6 +66,7 @@ const QUOTE_STATUS_COLOURS: Record<string, string> = {
   deposit_taken:     "bg-lime-500/10 text-lime-400 border-lime-500/20",
   finance_approved:  "bg-lime-500/10 text-lime-400 border-lime-500/20",
   in_build:          "bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)] border-[hsl(86_53%_51%/0.25)]",
+  in_workshop:       "bg-red-500/15 text-red-300 border-red-500/30",
   completed:         "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   cancelled:         "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
 };
@@ -79,7 +80,7 @@ const QUOTE_STATUS_LABELS: Record<string, string> = {
   new: "New", contacted: "Contacted", awaiting_deposit: "Awaiting Deposit",
   awaiting_finance: "Finance Submitted", finance_declined: "Finance Declined",
   deposit_taken: "Deposit Taken", finance_approved: "Finance Approved",
-  in_build: "In Build", completed: "Completed", cancelled: "Cancelled",
+  in_build: "In Build", in_workshop: "In Workshop", completed: "Completed", cancelled: "Cancelled",
 };
 
 function relativeTime(date: Date | string | null | undefined): string {

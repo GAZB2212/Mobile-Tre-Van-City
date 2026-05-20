@@ -719,6 +719,7 @@ const STATUS_COLORS: Record<string, string> = {
   awaiting_deposit: "bg-amber-500/15 text-amber-400 border-amber-500/25",
   deposit_taken: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   in_build: "bg-blue-500/15 text-blue-400 border-blue-500/25",
+  in_workshop: "bg-red-500/15 text-red-300 border-red-500/30",
   completed: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
   closed: "bg-muted text-muted-foreground border-border",

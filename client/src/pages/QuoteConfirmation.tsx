@@ -309,7 +309,7 @@ export default function QuoteConfirmation() {
     );
   }
 
-  if (confirmed || quote.status === "deposit_taken" || quote.status === "in_build" || quote.status === "completed") {
+  if (confirmed || quote.status === "deposit_taken" || quote.status === "in_build" || quote.status === "in_workshop" || quote.status === "completed") {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />

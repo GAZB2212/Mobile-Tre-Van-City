@@ -1773,8 +1773,8 @@ export default function AdminQuoteDetail() {
                       { id: "contacted", label: "Customer Contacted", isDone: status !== "new", detail: null },
                       { id: "spec_sent", label: "Spec Sent to Customer", isDone: !!(quote as any).specSentAt, detail: (quote as any).specSentAt ? new Date((quote as any).specSentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
                       { id: "spec_confirmed", label: "Spec Confirmed", isDone: (quote as any).specApprovalStatus === "approved", detail: null },
-                      { id: "payment", label: "Payment / Finance", isDone: ["deposit_taken", "finance_approved", "in_build", "completed"].includes(status), detail: paymentSubLabel },
-                      { id: "in_build", label: "In Build", isDone: ["in_build", "completed"].includes(status), detail: null },
+                      { id: "payment", label: "Payment / Finance", isDone: ["deposit_taken", "finance_approved", "in_build", "in_workshop", "completed"].includes(status), detail: paymentSubLabel },
+                      { id: "in_build", label: "In Build", isDone: ["in_build", "in_workshop", "completed"].includes(status), detail: status === "in_workshop" ? "In Workshop" : null },
                       { id: "complete", label: "Conversion Complete", isDone: status === "completed", detail: null },
                     ];
                     const firstIncompleteIdx = isCancelled ? -1 : steps.findIndex(s => !s.isDone);
@@ -1886,7 +1886,7 @@ export default function AdminQuoteDetail() {
                           Move to Build
                         </Button>
                       )}
-                      {status === "in_build" && allBuildStagesDone && (
+                      {(status === "in_build" || status === "in_workshop") && allBuildStagesDone && (
                         <Button size="sm" className="bg-[#8bc440e6] text-[#191919] border-green-600" onClick={() => { setPendingQuickStatus("completed"); setStatusNoteText(""); }} disabled={quickStatusMutation.isPending} data-testid="button-mark-completed">
                           Mark as Completed
                         </Button>
