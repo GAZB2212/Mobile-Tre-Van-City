@@ -524,10 +524,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedUpgrades = await sortUpgradesByDisplayOrder(selectedUpgradesUnsorted as any[]);
 
       // Generate stages the same way the kiosk board does (client-side logic mirrored here)
-      const isWrap = (u: { category?: string | null }) =>
-        (u.category ?? "").toLowerCase().includes("wrap");
+      // Wrap pattern also matches Graphic Pack / Half Wrap so artwork & printed stages apply
+      const isWrap = (u: { category?: string | null; name?: string | null }) => {
+        const c = (u.category ?? "").toLowerCase();
+        const n = (u.name ?? "").toLowerCase();
+        return c.includes("wrap") || c.includes("graphic") || n.includes("graphic pack");
+      };
       const isWall = (u: { category?: string | null }) =>
         (u.category ?? "").toLowerCase().includes("interior wall");
+      const isBusinessPack = (u: { name?: string | null }) =>
+        /business\s*pack|business\s*package/i.test(u.name ?? "");
       // Priority upgrades that always sit right after the install pack
       const priorityRank = (name: string): number => {
         const n = name.toLowerCase();
@@ -550,7 +556,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const nonWrap = orderByPriority(selectedUpgrades.filter((u) => !isWrap(u) && !isWall(u)));
         const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
         const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
-        for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+        for (const u of nonWrap) {
+          stages.push({ id: `upg_${u.id}`, label: u.name });
+          if (isBusinessPack(u)) {
+            stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
+            stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
+          }
+        }
         if (wrapOnly.length > 0) {
           stages.push({ id: "artwork_sent", label: "Artwork Sent" });
           stages.push({ id: "artwork_approved", label: "Artwork Approved" });
@@ -591,8 +603,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quote = quotes.find((q) => q.confirmationToken === req.params.token);
       if (!quote) return res.status(404).json({ error: "Not found" });
 
+      // Whitelist of stage-id shapes the generator can emit, plus any
+      // staff-defined customBuildStages on the quote. Prevents arbitrary
+      // string injection via the public token.
+      const FIXED_STAGE_IDS = new Set([
+        "prep", "kit",
+        "artwork_sent", "artwork_approved", "wrap_printed",
+        "interior_walls_artwork_sent", "interior_wall_artwork_approved", "interior_walls_ordered",
+        "final_checks", "valet",
+      ]);
+      const UPGRADE_STAGE_RE = /^upg_[A-Za-z0-9_-]+(_website|_print)?$/;
+      const customIds = new Set(
+        ((quote as any).customBuildStages ?? []).map((s: any) => s?.id).filter((x: any) => typeof x === "string")
+      );
+
       const body = z.object({
-        stageId: z.string(),
+        stageId: z.string().refine(
+          (id) => FIXED_STAGE_IDS.has(id) || UPGRADE_STAGE_RE.test(id) || customIds.has(id),
+          { message: "Unknown stageId" },
+        ),
         completed: z.boolean(),
         initials: z.string().min(1).max(10),
       }).parse(req.body);
@@ -10130,7 +10159,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         return res.status(401).json({ error: "Invalid or expired kiosk token" });
       }
 
-      const COMMITTED = new Set(["deposit_taken", "finance_approved", "in_build"]);
+      const COMMITTED = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
       const [allQuotes, vans, kits, upgrades] = await Promise.all([
         storage.getQuotes(),
         storage.getVans(),

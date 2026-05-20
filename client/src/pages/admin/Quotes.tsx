@@ -20,6 +20,7 @@ function getStatusBadgeClass(status: string): string {
     case "deposit_taken":     return "bg-lime-500/10 text-lime-400 border-lime-500/20";
     case "finance_approved":  return "bg-lime-500/10 text-lime-400 border-lime-500/20";
     case "in_build":          return "bg-[hsl(86_45%_51%/0.15)] text-[hsl(86_53%_60%)] border-[hsl(86_53%_51%/0.25)]";
+    case "in_workshop":       return "bg-red-500/15 text-red-300 border-red-500/30";
     case "completed":         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
     case "cancelled":         return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
     default:                  return "bg-muted/60 text-muted-foreground border-border/60";
@@ -36,6 +37,7 @@ function getStatusLabel(status: string): string {
     deposit_taken: "Deposit Taken",
     finance_approved: "Finance Approved",
     in_build: "In Build",
+    in_workshop: "In Workshop",
     completed: "Completed",
     cancelled: "Cancelled",
   };
@@ -44,7 +46,7 @@ function getStatusLabel(status: string): string {
 
 const ALL_STATUSES = [
   "new", "contacted", "awaiting_deposit", "awaiting_finance",
-  "finance_declined", "deposit_taken", "finance_approved", "in_build", "completed", "cancelled",
+  "finance_declined", "deposit_taken", "finance_approved", "in_build", "in_workshop", "completed", "cancelled",
 ] as const;
 
 // How many days a quote can sit in each status before it's flagged as needing attention
@@ -658,7 +660,7 @@ export default function AdminQuotes() {
 
         {/* ── Conversion Stats ── */}
         {(() => {
-          const CONVERTED_STATUSES = ["deposit_taken", "finance_approved", "in_build", "completed"];
+          const CONVERTED_STATUSES = ["deposit_taken", "finance_approved", "in_build", "in_workshop", "completed"];
           const total = quotes.length;
           const convertedQuotes = quotes.filter(q => CONVERTED_STATUSES.includes(q.status));
           const converted = convertedQuotes.length;
@@ -792,6 +794,7 @@ export default function AdminQuotes() {
                   <SelectItem value="deposit_taken">Deposit Taken</SelectItem>
                   <SelectItem value="finance_approved">Finance Approved</SelectItem>
                   <SelectItem value="in_build">In Build</SelectItem>
+                  <SelectItem value="in_workshop">In Workshop</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -998,6 +1001,7 @@ export default function AdminQuotes() {
               { key: "deposit_taken", label: "Deposit Taken" },
               { key: "finance_approved", label: "Finance Approved" },
               { key: "in_build", label: "In Build" },
+              { key: "in_workshop", label: "In Workshop" },
               { key: "completed", label: "Completed" },
               { key: "cancelled", label: "Cancelled" },
             ];

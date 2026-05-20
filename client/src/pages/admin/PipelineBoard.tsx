@@ -9,18 +9,20 @@ import { ExternalLink, Tv2, Copy, RefreshCw, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
+const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
 
 const STATUS_LABEL: Record<string, string> = {
   deposit_taken: "Deposit Taken",
   finance_approved: "Finance Approved",
   in_build: "In Build",
+  in_workshop: "In Workshop",
 };
 
 const STATUS_COLOUR: Record<string, string> = {
   deposit_taken: "bg-lime-600 text-white",
   finance_approved: "bg-sky-600 text-white",
   in_build: "bg-red-600 text-white",
+  in_workshop: "bg-red-500 text-white",
 };
 
 /**

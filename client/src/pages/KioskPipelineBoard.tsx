@@ -1,21 +1,35 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
 import { Lock, Circle, CheckCircle2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
+const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
+
+// Display priority — in_workshop floats to the top of the kiosk grid
+const STATUS_PRIORITY: Record<string, number> = {
+  in_workshop: 0,
+  in_build: 1,
+  deposit_taken: 2,
+  finance_approved: 3,
+};
 
 const STATUS_LABEL: Record<string, string> = {
   deposit_taken: "Deposit Taken",
   finance_approved: "Finance Approved",
   in_build: "In Build",
+  in_workshop: "In Workshop",
 };
 
 const STATUS_COLOUR: Record<string, string> = {
   deposit_taken: "bg-lime-600",
   finance_approved: "bg-sky-600",
   in_build: "bg-orange-500",
+  in_workshop: "bg-red-500",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -74,10 +88,15 @@ interface KioskData {
 
 // Stage generation — mirrors server/routes.ts /api/build-progress-public/:token
 // so the kiosk shows the IDENTICAL stage list the lads see when they scan the QR
-const isWrap = (u: { category?: string | null }) =>
-  (u.category ?? "").toLowerCase().includes("wrap");
+const isWrap = (u: { category?: string | null; name?: string | null }) => {
+  const c = (u.category ?? "").toLowerCase();
+  const n = (u.name ?? "").toLowerCase();
+  return c.includes("wrap") || c.includes("graphic") || n.includes("graphic pack");
+};
 const isWall = (u: { category?: string | null }) =>
   (u.category ?? "").toLowerCase().includes("interior wall");
+const isBusinessPack = (u: { name?: string | null }) =>
+  /business\s*pack|business\s*package/i.test(u.name ?? "");
 
 function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]) {
   const stages: { id: string; label: string }[] = [];
@@ -101,7 +120,13 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   const wrapOnly = selectedUpgrades.filter((u) => isWrap(u) && !isWall(u));
   const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
 
-  for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
+  for (const u of nonWrap) {
+    stages.push({ id: `upg_${u.id}`, label: u.name });
+    if (isBusinessPack(u)) {
+      stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
+      stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
+    }
+  }
   if (wrapOnly.length > 0) {
     stages.push({ id: "artwork_sent", label: "Artwork Sent" });
     stages.push({ id: "artwork_approved", label: "Artwork Approved" });
@@ -154,6 +179,46 @@ function JobCard({
   const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades);
   const completed = normaliseCompleted(q.completedBuildStages);
   const completedIds = new Set(completed.map((c) => c.id));
+
+  // Triple-tap to tick (hold gestures collide with the kiosk touchscreen OS)
+  const queryClient = useQueryClient();
+  const { token } = useParams<{ token: string }>();
+  const tapState = useRef<{ id: string | null; count: number; timer: any }>({ id: null, count: 0, timer: null });
+  const [tickDialog, setTickDialog] = useState<{ stageId: string; label: string } | null>(null);
+  const [initialsInput, setInitialsInput] = useState("");
+
+  const tickMutation = useMutation({
+    mutationFn: async ({ stageId, initials }: { stageId: string; initials: string }) => {
+      if (!q.confirmationToken) throw new Error("No confirmation token on quote");
+      const res = await apiRequest("PATCH", `/api/build-progress-public/${q.confirmationToken}/stage`, {
+        stageId, completed: true, initials,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kiosk/pipeline", token] });
+      setTickDialog(null);
+      setInitialsInput("");
+    },
+    onError: (err: any) => {
+      // eslint-disable-next-line no-alert
+      alert(`Could not save: ${err?.message ?? "unknown error"}`);
+    },
+  });
+
+  const handleStageTap = (stageId: string, label: string, alreadyDone: boolean) => {
+    if (alreadyDone) return;
+    const s = tapState.current;
+    if (s.timer) clearTimeout(s.timer);
+    if (s.id !== stageId) { s.id = stageId; s.count = 0; }
+    s.count += 1;
+    if (s.count >= 3) {
+      s.id = null; s.count = 0;
+      setTickDialog({ stageId, label });
+      return;
+    }
+    s.timer = setTimeout(() => { s.id = null; s.count = 0; }, 600);
+  };
 
   const doneCount = stages.filter((s) => completedIds.has(s.id)).length;
   const total = stages.length;
@@ -272,11 +337,13 @@ function JobCard({
               return (
                 <div
                   key={s.id}
+                  onClick={() => handleStageTap(s.id, s.label, done)}
+                  data-testid={`stage-row-${s.id}`}
                   className={[
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg select-none",
                     done
                       ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70"
-                      : "bg-zinc-900 border border-zinc-800",
+                      : "bg-zinc-900 border border-zinc-800 cursor-pointer active:bg-zinc-800",
                   ].join(" ")}
                 >
                   {done ? (
@@ -310,6 +377,39 @@ function JobCard({
           <p className="font-bold text-white text-sm">All stages complete</p>
         </div>
       )}
+
+      {/* Triple-tap initials dialog */}
+      <Dialog open={tickDialog !== null} onOpenChange={(open) => { if (!open) { setTickDialog(null); setInitialsInput(""); } }}>
+        <DialogContent data-testid="dialog-stage-tick">
+          <DialogHeader>
+            <DialogTitle>Tick "{tickDialog?.label}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Enter your initials to mark this stage complete.</p>
+            <Input
+              autoFocus
+              maxLength={4}
+              value={initialsInput}
+              onChange={(e) => setInitialsInput(e.target.value.toUpperCase())}
+              placeholder="e.g. JS"
+              className="text-lg font-bold uppercase tracking-widest text-center"
+              data-testid="input-stage-initials"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setTickDialog(null); setInitialsInput(""); }} data-testid="button-stage-cancel">
+              Cancel
+            </Button>
+            <Button
+              disabled={initialsInput.trim().length === 0 || tickMutation.isPending}
+              onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: initialsInput.trim() })}
+              data-testid="button-stage-confirm"
+            >
+              {tickMutation.isPending ? "Saving..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -411,7 +511,9 @@ export default function KioskPipelineBoard() {
     );
   }
 
-  const committedQuotes = data.quotes.filter((q) => COMMITTED_STATUSES.has(q.status));
+  const committedQuotes = data.quotes
+    .filter((q) => COMMITTED_STATUSES.has(q.status))
+    .sort((a, b) => (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99));
   const n = committedQuotes.length;
 
   const cols = n <= 2 ? 2 : n <= 6 ? 3 : 4;

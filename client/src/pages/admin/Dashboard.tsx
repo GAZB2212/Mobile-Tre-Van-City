@@ -47,16 +47,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build"]);
+const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
 const COMMITTED_LABEL: Record<string, string> = {
   deposit_taken: "Deposit Taken",
   finance_approved: "Finance Approved",
   in_build: "In Build",
+  in_workshop: "In Workshop",
 };
 const COMMITTED_BADGE: Record<string, string> = {
   deposit_taken: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300",
   finance_approved: "bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-300",
   in_build: "bg-red-600 text-white",
+  in_workshop: "bg-red-500 text-white",
 };
 
 function fmtGBP(pence: number) {

@@ -206,7 +206,7 @@ function resolveExclusiveGroupConflicts(ids: string[], catalog: Upgrade[]): stri
 
 const quoteStatuses = [
   "new", "contacted", "awaiting_deposit", "awaiting_finance",
-  "finance_declined", "deposit_taken", "finance_approved", "in_build", "completed", "cancelled"
+  "finance_declined", "deposit_taken", "finance_approved", "in_build", "in_workshop", "completed", "cancelled"
 ] as const;
 
 const STATUS_LABELS: Record<string, string> = {
@@ -218,6 +218,7 @@ const STATUS_LABELS: Record<string, string> = {
   deposit_taken: "Deposit Taken",
   finance_approved: "Finance Approved",
   in_build: "In Build",
+  in_workshop: "In Workshop",
   completed: "Completed",
   cancelled: "Cancelled",
 };

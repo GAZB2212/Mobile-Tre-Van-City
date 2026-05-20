@@ -116,6 +116,7 @@ export const quoteStatuses = [
   "deposit_taken",      // Deposit received — ready for build
   "finance_approved",   // Finance company approved — ready for build
   "in_build",         // Build underway, build sheet generated
+  "in_workshop",      // Van physically in the workshop right now
   "completed",        // Van built and delivered
   "cancelled",        // Cancelled
 ] as const;
