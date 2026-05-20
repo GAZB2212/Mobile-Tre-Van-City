@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
@@ -78,24 +78,12 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   const stages: { id: string; label: string }[] = [];
   stages.push({ id: "prep", label: "Van Preparation" });
   if (kitName) stages.push({ id: "kit", label: `Install ${kitName}` });
-  const nonWrap = selectedUpgrades.filter((u) => !wrapPat.test(u.name) && !wrapPat.test(u.category) && !wallPat.test(u.name));
-  const wrapOnly = selectedUpgrades.filter((u) => (wrapPat.test(u.name) || wrapPat.test(u.category)) && !wallPat.test(u.name));
-  const wallOnly = selectedUpgrades.filter((u) => wallPat.test(u.name) && !wrapPat.test(u.name));
-  for (const u of nonWrap) stages.push({ id: `upg_${u.id}`, label: u.name });
-  if (wrapOnly.length > 0) {
-    stages.push({ id: "artwork_sent", label: "Artwork Sent" });
-    stages.push({ id: "artwork_approved", label: "Artwork Approved" });
-    stages.push({ id: "wrap_printed", label: "Wrap Printed" });
-  }
-  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
-  if (wallOnly.length > 0) {
-    stages.push({ id: "interior_walls_artwork_sent", label: "Walls Artwork Sent" });
-    stages.push({ id: "interior_wall_artwork_approved", label: "Walls Artwork Approved" });
-    stages.push({ id: "interior_walls_ordered", label: "Walls Ordered" });
-  }
-  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: u.name });
-  stages.push({ id: "final_checks", label: "Final Checks" });
-  stages.push({ id: "valet", label: "Valet & Handover" });
+  if (selectedUpgrades.some((u) => wrapPat.test(u.name)))
+    stages.push({ id: "wrap", label: "Wrap / Livery" });
+  if (selectedUpgrades.some((u) => wallPat.test(u.name)))
+    stages.push({ id: "wall", label: "Interior Wall Lining" });
+  stages.push({ id: "qa", label: "Quality Check" });
+  stages.push({ id: "handover", label: "Handover" });
   return stages;
 }
 
@@ -121,7 +109,7 @@ function LiveClock() {
   return <span>{time}</span>;
 }
 
-// ── Job card — compact: name / progress / QR only ───────────────────────────
+// ── Job card — full spec visible ───────────────────────────────────────────────
 
 function JobCard({
   q, van, kit, selectedUpgrades,
@@ -156,8 +144,16 @@ function JobCard({
     ? `${window.location.origin}/workshop/${q.confirmationToken}`
     : null;
 
-  // Progress bar colour
   const barColour = allDone ? "bg-lime-400" : pct > 50 ? "bg-sky-400" : pct > 0 ? "bg-orange-400" : "bg-zinc-700";
+
+  // Group upgrades by category
+  const upgradesByCategory: Record<string, KioskUpgrade[]> = {};
+  for (const u of selectedUpgrades) {
+    const cat = u.category || "Other";
+    if (!upgradesByCategory[cat]) upgradesByCategory[cat] = [];
+    upgradesByCategory[cat].push(u);
+  }
+  const upgradeCategories = Object.entries(upgradesByCategory);
 
   return (
     <div className={`rounded-lg border flex flex-col overflow-hidden ${allDone ? "border-lime-500/40" : "border-zinc-800"} bg-zinc-900`}>
@@ -168,16 +164,16 @@ function JobCard({
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 items-center gap-3 px-3 py-2 min-w-0">
+      <div className="flex gap-3 px-3 py-2.5 min-w-0">
 
-        {/* Left: customer info + progress */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        {/* Left: all details */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
 
-          {/* Name + status */}
+          {/* Name + status badge */}
           <div className="flex items-start justify-between gap-1.5">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-white leading-tight truncate">{q.userName || "—"}</p>
-              {q.company && <p className="text-[10px] text-zinc-500 truncate leading-none mt-0.5">{q.company}</p>}
+              <p className="text-sm font-black text-white leading-tight">{q.userName || "—"}</p>
+              {q.company && <p className="text-[10px] text-zinc-500 leading-none mt-0.5">{q.company}</p>}
             </div>
             <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
               {STATUS_LABEL[q.status] ?? q.status}
@@ -191,13 +187,37 @@ function JobCard({
                 {q.vanRegistration}
               </span>
             )}
-            {vanLabel && <span className="text-[9px] text-zinc-500 truncate">{vanLabel}</span>}
+            {vanLabel && <span className="text-[10px] text-zinc-400">{vanLabel}</span>}
           </div>
 
-          {/* Kit */}
-          {kit && <p className="text-[9px] text-sky-400 truncate">{kit.name}</p>}
+          {/* Equipment Pack */}
+          {kit && (
+            <div className="space-y-0.5">
+              <p className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
+              <p className="text-[11px] text-sky-400 font-semibold leading-tight">{kit.name}</p>
+            </div>
+          )}
 
-          {/* Progress count + bar */}
+          {/* Upgrades grouped by category */}
+          {upgradeCategories.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Upgrades & Options</p>
+              {upgradeCategories.map(([cat, items]) => (
+                <div key={cat}>
+                  <p className="text-[9px] text-zinc-600 leading-none mb-0.5">{cat}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {items.map((u) => (
+                      <span key={u.id} className="text-[10px] bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded leading-tight">
+                        {u.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Progress bar */}
           <div>
             <div className="flex justify-between items-center mb-0.5">
               <span className={`text-[9px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-300"}`}>
@@ -209,11 +229,34 @@ function JobCard({
             </div>
           </div>
 
+          {/* Build stages checklist */}
+          {stages.length > 0 && (
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+              {stages.map((s) => {
+                const done = completedIds.has(s.id);
+                const entry = completed.find((c) => c.id === s.id);
+                return (
+                  <div key={s.id} className="flex items-center gap-1">
+                    <span className={`w-3 h-3 shrink-0 rounded-sm border flex items-center justify-center text-[8px] font-black ${done ? "bg-lime-500 border-lime-500 text-black" : "border-zinc-700 text-transparent"}`}>
+                      {done ? "✓" : ""}
+                    </span>
+                    <span className={`text-[10px] leading-tight ${done ? "text-zinc-500 line-through" : "text-zinc-300"}`}>
+                      {s.label}
+                      {done && entry?.initials && (
+                        <span className="ml-1 text-zinc-600 no-underline">({entry.initials})</span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Due date */}
           <p className={`text-[9px] ${dueColour}`}>
             {q.targetCompletionDate ? (
               <>
-                <span className="font-semibold">{fmtDate(q.targetCompletionDate)}</span>
+                <span className="font-semibold">Due: {fmtDate(q.targetCompletionDate)}</span>
                 {days !== null && (
                   <span className="ml-1 opacity-70">
                     {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}
@@ -221,16 +264,16 @@ function JobCard({
                 )}
               </>
             ) : (
-              <span className="text-zinc-700">No due date</span>
+              <span className="text-zinc-700">No due date set</span>
             )}
           </p>
         </div>
 
-        {/* Right: QR code — scan for full breakdown */}
+        {/* Right: QR code */}
         {workshopUrl && (
-          <div className="shrink-0 flex flex-col items-center gap-1">
+          <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
             <div className="bg-white rounded p-1">
-              <QRCodeSVG value={workshopUrl} size={56} level="M" />
+              <QRCodeSVG value={workshopUrl} size={64} level="M" />
             </div>
             <span className="text-[8px] text-zinc-700 text-center leading-tight">scan to<br />update</span>
           </div>
@@ -240,11 +283,70 @@ function JobCard({
   );
 }
 
+// ── Touch-drag scroll hook ────────────────────────────────────────────────────
+
+function useTouchScroll(ref: React.RefObject<HTMLElement>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let startY = 0;
+    let startScrollTop = 0;
+    let lastY = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let rafId: number;
+
+    const onTouchStart = (e: TouchEvent) => {
+      cancelAnimationFrame(rafId);
+      startY = e.touches[0].clientY;
+      startScrollTop = el.scrollTop;
+      lastY = startY;
+      lastTime = Date.now();
+      velocity = 0;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0].clientY;
+      const now = Date.now();
+      const dt = now - lastTime;
+      if (dt > 0) velocity = (lastY - y) / dt;
+      lastY = y;
+      lastTime = now;
+      el.scrollTop = startScrollTop + (startY - y);
+      e.preventDefault();
+    };
+
+    const onTouchEnd = () => {
+      // Momentum: keep scrolling at velocity, decaying
+      const momentum = () => {
+        if (Math.abs(velocity) < 0.05) return;
+        el.scrollTop += velocity * 16;
+        velocity *= 0.93;
+        rafId = requestAnimationFrame(momentum);
+      };
+      rafId = requestAnimationFrame(momentum);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: false });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      cancelAnimationFrame(rafId);
+    };
+  }, [ref]);
+}
+
 // ── Main board ────────────────────────────────────────────────────────────────
 
 export default function KioskPipelineBoard() {
   const params = useParams<{ token: string }>();
   const token = params.token;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useTouchScroll(scrollRef as React.RefObject<HTMLElement>);
 
   const { data, isLoading, isError } = useQuery<KioskData>({
     queryKey: ["/api/kiosk/pipeline", token],
@@ -281,9 +383,7 @@ export default function KioskPipelineBoard() {
   const committedQuotes = data.quotes.filter((q) => COMMITTED_STATUSES.has(q.status));
   const n = committedQuotes.length;
 
-  // Pick column count and force grid to fill the screen height exactly
-  const cols = n <= 2 ? 2 : n <= 4 ? 2 : n <= 6 ? 3 : n <= 9 ? 3 : 4;
-  const rows = Math.ceil(n / cols);
+  const cols = n <= 2 ? 2 : n <= 6 ? 3 : 4;
 
   return (
     <div
@@ -303,7 +403,7 @@ export default function KioskPipelineBoard() {
         </div>
       </div>
 
-      {/* Grid — fills remaining height exactly, no scroll */}
+      {/* Scrollable grid */}
       {n === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-zinc-600">
           <p className="text-5xl font-black mb-3">—</p>
@@ -311,30 +411,38 @@ export default function KioskPipelineBoard() {
         </div>
       ) : (
         <div
-          className="flex-1 p-2 gap-2"
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto"
           style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
-            minHeight: 0,
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+            touchAction: "pan-y",
           }}
         >
-          {committedQuotes.map((q) => {
-            const van = data.vans.find((v) => v.id === q.vanId);
-            const kit = data.kits.find((k) => k.id === q.kitId);
-            const selectedUpgrades = data.upgrades.filter((u) =>
-              (q.selectedUpgradeIds ?? []).includes(u.id)
-            );
-            return (
-              <JobCard
-                key={q.id}
-                q={q}
-                van={van}
-                kit={kit}
-                selectedUpgrades={selectedUpgrades}
-              />
-            );
-          })}
+          <div
+            className="p-2 gap-2"
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            }}
+          >
+            {committedQuotes.map((q) => {
+              const van = data.vans.find((v) => v.id === q.vanId);
+              const kit = data.kits.find((k) => k.id === q.kitId);
+              const selectedUpgrades = data.upgrades.filter((u) =>
+                (q.selectedUpgradeIds ?? []).includes(u.id)
+              );
+              return (
+                <JobCard
+                  key={q.id}
+                  q={q}
+                  van={van}
+                  kit={kit}
+                  selectedUpgrades={selectedUpgrades}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
