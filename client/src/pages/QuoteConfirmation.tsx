@@ -430,10 +430,7 @@ export default function QuoteConfirmation() {
                     {quote.upgrades.map((upgrade) => (
                       <div key={upgrade.id} className="flex justify-between items-start pb-3 border-b last:border-0">
                         <div className="flex-1">
-                          <div className="font-medium">{upgrade.name}</div>
-                          {upgrade.variantName && (
-                            <div className="text-sm text-muted-foreground">{upgrade.variantName}</div>
-                          )}
+                          <div className="font-medium">{(upgrade.variantName && upgrade.variantName.trim()) || upgrade.name}</div>
                           {upgrade.quantity > 1 && (
                             <div className="text-sm text-accent font-medium">Qty: {upgrade.quantity}</div>
                           )}

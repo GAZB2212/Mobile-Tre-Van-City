@@ -330,7 +330,7 @@ export default function PipelineBoard() {
                           key={u.id}
                           className="bg-zinc-800 border border-zinc-600 text-zinc-200 text-sm font-medium px-2.5 py-0.5 rounded"
                         >
-                          {u.name}
+                          {((u as any).variantName && (u as any).variantName.trim()) || u.name}
                         </span>
                       ))}
                     </div>

@@ -176,7 +176,7 @@ export default function SpecApproval() {
                 <ul className="space-y-1.5">
                   {info.upgrades.map((upgrade, i) => (
                     <li key={i} className="flex items-center justify-between gap-4 text-sm" data-testid={`item-upgrade-${i}`}>
-                      <span className="text-foreground">{upgrade.name}</span>
+                      <span className="text-foreground">{((upgrade as any).variantName && (upgrade as any).variantName.trim()) || upgrade.name}</span>
                       {upgrade.quantity > 1 && (
                         <span className="text-accent font-medium whitespace-nowrap" data-testid={`text-upgrade-qty-${i}`}>
                           ×{upgrade.quantity}

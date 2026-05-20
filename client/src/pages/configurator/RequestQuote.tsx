@@ -571,7 +571,7 @@ export default function RequestQuote() {
                           {kit && <p>Pack: {kit.name} · {formatPrice(kit.price)}</p>}
                           {upgrades.map(u => {
                             const qty = state.upgradeQuantities[u.id] ?? 1;
-                            return <p key={u.id}>{u.name}{qty > 1 ? ` ×${qty}` : ''} · {formatPrice(u.price * qty)}</p>;
+                            return <p key={u.id}>{((u as any).variantName && (u as any).variantName.trim()) || u.name}{qty > 1 ? ` ×${qty}` : ''} · {formatPrice(u.price * qty)}</p>;
                           })}
                           {trainingOptions.map(t => <p key={t.id}>{t.name} · {formatPrice(t.price)}</p>)}
                         </div>
@@ -631,7 +631,7 @@ export default function RequestQuote() {
                             return (
                               <div key={upgrade.id} className="flex justify-between text-sm pl-8">
                                 <span className="text-muted-foreground" data-testid={`text-summary-upgrade-${upgrade.id}`}>
-                                  {upgrade.name}{qty > 1 ? ` ×${qty}` : ''}
+                                  {((upgrade as any).variantName && (upgrade as any).variantName.trim()) || upgrade.name}{qty > 1 ? ` ×${qty}` : ''}
                                 </span>
                                 <span className="font-medium" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>
                                   {formatPrice(upgrade.price * qty)}

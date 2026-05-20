@@ -1586,7 +1586,7 @@ export default function AdminAIConversations() {
                       <div className="flex flex-wrap gap-1.5">
                         {selectedUpgrades.map((u) => (
                           <Badge key={u.id} variant="outline" className="text-xs font-normal">
-                            {u.name}
+                            {((u as any).variantName && (u as any).variantName.trim()) || u.name}
                           </Badge>
                         ))}
                       </div>

@@ -414,15 +414,18 @@ export default function AdminQuotes() {
     return kit?.name || "Unknown kit";
   };
 
+  const upgradeDisplay = (u: { name: string; variantName?: string | null }) =>
+    (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
+
   const getUpgradeNames = (upgradeIds: string[]): string => {
     if (!upgradeIds.length) return "No upgrades";
     const selectedUpgrades = upgrades.filter((u) => upgradeIds.includes(u.id));
-    return selectedUpgrades.map((u) => u.name).join(", ");
+    return selectedUpgrades.map(upgradeDisplay).join(", ");
   };
 
   const getUpgradeList = (upgradeIds: string[]): string[] => {
     if (!upgradeIds.length) return [];
-    return upgrades.filter((u) => upgradeIds.includes(u.id)).map((u) => u.name);
+    return upgrades.filter((u) => upgradeIds.includes(u.id)).map(upgradeDisplay);
   };
 
   const computeEquipCost = (kitId: string | null, upgradeIds: string[], upgradeQuantities: Record<string, number>): number | null => {

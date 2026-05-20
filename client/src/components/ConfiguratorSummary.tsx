@@ -596,7 +596,7 @@ export function ConfiguratorSummary({
                         return (
                           <div key={upgrade.id} className="flex justify-between text-sm">
                             <span className="text-muted-foreground truncate pr-2" data-testid={`text-summary-upgrade-name-${upgrade.id}`}>
-                              {upgrade.name}{qty > 1 ? ` ×${qty}` : ''}
+                              {((upgrade as any).variantName && (upgrade as any).variantName.trim()) || upgrade.name}{qty > 1 ? ` ×${qty}` : ''}
                             </span>
                             {showPricing && (
                               <span className="font-medium whitespace-nowrap" data-testid={`text-summary-upgrade-price-${upgrade.id}`}>

@@ -2438,7 +2438,7 @@ export default function AdminQuoteDetail() {
                                     htmlFor={`upgrade-${upgrade.id}`}
                                     className="text-sm font-medium cursor-pointer"
                                   >
-                                    {upgrade.name} - £{(upgrade.price / 100).toLocaleString()}
+                                    {((upgrade as any).variantName && (upgrade as any).variantName.trim()) || upgrade.name} - £{(upgrade.price / 100).toLocaleString()}
                                   </label>
                                   {upgrade.sku && (
                                     <Badge variant="secondary" className="font-mono text-xs mt-0.5 h-auto py-0.5" data-testid={`badge-sku-${upgrade.id}`}>
