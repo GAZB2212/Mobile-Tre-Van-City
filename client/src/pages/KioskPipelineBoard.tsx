@@ -145,8 +145,6 @@ function JobCard({
     ? `${window.location.origin}/workshop/${q.confirmationToken}`
     : null;
 
-  const barColour = allDone ? "bg-lime-400" : pct > 50 ? "bg-sky-400" : pct > 0 ? "bg-orange-400" : "bg-zinc-700";
-
   // Group upgrades by category
   const upgradesByCategory: Record<string, KioskUpgrade[]> = {};
   for (const u of selectedUpgrades) {
@@ -157,147 +155,149 @@ function JobCard({
   const upgradeCategories = Object.entries(upgradesByCategory);
 
   return (
-    <div className={`rounded-lg border flex flex-col overflow-hidden ${allDone ? "border-zinc-800 bg-zinc-950 opacity-50 grayscale" : "border-zinc-800 bg-zinc-900"}`}>
-
-      {/* Progress header at top — bar + count */}
-      <div className="shrink-0 bg-zinc-950 border-b border-zinc-800">
-        <div className="h-3 bg-zinc-800">
-          <div className={`h-full ${barColour}`} style={{ width: `${Math.max(pct, 2)}%` }} />
-        </div>
-        <div className="flex items-center justify-between px-3 py-1">
-          <span className={`text-[10px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-300"}`}>
-            {doneCount} / {total} stages
-          </span>
-          <span className={`text-[10px] font-black tabular-nums ${allDone ? "text-lime-400" : "text-zinc-400"}`}>
-            {pct}%
-          </span>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex gap-3 px-3 py-2.5 min-w-0">
-
-        {/* Left: all details */}
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-
-          {/* Name + status badge */}
-          <div className="flex items-start justify-between gap-1.5">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-white leading-tight">{q.userName || "—"}</p>
-              {q.company && <p className="text-sm font-black text-white leading-tight mt-0.5">{q.company}</p>}
-            </div>
-            <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
-              {STATUS_LABEL[q.status] ?? q.status}
-            </span>
-          </div>
-
-          {/* Reg + van */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {q.vanRegistration && (
-              <span className="text-[9px] font-extrabold tracking-widest bg-yellow-400 text-black px-1.5 py-0.5 rounded font-mono uppercase shrink-0">
+    <div
+      className={`rounded-lg border flex flex-col gap-3 p-3 bg-zinc-950 border-zinc-800 ${
+        allDone ? "opacity-60" : ""
+      }`}
+      data-testid={`kiosk-card-${q.id}`}
+    >
+      {/* Header — same as workshop screen */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-yellow-400">Workshop Build Sheet</p>
+          <h2 className="text-base font-bold text-white leading-tight truncate">{q.userName || "—"}</h2>
+          {q.company && (
+            <p className="text-yellow-400/80 text-sm font-medium truncate">{q.company}</p>
+          )}
+          {q.vanRegistration && (
+            <div className="pt-1">
+              <span className="inline-block bg-yellow-400 text-black font-bold font-mono tracking-widest text-lg px-2 py-0.5 rounded border-2 border-black/20 uppercase">
                 {q.vanRegistration}
               </span>
-            )}
-            {vanLabel && <span className="text-[10px] text-zinc-400">{vanLabel}</span>}
-          </div>
-
-          {/* Equipment Pack */}
-          {kit && (
-            <div className="space-y-0.5">
-              <p className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
-              <p className="text-[11px] text-sky-400 font-semibold leading-tight">{kit.name}</p>
             </div>
           )}
-
-          {/* Build stages — same look as workshop QR scan page */}
-          {stages.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Build Stages</p>
-              <div className="space-y-1">
-                {stages.map((s) => {
-                  const done = completedIds.has(s.id);
-                  const entry = completed.find((c) => c.id === s.id);
-                  return (
-                    <div
-                      key={s.id}
-                      className={[
-                        "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg",
-                        done
-                          ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70"
-                          : "bg-zinc-900 border border-zinc-800",
-                      ].join(" ")}
-                    >
-                      {done ? (
-                        <Lock className="w-4 h-4 shrink-0 text-zinc-600" />
-                      ) : (
-                        <Circle className="w-4 h-4 shrink-0 text-zinc-600" />
-                      )}
-                      <span
-                        className={[
-                          "flex-1 min-w-0 text-[11px] font-medium leading-tight",
-                          done ? "line-through text-zinc-600" : "text-white",
-                        ].join(" ")}
-                      >
-                        {s.label}
-                      </span>
-                      {done && entry?.initials && (
-                        <span className="shrink-0 text-[9px] font-bold text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          {entry.initials}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Upgrades grouped by category — reference list */}
-          {upgradeCategories.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[9px] text-zinc-600 uppercase tracking-wider font-semibold">Upgrades & Options</p>
-              {upgradeCategories.map(([cat, items]) => (
-                <div key={cat}>
-                  <p className="text-[9px] text-zinc-600 leading-none mb-0.5">{cat}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {items.map((u) => (
-                      <span key={u.id} className="text-[10px] bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded leading-tight">
-                        {u.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Due date */}
-          <p className={`text-[9px] ${dueColour}`}>
-            {q.targetCompletionDate ? (
-              <>
-                <span className="font-semibold">Due: {fmtDate(q.targetCompletionDate)}</span>
-                {days !== null && (
-                  <span className="ml-1 opacity-70">
-                    {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}
-                  </span>
-                )}
-              </>
-            ) : (
-              <span className="text-zinc-700">No due date set</span>
-            )}
-          </p>
+          {vanLabel && <p className="text-[11px] text-zinc-500 truncate">{vanLabel}</p>}
         </div>
 
-        {/* Right: QR code */}
-        {workshopUrl && (
-          <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5">
-            <div className="bg-white rounded p-1">
-              <QRCodeSVG value={workshopUrl} size={64} level="M" />
-            </div>
-            <span className="text-[8px] text-zinc-700 text-center leading-tight">scan to<br />update</span>
+        {/* % done on the right + QR */}
+        <div className="shrink-0 flex flex-col items-end gap-1.5">
+          <div className="text-right">
+            <p className="text-2xl font-bold text-yellow-400 leading-none tabular-nums">{pct}%</p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">{doneCount}/{total} done</p>
           </div>
-        )}
+          {workshopUrl && (
+            <div className="bg-white rounded p-1">
+              <QRCodeSVG value={workshopUrl} size={56} level="M" />
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Status + due-date strip */}
+      <div className="flex items-center justify-between gap-2 -mt-1">
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${STATUS_COLOUR[q.status] ?? "bg-zinc-600"}`}>
+          {STATUS_LABEL[q.status] ?? q.status}
+        </span>
+        <p className={`text-[10px] ${dueColour}`}>
+          {q.targetCompletionDate ? (
+            <>
+              <span className="font-semibold">Due {fmtDate(q.targetCompletionDate)}</span>
+              {days !== null && (
+                <span className="ml-1 opacity-70">
+                  {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "today" : `${days}d`}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-zinc-700">No due date</span>
+          )}
+        </p>
+      </div>
+
+      {/* Yellow progress bar — same as workshop screen */}
+      <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+        <div
+          className="h-full bg-yellow-400 transition-all duration-500 rounded-full"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Equipment Pack */}
+      {kit && (
+        <div className="space-y-0.5">
+          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
+          <p className="text-sm text-yellow-400/90 font-semibold leading-tight">{kit.name}</p>
+        </div>
+      )}
+
+      {/* Build stages — same pill-style rows as workshop screen */}
+      {stages.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Build Stages</p>
+          <div className="space-y-2">
+            {stages.map((s) => {
+              const done = completedIds.has(s.id);
+              const entry = completed.find((c) => c.id === s.id);
+              return (
+                <div
+                  key={s.id}
+                  className={[
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg",
+                    done
+                      ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70"
+                      : "bg-zinc-900 border border-zinc-800",
+                  ].join(" ")}
+                >
+                  {done ? (
+                    <Lock className="w-5 h-5 shrink-0 text-zinc-600" />
+                  ) : (
+                    <Circle className="w-5 h-5 shrink-0 text-zinc-600" />
+                  )}
+                  <span
+                    className={[
+                      "flex-1 min-w-0 font-medium text-sm leading-tight",
+                      done ? "line-through text-zinc-600" : "text-white",
+                    ].join(" ")}
+                  >
+                    {s.label}
+                  </span>
+                  {done && entry?.initials && (
+                    <span className="shrink-0 text-[10px] font-bold text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded uppercase tracking-wide">
+                      {entry.initials}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Upgrades & options — reference list */}
+      {upgradeCategories.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Upgrades & Options</p>
+          {upgradeCategories.map(([cat, items]) => (
+            <div key={cat}>
+              <p className="text-[10px] text-zinc-600 leading-none mb-1">{cat}</p>
+              <div className="flex flex-wrap gap-1">
+                {items.map((u) => (
+                  <span key={u.id} className="text-[11px] bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded leading-tight">
+                    {u.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* All-done banner — same as workshop screen */}
+      {allDone && (
+        <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-center">
+          <p className="font-bold text-white text-sm">All stages complete</p>
+        </div>
+      )}
     </div>
   );
 }
