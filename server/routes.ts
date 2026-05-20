@@ -520,8 +520,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedUpgradesUnsorted = allUpgrades.filter(
         (u) => Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id)
       );
+      // Dedupe by parentId — variant groups are radio-style in the configurator,
+      // so only one variant per parent should ever appear on the workshop floor.
+      // If a saved quote contains multiple variants of the same parent (legacy
+      // or admin-edited data), keep the LAST one — matches configurator's
+      // last-write-wins behaviour for exclusive groups.
+      const seenParents = new Set<string>();
+      const dedupedUpgrades = [...selectedUpgradesUnsorted]
+        .reverse()
+        .filter((u: any) => {
+          const pid = u.parentId as string | null | undefined;
+          if (!pid) return true;
+          if (seenParents.has(pid)) return false;
+          seenParents.add(pid);
+          return true;
+        })
+        .reverse();
       // Sort by category then sortOrder so every quote renders in the same order
-      const selectedUpgrades = await sortUpgradesByDisplayOrder(selectedUpgradesUnsorted as any[]);
+      const selectedUpgrades = await sortUpgradesByDisplayOrder(dedupedUpgrades as any[]);
 
       // Generate stages the same way the kiosk board does (client-side logic mirrored here)
       // Wrap pattern also matches Graphic Pack / Half Wrap so artwork & printed stages apply

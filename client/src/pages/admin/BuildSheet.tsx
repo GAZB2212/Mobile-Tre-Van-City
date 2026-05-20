@@ -439,7 +439,23 @@ export default function BuildSheet() {
     : `${window.location.origin}/admin/quotes/${quoteId}/build-progress`;
 
   const kit = kits.find((k) => k.id === quote?.kitId);
-  const upgrades = allUpgrades.filter((u) => quote?.selectedUpgradeIds?.includes(u.id));
+  // Dedupe by parentId — only one variant per parent group should ever appear
+  // (this mirrors the configurator's radio behaviour for variant groups).
+  // If a saved quote ended up with two variants of the same parent (e.g.
+  // "Standard Light Pack" AND "Upgraded Light Pack"), we keep the LAST one
+  // selected — matching the configurator's last-write-wins behaviour.
+  const upgradesRaw = allUpgrades.filter((u) => quote?.selectedUpgradeIds?.includes(u.id));
+  const seenParents = new Set<string>();
+  const upgrades = [...upgradesRaw]
+    .reverse()
+    .filter((u) => {
+      const pid = (u as any).parentId as string | null | undefined;
+      if (!pid) return true;
+      if (seenParents.has(pid)) return false;
+      seenParents.add(pid);
+      return true;
+    })
+    .reverse();
   const financePlan = quote?.financePlanId ? financePlans.find((f) => f.id === quote.financePlanId) : undefined;
 
   // ── Build-sheet supersession logic ──────────────────────────────────────────
