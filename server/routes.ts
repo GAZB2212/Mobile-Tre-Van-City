@@ -10270,6 +10270,27 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           })
       );
 
+      // Dedupe selectedUpgradeIds by parentId — variant groups are radio-style
+      // in the configurator, so a quote should only render one variant per
+      // parent (e.g. one CCTV, one Light Pack). Mirrors the same rule used by
+      // the workshop QR endpoint above so both screens show identical lists.
+      const upgradesById = new Map((upgrades as any[]).map((u) => [u.id, u] as const));
+      const dedupeIdsByParent = (ids: string[]): string[] => {
+        const seenParents = new Set<string>();
+        const out: string[] = [];
+        for (const id of ids) {
+          const u: any = upgradesById.get(id);
+          if (!u) { out.push(id); continue; }
+          const pid = u.parentId as string | null | undefined;
+          if (pid) {
+            if (seenParents.has(pid)) continue;
+            seenParents.add(pid);
+          }
+          out.push(id);
+        }
+        return out;
+      };
+
       const quotes = committedRaw.map((q) => ({
           id: q.id,
           status: q.status,
@@ -10281,7 +10302,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           vanId: q.vanId,
           customVanDescription: q.customVanDescription,
           kitId: q.kitId,
-          selectedUpgradeIds: q.selectedUpgradeIds ?? [],
+          selectedUpgradeIds: dedupeIdsByParent((q.selectedUpgradeIds ?? []) as string[]),
           vanRegistration: q.vanRegistration ?? null,
           confirmationToken: q.confirmationToken ?? null,
           // Build sheet progress — completedBuildStages entries are either a bare stage-id string
