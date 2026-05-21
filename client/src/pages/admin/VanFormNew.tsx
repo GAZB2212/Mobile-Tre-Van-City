@@ -429,6 +429,18 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
           <p className="text-xs text-muted-foreground mt-1">Shown as a badge on the van card in the stock listing</p>
         </div>
 
+        <div>
+          <Label htmlFor="expectedArrivalDate">Expected arrival date (optional)</Label>
+          <Input
+            id="expectedArrivalDate"
+            name="expectedArrivalDate"
+            type="date"
+            defaultValue={van?.expectedArrivalDate ? new Date(van.expectedArrivalDate as any).toISOString().split("T")[0] : ""}
+            data-testid="input-van-expected-arrival"
+          />
+          <p className="text-xs text-muted-foreground mt-1">When this van is due in from the supplier — shows on the admin calendar</p>
+        </div>
+
         <div className="flex items-center space-x-2">
           <AdminSwitch
             id="vatIncluded"

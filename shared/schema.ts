@@ -58,6 +58,7 @@ export const vans = pgTable("vans", {
   heroImage: text("hero_image"),
   description: text("description"),
   urgencyBadge: text("urgency_badge"), // e.g. "Only 1 Left", "Just In", "Hot Deal", "Selling Fast"
+  expectedArrivalDate: timestamp("expected_arrival_date"), // Date this van is expected to arrive at the workshop from the supplier — shown on the admin calendar
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),

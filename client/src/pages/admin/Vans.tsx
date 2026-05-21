@@ -189,6 +189,10 @@ export default function AdminVans() {
       published: formData.get('published') === 'on',
       euroStatus: (formData.get('euroStatus') as string) || undefined,
       urgencyBadge: (() => { const v = formData.get('urgencyBadge') as string; return (v && v !== 'none') ? v : null; })(),
+      expectedArrivalDate: (() => {
+        const v = formData.get('expectedArrivalDate') as string;
+        return v ? (new Date(`${v}T00:00:00.000Z`) as any) : null;
+      })(),
     };
 
     createVanMutation.mutate(vanData);
@@ -268,6 +272,10 @@ export default function AdminVans() {
       published: formData.get('published') === 'on',
       euroStatus: (formData.get('euroStatus') as string) || undefined,
       urgencyBadge: (() => { const v = formData.get('urgencyBadge') as string; return (v && v !== 'none') ? v : null; })(),
+      expectedArrivalDate: (() => {
+        const v = formData.get('expectedArrivalDate') as string;
+        return v ? (new Date(`${v}T00:00:00.000Z`) as any) : null;
+      })(),
     };
 
     updateVanMutation.mutate({ id: editingVan.id, data: vanData });

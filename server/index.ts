@@ -771,6 +771,11 @@ app.use((req, res, next) => {
             .then(() => log("✅ target_completion_date column ready"))
             .catch((err: Error) => console.error("target_completion_date migration:", err.message));
 
+          // ── Vans: expected arrival date (for admin calendar) ───────────────
+          pool.query(`ALTER TABLE vans ADD COLUMN IF NOT EXISTS expected_arrival_date TIMESTAMP`)
+            .then(() => log("✅ vans.expected_arrival_date column ready"))
+            .catch((err: Error) => console.error("expected_arrival_date migration:", err.message));
+
           // ── WrapGen auto-link tokens ───────────────────────────────────────
           pool.query(`
             CREATE TABLE IF NOT EXISTS wrapgen_link_tokens (

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import type { FollowUp, User } from "@shared/schema";
+import type { FollowUp, User, Quote, Van } from "@shared/schema";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,8 @@ import {
   User as UserIcon,
   Clock,
   ExternalLink,
+  Truck,
+  PackageCheck,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -103,6 +105,60 @@ export default function AdminCalendar() {
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
+
+  // Quotes with a target completion date = finished-van collection events
+  const { data: quotes = [] } = useQuery<Quote[]>({
+    queryKey: ["/api/admin/quotes"],
+  });
+
+  // Vans with an expected arrival date = incoming-van events
+  const { data: vans = [] } = useQuery<Van[]>({
+    queryKey: ["/api/admin/vans"],
+  });
+
+  // Build a date-string → events map covering collections + arrivals.
+  type VanEvent = {
+    kind: "collection" | "arrival";
+    id: string;
+    label: string;
+    sub?: string;
+    href: string;
+  };
+  const eventsByDate: Record<string, VanEvent[]> = {};
+  const pushEvent = (dateStr: string, ev: VanEvent) => {
+    (eventsByDate[dateStr] ??= []).push(ev);
+  };
+  const isoDayOnly = (d: Date | string | null | undefined): string | null => {
+    if (!d) return null;
+    const dt = typeof d === "string" ? new Date(d) : d;
+    if (isNaN(dt.getTime())) return null;
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+  };
+  for (const q of quotes) {
+    const dateStr = isoDayOnly(q.targetCompletionDate as any);
+    if (!dateStr) continue;
+    // Hide collections for cancelled / completed quotes — they're not on the floor any more
+    if (q.status === "cancelled" || q.status === "completed") continue;
+    pushEvent(dateStr, {
+      kind: "collection",
+      id: q.id,
+      label: q.userName || "Unnamed customer",
+      sub: q.vanRegistration || q.company || undefined,
+      href: `/admin/quotes/${q.id}`,
+    });
+  }
+  for (const v of vans) {
+    const dateStr = isoDayOnly((v as any).expectedArrivalDate);
+    if (!dateStr) continue;
+    pushEvent(dateStr, {
+      kind: "arrival",
+      id: v.id,
+      label: `${v.make} ${v.model}`.trim(),
+      sub: v.reg || (v.year ? String(v.year) : undefined),
+      href: `/admin/vans`,
+    });
+  }
+  const vanEventsForDate = (dateStr: string): VanEvent[] => eventsByDate[dateStr] ?? [];
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<FollowUpForm>) => apiRequest("POST", "/api/admin/follow-ups", data),
@@ -311,10 +367,15 @@ export default function AdminCalendar() {
               }
               const dateStr = cellDateStr(day);
               const dayFus = fuForDate(dateStr);
+              const dayVanEvents = vanEventsForDate(dateStr);
+              const collections = dayVanEvents.filter((e) => e.kind === "collection");
+              const arrivals = dayVanEvents.filter((e) => e.kind === "arrival");
               const pending = dayFus.filter((f) => !f.completed);
               const done = dayFus.filter((f) => f.completed);
               const isSelected = dateStr === selectedDate;
               const isTod = isToday(dateStr);
+              const totalItems = pending.length + done.length + dayVanEvents.length;
+              const slotsForFus = Math.max(0, 3 - dayVanEvents.length);
 
               return (
                 <div
@@ -333,7 +394,7 @@ export default function AdminCalendar() {
                     >
                       {day}
                     </span>
-                    {dayFus.length > 0 && (
+                    {totalItems > 0 && (
                       <button
                         className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
                         onClick={(e) => { e.stopPropagation(); openNew(dateStr); }}
@@ -344,7 +405,29 @@ export default function AdminCalendar() {
                     )}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {pending.slice(0, 3).map((fu) => (
+                    {arrivals.slice(0, 2).map((ev) => (
+                      <div
+                        key={`a-${ev.id}`}
+                        className="text-[10px] truncate px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 leading-tight flex items-center gap-1"
+                        title={`Van arriving: ${ev.label}${ev.sub ? ` (${ev.sub})` : ""}`}
+                        data-testid={`cell-arrival-${ev.id}`}
+                      >
+                        <Truck className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate">{ev.label}</span>
+                      </div>
+                    ))}
+                    {collections.slice(0, 2).map((ev) => (
+                      <div
+                        key={`c-${ev.id}`}
+                        className="text-[10px] truncate px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 leading-tight flex items-center gap-1"
+                        title={`Customer collection: ${ev.label}${ev.sub ? ` (${ev.sub})` : ""}`}
+                        data-testid={`cell-collection-${ev.id}`}
+                      >
+                        <PackageCheck className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate">{ev.label}</span>
+                      </div>
+                    ))}
+                    {pending.slice(0, slotsForFus).map((fu) => (
                       <div
                         key={fu.id}
                         className="text-[10px] truncate px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 leading-tight"
@@ -358,8 +441,10 @@ export default function AdminCalendar() {
                         {done.length} done
                       </div>
                     )}
-                    {pending.length > 3 && (
-                      <div className="text-[10px] text-muted-foreground px-1">+{pending.length - 3} more</div>
+                    {(pending.length > slotsForFus || dayVanEvents.length > 4) && (
+                      <div className="text-[10px] text-muted-foreground px-1">
+                        +{Math.max(0, totalItems - 4)} more
+                      </div>
                     )}
                   </div>
                 </div>
@@ -369,32 +454,77 @@ export default function AdminCalendar() {
         </div>
 
         {/* Day detail panel */}
-        <div className="w-72 ml-4 shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-semibold">{selectedDateDisplay}</p>
-              <p className="text-xs text-muted-foreground">
-                {selectedFollowUps.length === 0
-                  ? "No follow-ups"
-                  : `${selectedFollowUps.length} follow-up${selectedFollowUps.length !== 1 ? "s" : ""}`}
-              </p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => openNew(selectedDate)} data-testid="button-add-for-date">
-              <Plus className="w-3 h-3 mr-1" />
-              Add
-            </Button>
+        <div className="w-72 ml-4 shrink-0 flex flex-col overflow-hidden">
+          {(() => {
+            const selectedVanEvents = vanEventsForDate(selectedDate);
+            const summaryParts: string[] = [];
+            if (selectedVanEvents.filter((e) => e.kind === "arrival").length > 0) {
+              const n = selectedVanEvents.filter((e) => e.kind === "arrival").length;
+              summaryParts.push(`${n} arrival${n !== 1 ? "s" : ""}`);
+            }
+            if (selectedVanEvents.filter((e) => e.kind === "collection").length > 0) {
+              const n = selectedVanEvents.filter((e) => e.kind === "collection").length;
+              summaryParts.push(`${n} collection${n !== 1 ? "s" : ""}`);
+            }
+            if (selectedFollowUps.length > 0) {
+              summaryParts.push(`${selectedFollowUps.length} follow-up${selectedFollowUps.length !== 1 ? "s" : ""}`);
+            }
+            return (
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{selectedDateDisplay}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {summaryParts.length === 0 ? "Nothing scheduled" : summaryParts.join(" · ")}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => openNew(selectedDate)} data-testid="button-add-for-date">
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add
+                </Button>
+              </div>
+            );
+          })()}
+
+          <div className="overflow-y-auto flex flex-col gap-2 pb-2">
+            {/* Van events: arrivals + collections for the selected day */}
+            {vanEventsForDate(selectedDate).map((ev) => (
+              <Link key={`${ev.kind}-${ev.id}`} href={ev.href}>
+                <Card className="hover-elevate cursor-pointer" data-testid={`event-${ev.kind}-${ev.id}`}>
+                  <CardContent className="p-3 flex items-start gap-2">
+                    <div className={`mt-0.5 shrink-0 ${ev.kind === "arrival" ? "text-blue-400" : "text-emerald-400"}`}>
+                      {ev.kind === "arrival" ? <Truck className="w-4 h-4" /> : <PackageCheck className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{ev.label}</p>
+                      {ev.sub && (
+                        <p className="text-xs text-muted-foreground truncate">{ev.sub}</p>
+                      )}
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] mt-1 ${ev.kind === "arrival" ? "bg-blue-500/20 text-blue-300 border-blue-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}
+                      >
+                        {ev.kind === "arrival" ? "Van arriving" : "Customer collection"}
+                      </Badge>
+                    </div>
+                    <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0 mt-1" />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
 
           {isLoading ? (
             <div className="text-sm text-muted-foreground py-4 text-center">Loading...</div>
           ) : selectedFollowUps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <CalendarDays className="w-8 h-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No follow-ups for this day</p>
-              <Button size="sm" variant="outline" onClick={() => openNew(selectedDate)}>
-                Schedule one
-              </Button>
-            </div>
+            vanEventsForDate(selectedDate).length > 0 ? null : (
+              <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                <CalendarDays className="w-8 h-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">No follow-ups for this day</p>
+                <Button size="sm" variant="outline" onClick={() => openNew(selectedDate)}>
+                  Schedule one
+                </Button>
+              </div>
+            )
           ) : (
             <div className="flex flex-col gap-2 overflow-y-auto">
               {selectedFollowUps.map((fu) => (
