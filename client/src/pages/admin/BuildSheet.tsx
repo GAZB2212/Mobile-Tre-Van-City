@@ -574,11 +574,19 @@ export default function BuildSheet() {
     if (kit) {
       stages.push({ id: "kit", label: `Install ${kit.name}` });
     }
+    // Prefix the stage label with "N× " when the customer has ordered more
+    // than one of an item — mirrors the qty display in the upgrade rows
+    // above so the build stage checklist reads as "2× Compressor".
+    const qtyFor = (id: string) => quote?.selectedUpgrades?.[id] || 1;
+    const labelFor = (u: Upgrade) => {
+      const q = qtyFor(u.id);
+      return q > 1 ? `${q}× ${u.name}` : u.name;
+    };
     const nonWrapUpgrades = upgrades.filter(u => !isWrapGraphicsUpgrade(u) && !isBrandedInteriorWallUpgrade(u));
     const wrapUpgrades = upgrades.filter(u => isWrapGraphicsUpgrade(u));
     const brandedInteriorWallUpgrades = upgrades.filter(u => isBrandedInteriorWallUpgrade(u));
     for (const u of nonWrapUpgrades) {
-      stages.push({ id: `upg_${u.id}`, label: u.name });
+      stages.push({ id: `upg_${u.id}`, label: labelFor(u) });
     }
     if (wrapUpgrades.length > 0) {
       stages.push({ id: "artwork_sent", label: "Artwork Sent", section: "Design Work" });
@@ -586,7 +594,7 @@ export default function BuildSheet() {
       stages.push({ id: "wrap_printed", label: "Wrap Printed", section: "Design Work" });
     }
     for (const u of wrapUpgrades) {
-      stages.push({ id: `upg_${u.id}`, label: u.name });
+      stages.push({ id: `upg_${u.id}`, label: labelFor(u) });
     }
     if (brandedInteriorWallUpgrades.length > 0) {
       stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent", section: "Design Work" });
@@ -594,7 +602,7 @@ export default function BuildSheet() {
       stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered", section: "Design Work" });
     }
     for (const u of brandedInteriorWallUpgrades) {
-      stages.push({ id: `upg_${u.id}`, label: u.name });
+      stages.push({ id: `upg_${u.id}`, label: labelFor(u) });
     }
     stages.push({ id: "final_checks", label: "Final Checks" });
     stages.push({ id: "valet", label: "Valet & Handover" });

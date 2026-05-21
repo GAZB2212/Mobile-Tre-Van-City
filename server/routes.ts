@@ -581,8 +581,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // parent name (e.g. all CCTV variants are stored as "Van Online
         // CCTV/NVR System") so the variant name is the only thing that
         // distinguishes them on the workshop floor.
-        const stageLabel = (u: { name: string; variantName?: string | null }) =>
-          (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
+        // Prefix the stage label with "N× " when the customer has ordered
+        // more than one of an item — so the workshop sees "2× Compressor"
+        // instead of just "Compressor" for double-orders. Mirrors the build
+        // sheet's qty display.
+        const qtyMap = (quote.selectedUpgrades ?? {}) as Record<string, number>;
+        const stageLabel = (u: { id: string; name: string; variantName?: string | null }) => {
+          const base = (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
+          const q = qtyMap[u.id] ?? 1;
+          return q > 1 ? `${q}× ${base}` : base;
+        };
         for (const u of nonWrap) {
           stages.push({ id: `upg_${u.id}`, label: stageLabel(u) });
           if (isBusinessPack(u)) {
@@ -10303,6 +10311,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           customVanDescription: q.customVanDescription,
           kitId: q.kitId,
           selectedUpgradeIds: dedupeIdsByParent((q.selectedUpgradeIds ?? []) as string[]),
+          // Quantity map keyed by upgrade id — kiosk uses this to prefix stage
+          // labels with "N× " when a customer has ordered more than one of an
+          // item (e.g. 2× Compressor). Mirrors the build sheet behaviour.
+          selectedUpgrades: (q.selectedUpgrades ?? {}) as Record<string, number>,
           vanRegistration: q.vanRegistration ?? null,
           confirmationToken: q.confirmationToken ?? null,
           // Build sheet progress — completedBuildStages entries are either a bare stage-id string

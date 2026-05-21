@@ -69,6 +69,9 @@ interface KioskQuote {
   vanRegistration: string | null;
   kitId: string | null;
   selectedUpgradeIds: string[];
+  // Quantity map keyed by upgrade id — used to prefix stage labels with "N× "
+  // when the customer has ordered more than one of an item.
+  selectedUpgrades?: Record<string, number>;
   confirmationToken: string | null;
   completedBuildStages: Array<string | { id: string; initials: string }>;
   customBuildStages: Array<{ id: string; label: string }> | null;
@@ -82,6 +85,15 @@ interface KioskUpgrade { id: string; name: string; category: string; variantName
 // whenever it's set so the kiosk doesn't show "CCTV" twice.
 const displayLabel = (u: { name: string; variantName?: string | null }) =>
   (u.variantName && u.variantName.trim()) ? u.variantName.trim() : u.name;
+
+// Prefix the stage label with "N× " when the customer has ordered more than
+// one of an item — mirrors the build sheet & workshop QR page so the kiosk
+// reads as "2× Compressor" instead of just "Compressor" for double-orders.
+const qtyLabel = (u: { id: string; name: string; variantName?: string | null }, qtyMap: Record<string, number>) => {
+  const base = displayLabel(u);
+  const q = qtyMap[u.id] ?? 1;
+  return q > 1 ? `${q}× ${base}` : base;
+};
 
 interface KioskData {
   quotes: KioskQuote[];
@@ -108,7 +120,8 @@ const isWall = (u: { category?: string | null }) =>
 const isBusinessPack = (u: { name?: string | null }) =>
   /business\s*pack|business\s*package/i.test(u.name ?? "");
 
-function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]) {
+function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[], qtyMap: Record<string, number> = {}) {
+  const label = (u: KioskUpgrade) => qtyLabel(u, qtyMap);
   const stages: { id: string; label: string }[] = [];
   stages.push({ id: "prep", label: "Van Preparation" });
   if (kitName) stages.push({ id: "kit", label: `Install ${kitName}` });
@@ -131,7 +144,7 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
 
   for (const u of nonWrap) {
-    stages.push({ id: `upg_${u.id}`, label: displayLabel(u) });
+    stages.push({ id: `upg_${u.id}`, label: label(u) });
     if (isBusinessPack(u)) {
       stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
       stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
@@ -142,13 +155,13 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
     stages.push({ id: "artwork_approved", label: "Artwork Approved" });
     stages.push({ id: "wrap_printed", label: "Wrap Printed" });
   }
-  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: displayLabel(u) });
+  for (const u of wrapOnly) stages.push({ id: `upg_${u.id}`, label: label(u) });
   if (wallOnly.length > 0) {
     stages.push({ id: "interior_walls_artwork_sent", label: "Interior Walls Artwork Sent" });
     stages.push({ id: "interior_wall_artwork_approved", label: "Interior Wall Artwork Approved" });
     stages.push({ id: "interior_walls_ordered", label: "Interior Walls Ordered" });
   }
-  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: displayLabel(u) });
+  for (const u of wallOnly) stages.push({ id: `upg_${u.id}`, label: label(u) });
   stages.push({ id: "final_checks", label: "Final Checks" });
   stages.push({ id: "valet", label: "Valet & Handover" });
   return stages;
@@ -186,7 +199,7 @@ function JobCard({
   kit: { name: string } | undefined;
   selectedUpgrades: KioskUpgrade[];
 }) {
-  const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades);
+  const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades, q.selectedUpgrades ?? {});
   const completed = normaliseCompleted(q.completedBuildStages);
   const completedIds = new Set(completed.map((c) => c.id));
 
