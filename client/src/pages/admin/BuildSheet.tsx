@@ -1229,7 +1229,10 @@ export default function BuildSheet() {
                         workshop a one-glance summary above the full BOM
                         without them having to scan crimps and wire entries. */}
                     {(() => {
-                      const machines = deriveHeadlineMachines(kit as any);
+                      const machines = deriveHeadlineMachines({
+                        headlineMachines: (kit as { headlineMachines?: string[] | null }).headlineMachines ?? null,
+                        skuComponents: kit.skuComponents ?? null,
+                      });
                       if (machines.length === 0) return null;
                       return (
                         <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-kit-machines">

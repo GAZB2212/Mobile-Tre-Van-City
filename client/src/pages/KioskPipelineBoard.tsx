@@ -380,7 +380,7 @@ function JobCard({
           <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
           <p className="text-sm text-yellow-400/90 font-semibold leading-tight">{kit.name}</p>
           {kit.headlineMachines && kit.headlineMachines.length > 0 && (
-            <p className="text-[11px] text-zinc-500 leading-tight" data-testid={`text-kit-machines-${q.id}`}>
+            <p className="text-[11px] text-zinc-500 leading-tight line-clamp-3" data-testid={`text-kit-machines-${q.id}`}>
               <span className="text-zinc-600">Includes: </span>
               {kit.headlineMachines.join(" · ")}
             </p>

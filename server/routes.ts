@@ -10337,7 +10337,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           // pack contains without scanning the full BOM. Resolved server-side
           // via the shared helper: admin override wins, otherwise derived
           // from the kit's BOM (skuComponents) by strict keyword match.
-          headlineMachines: deriveHeadlineMachines(k as any),
+          headlineMachines: deriveHeadlineMachines({
+            headlineMachines: (k as { headlineMachines?: string[] | null }).headlineMachines ?? null,
+            skuComponents: k.skuComponents ?? null,
+          }),
         })),
         // Include category so the client can detect wrap/interior-wall upgrades for stage generation.
         // Pre-sorted by catalogue display order so kiosk cards render upgrades consistently.
