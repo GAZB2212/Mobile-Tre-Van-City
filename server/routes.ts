@@ -30,6 +30,7 @@ import {
   type User,
   type Quote
 } from "@shared/schema";
+import { deriveHeadlineMachines } from "@shared/kitHeadlineMachines";
 
 const SERVER_START_TIME = Date.now().toString();
 
@@ -10330,11 +10331,13 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         kits: kits.map((k) => ({
           id: k.id,
           name: k.name,
-          // Headline machines (e.g. Tyre Changer, Wheel Balancer, Silent
-          // Compressor) — shown as an "Includes:" sub-line under the pack
-          // name on each kiosk card so the lads can see at a glance which
-          // machines the pack contains without scanning the full BOM.
-          headlineMachines: ((k as any).headlineMachines ?? null) as string[] | null,
+          // Headline machines (e.g. Tyre Changer, Wheel Balancer, Compressor)
+          // — shown as an "Includes:" sub-line under the pack name on each
+          // kiosk card so the lads can see at a glance which machines the
+          // pack contains without scanning the full BOM. Resolved server-side
+          // via the shared helper: admin override wins, otherwise derived
+          // from the kit's BOM (skuComponents) by strict keyword match.
+          headlineMachines: deriveHeadlineMachines(k as any),
         })),
         // Include category so the client can detect wrap/interior-wall upgrades for stage generation.
         // Pre-sorted by catalogue display order so kiosk cards render upgrades consistently.

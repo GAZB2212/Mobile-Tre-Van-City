@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QrScannerModal } from "@/components/QrScannerModal";
 
 import type { SkuComponent, StockItem } from "@shared/schema";
+import { deriveHeadlineMachines } from "@shared/kitHeadlineMachines";
 
 function StockBadge({ onHand, lowStockThreshold }: { onHand: number; lowStockThreshold?: number | null }) {
   let colorClass: string;
@@ -1222,15 +1223,21 @@ export default function BuildSheet() {
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
                     {/* Headline machines (e.g. Tyre Changer · Wheel Balancer ·
-                        Silent Compressor) — set per pack in the admin kit
-                        editor; gives the workshop a one-glance summary above
-                        the full BOM. */}
-                    {(kit as any).headlineMachines && (kit as any).headlineMachines.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-kit-machines">
-                        <span className="font-medium">Includes:</span>{" "}
-                        {((kit as any).headlineMachines as string[]).join(" · ")}
-                      </p>
-                    )}
+                        Compressor) — resolved by the shared helper: admin
+                        override wins, otherwise derived from this kit's BOM
+                        (skuComponents) by strict keyword match. Gives the
+                        workshop a one-glance summary above the full BOM
+                        without them having to scan crimps and wire entries. */}
+                    {(() => {
+                      const machines = deriveHeadlineMachines(kit as any);
+                      if (machines.length === 0) return null;
+                      return (
+                        <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-kit-machines">
+                          <span className="font-medium">Includes:</span>{" "}
+                          {machines.join(" · ")}
+                        </p>
+                      );
+                    })()}
                     <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                   </div>
                   <Separator />

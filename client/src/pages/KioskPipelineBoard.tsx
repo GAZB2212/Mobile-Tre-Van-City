@@ -196,7 +196,7 @@ function JobCard({
 }: {
   q: KioskQuote;
   van: { make: string; model: string; year: number | null } | undefined;
-  kit: { name: string } | undefined;
+  kit: { name: string; headlineMachines?: string[] | null } | undefined;
   selectedUpgrades: KioskUpgrade[];
 }) {
   const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades, q.selectedUpgrades ?? {});

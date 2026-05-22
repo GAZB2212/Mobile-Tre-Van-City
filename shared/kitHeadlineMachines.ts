@@ -1,0 +1,61 @@
+import type { SkuComponent } from "./schema";
+
+// Headline machines shown as an "Includes:" sub-line under the equipment
+// pack name on the build sheet and on each kiosk card. The workshop needs to
+// know at a glance which headline machines a pack contains without scanning
+// the full BOM.
+//
+// Resolution rules:
+//   1. If the kit has a non-empty `headlineMachines` override, use that
+//      verbatim (admin-curated). This wins because BOM descriptions can drift
+//      and an admin override is the most reliable signal.
+//   2. Otherwise fall back to deriving up to 3 headline machines from
+//      `skuComponents` by matching the description against a small set of
+//      strict keyword regexes. Strict matching means noise like wire/crimps
+//      in the BOM is ignored — only the three headline machine categories
+//      (tyre changer/machine, wheel balancer, compressor) are surfaced.
+//   3. If neither source produces anything, return an empty array — the UI
+//      renders nothing rather than an empty "Includes:" label.
+
+type HeadlineCategory = { label: string; pattern: RegExp };
+
+// Order matters — output is rendered in this order so every pack reads
+// "Tyre Changer · Wheel Balancer · Silent Compressor" consistently.
+const HEADLINE_CATEGORIES: HeadlineCategory[] = [
+  { label: "Tyre Changer",   pattern: /tyre[\s-]?(changer|machine)/i },
+  { label: "Wheel Balancer", pattern: /\bbalancer\b/i },
+  { label: "Compressor",     pattern: /\bcompressor\b/i },
+];
+
+const MAX_HEADLINE_MACHINES = 3;
+
+export interface KitForHeadline {
+  headlineMachines?: string[] | null;
+  skuComponents?: SkuComponent[] | null;
+}
+
+export function deriveHeadlineMachines(kit: KitForHeadline | null | undefined): string[] {
+  if (!kit) return [];
+
+  // Manual override wins. Trim and drop empties so an array of [""] doesn't
+  // produce a phantom bullet, but anything non-empty short-circuits the
+  // BOM-based fallback.
+  const override = (kit.headlineMachines ?? [])
+    .map((s) => (s ?? "").trim())
+    .filter(Boolean);
+  if (override.length > 0) return override.slice(0, MAX_HEADLINE_MACHINES);
+
+  // BOM-based fallback. Walk the components and pick the FIRST match per
+  // category — packs sometimes list a machine twice (e.g. two compressor
+  // line items for spare parts), and we only want one entry per category.
+  const components = kit.skuComponents ?? [];
+  if (components.length === 0) return [];
+
+  const matched: string[] = [];
+  for (const cat of HEADLINE_CATEGORIES) {
+    if (matched.length >= MAX_HEADLINE_MACHINES) break;
+    const hit = components.some((c) => cat.pattern.test(c?.description ?? ""));
+    if (hit) matched.push(cat.label);
+  }
+  return matched;
+}
