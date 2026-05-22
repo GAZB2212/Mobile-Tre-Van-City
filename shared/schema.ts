@@ -84,6 +84,11 @@ export const kits = pgTable("kits", {
   sortOrder: integer("sort_order").notNull().default(0),
   sku: text("sku"), // AutoTradeOS stock-keeping unit
   skuComponents: json("sku_components").$type<SkuComponent[]>(), // Bill of materials for composite products
+  // Headline machines included in the pack — short labels (e.g. "Tyre Changer",
+  // "Wheel Balancer", "Silent Compressor") shown as an "Includes:" sub-line
+  // on the build sheet and kiosk so the workshop can see at a glance which
+  // headline machines the pack contains without scanning the full BOM.
+  headlineMachines: text("headline_machines").array(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   published: boolean("published").notNull().default(true),

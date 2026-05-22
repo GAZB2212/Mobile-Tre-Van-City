@@ -776,6 +776,13 @@ app.use((req, res, next) => {
             .then(() => log("✅ vans.expected_arrival_date column ready"))
             .catch((err: Error) => console.error("expected_arrival_date migration:", err.message));
 
+          // Headline machines on kits — short labels shown as "Includes:"
+          // sub-line on the build sheet and kiosk so the workshop can see the
+          // headline machines in each pack at a glance (without scanning BOM).
+          pool.query(`ALTER TABLE kits ADD COLUMN IF NOT EXISTS headline_machines TEXT[]`)
+            .then(() => log("✅ kits.headline_machines column ready"))
+            .catch((err: Error) => console.error("headline_machines migration:", err.message));
+
           // ── WrapGen auto-link tokens ───────────────────────────────────────
           pool.query(`
             CREATE TABLE IF NOT EXISTS wrapgen_link_tokens (

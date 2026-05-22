@@ -37,6 +37,7 @@ const kitSchema = z.object({
   published: z.boolean().default(true),
   sku: z.string().optional().nullable(),
   skuComponents: z.array(z.object({ sku: z.string(), description: z.string(), quantity: z.number().min(1), costPrice: z.number().optional().nullable() })).optional().nullable(),
+  headlineMachines: z.array(z.string()).optional().nullable(),
 });
 
 type KitFormData = z.infer<typeof kitSchema>;
@@ -132,6 +133,7 @@ export default function AdminKits() {
       published: true,
       sku: null,
       skuComponents: null,
+      headlineMachines: null,
     },
   });
 
@@ -291,6 +293,7 @@ export default function AdminKits() {
       published: kit.published,
       sku: (kit as any).sku ?? null,
       skuComponents: (kit as any).skuComponents ?? null,
+      headlineMachines: (kit as any).headlineMachines ?? null,
     });
   };
 
@@ -518,6 +521,32 @@ export default function AdminKits() {
                           ))}
                         </div>
                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="headlineMachines"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Headline Machines (Build Sheet & Kiosk)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={"e.g.\nTyre Changer\nWheel Balancer\nSilent Compressor"}
+                          className="min-h-[90px] font-mono text-sm"
+                          value={(field.value ?? []).join("\n")}
+                          onChange={(e) => {
+                            const lines = e.target.value.split("\n").map((s) => s.trim()).filter(Boolean);
+                            field.onChange(lines.length > 0 ? lines : null);
+                          }}
+                          data-testid="input-kit-headline-machines"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        One machine per line. Shown as an "Includes:" sub-line under the pack name on the build sheet and kiosk so the workshop can see the headline machines at a glance.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1035,6 +1064,32 @@ export default function AdminKits() {
                         ))}
                       </div>
                     </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="headlineMachines"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Headline Machines (Build Sheet & Kiosk)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder={"e.g.\nTyre Changer\nWheel Balancer\nSilent Compressor"}
+                        className="min-h-[90px] font-mono text-sm"
+                        value={(field.value ?? []).join("\n")}
+                        onChange={(e) => {
+                          const lines = e.target.value.split("\n").map((s) => s.trim()).filter(Boolean);
+                          field.onChange(lines.length > 0 ? lines : null);
+                        }}
+                        data-testid="input-edit-kit-headline-machines"
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      One machine per line. Shown as an "Includes:" sub-line under the pack name on the build sheet and kiosk so the workshop can see the headline machines at a glance.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

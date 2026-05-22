@@ -10327,7 +10327,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       res.json({
         quotes,
         vans: vans.map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year })),
-        kits: kits.map((k) => ({ id: k.id, name: k.name })),
+        kits: kits.map((k) => ({
+          id: k.id,
+          name: k.name,
+          // Headline machines (e.g. Tyre Changer, Wheel Balancer, Silent
+          // Compressor) — shown as an "Includes:" sub-line under the pack
+          // name on each kiosk card so the lads can see at a glance which
+          // machines the pack contains without scanning the full BOM.
+          headlineMachines: ((k as any).headlineMachines ?? null) as string[] | null,
+        })),
         // Include category so the client can detect wrap/interior-wall upgrades for stage generation.
         // Pre-sorted by catalogue display order so kiosk cards render upgrades consistently.
         // variantName is the distinguishing sibling label — without it the

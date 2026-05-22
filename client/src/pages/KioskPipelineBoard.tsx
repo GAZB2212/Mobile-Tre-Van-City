@@ -98,7 +98,7 @@ const qtyLabel = (u: { id: string; name: string; variantName?: string | null }, 
 interface KioskData {
   quotes: KioskQuote[];
   vans: { id: string; make: string; model: string; year: number | null }[];
-  kits: { id: string; name: string }[];
+  kits: { id: string; name: string; headlineMachines?: string[] | null }[];
   upgrades: KioskUpgrade[];
 }
 
@@ -372,11 +372,19 @@ function JobCard({
         />
       </div>
 
-      {/* Equipment Pack */}
+      {/* Equipment Pack — with "Includes:" sub-line listing the headline
+          machines (Tyre Changer, Balancer, Compressor) so the lads can see at
+          a glance what the pack contains without scanning the full BOM. */}
       {kit && (
         <div className="space-y-0.5">
           <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
           <p className="text-sm text-yellow-400/90 font-semibold leading-tight">{kit.name}</p>
+          {kit.headlineMachines && kit.headlineMachines.length > 0 && (
+            <p className="text-[11px] text-zinc-500 leading-tight" data-testid={`text-kit-machines-${q.id}`}>
+              <span className="text-zinc-600">Includes: </span>
+              {kit.headlineMachines.join(" · ")}
+            </p>
+          )}
         </div>
       )}
 

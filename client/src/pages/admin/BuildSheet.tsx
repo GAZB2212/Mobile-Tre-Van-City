@@ -1221,6 +1221,16 @@ export default function BuildSheet() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-base" data-testid="text-kit-name">{kit.name}</p>
+                    {/* Headline machines (e.g. Tyre Changer · Wheel Balancer ·
+                        Silent Compressor) — set per pack in the admin kit
+                        editor; gives the workshop a one-glance summary above
+                        the full BOM. */}
+                    {(kit as any).headlineMachines && (kit as any).headlineMachines.length > 0 && (
+                      <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-kit-machines">
+                        <span className="font-medium">Includes:</span>{" "}
+                        {((kit as any).headlineMachines as string[]).join(" · ")}
+                      </p>
+                    )}
                     <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                   </div>
                   <Separator />
