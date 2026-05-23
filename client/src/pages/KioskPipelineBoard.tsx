@@ -381,23 +381,10 @@ function JobCard({
         />
       </div>
 
-      {/* Equipment Pack — with "Includes:" sub-line listing the headline
-          machines (Tyre Changer, Balancer, Compressor) so the lads can see at
-          a glance what the pack contains without scanning the full BOM. */}
-      {kit && (
-        <div className="space-y-0.5">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
-          <p className="text-sm text-yellow-400/90 font-semibold leading-tight">{kit.name}</p>
-          {kit.headlineMachines && kit.headlineMachines.length > 0 && (
-            <p className="text-[11px] text-zinc-500 leading-tight line-clamp-3" data-testid={`text-kit-machines-${q.id}`}>
-              <span className="text-zinc-600">Includes: </span>
-              {kit.headlineMachines.join(" · ")}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Build stages — same pill-style rows as workshop screen */}
+      {/* Build stages — same pill-style rows as workshop screen.
+          NB: the "Install Pack …" stage row already shows the pack name and
+          headline machines, so we don't render a separate Equipment Pack
+          block above to avoid duplication. */}
       {stages.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Build Stages</p>
