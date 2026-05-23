@@ -74,28 +74,59 @@ export function DueByCountdown({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <span className={`text-[10px] font-semibold uppercase tracking-widest ${subText}`}>Due By</span>
-          {c ? (
-            <div
-              className={`font-mono font-bold tabular-nums leading-none ${accent} text-2xl sm:text-3xl`}
-              data-testid="text-countdown"
-              title={c.overdue ? "Overdue" : "Time until due date"}
-            >
-              {pad(c.weeks)}<span className={dim}>:</span>
-              {pad(c.days)}<span className={dim}>:</span>
-              {pad(c.hours)}<span className={dim}>:</span>
-              {pad(c.minutes)}<span className={dim}>:</span>
-              <span className={c.overdue ? "text-red-500" : isDark ? "text-yellow-300" : "text-foreground/80"} data-testid="text-countdown-seconds">
-                {pad(c.seconds)}
-              </span>
-            </div>
-          ) : (
-            <div className={`font-mono font-bold tabular-nums leading-none text-2xl sm:text-3xl ${dim}`} data-testid="text-countdown-empty">
-              --<span>:</span>--<span>:</span>--<span>:</span>--<span>:</span>--
-            </div>
-          )}
-          <div className={`text-[10px] uppercase tracking-wider ${dim} hidden sm:flex gap-2`}>
-            <span>wks</span><span>days</span><span>hrs</span><span>min</span><span>sec</span>
-          </div>
+          {(() => {
+            // Unit columns — digit on top, short label centred beneath. Reads like
+            // a regular countdown clock and never overflows the kiosk job card.
+            const units: { value: string; label: string; highlight?: boolean }[] = c
+              ? [
+                  { value: pad(c.weeks),   label: "wks"  },
+                  { value: pad(c.days),    label: "days" },
+                  { value: pad(c.hours),   label: "hrs"  },
+                  { value: pad(c.minutes), label: "min"  },
+                  { value: pad(c.seconds), label: "sec", highlight: true },
+                ]
+              : [
+                  { value: "--", label: "wks"  },
+                  { value: "--", label: "days" },
+                  { value: "--", label: "hrs"  },
+                  { value: "--", label: "min"  },
+                  { value: "--", label: "sec"  },
+                ];
+            const digitColour = c
+              ? accent
+              : dim;
+            const secondsColour = c?.overdue
+              ? "text-red-500"
+              : isDark ? "text-yellow-300" : "text-foreground/80";
+            return (
+              <div
+                className="flex items-end gap-1 sm:gap-1.5"
+                data-testid={c ? "text-countdown" : "text-countdown-empty"}
+                title={c?.overdue ? "Overdue" : c ? "Time until due date" : undefined}
+              >
+                {units.map((u, i) => (
+                  <div key={u.label} className="flex items-end gap-1 sm:gap-1.5">
+                    <div className="flex flex-col items-center leading-none">
+                      <span
+                        className={`font-mono font-bold tabular-nums text-2xl sm:text-3xl ${
+                          u.highlight && c ? secondsColour : digitColour
+                        }`}
+                        data-testid={u.label === "sec" && c ? "text-countdown-seconds" : undefined}
+                      >
+                        {u.value}
+                      </span>
+                      <span className={`text-[9px] uppercase tracking-wider mt-1 ${dim}`}>
+                        {u.label}
+                      </span>
+                    </div>
+                    {i < units.length - 1 && (
+                      <span className={`font-mono font-bold text-2xl sm:text-3xl leading-none pb-3 ${dim}`}>:</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
