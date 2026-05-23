@@ -420,6 +420,22 @@ function JobCard({
                     ].join(" ")}
                   >
                     {s.label}
+                    {/* Headline machines repeated under the Install-Pack stage
+                        row so the workshop sees the actual tyre machine /
+                        balancer / compressor models inline with the build
+                        stage they relate to, not just up in the Equipment
+                        Pack header. */}
+                    {s.id === "kit" && kit?.headlineMachines && kit.headlineMachines.length > 0 && (
+                      <span
+                        className={[
+                          "block mt-0.5 text-[11px] font-normal leading-tight line-clamp-2",
+                          done ? "text-zinc-700 no-underline" : "text-zinc-400",
+                        ].join(" ")}
+                        data-testid={`stage-kit-machines-${q.id}`}
+                      >
+                        {kit.headlineMachines.join(" · ")}
+                      </span>
+                    )}
                   </span>
                   {done && entry?.initials && (
                     <span className="shrink-0 text-[10px] font-bold text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded uppercase tracking-wide">
