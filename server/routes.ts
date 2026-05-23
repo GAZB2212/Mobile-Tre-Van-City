@@ -10287,14 +10287,19 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
       const body = z.object({
         quoteId: z.string().min(1),
-        status: z.enum(["in_workshop", "in_build"]),
+        status: z.enum(["in_workshop", "in_build", "completed"]),
       }).parse(req.body);
       const quote = await storage.getQuote(body.quoteId);
       if (!quote) return res.status(404).json({ error: "Quote not found" });
-      // Only allow the two safe transitions from the kiosk
+      // Allow the safe transitions from the kiosk:
+      //  • In Build  ↔ In Workshop (swap during a build)
+      //  • In Build  → Completed   (van finished — all stages ticked)
+      //  • In Workshop → Completed
       const allowed =
-        (quote.status === "in_build"     && body.status === "in_workshop") ||
-        (quote.status === "in_workshop"  && body.status === "in_build");
+        (quote.status === "in_build"    && body.status === "in_workshop") ||
+        (quote.status === "in_workshop" && body.status === "in_build")    ||
+        (quote.status === "in_build"    && body.status === "completed")   ||
+        (quote.status === "in_workshop" && body.status === "completed");
       if (!allowed) {
         return res.status(400).json({ error: `Cannot move ${quote.status} -> ${body.status} from kiosk` });
       }

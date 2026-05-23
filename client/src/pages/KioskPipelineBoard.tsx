@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
-import { Lock, Circle, CheckCircle2 } from "lucide-react";
+import { Lock, Circle, CheckCircle2, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
   finance_approved: "Finance Approved",
   in_build: "In Build",
   in_workshop: "In Workshop",
+  completed: "Completed",
 };
 
 const STATUS_COLOUR: Record<string, string> = {
@@ -230,14 +231,21 @@ function JobCard({
   });
 
   const statusMutation = useMutation({
-    mutationFn: async ({ next }: { next: "in_workshop" | "in_build" }) => {
+    mutationFn: async ({ next }: { next: "in_workshop" | "in_build" | "completed" }) => {
       const res = await apiRequest("POST", `/api/kiosk/pipeline/${token}/status`, {
         quoteId: q.id, status: next,
       });
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate every cache that derives from quote status so a kiosk
+      // status change ripples through the admin pipeline, quote list,
+      // calendar, dashboard counts, etc.
       queryClient.invalidateQueries({ queryKey: ["/api/kiosk/pipeline", token] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pipeline-board"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/calendar"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
       setStatusDialog(null);
     },
     onError: (err: any) => alert(`Could not update status: ${err?.message ?? "unknown error"}`),
@@ -499,10 +507,27 @@ function JobCard({
         </div>
       )}
 
-      {/* All-done banner — same as workshop screen */}
-      {allDone && (
-        <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-center">
+      {/* All-done banner — same as workshop screen, plus a giant "Mark Job
+          as Completed" button. Triple-tap (same gesture pattern as the
+          rest of the kiosk) so the lads don't fat-finger it. */}
+      {allDone && q.status !== "completed" && (
+        <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-3 text-center space-y-3">
           <p className="font-bold text-white text-sm">All stages complete</p>
+          <button
+            type="button"
+            onClick={() => handleTripleTap(`complete:${q.id}`, () => setStatusDialog({ next: "completed" }))}
+            className="w-full rounded-md bg-green-600 hover:bg-green-500 active:bg-green-700 text-white font-bold text-base px-4 py-3 select-none cursor-pointer inline-flex items-center justify-center gap-2"
+            data-testid={`button-mark-completed-${q.id}`}
+            title="Triple-tap to mark this job as completed"
+          >
+            <Check className="w-5 h-5" />
+            Mark Job as Completed
+          </button>
+        </div>
+      )}
+      {q.status === "completed" && (
+        <div className="rounded-lg border border-green-500/40 bg-green-500/10 px-3 py-2 text-center">
+          <p className="font-bold text-green-300 text-sm">JOB COMPLETED</p>
         </div>
       )}
 
