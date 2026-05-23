@@ -751,7 +751,15 @@ export default function KioskPipelineBoard() {
 
   const committedQuotes = data.quotes
     .filter((q) => COMMITTED_STATUSES.has(q.status))
-    .sort((a, b) => (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99));
+    .sort((a, b) => {
+      // Primary: soonest due-by first so imminent vans float to the top.
+      // Anything without a date sinks to the bottom.
+      const at = a.targetCompletionDate ? new Date(a.targetCompletionDate).getTime() : Number.POSITIVE_INFINITY;
+      const bt = b.targetCompletionDate ? new Date(b.targetCompletionDate).getTime() : Number.POSITIVE_INFINITY;
+      if (at !== bt) return at - bt;
+      // Tie-break: keep In Workshop above In Build (existing status priority).
+      return (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99);
+    });
   const n = committedQuotes.length;
 
   const cols = n <= 2 ? 2 : n <= 6 ? 3 : 4;
