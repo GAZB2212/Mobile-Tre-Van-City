@@ -213,7 +213,7 @@ function JobCard({
   const tapState = useRef<{ id: string | null; count: number; timer: any }>({ id: null, count: 0, timer: null });
   const [tickDialog, setTickDialog] = useState<{ stageId: string; label: string } | null>(null);
   const [statusDialog, setStatusDialog] = useState<{ next: "in_workshop" | "in_build" } | null>(null);
-  const [dateDialog, setDateDialog] = useState<{ value: string } | null>(null);
+  const [dateDialog, setDateDialog] = useState<{ value: string; time?: string } | null>(null);
 
   const tickMutation = useMutation({
     mutationFn: async ({ stageId, initials }: { stageId: string; initials: string }) => {
@@ -300,8 +300,19 @@ function JobCard({
 
   const handleDueByTap = () => {
     handleTripleTap(`due:${q.id}`, () => {
-      const initial = q.targetCompletionDate ? q.targetCompletionDate.slice(0, 10) : "";
-      setDateDialog({ value: initial });
+      // Use the existing target's local date + time so editing keeps the
+      // collection time intact. Falls back to 5pm for new entries.
+      if (q.targetCompletionDate) {
+        const d = new Date(q.targetCompletionDate);
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, "0");
+        const da = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        setDateDialog({ value: `${y}-${mo}-${da}`, time: `${hh}:${mm}` });
+      } else {
+        setDateDialog({ value: "", time: "17:00" });
+      }
     });
   };
 
@@ -607,18 +618,35 @@ function JobCard({
                   const y = d.getFullYear();
                   const m = String(d.getMonth() + 1).padStart(2, "0");
                   const day = String(d.getDate()).padStart(2, "0");
-                  setDateDialog({ value: `${y}-${m}-${day}` });
+                  setDateDialog({ value: `${y}-${m}-${day}`, time: dateDialog?.time ?? "17:00" });
                 }}
                 initialFocus
                 data-testid="calendar-kiosk-due-by"
               />
             </div>
             {dateDialog?.value && (
-              <p className="text-center text-sm font-medium" data-testid="text-kiosk-due-by-selected">
-                Selected: {new Date(`${dateDialog.value}T00:00:00`).toLocaleDateString("en-GB", {
-                  weekday: "short", day: "numeric", month: "short", year: "numeric",
-                })}
-              </p>
+              <div className="space-y-2">
+                <p className="text-center text-sm font-medium" data-testid="text-kiosk-due-by-selected">
+                  Selected: {new Date(`${dateDialog.value}T00:00:00`).toLocaleDateString("en-GB", {
+                    weekday: "short", day: "numeric", month: "short", year: "numeric",
+                  })}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider">
+                    Collection time
+                  </label>
+                  <input
+                    type="time"
+                    value={dateDialog.time ?? "17:00"}
+                    onChange={(e) => setDateDialog({ value: dateDialog.value, time: e.target.value || "17:00" })}
+                    className="text-base rounded border px-3 py-2 bg-background border-input min-w-[7rem]"
+                    data-testid="input-kiosk-due-by-time"
+                  />
+                </div>
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Defaults to 5pm. Change it if you know the exact pickup time.
+                </p>
+              </div>
             )}
           </div>
           <DialogFooter className="gap-2 flex-wrap">
@@ -637,7 +665,13 @@ function JobCard({
             )}
             <Button
               disabled={targetDateMutation.isPending || !dateDialog?.value}
-              onClick={() => dateDialog?.value && targetDateMutation.mutate(`${dateDialog.value}T00:00:00.000Z`)}
+              onClick={() => {
+                if (!dateDialog?.value) return;
+                const [hh, mm] = (dateDialog.time ?? "17:00").split(":").map((n) => parseInt(n, 10));
+                const [y, m, d] = dateDialog.value.split("-").map((n) => parseInt(n, 10));
+                const local = new Date(y, m - 1, d, isFinite(hh) ? hh : 17, isFinite(mm) ? mm : 0, 0, 0);
+                targetDateMutation.mutate(local.toISOString());
+              }}
               data-testid="button-due-by-save"
             >
               {targetDateMutation.isPending ? "Saving..." : "Save"}

@@ -49,13 +49,31 @@ export function DueByCountdown({
   const nineWeekDate = approved ? addWeeks(approved, DUE_BY_LEAD_WEEKS_MAX) : null;
   const showSixWeekChip = !!(sixWeekDate && now < sixWeekDate.getTime());
 
-  // Convert target to YYYY-MM-DD for the date input
-  const inputValue = target ? target.toISOString().slice(0, 10) : "";
+  // Convert target to YYYY-MM-DD and HH:MM (local time) for the editor.
+  // Default collection time is 17:00 (5pm) when no target is set yet.
+  const dateInputValue = target
+    ? `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`
+    : "";
+  const timeInputValue = target
+    ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}`
+    : "17:00";
 
-  const handleDateChange = (e: React.InputEvent<HTMLInputElement> | React.ChangeEvent<HTMLInputElement>) => {
-    const v = (e.target as HTMLInputElement).value;
+  const emitChange = (dateStr: string, timeStr: string) => {
     if (!onChange) return;
-    onChange(v ? `${v}T00:00:00.000Z` : null);
+    if (!dateStr) { onChange(null); return; }
+    const [hh, mm] = (timeStr || "17:00").split(":").map((n) => parseInt(n, 10));
+    const [y, m, d] = dateStr.split("-").map((n) => parseInt(n, 10));
+    // Build a local-time Date then serialise to UTC ISO so the saved
+    // timestamp represents the chosen wall-clock collection moment.
+    const local = new Date(y, (m || 1) - 1, d || 1, isFinite(hh) ? hh : 17, isFinite(mm) ? mm : 0, 0, 0);
+    onChange(local.toISOString());
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    emitChange(e.target.value, timeInputValue);
+  };
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    emitChange(dateInputValue, e.target.value);
   };
 
   const isDark = variant === "dark";
@@ -146,19 +164,32 @@ export function DueByCountdown({
             </span>
           )}
           {editable ? (
-            <input
-              type="date"
-              value={inputValue}
-              onChange={handleDateChange}
-              className={`text-xs rounded border px-2 py-1 ${
-                isDark ? "bg-zinc-900 border-zinc-700 text-zinc-200" : "bg-background border-input"
-              }`}
-              data-testid="input-target-completion-date"
-              title="Edit due-by date"
-            />
+            <div className="flex items-center gap-1">
+              <input
+                type="date"
+                value={dateInputValue}
+                onChange={handleDateChange}
+                className={`text-xs rounded border px-2 py-1 ${
+                  isDark ? "bg-zinc-900 border-zinc-700 text-zinc-200" : "bg-background border-input"
+                }`}
+                data-testid="input-target-completion-date"
+                title="Edit collection date"
+              />
+              <input
+                type="time"
+                value={timeInputValue}
+                onChange={handleTimeChange}
+                disabled={!dateInputValue}
+                className={`text-xs rounded border px-2 py-1 ${
+                  isDark ? "bg-zinc-900 border-zinc-700 text-zinc-200" : "bg-background border-input"
+                } disabled:opacity-50`}
+                data-testid="input-target-completion-time"
+                title="Collection time (defaults to 5pm)"
+              />
+            </div>
           ) : target ? (
             <span className={`text-xs ${subText}`} data-testid="text-target-date">
-              {fmtDate(target)}
+              {fmtDate(target)} · {target.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
             </span>
           ) : (
             <span className={`text-xs ${dim}`}>No date set</span>
