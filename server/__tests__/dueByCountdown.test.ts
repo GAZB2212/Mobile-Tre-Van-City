@@ -13,15 +13,16 @@ describe("dueByCountdown", () => {
     expect(countdown(undefined)).toBeNull();
   });
 
-  it("countdown breaks down a future delta into weeks/days/hours/minutes", () => {
+  it("countdown breaks down a future delta into weeks/days/hours/minutes/seconds", () => {
     const now = new Date("2026-01-01T00:00:00Z").getTime();
-    const target = now + (2 * WEEK_MS) + (3 * 24 * 60 * 60 * 1000) + (4 * 60 * 60 * 1000) + (5 * 60 * 1000);
+    const target = now + (2 * WEEK_MS) + (3 * 24 * 60 * 60 * 1000) + (4 * 60 * 60 * 1000) + (5 * 60 * 1000) + (6 * 1000);
     const c = countdown(new Date(target), now)!;
     expect(c.overdue).toBe(false);
     expect(c.weeks).toBe(2);
     expect(c.days).toBe(3);
     expect(c.hours).toBe(4);
     expect(c.minutes).toBe(5);
+    expect(c.seconds).toBe(6);
   });
 
   it("countdown flags overdue when target is in the past", () => {

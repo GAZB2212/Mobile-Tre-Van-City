@@ -83,15 +83,18 @@ export function DueByCountdown({
               {pad(c.weeks)}<span className={dim}>:</span>
               {pad(c.days)}<span className={dim}>:</span>
               {pad(c.hours)}<span className={dim}>:</span>
-              {pad(c.minutes)}
+              {pad(c.minutes)}<span className={dim}>:</span>
+              <span className={c.overdue ? "text-red-500" : isDark ? "text-yellow-300" : "text-foreground/80"} data-testid="text-countdown-seconds">
+                {pad(c.seconds)}
+              </span>
             </div>
           ) : (
             <div className={`font-mono font-bold tabular-nums leading-none text-2xl sm:text-3xl ${dim}`} data-testid="text-countdown-empty">
-              --<span>:</span>--<span>:</span>--<span>:</span>--
+              --<span>:</span>--<span>:</span>--<span>:</span>--<span>:</span>--
             </div>
           )}
           <div className={`text-[10px] uppercase tracking-wider ${dim} hidden sm:flex gap-2`}>
-            <span>wks</span><span>days</span><span>hrs</span><span>min</span>
+            <span>wks</span><span>days</span><span>hrs</span><span>min</span><span>sec</span>
           </div>
         </div>
 

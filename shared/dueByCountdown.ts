@@ -13,6 +13,7 @@ export interface CountdownParts {
   days: number;
   hours: number;
   minutes: number;
+  seconds: number;
   totalMs: number;
   overdue: boolean;
 }
@@ -31,7 +32,9 @@ export function countdown(target: Date | string | number | null | undefined, now
   const hours = Math.floor(rem / (60 * 60 * 1000));
   rem -= hours * 60 * 60 * 1000;
   const minutes = Math.floor(rem / (60 * 1000));
-  return { weeks, days, hours, minutes, totalMs: diff, overdue: diff < 0 };
+  rem -= minutes * 60 * 1000;
+  const seconds = Math.floor(rem / 1000);
+  return { weeks, days, hours, minutes, seconds, totalMs: diff, overdue: diff < 0 };
 }
 
 // True when the target date is within ~1 day of artworkApprovedAt + 9 weeks,
