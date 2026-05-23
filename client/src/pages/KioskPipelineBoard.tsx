@@ -6,6 +6,7 @@ import { Lock, Circle, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { DueByCountdown } from "@/components/DueByCountdown";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
@@ -569,17 +570,31 @@ function JobCard({
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">
               {q.userName ? `${q.userName}'s` : "This"} build —
-              pick a target completion date. This updates everywhere: build
-              sheet, workshop QR page, pipeline board and calendar.
+              tap a date below. This updates everywhere: build sheet,
+              workshop QR page, pipeline board and calendar.
             </p>
-            <input
-              type="date"
-              autoFocus
-              value={dateDialog?.value ?? ""}
-              onChange={(e) => setDateDialog({ value: e.target.value })}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-base"
-              data-testid="input-kiosk-due-by-date"
-            />
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={dateDialog?.value ? new Date(`${dateDialog.value}T00:00:00`) : undefined}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const y = d.getFullYear();
+                  const m = String(d.getMonth() + 1).padStart(2, "0");
+                  const day = String(d.getDate()).padStart(2, "0");
+                  setDateDialog({ value: `${y}-${m}-${day}` });
+                }}
+                initialFocus
+                data-testid="calendar-kiosk-due-by"
+              />
+            </div>
+            {dateDialog?.value && (
+              <p className="text-center text-sm font-medium" data-testid="text-kiosk-due-by-selected">
+                Selected: {new Date(`${dateDialog.value}T00:00:00`).toLocaleDateString("en-GB", {
+                  weekday: "short", day: "numeric", month: "short", year: "numeric",
+                })}
+              </p>
+            )}
           </div>
           <DialogFooter className="gap-2 flex-wrap">
             <Button variant="ghost" onClick={() => setDateDialog(null)} data-testid="button-due-by-cancel">
