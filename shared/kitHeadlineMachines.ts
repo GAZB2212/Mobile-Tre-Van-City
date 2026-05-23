@@ -17,14 +17,18 @@ import type { SkuComponent } from "./schema";
 //   3. If neither source produces anything, return an empty array — the UI
 //      renders nothing rather than an empty "Includes:" label.
 
-type HeadlineCategory = { label: string; pattern: RegExp };
+type HeadlineCategory = { pattern: RegExp };
 
-// Order matters — output is rendered in this order so every pack reads
-// "Tyre Changer · Wheel Balancer · Silent Compressor" consistently.
+// Order matters — output is rendered in this order so every pack reads in the
+// same sequence (tyre machine first, then balancer, then compressor).
+// We return the ACTUAL BOM description for the matched component (truncated
+// for the kiosk) rather than a generic label, so the workshop can see exactly
+// which model is in this pack — e.g. "Super Spin auto spin wheel balancer"
+// instead of just "Wheel Balancer".
 const HEADLINE_CATEGORIES: HeadlineCategory[] = [
-  { label: "Tyre Changer",   pattern: /tyre[\s-]?(changer|machine)/i },
-  { label: "Wheel Balancer", pattern: /\bbalancer\b/i },
-  { label: "Compressor",     pattern: /\bcompressor\b/i },
+  { pattern: /tyre[\s-]?(changer|machine)/i },
+  { pattern: /\bbalancer\b/i },
+  { pattern: /\bcompressor\b/i },
 ];
 
 const MAX_HEADLINE_MACHINES = 3;
@@ -52,10 +56,19 @@ export function deriveHeadlineMachines(kit: KitForHeadline | null | undefined): 
   if (components.length === 0) return [];
 
   const matched: string[] = [];
+  const seen = new Set<string>();
   for (const cat of HEADLINE_CATEGORIES) {
     if (matched.length >= MAX_HEADLINE_MACHINES) break;
-    const hit = components.some((c) => cat.pattern.test(c?.description ?? ""));
-    if (hit) matched.push(cat.label);
+    const hit = components.find((c) => cat.pattern.test(c?.description ?? ""));
+    if (!hit) continue;
+    const desc = (hit.description ?? "").trim();
+    if (!desc) continue;
+    // Dedupe in case a single component description matches two categories
+    // (rare, but e.g. a combined "tyre machine and balancer" line).
+    const key = desc.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    matched.push(desc);
   }
   return matched;
 }
