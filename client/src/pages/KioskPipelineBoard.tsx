@@ -211,6 +211,7 @@ function JobCard({
   const tapState = useRef<{ id: string | null; count: number; timer: any }>({ id: null, count: 0, timer: null });
   const [tickDialog, setTickDialog] = useState<{ stageId: string; label: string } | null>(null);
   const [statusDialog, setStatusDialog] = useState<{ next: "in_workshop" | "in_build" } | null>(null);
+  const [dateDialog, setDateDialog] = useState<{ value: string } | null>(null);
 
   const tickMutation = useMutation({
     mutationFn: async ({ stageId, initials }: { stageId: string; initials: string }) => {
@@ -241,6 +242,26 @@ function JobCard({
     onError: (err: any) => alert(`Could not update status: ${err?.message ?? "unknown error"}`),
   });
 
+  const targetDateMutation = useMutation({
+    mutationFn: async (isoDateOrNull: string | null) => {
+      const res = await apiRequest("POST", `/api/kiosk/pipeline/${token}/target-date`, {
+        quoteId: q.id, targetCompletionDate: isoDateOrNull,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate every cache that derives from targetCompletionDate so the
+      // change ripples through Build Sheet, QR workshop view, Pipeline Board,
+      // Calendar, etc. without anyone needing to refresh.
+      queryClient.invalidateQueries({ queryKey: ["/api/kiosk/pipeline", token] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pipeline-board"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/calendar"] });
+      setDateDialog(null);
+    },
+    onError: (err: any) => alert(`Could not save due-by date: ${err?.message ?? "unknown error"}`),
+  });
+
   // Generic triple-tap (within 600ms) — keyed so adjacent rows/badges don't share counts
   const handleTripleTap = (key: string, onTriple: () => void) => {
     const s = tapState.current;
@@ -266,6 +287,13 @@ function JobCard({
     } else if (q.status === "in_workshop") {
       handleTripleTap(`status:${q.id}`, () => setStatusDialog({ next: "in_build" }));
     }
+  };
+
+  const handleDueByTap = () => {
+    handleTripleTap(`due:${q.id}`, () => {
+      const initial = q.targetCompletionDate ? q.targetCompletionDate.slice(0, 10) : "";
+      setDateDialog({ value: initial });
+    });
   };
 
   const doneCount = stages.filter((s) => completedIds.has(s.id)).length;
@@ -366,12 +394,21 @@ function JobCard({
         </p>
       </div>
 
-      {/* Big Due-By countdown — WKS:DAYS:HRS:MIN, plus 6wk / 9wk chips. Read-only on kiosk. */}
-      <DueByCountdown
-        targetCompletionDate={q.targetCompletionDate}
-        artworkApprovedAt={q.artworkApprovedAt}
-        variant="dark"
-      />
+      {/* Big Due-By countdown — WKS:DAYS:HRS:MIN, plus 6wk / 9wk chips.
+          Triple-tap opens a calendar picker; the change propagates back to
+          the admin quote, build sheet, QR workshop view, calendar, etc. */}
+      <div
+        onClick={handleDueByTap}
+        className="cursor-pointer select-none active:opacity-70"
+        title="Triple-tap to change due-by date"
+        data-testid={`due-by-tap-${q.id}`}
+      >
+        <DueByCountdown
+          targetCompletionDate={q.targetCompletionDate}
+          artworkApprovedAt={q.artworkApprovedAt}
+          variant="dark"
+        />
+      </div>
 
       {/* Yellow progress bar — same as workshop screen */}
       <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
@@ -518,6 +555,52 @@ function JobCard({
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTickDialog(null)} data-testid="button-stage-cancel">
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Triple-tap due-by dialog — calendar picker, propagates everywhere */}
+      <Dialog open={dateDialog !== null} onOpenChange={(open) => { if (!open) setDateDialog(null); }}>
+        <DialogContent data-testid="dialog-kiosk-due-by">
+          <DialogHeader>
+            <DialogTitle>Edit Due-By Date</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {q.userName ? `${q.userName}'s` : "This"} build —
+              pick a target completion date. This updates everywhere: build
+              sheet, workshop QR page, pipeline board and calendar.
+            </p>
+            <input
+              type="date"
+              autoFocus
+              value={dateDialog?.value ?? ""}
+              onChange={(e) => setDateDialog({ value: e.target.value })}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-base"
+              data-testid="input-kiosk-due-by-date"
+            />
+          </div>
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button variant="ghost" onClick={() => setDateDialog(null)} data-testid="button-due-by-cancel">
+              Cancel
+            </Button>
+            {q.targetCompletionDate && (
+              <Button
+                variant="outline"
+                disabled={targetDateMutation.isPending}
+                onClick={() => targetDateMutation.mutate(null)}
+                data-testid="button-due-by-clear"
+              >
+                Clear
+              </Button>
+            )}
+            <Button
+              disabled={targetDateMutation.isPending || !dateDialog?.value}
+              onClick={() => dateDialog?.value && targetDateMutation.mutate(`${dateDialog.value}T00:00:00.000Z`)}
+              data-testid="button-due-by-save"
+            >
+              {targetDateMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

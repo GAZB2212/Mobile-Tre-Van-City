@@ -10306,6 +10306,33 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
     }
   });
 
+  // POST /api/kiosk/pipeline/:token/target-date
+  // Token-gated due-by date edit from the kiosk. Accepts ISO string or null to clear.
+  app.post("/api/kiosk/pipeline/:token/target-date", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      const validToken = settings["pipeline_kiosk_token"];
+      if (!validToken || req.params.token !== validToken) {
+        return res.status(401).json({ error: "Invalid or expired kiosk token" });
+      }
+      const body = z.object({
+        quoteId: z.string().min(1),
+        targetCompletionDate: z.string().nullable(),
+      }).parse(req.body);
+      const quote = await storage.getQuote(body.quoteId);
+      if (!quote) return res.status(404).json({ error: "Quote not found" });
+      const newDate = body.targetCompletionDate ? new Date(body.targetCompletionDate) : null;
+      if (newDate !== null && isNaN(newDate.getTime())) {
+        return res.status(400).json({ error: "Invalid date" });
+      }
+      await storage.updateQuote(quote.id, { targetCompletionDate: newDate } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(500).json({ error: "Failed to update due-by date" });
+    }
+  });
+
   // GET /api/kiosk/pipeline/:token
   // Public (no login), token-gated.  Returns the minimal data needed by the wallboard.
   // Deliberately excludes email, financial details, internal notes, etc.
