@@ -436,6 +436,22 @@ function JobCard({
                         {kit.headlineMachines.join(" · ")}
                       </span>
                     )}
+                    {/* Workshop hint — the pack's stock machines above are the
+                        baseline only. Any upgrade the customer added (T4000,
+                        Super Spin, 48V/270L compressor, etc.) is listed in the
+                        Upgrades section further down this card and supersedes
+                        the corresponding stock item. */}
+                    {s.id === "kit" && selectedUpgrades.length > 0 && (
+                      <span
+                        className={[
+                          "block mt-0.5 text-[11px] italic font-normal leading-tight",
+                          done ? "text-zinc-700 no-underline" : "text-yellow-400/70",
+                        ].join(" ")}
+                        data-testid={`stage-kit-upgrades-note-${q.id}`}
+                      >
+                        Check upgrades below — they may replace items in this pack.
+                      </span>
+                    )}
                   </span>
                   {done && entry?.initials && (
                     <span className="shrink-0 text-[10px] font-bold text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded uppercase tracking-wide">

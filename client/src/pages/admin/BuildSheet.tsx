@@ -1241,6 +1241,18 @@ export default function BuildSheet() {
                         </p>
                       );
                     })()}
+                    {/* Workshop hint — the headline machines above are the
+                        pack's stock spec. Any selected upgrade further down
+                        this sheet (e.g. T4000, Super Spin, 48V compressor)
+                        supersedes the corresponding stock machine. */}
+                    {upgrades.length > 0 && (
+                      <p
+                        className="text-xs italic text-muted-foreground mt-1"
+                        data-testid="text-kit-upgrades-note"
+                      >
+                        Check upgrades below — they may replace items in this pack.
+                      </p>
+                    )}
                     <SkuBomInfo sku={kit.sku} skuComponents={kit.skuComponents} bomId={`kit-${kit.id}`} onScanRow={handleScanRow} pickedRows={pickedBomRows} stockMap={stockMap} />
                   </div>
                   <Separator />
