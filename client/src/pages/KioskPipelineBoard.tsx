@@ -4,6 +4,7 @@ import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
 import { Lock, Circle, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { deriveHeadlineMachines } from "@shared/kitHeadlineMachines";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -200,6 +201,14 @@ function JobCard({
   selectedUpgrades: KioskUpgrade[];
 }) {
   const stages = q.customBuildStages ?? generateStages(kit?.name ?? null, selectedUpgrades, q.selectedUpgrades ?? {});
+  // Resolve headline machines per-card: start from the kit's server-derived
+  // base and let any selected upgrade in a matching category supersede it
+  // (T4000 replaces stock tyre machine, Super Spin replaces stock balancer,
+  // 48V / 270L replaces stock compressor).
+  const cardHeadlineMachines = deriveHeadlineMachines(
+    { headlineMachines: kit?.headlineMachines ?? null, skuComponents: null },
+    selectedUpgrades,
+  );
   const completed = normaliseCompleted(q.completedBuildStages);
   const completedIds = new Set(completed.map((c) => c.id));
 
@@ -379,10 +388,10 @@ function JobCard({
         <div className="space-y-0.5">
           <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Equipment Pack</p>
           <p className="text-sm text-yellow-400/90 font-semibold leading-tight">{kit.name}</p>
-          {kit.headlineMachines && kit.headlineMachines.length > 0 && (
+          {cardHeadlineMachines.length > 0 && (
             <p className="text-[11px] text-zinc-500 leading-tight line-clamp-3" data-testid={`text-kit-machines-${q.id}`}>
               <span className="text-zinc-600">Includes: </span>
-              {kit.headlineMachines.join(" · ")}
+              {cardHeadlineMachines.join(" · ")}
             </p>
           )}
         </div>
@@ -425,7 +434,7 @@ function JobCard({
                         balancer / compressor models inline with the build
                         stage they relate to, not just up in the Equipment
                         Pack header. */}
-                    {s.id === "kit" && kit?.headlineMachines && kit.headlineMachines.length > 0 && (
+                    {s.id === "kit" && cardHeadlineMachines.length > 0 && (
                       <span
                         className={[
                           "block mt-0.5 text-[11px] font-normal leading-tight line-clamp-2",
@@ -433,7 +442,7 @@ function JobCard({
                         ].join(" ")}
                         data-testid={`stage-kit-machines-${q.id}`}
                       >
-                        {kit.headlineMachines.join(" · ")}
+                        {cardHeadlineMachines.join(" · ")}
                       </span>
                     )}
                   </span>

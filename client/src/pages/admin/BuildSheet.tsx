@@ -1229,10 +1229,20 @@ export default function BuildSheet() {
                         workshop a one-glance summary above the full BOM
                         without them having to scan crimps and wire entries. */}
                     {(() => {
-                      const machines = deriveHeadlineMachines({
-                        headlineMachines: (kit as { headlineMachines?: string[] | null }).headlineMachines ?? null,
-                        skuComponents: kit.skuComponents ?? null,
-                      });
+                      // Pass the quote's selected upgrades — any upgrade
+                      // matching a category (T4000 → tyre, Super Spin →
+                      // balancer, 48V / 270L → compressor) supersedes the
+                      // pack's stock machine on the build sheet.
+                      const machines = deriveHeadlineMachines(
+                        {
+                          headlineMachines: (kit as { headlineMachines?: string[] | null }).headlineMachines ?? null,
+                          skuComponents: kit.skuComponents ?? null,
+                        },
+                        upgrades.map((u) => ({
+                          name: u.name,
+                          variantName: (u as { variantName?: string | null }).variantName ?? null,
+                        })),
+                      );
                       if (machines.length === 0) return null;
                       return (
                         <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-kit-machines">
