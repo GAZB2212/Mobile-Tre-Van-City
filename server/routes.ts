@@ -501,6 +501,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedBuildStages: z.array(stageEntry),
       }).parse(req.body);
       await storage.updateQuote(req.params.id, { completedBuildStages: body.completedBuildStages } as any);
+
+      // Auto-seed Due-By when artwork_approved is freshly ticked via the
+      // admin build-progress PATCH. Mirrors the public stage-tick endpoint
+      // so it doesn't matter whether the staff member ticks it from the
+      // QR workshop view or directly inside the build sheet.
+      const wasApproved = ((quote as any).completedBuildStages ?? []).some(
+        (e: any) => (typeof e === "string" ? e : e?.id) === "artwork_approved"
+      );
+      const isApproved = body.completedBuildStages.some(
+        (e) => (typeof e === "string" ? e : e?.id) === "artwork_approved"
+      );
+      if (!wasApproved && isApproved) {
+        const { WEEK_MS: _WK, DUE_BY_LEAD_WEEKS_MAX: _MAX } = await import("@shared/dueByCountdown");
+        const approvedAt = (quote as any).artworkApprovedAt ? new Date((quote as any).artworkApprovedAt) : new Date();
+        if (!(quote as any).artworkApprovedAt) {
+          await pool.query(
+            `UPDATE quotes SET artwork_approved_at = $1 WHERE id = $2 AND artwork_approved_at IS NULL`,
+            [approvedAt, req.params.id]
+          );
+        }
+        const seededTarget = new Date(approvedAt.getTime() + _MAX * _WK);
+        await pool.query(
+          `UPDATE quotes SET target_completion_date = $1 WHERE id = $2 AND target_completion_date IS NULL`,
+          [seededTarget, req.params.id]
+        );
+      }
+
       res.json({ ok: true });
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
@@ -681,6 +708,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.updateQuote(quote.id, { completedBuildStages: updated } as any);
+
+      // Auto-seed artwork_approved_at + target_completion_date the first time
+      // the artwork_approved stage is ticked. Mirrors the WrapGen webhook so
+      // staff ticking the box gets the same 6/9-week countdown behaviour.
+      if (body.stageId === "artwork_approved" && body.completed) {
+        const { WEEK_MS: _WK, DUE_BY_LEAD_WEEKS_MAX: _MAX } = await import("@shared/dueByCountdown");
+        const approvedAt = (quote as any).artworkApprovedAt ? new Date((quote as any).artworkApprovedAt) : new Date();
+        if (!(quote as any).artworkApprovedAt) {
+          await pool.query(
+            `UPDATE quotes SET artwork_approved_at = $1, artwork_approved_by = COALESCE(artwork_approved_by, $2) WHERE id = $3`,
+            [approvedAt, body.initials.toUpperCase(), quote.id]
+          );
+        }
+        const seededTarget = new Date(approvedAt.getTime() + _MAX * _WK);
+        await pool.query(
+          `UPDATE quotes SET target_completion_date = $1 WHERE id = $2 AND target_completion_date IS NULL`,
+          [seededTarget, quote.id]
+        );
+      }
+
       res.json({ ok: true });
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
@@ -10091,6 +10138,18 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         [approvedAtDate, approverName, quoteId]
       );
 
+      // Auto-seed Due-By date = artwork-approved + 9 weeks (max lead time).
+      // Only when no target_completion_date has been set yet — never overwrite
+      // a manual override entered by staff. Idempotent on webhook retries.
+      const { WEEK_MS: _WK, DUE_BY_LEAD_WEEKS_MAX: _MAX } = await import("@shared/dueByCountdown");
+      const seededTarget = new Date(approvedAtDate.getTime() + _MAX * _WK);
+      await pool.query(
+        `UPDATE quotes
+         SET target_completion_date = $1
+         WHERE id = $2 AND target_completion_date IS NULL`,
+        [seededTarget, quoteId]
+      );
+
       // Append the timeline note only on first approval — skip if already recorded
       if (!alreadyApproved) {
         await pool.query(
@@ -10323,6 +10382,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
           completedBuildStages: (q.completedBuildStages ?? []) as Array<string | { id: string; initials: string }>,
           // Custom stage list overrides the auto-generated one; null means auto-generate
           customBuildStages: (q.customBuildStages ?? null) as Array<{ id: string; label: string }> | null,
+          // Artwork approval timestamp — used by the kiosk's Due-By countdown
+          // to compute the 6wk / 9wk chips relative to the approval date.
+          artworkApprovedAt: (q as any).artworkApprovedAt ?? null,
         }));
 
       res.json({

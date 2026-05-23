@@ -6,6 +6,7 @@ import { Lock, Circle, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DueByCountdown } from "@/components/DueByCountdown";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
 
@@ -75,6 +76,7 @@ interface KioskQuote {
   confirmationToken: string | null;
   completedBuildStages: Array<string | { id: string; initials: string }>;
   customBuildStages: Array<{ id: string; label: string }> | null;
+  artworkApprovedAt: string | null;
 }
 
 interface KioskUpgrade { id: string; name: string; category: string; variantName?: string | null; }
@@ -363,6 +365,13 @@ function JobCard({
           )}
         </p>
       </div>
+
+      {/* Big Due-By countdown — WKS:DAYS:HRS:MIN, plus 6wk / 9wk chips. Read-only on kiosk. */}
+      <DueByCountdown
+        targetCompletionDate={q.targetCompletionDate}
+        artworkApprovedAt={q.artworkApprovedAt}
+        variant="dark"
+      />
 
       {/* Yellow progress bar — same as workshop screen */}
       <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">

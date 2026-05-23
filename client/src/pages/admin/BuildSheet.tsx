@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QrScannerModal } from "@/components/QrScannerModal";
+import { DueByCountdown } from "@/components/DueByCountdown";
 
 import type { SkuComponent, StockItem } from "@shared/schema";
 import { deriveHeadlineMachines } from "@shared/kitHeadlineMachines";
@@ -278,6 +279,23 @@ export default function BuildSheet() {
   // pickedBomRows is keyed by composite "bomId:rowIndex" — the same physical SKU
   // appearing in two different BOM sections tracks independently
   const [pickedBomRows, setPickedBomRows] = useState<Set<string>>(new Set());
+
+  // Mutation: update only the targetCompletionDate (Due-By countdown edit).
+  const targetDateMutation = useMutation({
+    mutationFn: async (isoDateOrNull: string | null) => {
+      const res = await apiRequest("PATCH", `/api/admin/quotes/${quoteId}`, {
+        targetCompletionDate: isoDateOrNull,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Due-by date updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Could not update due-by date", description: err?.message ?? "Unknown error", variant: "destructive" });
+    },
+  });
 
   const deductMutation = useMutation({
     mutationFn: async ({ sku, qty, rowKey, kitId, upgradeId }: { sku: string; qty: number; rowKey: string; kitId?: string; upgradeId?: string }) => {
@@ -857,6 +875,19 @@ export default function BuildSheet() {
           </div>
         )}
       </div>
+
+      {/* Due-By countdown — big WKS:DAYS:HRS:MIN ticker plus 6wk/9wk date chips.
+          Editable here: staff can override the auto-seeded due date inline. */}
+      {quote && (
+        <div className="no-print px-4 pb-2">
+          <DueByCountdown
+            targetCompletionDate={(quote as any).targetCompletionDate}
+            artworkApprovedAt={(quote as any).artworkApprovedAt}
+            editable
+            onChange={(iso) => targetDateMutation.mutate(iso)}
+          />
+        </div>
+      )}
 
       {/* ── Last push summary — always visible to full admins when there's history ── */}
       {user?.adminRole === "full" && lastPush && pushPhase === "idle" && (
