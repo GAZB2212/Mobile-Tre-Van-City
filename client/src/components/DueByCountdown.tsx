@@ -87,6 +87,7 @@ export function DueByCountdown({
   return (
     <div
       className={`rounded-md border px-3 py-2 ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-card"} no-print`}
+      style={{ containerType: "inline-size" }}
       data-testid="due-by-countdown"
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -119,21 +120,19 @@ export function DueByCountdown({
             const secondsColour = c?.overdue
               ? "text-red-500"
               : isDark ? "text-yellow-300" : "text-foreground/80";
-            // clamp(min, fluid, max): on narrow kiosk cards each digit drops to
-            // ~14px; on the wide build-sheet view it grows back to ~30px.
-            // Use viewport-relative clamp so the row always fits — even on a
-            // narrow kiosk card (~45vw wide on a 2-col tablet view) the digits
-            // shrink, and on a wide build-sheet they grow back to the old size.
-            const digitClass = "font-mono font-bold tabular-nums text-[clamp(0.85rem,1.8vw,1.875rem)] leading-none";
-            const colonClass = "font-mono font-bold leading-none text-[clamp(0.85rem,1.8vw,1.875rem)] self-center";
+            // Container-relative clamp (cqw = % of this card's own width). On
+            // narrow kiosk cards the digits stay small enough to fit; on the
+            // wide build-sheet card they grow back to a chunky readable size.
+            const digitClass = "font-mono font-bold tabular-nums leading-none text-[clamp(1rem,6.5cqw,2rem)]";
+            const colonClass = "font-mono font-bold leading-none text-[clamp(1rem,6.5cqw,2rem)] self-center";
             return (
               <div
-                className="flex items-end gap-[2px] min-w-0 flex-1 overflow-hidden"
+                className="flex items-end gap-1 min-w-0 flex-1"
                 data-testid={c ? "text-countdown" : "text-countdown-empty"}
                 title={c?.overdue ? "Overdue" : c ? "Time until due date" : undefined}
               >
                 {units.map((u, i) => (
-                  <div key={u.label} className="flex items-end gap-[2px] min-w-0">
+                  <div key={u.label} className="flex items-end gap-1 min-w-0">
                     <div className="flex flex-col items-center leading-none min-w-0">
                       <span
                         className={`${digitClass} ${u.highlight && c ? secondsColour : digitColour}`}
@@ -141,7 +140,7 @@ export function DueByCountdown({
                       >
                         {u.value}
                       </span>
-                      <span className={`text-[clamp(7px,0.6vw,10px)] uppercase tracking-wider mt-1 ${dim}`}>
+                      <span className={`text-[clamp(7px,1.8cqw,10px)] uppercase tracking-wider mt-1 ${dim} whitespace-nowrap px-0.5`}>
                         {u.label}
                       </span>
                     </div>
