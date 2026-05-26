@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,8 @@ import {
   KeyRound,
   Mail,
   X,
+  Settings2,
+  AlertTriangle,
 } from "lucide-react";
 import type { User, StaffPhone } from "@shared/schema";
 
@@ -418,7 +422,7 @@ export default function AdminSettings() {
       {isFullAdmin && (
         <>
           <Separator />
-          <NotifyEmailsCard />
+          <NotifyRecipientsCard />
         </>
       )}
 
@@ -478,34 +482,43 @@ export default function AdminSettings() {
   );
 }
 
-// ── Admin notification recipients ────────────────────────────────────────────
-// Full-admin-only. The list of internal email addresses that get notified on
-// new configurator submissions, lead enquiries, spec approvals, finance
-// updates and artwork approvals. Save an empty list to restore the built-in
-// default recipients.
+// ── Admin notification recipients (per-channel) ──────────────────────────────
+// Full-admin-only. Each internal email address can subscribe to any subset of
+// the 8 notification channels — e.g. Beth can be subscribed only to the
+// "Send to Admin" depot-invoice email and nothing else, while others stay on
+// the full new-quote/spec/finance firehose. Save an empty list to restore the
+// built-in defaults.
 
-type NotifyEmailsResponse = { emails: string[]; isCustom: boolean };
+type NotifyChannelMeta = { id: string; label: string; description: string };
+type NotifyRecipient = { email: string; channels: string[] };
+type NotifyRecipientsResponse = {
+  recipients: NotifyRecipient[];
+  channels: NotifyChannelMeta[];
+  isCustom: boolean;
+};
 
-function NotifyEmailsCard() {
+function NotifyRecipientsCard() {
   const { toast } = useToast();
-  const { data, isLoading } = useQuery<NotifyEmailsResponse>({
-    queryKey: ["/api/admin/notify-emails"],
+  const { data, isLoading } = useQuery<NotifyRecipientsResponse>({
+    queryKey: ["/api/admin/notify-recipients"],
   });
-  const [emails, setEmails] = useState<string[]>([]);
+  const [recipients, setRecipients] = useState<NotifyRecipient[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [hydrated, setHydrated] = useState(false);
+
+  const channels = data?.channels ?? [];
 
   // Initialise the editable list from server data exactly once per fetch.
   useEffect(() => {
     if (data && !hydrated) {
-      setEmails(data.emails);
+      setRecipients(data.recipients);
       setHydrated(true);
     }
   }, [data, hydrated]);
 
   const saveMutation = useMutation({
-    mutationFn: async (next: string[]) => {
-      const res = await apiRequest("PUT", "/api/admin/notify-emails", { emails: next });
+    mutationFn: async (next: NotifyRecipient[]) => {
+      const res = await apiRequest("PUT", "/api/admin/notify-recipients", { recipients: next });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error ?? "Failed to save");
@@ -513,32 +526,42 @@ function NotifyEmailsCard() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/notify-emails"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/notify-recipients"] });
       setHydrated(false);
-      toast({ title: "Recipients updated", description: "Future admin notifications will go to this list." });
+      toast({ title: "Recipients updated", description: "Future notifications will follow these subscriptions." });
     },
     onError: (err: any) => {
       toast({ variant: "destructive", title: "Could not save", description: err?.message ?? "Unknown error" });
     },
   });
 
-  const addEmail = () => {
+  const addRecipient = () => {
     const trimmed = newEmail.trim().toLowerCase();
     if (!trimmed) return;
-    // Basic email shape check — server enforces strict validation on save.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       toast({ variant: "destructive", title: "Invalid email", description: "Enter a valid address, e.g. name@company.co.uk." });
       return;
     }
-    if (emails.includes(trimmed)) {
+    if (recipients.some((r) => r.email === trimmed)) {
       setNewEmail("");
       return;
     }
-    setEmails([...emails, trimmed]);
+    // New people default to "all channels on" so legacy behaviour is preserved;
+    // admins explicitly trim down (e.g. Beth → only depot_invoice).
+    setRecipients([...recipients, { email: trimmed, channels: channels.map((c) => c.id) }]);
     setNewEmail("");
   };
 
-  const removeEmail = (e: string) => setEmails(emails.filter((x) => x !== e));
+  const removeRecipient = (email: string) =>
+    setRecipients(recipients.filter((r) => r.email !== email));
+
+  const toggleChannel = (email: string, channelId: string, on: boolean) =>
+    setRecipients(recipients.map((r) => {
+      if (r.email !== email) return r;
+      const set = new Set(r.channels);
+      if (on) set.add(channelId); else set.delete(channelId);
+      return { ...r, channels: Array.from(set) };
+    }));
 
   return (
     <Card>
@@ -548,9 +571,9 @@ function NotifyEmailsCard() {
           <CardTitle className="text-base">Notification Recipients</CardTitle>
         </div>
         <CardDescription className="mt-1">
-          Internal email addresses that receive new configurator submissions, lead enquiries, spec
-          approvals, finance updates and artwork approvals. Add or remove people, then click Save.
-          Save an empty list to fall back to the built-in defaults.
+          Pick which automated emails each person should receive. Click <strong>Channels</strong> on a
+          row to choose. Someone with no channels ticked will not receive anything. Save an empty
+          list to fall back to the built-in defaults.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -565,33 +588,87 @@ function NotifyEmailsCard() {
                 <Badge variant="outline" className="text-xs text-muted-foreground no-default-active-elevate">Using defaults</Badge>
               )}
             </div>
-            {emails.length === 0 ? (
+            {recipients.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">
                 No recipients — saving will fall back to the built-in default addresses.
               </p>
             ) : (
               <ul className="space-y-2">
-                {emails.map((e) => (
-                  <li
-                    key={e}
-                    className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
-                    data-testid={`notify-email-${e}`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-sm truncate">{e}</span>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive"
-                      onClick={() => removeEmail(e)}
-                      data-testid={`button-remove-email-${e}`}
+                {recipients.map((r) => {
+                  const count = r.channels.length;
+                  const total = channels.length;
+                  const noneSelected = count === 0;
+                  return (
+                    <li
+                      key={r.email}
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      data-testid={`notify-recipient-${r.email}`}
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </li>
-                ))}
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-sm truncate">{r.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {noneSelected && (
+                          <span className="flex items-center gap-1 text-xs text-destructive" data-testid={`warning-no-channels-${r.email}`}>
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            No channels
+                          </span>
+                        )}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid={`button-channels-${r.email}`}
+                            >
+                              <Settings2 className="w-3.5 h-3.5 mr-1.5" />
+                              Channels
+                              <Badge variant="secondary" className="ml-2 no-default-active-elevate">
+                                {count}/{total}
+                              </Badge>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-80 p-3">
+                            <p className="text-sm font-medium mb-2">What should {r.email} receive?</p>
+                            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                              {channels.map((c) => {
+                                const checked = r.channels.includes(c.id);
+                                return (
+                                  <label
+                                    key={c.id}
+                                    className="flex gap-2 items-start cursor-pointer rounded-md p-2 hover-elevate"
+                                    data-testid={`channel-row-${r.email}-${c.id}`}
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(v) => toggleChannel(r.email, c.id, Boolean(v))}
+                                      className="mt-0.5"
+                                      data-testid={`checkbox-${r.email}-${c.id}`}
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm leading-tight">{c.label}</p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
+                                    </div>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => removeRecipient(r.email)}
+                          data-testid={`button-remove-recipient-${r.email}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
             <div className="flex items-center gap-2 pt-1">
@@ -600,10 +677,10 @@ function NotifyEmailsCard() {
                 placeholder="name@company.co.uk"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEmail(); } }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } }}
                 data-testid="input-new-notify-email"
               />
-              <Button size="sm" variant="outline" onClick={addEmail} data-testid="button-add-notify-email">
+              <Button size="sm" variant="outline" onClick={addRecipient} data-testid="button-add-notify-recipient">
                 <Plus className="w-3.5 h-3.5 mr-1.5" />
                 Add
               </Button>
@@ -611,9 +688,9 @@ function NotifyEmailsCard() {
             <div className="flex items-center justify-end pt-2">
               <Button
                 size="sm"
-                onClick={() => saveMutation.mutate(emails)}
+                onClick={() => saveMutation.mutate(recipients)}
                 disabled={saveMutation.isPending}
-                data-testid="button-save-notify-emails"
+                data-testid="button-save-notify-recipients"
               >
                 {saveMutation.isPending ? "Saving…" : "Save recipients"}
               </Button>

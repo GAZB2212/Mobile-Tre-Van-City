@@ -4341,7 +4341,9 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     }
   });
 
-  // Send depot invoice request email to sharon@geg.co
+  // Send depot invoice request email to the admin invoicing team
+  // (recipients are whoever is subscribed to the depot_invoice channel in
+  // Settings → Notification Recipients; falls back to sharon@geg.co).
   app.post("/api/admin/quotes/:id/send-to-depot", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
@@ -4854,7 +4856,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import('./email.js');
         if (isTestEmail(quote.email)) { /* suppress for e2e test addresses */ } else
         await sendEmail({
-          to: await getInternalNotifyEmails(),
+          to: await getInternalNotifyEmails('quote_correction'),
           subject: `Quote Correction Request — ${quote.userName}`,
           html: `
             <h2>A customer has requested corrections to their quote</h2>
@@ -4986,7 +4988,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       const ref = quote.id.slice(0, 8).toUpperCase();
       try {
         const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import('./email.js');
-        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails();
+        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails('spec_approval');
         if (isTestEmail(quote.email)) { /* suppress for e2e test addresses */ } else {
         const subject = status === 'approved'
           ? `Spec Approved — ${quote.userName} (Ref #${ref})`
@@ -6604,32 +6606,50 @@ ${blogEntries}
     }
   });
 
-  // ── Admin notification recipients ─────────────────────────────────────────
-  // The list of internal email addresses that receive new-quote, spec, finance
-  // and artwork notifications. Stored as JSON array in site_settings under
-  // `admin_notify_emails`. Empty/missing → falls back to the default list
-  // baked into server/email.ts.
-  app.get("/api/admin/notify-emails", isAuthenticated, isFullAdmin, async (_req, res) => {
+  // ── Admin notification recipients (per-channel) ───────────────────────────
+  // Each recipient subscribes to one or more notification channels — so e.g.
+  // Beth can be subscribed only to depot_invoice ("Send to Admin"), while
+  // others get the full firehose. See server/email.ts NOTIFY_CHANNELS for the
+  // canonical channel list. Stored as JSON array in site_settings under
+  // `admin_notify_recipients`. Legacy `admin_notify_emails` is still honoured
+  // (each address read as subscribed to every non-depot channel).
+  app.get("/api/admin/notify-recipients", isAuthenticated, isFullAdmin, async (_req, res) => {
     try {
-      const { getInternalNotifyEmails } = await import('./email.js');
-      const emails = await getInternalNotifyEmails();
+      const { getNotifyRecipients, NOTIFY_CHANNELS, ADMIN_NOTIFY_RECIPIENTS_KEY, ADMIN_NOTIFY_EMAILS_KEY } = await import('./email.js');
+      const recipients = await getNotifyRecipients();
       const settings = await storage.getSiteSettings();
-      const isCustom = Boolean(settings['admin_notify_emails']);
-      res.json({ emails, isCustom });
+      const isCustom = Boolean(settings[ADMIN_NOTIFY_RECIPIENTS_KEY] || settings[ADMIN_NOTIFY_EMAILS_KEY]);
+      res.json({ recipients, channels: NOTIFY_CHANNELS, isCustom });
     } catch (err) {
       res.status(500).json({ error: "Failed to load notification recipients" });
     }
   });
 
-  app.put("/api/admin/notify-emails", isAuthenticated, isFullAdmin, async (req, res) => {
+  app.put("/api/admin/notify-recipients", isAuthenticated, isFullAdmin, async (req, res) => {
     try {
+      const { NOTIFY_CHANNELS, ADMIN_NOTIFY_RECIPIENTS_KEY, ADMIN_NOTIFY_EMAILS_KEY } = await import('./email.js');
+      const validChannels = NOTIFY_CHANNELS.map((c) => c.id) as readonly string[];
       const body = z.object({
-        emails: z.array(z.string().trim().email("Each entry must be a valid email")).max(50),
+        recipients: z.array(z.object({
+          email: z.string().trim().email("Each recipient must have a valid email"),
+          channels: z.array(z.string()),
+        })).max(50),
       }).parse(req.body);
-      const cleaned = Array.from(new Set(body.emails.map((e) => e.toLowerCase().trim()).filter(Boolean)));
+      // Normalise: lowercase, dedupe, filter invalid channel ids, dedupe by
+      // email (later entries win — merge would surprise the user vs the UI).
+      const seen = new Map<string, string[]>();
+      for (const r of body.recipients) {
+        const email = r.email.trim().toLowerCase();
+        if (!email) continue;
+        const channels = Array.from(new Set(r.channels.filter((c) => validChannels.includes(c))));
+        seen.set(email, channels);
+      }
+      const cleaned = Array.from(seen.entries()).map(([email, channels]) => ({ email, channels }));
       // Empty list clears the override (defaults take over again).
-      await storage.setSiteSetting('admin_notify_emails', cleaned.length ? JSON.stringify(cleaned) : '');
-      res.json({ success: true, emails: cleaned, cleared: cleaned.length === 0 });
+      await storage.setSiteSetting(ADMIN_NOTIFY_RECIPIENTS_KEY, cleaned.length ? JSON.stringify(cleaned) : '');
+      // Also wipe the legacy key so it doesn't shadow an intentional empty list.
+      if (cleaned.length === 0) await storage.setSiteSetting(ADMIN_NOTIFY_EMAILS_KEY, '');
+      res.json({ success: true, recipients: cleaned, cleared: cleaned.length === 0 });
     } catch (err: any) {
       if (err?.errors) {
         return res.status(400).json({ error: err.errors[0]?.message ?? "Invalid input" });
@@ -9530,7 +9550,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       // Email the MTVC team (non-fatal)
       try {
         const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import("./email.js");
-        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails();
+        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails('finance_update');
         if (isTestEmail(quote.customer_email)) throw new Error("suppressed-test-email");
         const statusEmoji: Record<string, string> = { pending: "🔄", approved: "✅", declined: "❌", more_info_needed: "⚠️" };
         const statusLabel: Record<string, string> = { pending: "In Review", approved: "Approved", declined: "Declined", more_info_needed: "More Info Needed" };
@@ -9631,7 +9651,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       try {
         const customer = await storage.getCustomer(proof.customer_id);
         const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import('./email.js');
-        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails();
+        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails('artwork_approval');
         if (isTestEmail(customer?.email)) throw new Error("suppressed-test-email");
         const subject = approved
           ? `Artwork Approved — ${customer?.name ?? 'Customer'}`

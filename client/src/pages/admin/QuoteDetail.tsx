@@ -857,7 +857,7 @@ export default function AdminQuoteDetail() {
     onSuccess: () => {
       toast({
         title: "Sent to Depot",
-        description: "Invoice request emailed to sharon@geg.co.",
+        description: "Invoice request emailed to the admin invoicing team.",
       });
     },
     onError: () => {
@@ -3763,7 +3763,7 @@ export default function AdminQuoteDetail() {
                   {sendToDepotMutation.isPending ? "Sending..." : "Send to Admin"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Emails the full build spec and pricing to sharon@geg.co to raise an invoice.
+                  Emails the full build spec and pricing to the admin invoicing team to raise an invoice. Recipients are managed in Settings → Notification Recipients.
                 </p>
               </CardContent>
             </Card>

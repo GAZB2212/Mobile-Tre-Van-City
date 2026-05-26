@@ -1,38 +1,100 @@
 import { Resend } from 'resend';
 import { storage } from './storage';
 
-// Default recipients for new-quote / spec / finance / artwork admin notifications.
-// Admins can override this list via Admin → Settings → "Notification recipients"
-// which writes site_settings key `admin_notify_emails` (JSON array). The list
-// here is the safety-net fallback if the setting is unset or invalid.
-const DEFAULT_INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
+// ── Internal notification routing ────────────────────────────────────────────
+// Each internal email triggered by the platform belongs to a NotifyChannel.
+// Admins assign recipients to channels via Admin → Settings → Notification
+// Recipients (site_settings key `admin_notify_recipients`). Each person can
+// subscribe to any subset of channels — so e.g. Beth can receive only the
+// "Send to Admin" depot-invoice emails while Carl/Graham still get the full
+// new-quote firehose.
+//
+// Storage shape (JSON): { email: string, channels: NotifyChannel[] }[]
+//
+// Back-compat: if only the old `admin_notify_emails` key (plain string[])
+// exists, each address is treated as subscribed to every channel except
+// `depot_invoice` (that one had its own hardcoded sharon@geg.co default).
+//
+// Fallback: if nothing is configured at all, channel-specific defaults below
+// are used so the system keeps emailing somebody rather than silently dropping.
 
-export const ADMIN_NOTIFY_EMAILS_KEY = 'admin_notify_emails';
+export const NOTIFY_CHANNELS = [
+  { id: 'configurator_submission', label: 'New configurator submission',  description: 'Customer clicks Send on the configurator/quote builder.' },
+  { id: 'lead_enquiry',            label: 'New lead enquiry',              description: 'Contact-form / "Get in touch" submissions.' },
+  { id: 'option_chosen',           label: 'Customer chose Option A/B',     description: 'Customer picked A or B from a comparison email.' },
+  { id: 'quote_correction',        label: 'Quote correction request',      description: 'Customer requested changes to their quote.' },
+  { id: 'spec_approval',           label: 'Spec approval / flagged',       description: 'Customer approved or rejected their spec sheet.' },
+  { id: 'finance_update',          label: 'Finance status update',         description: 'Jigsaw / finance team status change.' },
+  { id: 'artwork_approval',        label: 'Artwork approval / changes',    description: 'WrapGen artwork response from customer.' },
+  { id: 'depot_invoice',           label: '"Send to Admin" invoice email', description: 'Send-to-Admin button on a quote — full build spec + pricing.' },
+] as const;
+export type NotifyChannel = typeof NOTIFY_CHANNELS[number]['id'];
+const ALL_CHANNEL_IDS = NOTIFY_CHANNELS.map((c) => c.id) as readonly NotifyChannel[];
+const NON_DEPOT_CHANNELS = ALL_CHANNEL_IDS.filter((c) => c !== 'depot_invoice');
+
+// Channel-specific safety-net defaults used when nothing is configured.
+const DEFAULT_BROAD_RECIPIENTS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
+const DEFAULT_DEPOT_RECIPIENTS = ['sharon@geg.co'];
+
+export const ADMIN_NOTIFY_RECIPIENTS_KEY = 'admin_notify_recipients';
+export const ADMIN_NOTIFY_EMAILS_KEY = 'admin_notify_emails'; // legacy (back-compat)
+
+export type NotifyRecipient = { email: string; channels: NotifyChannel[] };
 
 /**
- * Resolves the current admin-notification recipient list. Reads the
- * `admin_notify_emails` site setting (JSON array of addresses); falls back to
- * the default list if missing, empty, or malformed. Always returns at least
- * one address.
+ * Reads the configured recipient list. Returns [] if nothing is configured.
+ * Handles the legacy `admin_notify_emails` shape by promoting each address
+ * to subscribe to every non-depot channel.
  */
-export async function getInternalNotifyEmails(): Promise<string[]> {
+export async function getNotifyRecipients(): Promise<NotifyRecipient[]> {
   try {
     const settings = await storage.getSiteSettings();
-    const raw = settings[ADMIN_NOTIFY_EMAILS_KEY];
+    const raw = settings[ADMIN_NOTIFY_RECIPIENTS_KEY];
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        const cleaned = parsed
+        const out: NotifyRecipient[] = [];
+        for (const r of parsed) {
+          if (!r || typeof r !== 'object') continue;
+          const email = typeof r.email === 'string' ? r.email.trim().toLowerCase() : '';
+          if (!email) continue;
+          const channels = Array.isArray(r.channels)
+            ? (r.channels.filter((c: unknown): c is NotifyChannel => typeof c === 'string' && (ALL_CHANNEL_IDS as readonly string[]).includes(c)))
+            : [];
+          out.push({ email, channels });
+        }
+        return out;
+      }
+    }
+    // Legacy fallback
+    const legacy = settings[ADMIN_NOTIFY_EMAILS_KEY];
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      if (Array.isArray(parsed)) {
+        return parsed
           .filter((e): e is string => typeof e === 'string')
-          .map((e) => e.trim())
-          .filter((e) => e.length > 0);
-        if (cleaned.length > 0) return cleaned;
+          .map((e) => e.trim().toLowerCase())
+          .filter((e) => e.length > 0)
+          .map((email) => ({ email, channels: [...NON_DEPOT_CHANNELS] }));
       }
     }
   } catch {
-    // Fall through to default
+    // fall through to defaults
   }
-  return DEFAULT_INTERNAL_NOTIFY_EMAILS;
+  return [];
+}
+
+/**
+ * Resolves the recipient list for one channel. Falls back to channel-specific
+ * defaults when no one is subscribed (so notifications never silently vanish).
+ */
+export async function getInternalNotifyEmails(channel: NotifyChannel): Promise<string[]> {
+  const recipients = await getNotifyRecipients();
+  const matched = recipients.filter((r) => r.channels.includes(channel)).map((r) => r.email);
+  if (matched.length > 0) {
+    return Array.from(new Set(matched));
+  }
+  return channel === 'depot_invoice' ? DEFAULT_DEPOT_RECIPIENTS : DEFAULT_BROAD_RECIPIENTS;
 }
 
 /** Returns true for email addresses that belong to test/e2e runs and must never receive real mail. */
@@ -909,7 +971,7 @@ export async function sendQuoteReceivedEmails({
 
   if (!testMode || testMode.variant === 'admin') {
     await client.emails.send({
-      to: testMode ? testMode.testAddress : await getInternalNotifyEmails(),
+      to: testMode ? testMode.testAddress : await getInternalNotifyEmails('configurator_submission'),
       from: fromEmail,
       subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
       html: emailLayout(adminBodyHtml, {
@@ -979,7 +1041,7 @@ export async function sendOptionChosenAdminNotification({
   `;
 
   await client.emails.send({
-    to: toOverride ?? await getInternalNotifyEmails(),
+    to: toOverride ?? await getInternalNotifyEmails('option_chosen'),
     from: fromEmail,
     subject: `Customer chose Option ${chosenOption} – ${customerName} – Ref #${ref}`,
     html: emailLayout(bodyHtml, {
@@ -1056,7 +1118,7 @@ export async function sendLeadReceivedEmails(lead: {
 
   if (!lead.testMode || lead.testMode.variant === 'admin') {
     await client.emails.send({
-      to: lead.testMode ? lead.testMode.testAddress : await getInternalNotifyEmails(),
+      to: lead.testMode ? lead.testMode.testAddress : await getInternalNotifyEmails('lead_enquiry'),
       from: fromEmail,
       subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
       html: emailLayout(adminBodyHtml, {
@@ -1380,7 +1442,7 @@ Mobile Tyre Van City | ${PHONE}
 ${ADDRESS}`;
 
   await client.emails.send({
-    to: toOverride ?? 'sharon@geg.co',
+    to: toOverride ?? await getInternalNotifyEmails('depot_invoice'),
     from: fromEmail,
     subject: `Invoice Request – Quote #${ref} – ${customerName}`,
     html: emailLayout(depotBodyHtml, {
