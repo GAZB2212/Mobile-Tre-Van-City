@@ -4850,12 +4850,11 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       });
 
       // Notify internal team
-      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
       try {
-        const { sendEmail, isTestEmail } = await import('./email.js');
+        const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import('./email.js');
         if (isTestEmail(quote.email)) { /* suppress for e2e test addresses */ } else
         await sendEmail({
-          to: INTERNAL_NOTIFY_EMAILS,
+          to: await getInternalNotifyEmails(),
           subject: `Quote Correction Request — ${quote.userName}`,
           html: `
             <h2>A customer has requested corrections to their quote</h2>
@@ -4984,10 +4983,10 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       } as any);
 
       // Notify internal team
-      const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
       const ref = quote.id.slice(0, 8).toUpperCase();
       try {
-        const { sendEmail, isTestEmail } = await import('./email.js');
+        const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import('./email.js');
+        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails();
         if (isTestEmail(quote.email)) { /* suppress for e2e test addresses */ } else {
         const subject = status === 'approved'
           ? `Spec Approved — ${quote.userName} (Ref #${ref})`
@@ -6602,6 +6601,40 @@ ${blogEntries}
     } catch (error: any) {
       console.error('Email preview error:', error);
       res.status(500).json({ error: error?.message ?? 'Failed to send preview email.' });
+    }
+  });
+
+  // ── Admin notification recipients ─────────────────────────────────────────
+  // The list of internal email addresses that receive new-quote, spec, finance
+  // and artwork notifications. Stored as JSON array in site_settings under
+  // `admin_notify_emails`. Empty/missing → falls back to the default list
+  // baked into server/email.ts.
+  app.get("/api/admin/notify-emails", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const { getInternalNotifyEmails } = await import('./email.js');
+      const emails = await getInternalNotifyEmails();
+      const settings = await storage.getSiteSettings();
+      const isCustom = Boolean(settings['admin_notify_emails']);
+      res.json({ emails, isCustom });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load notification recipients" });
+    }
+  });
+
+  app.put("/api/admin/notify-emails", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const body = z.object({
+        emails: z.array(z.string().trim().email("Each entry must be a valid email")).max(50),
+      }).parse(req.body);
+      const cleaned = Array.from(new Set(body.emails.map((e) => e.toLowerCase().trim()).filter(Boolean)));
+      // Empty list clears the override (defaults take over again).
+      await storage.setSiteSetting('admin_notify_emails', cleaned.length ? JSON.stringify(cleaned) : '');
+      res.json({ success: true, emails: cleaned, cleared: cleaned.length === 0 });
+    } catch (err: any) {
+      if (err?.errors) {
+        return res.status(400).json({ error: err.errors[0]?.message ?? "Invalid input" });
+      }
+      res.status(500).json({ error: err?.message ?? "Failed to save recipients" });
     }
   });
 
@@ -9496,8 +9529,8 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       // Email the MTVC team (non-fatal)
       try {
-        const INTERNAL_NOTIFY_EMAILS = ["carl@geg.co", "graham@wirralvans.co.uk", "sharon@geg.co", "info@gfukgroup.co.uk"];
-        const { sendEmail, isTestEmail } = await import("./email.js");
+        const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import("./email.js");
+        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails();
         if (isTestEmail(quote.customer_email)) throw new Error("suppressed-test-email");
         const statusEmoji: Record<string, string> = { pending: "🔄", approved: "✅", declined: "❌", more_info_needed: "⚠️" };
         const statusLabel: Record<string, string> = { pending: "In Review", approved: "Approved", declined: "Declined", more_info_needed: "More Info Needed" };
@@ -9596,9 +9629,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       // Notify internal team
       try {
-        const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
         const customer = await storage.getCustomer(proof.customer_id);
-        const { sendEmail, isTestEmail } = await import('./email.js');
+        const { sendEmail, isTestEmail, getInternalNotifyEmails } = await import('./email.js');
+        const INTERNAL_NOTIFY_EMAILS = await getInternalNotifyEmails();
         if (isTestEmail(customer?.email)) throw new Error("suppressed-test-email");
         const subject = approved
           ? `Artwork Approved — ${customer?.name ?? 'Customer'}`

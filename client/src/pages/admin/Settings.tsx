@@ -32,6 +32,8 @@ import {
   ChevronUp,
   ChevronDown,
   KeyRound,
+  Mail,
+  X,
 } from "lucide-react";
 import type { User, StaffPhone } from "@shared/schema";
 
@@ -412,6 +414,14 @@ export default function AdminSettings() {
         </>
       )}
 
+      {/* Notification recipients — who gets new-quote / spec / finance emails */}
+      {isFullAdmin && (
+        <>
+          <Separator />
+          <NotifyEmailsCard />
+        </>
+      )}
+
       {/* Kiosk undo PINs — managed by full admins */}
       {isFullAdmin && (
         <>
@@ -465,6 +475,153 @@ export default function AdminSettings() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ── Admin notification recipients ────────────────────────────────────────────
+// Full-admin-only. The list of internal email addresses that get notified on
+// new configurator submissions, lead enquiries, spec approvals, finance
+// updates and artwork approvals. Save an empty list to restore the built-in
+// default recipients.
+
+type NotifyEmailsResponse = { emails: string[]; isCustom: boolean };
+
+function NotifyEmailsCard() {
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery<NotifyEmailsResponse>({
+    queryKey: ["/api/admin/notify-emails"],
+  });
+  const [emails, setEmails] = useState<string[]>([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+
+  // Initialise the editable list from server data exactly once per fetch.
+  useEffect(() => {
+    if (data && !hydrated) {
+      setEmails(data.emails);
+      setHydrated(true);
+    }
+  }, [data, hydrated]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (next: string[]) => {
+      const res = await apiRequest("PUT", "/api/admin/notify-emails", { emails: next });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Failed to save");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/notify-emails"] });
+      setHydrated(false);
+      toast({ title: "Recipients updated", description: "Future admin notifications will go to this list." });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Could not save", description: err?.message ?? "Unknown error" });
+    },
+  });
+
+  const addEmail = () => {
+    const trimmed = newEmail.trim().toLowerCase();
+    if (!trimmed) return;
+    // Basic email shape check — server enforces strict validation on save.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast({ variant: "destructive", title: "Invalid email", description: "Enter a valid address, e.g. name@company.co.uk." });
+      return;
+    }
+    if (emails.includes(trimmed)) {
+      setNewEmail("");
+      return;
+    }
+    setEmails([...emails, trimmed]);
+    setNewEmail("");
+  };
+
+  const removeEmail = (e: string) => setEmails(emails.filter((x) => x !== e));
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Mail className="w-5 h-5 text-muted-foreground" />
+          <CardTitle className="text-base">Notification Recipients</CardTitle>
+        </div>
+        <CardDescription className="mt-1">
+          Internal email addresses that receive new configurator submissions, lead enquiries, spec
+          approvals, finance updates and artwork approvals. Add or remove people, then click Save.
+          Save an empty list to fall back to the built-in defaults.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              {data?.isCustom ? (
+                <Badge variant="outline" className="text-xs no-default-active-elevate">Custom list</Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs text-muted-foreground no-default-active-elevate">Using defaults</Badge>
+              )}
+            </div>
+            {emails.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">
+                No recipients — saving will fall back to the built-in default addresses.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {emails.map((e) => (
+                  <li
+                    key={e}
+                    className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                    data-testid={`notify-email-${e}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-sm truncate">{e}</span>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => removeEmail(e)}
+                      data-testid={`button-remove-email-${e}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center gap-2 pt-1">
+              <Input
+                type="email"
+                placeholder="name@company.co.uk"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEmail(); } }}
+                data-testid="input-new-notify-email"
+              />
+              <Button size="sm" variant="outline" onClick={addEmail} data-testid="button-add-notify-email">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Add
+              </Button>
+            </div>
+            <div className="flex items-center justify-end pt-2">
+              <Button
+                size="sm"
+                onClick={() => saveMutation.mutate(emails)}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-notify-emails"
+              >
+                {saveMutation.isPending ? "Saving…" : "Save recipients"}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

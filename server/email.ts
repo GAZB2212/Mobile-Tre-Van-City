@@ -1,6 +1,39 @@
 import { Resend } from 'resend';
+import { storage } from './storage';
 
-const INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
+// Default recipients for new-quote / spec / finance / artwork admin notifications.
+// Admins can override this list via Admin → Settings → "Notification recipients"
+// which writes site_settings key `admin_notify_emails` (JSON array). The list
+// here is the safety-net fallback if the setting is unset or invalid.
+const DEFAULT_INTERNAL_NOTIFY_EMAILS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
+
+export const ADMIN_NOTIFY_EMAILS_KEY = 'admin_notify_emails';
+
+/**
+ * Resolves the current admin-notification recipient list. Reads the
+ * `admin_notify_emails` site setting (JSON array of addresses); falls back to
+ * the default list if missing, empty, or malformed. Always returns at least
+ * one address.
+ */
+export async function getInternalNotifyEmails(): Promise<string[]> {
+  try {
+    const settings = await storage.getSiteSettings();
+    const raw = settings[ADMIN_NOTIFY_EMAILS_KEY];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed
+          .filter((e): e is string => typeof e === 'string')
+          .map((e) => e.trim())
+          .filter((e) => e.length > 0);
+        if (cleaned.length > 0) return cleaned;
+      }
+    }
+  } catch {
+    // Fall through to default
+  }
+  return DEFAULT_INTERNAL_NOTIFY_EMAILS;
+}
 
 /** Returns true for email addresses that belong to test/e2e runs and must never receive real mail. */
 export function isTestEmail(email: string | null | undefined): boolean {
@@ -876,7 +909,7 @@ export async function sendQuoteReceivedEmails({
 
   if (!testMode || testMode.variant === 'admin') {
     await client.emails.send({
-      to: testMode ? testMode.testAddress : INTERNAL_NOTIFY_EMAILS,
+      to: testMode ? testMode.testAddress : await getInternalNotifyEmails(),
       from: fromEmail,
       subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
       html: emailLayout(adminBodyHtml, {
@@ -946,7 +979,7 @@ export async function sendOptionChosenAdminNotification({
   `;
 
   await client.emails.send({
-    to: toOverride ?? INTERNAL_NOTIFY_EMAILS,
+    to: toOverride ?? await getInternalNotifyEmails(),
     from: fromEmail,
     subject: `Customer chose Option ${chosenOption} – ${customerName} – Ref #${ref}`,
     html: emailLayout(bodyHtml, {
@@ -1023,7 +1056,7 @@ export async function sendLeadReceivedEmails(lead: {
 
   if (!lead.testMode || lead.testMode.variant === 'admin') {
     await client.emails.send({
-      to: lead.testMode ? lead.testMode.testAddress : INTERNAL_NOTIFY_EMAILS,
+      to: lead.testMode ? lead.testMode.testAddress : await getInternalNotifyEmails(),
       from: fromEmail,
       subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
       html: emailLayout(adminBodyHtml, {
