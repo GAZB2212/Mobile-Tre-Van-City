@@ -225,6 +225,8 @@ function JobCard({
   const { token } = useParams<{ token: string }>();
   const tapState = useRef<{ id: string | null; count: number; timer: any }>({ id: null, count: 0, timer: null });
   const [tickDialog, setTickDialog] = useState<{ stageId: string; label: string } | null>(null);
+  const [undoDialog, setUndoDialog] = useState<{ stageId: string; label: string; initials: string } | null>(null);
+  const [undoPin, setUndoPin] = useState("");
   const [statusDialog, setStatusDialog] = useState<{ next: "in_workshop" | "in_build" } | null>(null);
   const [dateDialog, setDateDialog] = useState<{ value: string; time?: string } | null>(null);
 
@@ -241,6 +243,22 @@ function JobCard({
       setTickDialog(null);
     },
     onError: (err: any) => alert(`Could not save: ${err?.message ?? "unknown error"}`),
+  });
+
+  const untickMutation = useMutation({
+    mutationFn: async ({ stageId, initials, pin }: { stageId: string; initials: string; pin: string }) => {
+      if (!q.confirmationToken) throw new Error("No confirmation token on quote");
+      const res = await apiRequest("PATCH", `/api/build-progress-public/${q.confirmationToken}/stage`, {
+        stageId, completed: false, initials, pin,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kiosk/pipeline", token] });
+      setUndoDialog(null);
+      setUndoPin("");
+    },
+    onError: (err: any) => alert(`Could not undo: ${err?.message ?? "unknown error"}`),
   });
 
   const statusMutation = useMutation({
@@ -299,7 +317,16 @@ function JobCard({
   };
 
   const handleStageTap = (stageId: string, label: string, alreadyDone: boolean) => {
-    if (alreadyDone) return;
+    if (alreadyDone) {
+      // Triple-tap a done stage to open the undo (PIN) dialog. Only the
+      // person who originally ticked it can untick it, and they need their
+      // 4-digit kiosk PIN.
+      const entry = completed.find((c) => c.id === stageId);
+      const initials = entry?.initials ?? null;
+      if (!initials) return; // legacy untracked tick — can't safely undo
+      handleTripleTap(`stage:${stageId}`, () => { setUndoPin(""); setUndoDialog({ stageId, label, initials }); });
+      return;
+    }
     handleTripleTap(`stage:${stageId}`, () => setTickDialog({ stageId, label }));
   };
 
@@ -468,11 +495,12 @@ function JobCard({
                   onClick={() => handleStageTap(s.id, s.label, done)}
                   data-testid={`stage-row-${s.id}`}
                   className={[
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg select-none",
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg select-none cursor-pointer",
                     done
-                      ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70"
-                      : "bg-zinc-900 border border-zinc-800 cursor-pointer active:bg-zinc-800",
+                      ? "bg-zinc-900/50 border border-zinc-800/50 opacity-70 active:bg-zinc-900"
+                      : "bg-zinc-900 border border-zinc-800 active:bg-zinc-800",
                   ].join(" ")}
+                  title={done ? "Triple-tap to undo (PIN required)" : "Triple-tap to tick off"}
                 >
                   {done ? (
                     <Lock className="w-5 h-5 shrink-0 text-zinc-600" />
@@ -623,6 +651,96 @@ function JobCard({
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTickDialog(null)} data-testid="button-stage-cancel">
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Triple-tap undo dialog — only the lad who ticked the stage can undo
+          it, and only with their 4-digit kiosk PIN. Stops a mistap on
+          someone's name from rolling back work that's already signed off. */}
+      <Dialog
+        open={undoDialog !== null}
+        onOpenChange={(open) => { if (!open) { setUndoDialog(null); setUndoPin(""); } }}
+      >
+        <DialogContent data-testid="dialog-stage-undo">
+          <DialogHeader>
+            <DialogTitle>Undo "{undoDialog?.label}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Ticked off by <span className="font-bold text-foreground">{undoDialog?.initials}</span>.
+              Enter their 4-digit PIN to undo.
+            </p>
+            <div className="flex justify-center">
+              <div
+                className="font-mono text-4xl tracking-[0.5em] tabular-nums border rounded-md px-4 py-3 min-w-[10rem] text-center bg-zinc-900 text-white"
+                data-testid="text-undo-pin-display"
+              >
+                {"●".repeat(undoPin.length) + "○".repeat(Math.max(0, 4 - undoPin.length))}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {["1","2","3","4","5","6","7","8","9"].map((n) => (
+                <Button
+                  key={n}
+                  size="lg"
+                  variant="outline"
+                  className="h-16 text-2xl font-bold"
+                  disabled={untickMutation.isPending || undoPin.length >= 4}
+                  onClick={() => setUndoPin((p) => (p.length < 4 ? p + n : p))}
+                  data-testid={`button-pin-${n}`}
+                >
+                  {n}
+                </Button>
+              ))}
+              <Button
+                size="lg"
+                variant="ghost"
+                className="h-16 text-base"
+                disabled={untickMutation.isPending || undoPin.length === 0}
+                onClick={() => setUndoPin("")}
+                data-testid="button-pin-clear"
+              >
+                Clear
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-16 text-2xl font-bold"
+                disabled={untickMutation.isPending || undoPin.length >= 4}
+                onClick={() => setUndoPin((p) => (p.length < 4 ? p + "0" : p))}
+                data-testid="button-pin-0"
+              >
+                0
+              </Button>
+              <Button
+                size="lg"
+                variant="ghost"
+                className="h-16 text-base"
+                disabled={untickMutation.isPending || undoPin.length === 0}
+                onClick={() => setUndoPin((p) => p.slice(0, -1))}
+                data-testid="button-pin-back"
+              >
+                ←
+              </Button>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => { setUndoDialog(null); setUndoPin(""); }}
+              data-testid="button-undo-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={untickMutation.isPending || undoPin.length !== 4 || !undoDialog}
+              onClick={() => undoDialog && untickMutation.mutate({ stageId: undoDialog.stageId, initials: undoDialog.initials, pin: undoPin })}
+              data-testid="button-undo-confirm"
+            >
+              {untickMutation.isPending ? "Undoing…" : "Undo Tick"}
             </Button>
           </DialogFooter>
         </DialogContent>

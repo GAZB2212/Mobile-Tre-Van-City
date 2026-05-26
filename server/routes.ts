@@ -698,15 +698,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ),
         completed: z.boolean(),
         initials: z.string().min(1).max(10),
+        // Required only on untick — proves the person undoing is who they say
+        pin: z.string().optional(),
       }).parse(req.body);
 
       const raw = ((quote as any).completedBuildStages ?? []) as Array<string | { id: string; initials: string }>;
 
-      // Undo protection: only the person who marked a stage done can undo it
+      // Undo protection: only the person who marked a stage done can undo it,
+      // AND they must enter their 4-digit kiosk PIN (stops mistaps from
+      // unticking someone else's work just by picking their name).
       if (!body.completed) {
         const existing = raw.find((e) => (typeof e === "string" ? e : e.id) === body.stageId);
-        if (existing && typeof existing !== "string" && existing.initials && existing.initials !== body.initials) {
-          return res.status(403).json({ error: `This stage was completed by ${existing.initials} — only they can undo it.` });
+        const tickedBy = existing && typeof existing !== "string" ? (existing.initials ?? null) : null;
+        if (tickedBy && tickedBy !== body.initials.toUpperCase()) {
+          return res.status(403).json({ error: `This stage was ticked by ${tickedBy} — only they can undo it.` });
+        }
+        // PIN check — pulled from env (KIOSK_PIN_<INITIALS>). Missing env =
+        // undo disabled for that person. Constant-time compare keeps us
+        // honest about side-channels even on a tiny 4-digit secret.
+        const initialsUpper = body.initials.toUpperCase();
+        const expected = process.env[`KIOSK_PIN_${initialsUpper}`];
+        if (!expected) {
+          return res.status(403).json({ error: `No PIN configured for ${initialsUpper} — ask an admin to set KIOSK_PIN_${initialsUpper}.` });
+        }
+        const supplied = (body.pin ?? "").trim();
+        const a = Buffer.from(expected);
+        const b = Buffer.from(supplied);
+        const ok = a.length === b.length && (await import("node:crypto")).timingSafeEqual(a, b);
+        if (!ok) {
+          return res.status(403).json({ error: "Wrong PIN" });
         }
       }
 
