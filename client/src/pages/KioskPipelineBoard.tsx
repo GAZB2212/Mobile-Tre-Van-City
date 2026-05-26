@@ -646,6 +646,15 @@ function JobCard({
               >
                 Ryan<span className="ml-2 opacity-70 text-base">(RC)</span>
               </Button>
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "KW" })}
+                data-testid="button-stage-kw"
+              >
+                Kenny<span className="ml-2 opacity-70 text-base">(KW)</span>
+              </Button>
             </div>
           </div>
           <DialogFooter>
