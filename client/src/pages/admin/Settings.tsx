@@ -495,6 +495,7 @@ type NotifyRecipientsResponse = {
   recipients: NotifyRecipient[];
   channels: NotifyChannelMeta[];
   isCustom: boolean;
+  effectiveByChannel: Record<string, string[]>;
 };
 
 function NotifyRecipientsCard() {
@@ -507,11 +508,31 @@ function NotifyRecipientsCard() {
   const [hydrated, setHydrated] = useState(false);
 
   const channels = data?.channels ?? [];
+  const channelLabel = (id: string) => channels.find((c) => c.id === id)?.label ?? id;
 
   // Initialise the editable list from server data exactly once per fetch.
+  // When nothing has been customised yet, prefill from the current effective
+  // (built-in default) recipients so the list shows who is actually receiving
+  // things today — far less confusing than an empty editor when emails are
+  // still flowing out to default addresses.
   useEffect(() => {
     if (data && !hydrated) {
-      setRecipients(data.recipients);
+      if (data.recipients.length > 0) {
+        setRecipients(data.recipients);
+      } else if (data.effectiveByChannel) {
+        const map = new Map<string, Set<string>>();
+        for (const [channelId, emails] of Object.entries(data.effectiveByChannel)) {
+          for (const e of emails) {
+            const key = e.toLowerCase();
+            if (!map.has(key)) map.set(key, new Set());
+            map.get(key)!.add(channelId);
+          }
+        }
+        const synthesised: NotifyRecipient[] = Array.from(map.entries())
+          .map(([email, set]) => ({ email, channels: Array.from(set) }))
+          .sort((a, b) => a.email.localeCompare(b.email));
+        setRecipients(synthesised);
+      }
       setHydrated(true);
     }
   }, [data, hydrated]);
@@ -598,74 +619,98 @@ function NotifyRecipientsCard() {
                   const count = r.channels.length;
                   const total = channels.length;
                   const noneSelected = count === 0;
+                  const allSelected = count === total && total > 0;
                   return (
                     <li
                       key={r.email}
-                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      className="flex flex-col gap-2 rounded-md border px-3 py-2"
                       data-testid={`notify-recipient-${r.email}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-sm truncate">{r.email}</span>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate">{r.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {noneSelected && (
+                            <span className="flex items-center gap-1 text-xs text-destructive" data-testid={`warning-no-channels-${r.email}`}>
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              No channels
+                            </span>
+                          )}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                data-testid={`button-channels-${r.email}`}
+                              >
+                                <Settings2 className="w-3.5 h-3.5 mr-1.5" />
+                                Channels
+                                <Badge variant="secondary" className="ml-2 no-default-active-elevate">
+                                  {count}/{total}
+                                </Badge>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-80 p-3">
+                              <p className="text-sm font-medium mb-2">What should {r.email} receive?</p>
+                              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                {channels.map((c) => {
+                                  const checked = r.channels.includes(c.id);
+                                  return (
+                                    <label
+                                      key={c.id}
+                                      className="flex gap-2 items-start cursor-pointer rounded-md p-2 hover-elevate"
+                                      data-testid={`channel-row-${r.email}-${c.id}`}
+                                    >
+                                      <Checkbox
+                                        checked={checked}
+                                        onCheckedChange={(v) => toggleChannel(r.email, c.id, Boolean(v))}
+                                        className="mt-0.5"
+                                        data-testid={`checkbox-${r.email}-${c.id}`}
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm leading-tight">{c.label}</p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => removeRecipient(r.email)}
+                            data-testid={`button-remove-recipient-${r.email}`}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {noneSelected && (
-                          <span className="flex items-center gap-1 text-xs text-destructive" data-testid={`warning-no-channels-${r.email}`}>
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            No channels
-                          </span>
-                        )}
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              data-testid={`button-channels-${r.email}`}
-                            >
-                              <Settings2 className="w-3.5 h-3.5 mr-1.5" />
-                              Channels
-                              <Badge variant="secondary" className="ml-2 no-default-active-elevate">
-                                {count}/{total}
+                      {/* Inline at-a-glance summary of what this person receives. */}
+                      {!noneSelected && (
+                        <div className="flex flex-wrap gap-1.5 pl-5" data-testid={`channel-summary-${r.email}`}>
+                          {allSelected ? (
+                            <Badge variant="secondary" className="text-xs no-default-active-elevate">
+                              All notifications
+                            </Badge>
+                          ) : (
+                            r.channels.map((cid) => (
+                              <Badge
+                                key={cid}
+                                variant="secondary"
+                                className="text-xs no-default-active-elevate"
+                                data-testid={`channel-badge-${r.email}-${cid}`}
+                              >
+                                {channelLabel(cid)}
                               </Badge>
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-80 p-3">
-                            <p className="text-sm font-medium mb-2">What should {r.email} receive?</p>
-                            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                              {channels.map((c) => {
-                                const checked = r.channels.includes(c.id);
-                                return (
-                                  <label
-                                    key={c.id}
-                                    className="flex gap-2 items-start cursor-pointer rounded-md p-2 hover-elevate"
-                                    data-testid={`channel-row-${r.email}-${c.id}`}
-                                  >
-                                    <Checkbox
-                                      checked={checked}
-                                      onCheckedChange={(v) => toggleChannel(r.email, c.id, Boolean(v))}
-                                      className="mt-0.5"
-                                      data-testid={`checkbox-${r.email}-${c.id}`}
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-sm leading-tight">{c.label}</p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
-                                    </div>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-destructive"
-                          onClick={() => removeRecipient(r.email)}
-                          data-testid={`button-remove-recipient-${r.email}`}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                            ))
+                          )}
+                        </div>
+                      )}
                     </li>
                   );
                 })}

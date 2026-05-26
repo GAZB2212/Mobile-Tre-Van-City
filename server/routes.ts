@@ -6615,11 +6615,19 @@ ${blogEntries}
   // (each address read as subscribed to every non-depot channel).
   app.get("/api/admin/notify-recipients", isAuthenticated, isFullAdmin, async (_req, res) => {
     try {
-      const { getNotifyRecipients, NOTIFY_CHANNELS, ADMIN_NOTIFY_RECIPIENTS_KEY, ADMIN_NOTIFY_EMAILS_KEY } = await import('./email.js');
+      const { getNotifyRecipients, getInternalNotifyEmails, NOTIFY_CHANNELS, ADMIN_NOTIFY_RECIPIENTS_KEY, ADMIN_NOTIFY_EMAILS_KEY } = await import('./email.js');
       const recipients = await getNotifyRecipients();
       const settings = await storage.getSiteSettings();
       const isCustom = Boolean(settings[ADMIN_NOTIFY_RECIPIENTS_KEY] || settings[ADMIN_NOTIFY_EMAILS_KEY]);
-      res.json({ recipients, channels: NOTIFY_CHANNELS, isCustom });
+      // Per-channel effective recipient lists — what is *actually* receiving
+      // each notification right now. Lets the UI render a clear at-a-glance
+      // view (and prefill the editor with the current state when nothing has
+      // been customised yet, so the list is never falsely empty).
+      const effectiveByChannel: Record<string, string[]> = {};
+      for (const c of NOTIFY_CHANNELS) {
+        effectiveByChannel[c.id] = await getInternalNotifyEmails(c.id);
+      }
+      res.json({ recipients, channels: NOTIFY_CHANNELS, isCustom, effectiveByChannel });
     } catch (err) {
       res.status(500).json({ error: "Failed to load notification recipients" });
     }
