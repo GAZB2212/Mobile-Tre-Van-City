@@ -170,7 +170,7 @@ export function DueByCountdown({
               9wk · {fmtDate(nineWeekDate)}
             </span>
           )}
-          {editable ? (
+          {editable && (
             <div className="flex items-center gap-1">
               <input
                 type="date"
@@ -194,18 +194,26 @@ export function DueByCountdown({
                 title="Collection time (defaults to 5pm)"
               />
             </div>
-          ) : target ? (
-            <span className={`text-xs ${subText}`} data-testid="text-target-date">
-              {fmtDate(target)} · {target.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          ) : (
-            <span className={`text-xs ${dim}`}>No date set</span>
           )}
           {seeded && !editable && (
             <span className={`text-[9px] uppercase tracking-wider ${dim}`} title="Auto-set from artwork approval + 9 weeks">auto</span>
           )}
         </div>
       </div>
+
+      {/* Collection date/time on its own row beneath the countdown so the
+          numbers up top have full width to themselves. */}
+      {!editable && (
+        <div className="mt-2 flex items-center justify-center gap-2">
+          {target ? (
+            <span className={`text-xs font-medium ${subText}`} data-testid="text-target-date">
+              {fmtDate(target)} · {target.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          ) : (
+            <span className={`text-xs ${dim}`}>No date set</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
