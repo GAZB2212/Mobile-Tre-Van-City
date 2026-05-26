@@ -597,14 +597,20 @@ function JobCard({
         </DialogContent>
       </Dialog>
 
-      {/* Triple-tap due-by dialog — calendar picker, propagates everywhere */}
+      {/* Triple-tap due-by dialog — calendar picker, propagates everywhere.
+          Body scrolls and footer stays pinned so Save/Cancel are always
+          reachable, even on small kiosk tablets where the calendar would
+          otherwise push them off the bottom of the screen. */}
       <Dialog open={dateDialog !== null} onOpenChange={(open) => { if (!open) setDateDialog(null); }}>
-        <DialogContent data-testid="dialog-kiosk-due-by">
-          <DialogHeader>
+        <DialogContent
+          data-testid="dialog-kiosk-due-by"
+          className="max-h-[90vh] p-0 flex flex-col gap-0 sm:max-w-md"
+        >
+          <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
             <DialogTitle>Edit Due-By Date</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
+          <div className="px-4 pb-2 space-y-3 overflow-y-auto flex-1 min-h-0">
+            <p className="text-xs text-muted-foreground">
               {q.userName ? `${q.userName}'s` : "This"} build —
               tap a date below. This updates everywhere: build sheet,
               workshop QR page, pipeline board and calendar.
@@ -627,13 +633,13 @@ function JobCard({
             {dateDialog?.value && (
               <div className="space-y-2">
                 <p className="text-center text-sm font-medium" data-testid="text-kiosk-due-by-selected">
-                  Selected: {new Date(`${dateDialog.value}T00:00:00`).toLocaleDateString("en-GB", {
+                  {new Date(`${dateDialog.value}T00:00:00`).toLocaleDateString("en-GB", {
                     weekday: "short", day: "numeric", month: "short", year: "numeric",
                   })}
                 </p>
                 <div className="flex items-center justify-center gap-2">
                   <label className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Collection time
+                    Time
                   </label>
                   <input
                     type="time"
@@ -649,7 +655,7 @@ function JobCard({
               </div>
             )}
           </div>
-          <DialogFooter className="gap-2 flex-wrap">
+          <DialogFooter className="gap-2 flex-wrap px-4 py-3 border-t shrink-0 bg-background">
             <Button variant="ghost" onClick={() => setDateDialog(null)} data-testid="button-due-by-cancel">
               Cancel
             </Button>
