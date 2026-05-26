@@ -3528,6 +3528,16 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         (validatedData as any).statusChangedAt = new Date();
       }
 
+      // Coerce targetCompletionDate (ISO string from client) → Date for the
+      // Postgres timestamp column. Drizzle calls .toISOString() on the value
+      // and throws "value.toISOString is not a function" if a raw string is
+      // passed through.
+      if ('targetCompletionDate' in validatedData) {
+        const raw = (validatedData as any).targetCompletionDate;
+        (validatedData as any).targetCompletionDate =
+          raw === null || raw === undefined || raw === '' ? null : new Date(raw);
+      }
+
       const updated = await storage.updateQuote(req.params.id, validatedData);
       
       if (!updated) {
