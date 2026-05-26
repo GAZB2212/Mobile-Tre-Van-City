@@ -90,11 +90,14 @@ export function DueByCountdown({
       data-testid="due-by-countdown"
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className={`text-[10px] font-semibold uppercase tracking-widest ${subText}`}>Due By</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-widest ${subText} leading-tight`}>
+            Due<br/>By
+          </span>
           {(() => {
             // Unit columns — digit on top, short label centred beneath. Reads like
-            // a regular countdown clock and never overflows the kiosk job card.
+            // a regular countdown clock. Digit size scales with the container so
+            // five columns + colons + label always fit, no matter the card width.
             const units: { value: string; label: string; highlight?: boolean }[] = c
               ? [
                   { value: pad(c.weeks),   label: "wks"  },
@@ -116,29 +119,34 @@ export function DueByCountdown({
             const secondsColour = c?.overdue
               ? "text-red-500"
               : isDark ? "text-yellow-300" : "text-foreground/80";
+            // clamp(min, fluid, max): on narrow kiosk cards each digit drops to
+            // ~14px; on the wide build-sheet view it grows back to ~30px.
+            // Use viewport-relative clamp so the row always fits — even on a
+            // narrow kiosk card (~45vw wide on a 2-col tablet view) the digits
+            // shrink, and on a wide build-sheet they grow back to the old size.
+            const digitClass = "font-mono font-bold tabular-nums text-[clamp(0.85rem,1.8vw,1.875rem)] leading-none";
+            const colonClass = "font-mono font-bold leading-none text-[clamp(0.85rem,1.8vw,1.875rem)] self-center";
             return (
               <div
-                className="flex items-end gap-1 sm:gap-1.5"
+                className="flex items-end gap-[2px] min-w-0 flex-1 overflow-hidden"
                 data-testid={c ? "text-countdown" : "text-countdown-empty"}
                 title={c?.overdue ? "Overdue" : c ? "Time until due date" : undefined}
               >
                 {units.map((u, i) => (
-                  <div key={u.label} className="flex items-end gap-1 sm:gap-1.5">
-                    <div className="flex flex-col items-center leading-none">
+                  <div key={u.label} className="flex items-end gap-[2px] min-w-0">
+                    <div className="flex flex-col items-center leading-none min-w-0">
                       <span
-                        className={`font-mono font-bold tabular-nums text-2xl sm:text-3xl ${
-                          u.highlight && c ? secondsColour : digitColour
-                        }`}
+                        className={`${digitClass} ${u.highlight && c ? secondsColour : digitColour}`}
                         data-testid={u.label === "sec" && c ? "text-countdown-seconds" : undefined}
                       >
                         {u.value}
                       </span>
-                      <span className={`text-[9px] uppercase tracking-wider mt-1 ${dim}`}>
+                      <span className={`text-[clamp(7px,0.6vw,10px)] uppercase tracking-wider mt-1 ${dim}`}>
                         {u.label}
                       </span>
                     </div>
                     {i < units.length - 1 && (
-                      <span className={`font-mono font-bold text-2xl sm:text-3xl leading-none pb-3 ${dim}`}>:</span>
+                      <span className={`${colonClass} ${dim} pb-3`}>:</span>
                     )}
                   </div>
                 ))}
