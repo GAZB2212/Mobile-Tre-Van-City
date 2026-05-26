@@ -123,6 +123,11 @@ const isWall = (u: { category?: string | null }) =>
   (u.category ?? "").toLowerCase().includes("interior wall");
 const isBusinessPack = (u: { name?: string | null }) =>
   /business\s*pack|business\s*package/i.test(u.name ?? "");
+// 48V silent-compressor systems are split into two sub-stages so the
+// auto-electrician can sign off the wiring independently of the fitter
+// who bolts the compressor in.
+const is48vSystem = (u: { name?: string | null }) =>
+  /48\s*v|silent\s+compressor/i.test(u.name ?? "");
 
 function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[], qtyMap: Record<string, number> = {}) {
   const label = (u: KioskUpgrade) => qtyLabel(u, qtyMap);
@@ -148,10 +153,18 @@ function generateStages(kitName: string | null, selectedUpgrades: KioskUpgrade[]
   const wallOnly = selectedUpgrades.filter((u) => isWall(u) && !isWrap(u));
 
   for (const u of nonWrap) {
-    stages.push({ id: `upg_${u.id}`, label: label(u) });
-    if (isBusinessPack(u)) {
-      stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
-      stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
+    if (is48vSystem(u)) {
+      // Split: electrics first, then compressor fit. Two separate ticks
+      // so different lads can sign off each half independently.
+      const base = label(u);
+      stages.push({ id: `upg_${u.id}_electrics`, label: `${base} — Electrics` });
+      stages.push({ id: `upg_${u.id}_fit`, label: `${base} — Compressor Fit` });
+    } else {
+      stages.push({ id: `upg_${u.id}`, label: label(u) });
+      if (isBusinessPack(u)) {
+        stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
+        stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
+      }
     }
   }
   if (wrapOnly.length > 0) {

@@ -583,6 +583,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (u.category ?? "").toLowerCase().includes("interior wall");
       const isBusinessPack = (u: { name?: string | null }) =>
         /business\s*pack|business\s*package/i.test(u.name ?? "");
+      // 48V silent-compressor systems are split into two sub-stages so the
+      // auto-electrician can sign off the wiring independently of the
+      // fitter bolting the compressor in.
+      const is48vSystem = (u: { name?: string | null }) =>
+        /48\s*v|silent\s+compressor/i.test(u.name ?? "");
       // Priority upgrades that always sit right after the install pack
       const priorityRank = (name: string): number => {
         const n = name.toLowerCase();
@@ -620,10 +625,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return q > 1 ? `${q}× ${base}` : base;
         };
         for (const u of nonWrap) {
-          stages.push({ id: `upg_${u.id}`, label: stageLabel(u) });
-          if (isBusinessPack(u)) {
-            stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
-            stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
+          if (is48vSystem(u)) {
+            const base = stageLabel(u);
+            stages.push({ id: `upg_${u.id}_electrics`, label: `${base} — Electrics` });
+            stages.push({ id: `upg_${u.id}_fit`, label: `${base} — Compressor Fit` });
+          } else {
+            stages.push({ id: `upg_${u.id}`, label: stageLabel(u) });
+            if (isBusinessPack(u)) {
+              stages.push({ id: `upg_${u.id}_website`, label: "Website Done" });
+              stages.push({ id: `upg_${u.id}_print`, label: "Leaflets & Business Cards Ordered" });
+            }
           }
         }
         if (wrapOnly.length > 0) {
