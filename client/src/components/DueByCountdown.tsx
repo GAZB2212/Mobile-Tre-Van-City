@@ -125,10 +125,16 @@ export function DueByCountdown({
             // wide build-sheet card they grow back to a chunky readable size.
             const digitClass = "font-mono font-bold tabular-nums leading-none text-[clamp(1rem,6.5cqw,2rem)]";
             const colonClass = "font-mono font-bold leading-none text-[clamp(1rem,6.5cqw,2rem)] self-center";
+            // Flash the whole countdown when there's less than 24 hours left
+            // (or it's gone overdue) so it grabs attention from across the
+            // workshop. Uses Tailwind's built-in animate-pulse.
+            const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+            const urgent = !!c && c.totalMs < ONE_DAY_MS;
             return (
               <div
-                className="flex items-end gap-1 min-w-0 flex-1"
+                className={`flex items-end gap-1 min-w-0 flex-1 ${urgent ? "animate-pulse" : ""}`}
                 data-testid={c ? "text-countdown" : "text-countdown-empty"}
+                data-urgent={urgent || undefined}
                 title={c?.overdue ? "Overdue" : c ? "Time until due date" : undefined}
               >
                 {units.map((u, i) => (
