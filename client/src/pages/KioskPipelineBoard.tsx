@@ -587,6 +587,24 @@ function JobCard({
               >
                 RM
               </Button>
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "NK" })}
+                data-testid="button-stage-nk"
+              >
+                NK
+              </Button>
+              <Button
+                size="lg"
+                className="h-20 text-xl font-bold"
+                disabled={tickMutation.isPending}
+                onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "RC" })}
+                data-testid="button-stage-rc"
+              >
+                RC
+              </Button>
             </div>
           </div>
           <DialogFooter>
