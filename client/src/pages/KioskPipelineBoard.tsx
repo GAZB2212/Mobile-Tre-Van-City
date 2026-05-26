@@ -589,7 +589,7 @@ function JobCard({
                 onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "HM" })}
                 data-testid="button-stage-hm"
               >
-                HM
+                Harrison<span className="ml-2 opacity-70 text-base">(HM)</span>
               </Button>
               <Button
                 size="lg"
@@ -598,7 +598,7 @@ function JobCard({
                 onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "RM" })}
                 data-testid="button-stage-rm"
               >
-                RM
+                Ryzino<span className="ml-2 opacity-70 text-base">(RM)</span>
               </Button>
               <Button
                 size="lg"
@@ -607,7 +607,7 @@ function JobCard({
                 onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "NK" })}
                 data-testid="button-stage-nk"
               >
-                NK
+                Nick<span className="ml-2 opacity-70 text-base">(NK)</span>
               </Button>
               <Button
                 size="lg"
@@ -616,7 +616,7 @@ function JobCard({
                 onClick={() => tickDialog && tickMutation.mutate({ stageId: tickDialog.stageId, initials: "RC" })}
                 data-testid="button-stage-rc"
               >
-                RC
+                Ryan<span className="ml-2 opacity-70 text-base">(RC)</span>
               </Button>
             </div>
           </div>
