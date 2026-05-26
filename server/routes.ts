@@ -717,9 +717,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // undo disabled for that person. Constant-time compare keeps us
         // honest about side-channels even on a tiny 4-digit secret.
         const initialsUpper = body.initials.toUpperCase();
-        const expected = process.env[`KIOSK_PIN_${initialsUpper}`];
+        // PIN lookup order: admin-managed DB setting first, then env var
+        // fallback for back-compat with secrets set before the admin UI
+        // existed. DB wins so an admin override always takes effect.
+        const settings = await storage.getSiteSettings();
+        const expected = settings[`kiosk_pin_${initialsUpper.toLowerCase()}`] || process.env[`KIOSK_PIN_${initialsUpper}`];
         if (!expected) {
-          return res.status(403).json({ error: `No PIN configured for ${initialsUpper} — ask an admin to set KIOSK_PIN_${initialsUpper}.` });
+          return res.status(403).json({ error: `No PIN set for ${initialsUpper} — an admin can set one in Admin → Settings → Kiosk PINs.` });
         }
         const supplied = (body.pin ?? "").trim();
         const a = Buffer.from(expected);
@@ -6598,6 +6602,56 @@ ${blogEntries}
     } catch (error: any) {
       console.error('Email preview error:', error);
       res.status(500).json({ error: error?.message ?? 'Failed to send preview email.' });
+    }
+  });
+
+  // ── Kiosk PINs (admin-managed) ────────────────────────────────────────────
+  // The lads use these 4-digit PINs to undo a stage tick on the kiosk. PINs
+  // live in site_settings (key `kiosk_pin_<initials>`) so full admins can
+  // rotate them without a redeploy. Env var KIOSK_PIN_<INITIALS> still acts
+  // as a fallback for any initials not yet set in the DB.
+  const KIOSK_PEOPLE: Array<{ initials: string; name: string }> = [
+    { initials: "GB", name: "Gaz" },
+    { initials: "KJ", name: "Kev" },
+    { initials: "HM", name: "Haz" },
+    { initials: "RM", name: "Zino" },
+    { initials: "NK", name: "Nick" },
+    { initials: "RC", name: "Ryan" },
+    { initials: "KW", name: "Kenny" },
+  ];
+  const KIOSK_INITIALS = new Set(KIOSK_PEOPLE.map((p) => p.initials));
+
+  app.get("/api/admin/kiosk-pins", isAuthenticated, isFullAdmin, async (_req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      const list = KIOSK_PEOPLE.map(({ initials, name }) => {
+        const dbVal = settings[`kiosk_pin_${initials.toLowerCase()}`];
+        const envVal = process.env[`KIOSK_PIN_${initials}`];
+        const source: "db" | "env" | null = dbVal ? "db" : envVal ? "env" : null;
+        return { initials, name, hasPin: Boolean(dbVal || envVal), source };
+      });
+      res.json(list);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load kiosk PINs" });
+    }
+  });
+
+  app.put("/api/admin/kiosk-pins/:initials", isAuthenticated, isFullAdmin, async (req, res) => {
+    try {
+      const initials = String(req.params.initials || "").toUpperCase();
+      if (!KIOSK_INITIALS.has(initials)) {
+        return res.status(400).json({ error: "Unknown initials" });
+      }
+      const body = z.object({ pin: z.string() }).parse(req.body);
+      const pin = body.pin.trim();
+      if (pin.length > 0 && !/^\d{4}$/.test(pin)) {
+        return res.status(400).json({ error: "PIN must be exactly 4 digits, or empty to clear." });
+      }
+      // Empty pin clears the override (falls back to env var if one exists).
+      await storage.setSiteSetting(`kiosk_pin_${initials.toLowerCase()}`, pin);
+      res.json({ success: true, initials, cleared: pin.length === 0 });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? "Failed to save PIN" });
     }
   });
 

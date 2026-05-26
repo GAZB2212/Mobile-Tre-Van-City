@@ -31,6 +31,7 @@ import {
   PhoneCall,
   ChevronUp,
   ChevronDown,
+  KeyRound,
 } from "lucide-react";
 import type { User, StaffPhone } from "@shared/schema";
 
@@ -411,6 +412,14 @@ export default function AdminSettings() {
         </>
       )}
 
+      {/* Kiosk undo PINs — managed by full admins */}
+      {isFullAdmin && (
+        <>
+          <Separator />
+          <KioskPinsCard />
+        </>
+      )}
+
       {/* Add/Edit phone number dialog */}
       <Dialog open={phoneDialog.open} onOpenChange={(open) => { if (!open) setPhoneDialog({ open: false, editing: null }); }}>
         <DialogContent className="sm:max-w-sm">
@@ -456,5 +465,115 @@ export default function AdminSettings() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ── Kiosk PIN management ─────────────────────────────────────────────────────
+// Full-admin-only. Each lad has a 4-digit PIN they enter on the kiosk to undo
+// a stage tick. PINs persist in site_settings so a redeploy doesn't wipe them.
+// Empty input clears the override — if a KIOSK_PIN_<INITIALS> env var was set
+// (legacy / fallback), it will start being used again.
+
+type KioskPinRow = { initials: string; name: string; hasPin: boolean; source: "db" | "env" | null };
+
+function KioskPinsCard() {
+  const { toast } = useToast();
+  const { data: rows = [], isLoading } = useQuery<KioskPinRow[]>({
+    queryKey: ["/api/admin/kiosk-pins"],
+  });
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const saveMutation = useMutation({
+    mutationFn: async ({ initials, pin }: { initials: string; pin: string }) => {
+      const res = await apiRequest("PUT", `/api/admin/kiosk-pins/${initials}`, { pin });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Failed to save PIN");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/kiosk-pins"] });
+      setDrafts((d) => ({ ...d, [vars.initials]: "" }));
+      toast({
+        title: vars.pin ? "PIN updated" : "PIN cleared",
+        description: vars.pin
+          ? `${vars.initials} can now undo stages with their new PIN.`
+          : `${vars.initials}'s override removed.`,
+      });
+    },
+    onError: (err: any) => {
+      toast({ variant: "destructive", title: "Could not save", description: err?.message ?? "Unknown error" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <KeyRound className="w-5 h-5 text-muted-foreground" />
+          <CardTitle className="text-base">Kiosk Undo PINs</CardTitle>
+        </div>
+        <CardDescription className="mt-1">
+          Each lad has a 4-digit PIN they enter on the workshop kiosk to undo a stage tick. Set or rotate
+          them here — changes apply instantly. Leave blank and save to clear an override.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : (
+          <ul className="space-y-2">
+            {rows.map((r) => {
+              const draft = drafts[r.initials] ?? "";
+              return (
+                <li
+                  key={r.initials}
+                  className="flex items-center gap-3 rounded-md border px-3 py-2"
+                  data-testid={`kiosk-pin-row-${r.initials}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="font-bold text-sm w-8 tabular-nums">{r.initials}</span>
+                    <span className="text-sm truncate">{r.name}</span>
+                    {r.hasPin ? (
+                      <Badge variant="outline" className="ml-1 text-xs no-default-active-elevate">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        {r.source === "env" ? "Set (env)" : "Set"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="ml-1 text-xs text-muted-foreground no-default-active-elevate">
+                        Not set
+                      </Badge>
+                    )}
+                  </div>
+                  <Input
+                    inputMode="numeric"
+                    pattern="\d{4}"
+                    maxLength={4}
+                    placeholder={r.hasPin ? "Replace…" : "4 digits"}
+                    value={draft}
+                    onChange={(e) => setDrafts((d) => ({ ...d, [r.initials]: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                    className="w-24 font-mono tabular-nums text-center"
+                    data-testid={`input-pin-${r.initials}`}
+                  />
+                  <Button
+                    size="sm"
+                    disabled={saveMutation.isPending || (draft.length > 0 && draft.length !== 4)}
+                    onClick={() => saveMutation.mutate({ initials: r.initials, pin: draft })}
+                    data-testid={`button-save-pin-${r.initials}`}
+                  >
+                    {draft.length === 4 ? "Save" : "Clear"}
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="text-xs text-muted-foreground mt-3">
+          Tip: triple-tap a ticked stage on the kiosk to open the undo dialog. Only the lad who ticked it
+          can undo it, and only with their PIN.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
