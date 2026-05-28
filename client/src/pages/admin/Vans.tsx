@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Car } from "lucide-react";
+import { Plus, Edit, Trash2, Car, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
@@ -27,6 +27,7 @@ export default function AdminVans() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editDialogTab, setEditDialogTab] = useState<string>("details");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch vans (using admin endpoint to see all vans including unpublished)
   const { data: vans = [], isLoading } = useQuery<Van[]>({
@@ -325,6 +326,22 @@ export default function AdminVans() {
       />
 
       <div className="container mx-auto px-4 py-8">
+        {vans.length > 0 && (
+          <div className="mb-6 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by registration, title, make or model…"
+                className="pl-9"
+                data-testid="input-search-vans"
+              />
+            </div>
+          </div>
+        )}
+
         {vans.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
@@ -342,9 +359,35 @@ export default function AdminVans() {
               </Button>
             </CardContent>
           </Card>
-        ) : (
+        ) : (() => {
+          const q = searchQuery.trim().toLowerCase();
+          const qNoSpace = q.replace(/\s+/g, "");
+          const filteredVans = q
+            ? vans.filter((v) => {
+                const reg = (v.reg ?? "").toLowerCase().replace(/\s+/g, "");
+                return (
+                  reg.includes(qNoSpace) ||
+                  (v.title ?? "").toLowerCase().includes(q) ||
+                  (v.make ?? "").toLowerCase().includes(q) ||
+                  (v.model ?? "").toLowerCase().includes(q)
+                );
+              })
+            : vans;
+          if (filteredVans.length === 0) {
+            return (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <Search className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground" data-testid="text-no-vans-match">
+                    No vans match "{searchQuery}".
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          }
+          return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vans.map((van) => (
+            {filteredVans.map((van) => (
               <Card key={van.id} className="hover-elevate">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -356,6 +399,17 @@ export default function AdminVans() {
                   <CardDescription>
                     {van.year} {van.make} {van.model}
                   </CardDescription>
+                  {van.reg && (
+                    <div className="pt-1">
+                      <Badge
+                        variant="outline"
+                        className="font-mono uppercase tracking-wider"
+                        data-testid={`badge-van-reg-${van.id}`}
+                      >
+                        {van.reg}
+                      </Badge>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 mb-4">
@@ -413,7 +467,8 @@ export default function AdminVans() {
               </Card>
             ))}
           </div>
-        )}
+          );
+        })()}
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={(open) => {

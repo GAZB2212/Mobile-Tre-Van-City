@@ -1023,13 +1023,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             slotBUpgradeData.filter(Boolean).reduce((s, u) => s + ((u as { price: number })?.price ?? 0), 0) +
             slotBTrainingData.filter(Boolean).reduce((s, t) => s + ((t as { price: number })?.price ?? 0), 0);
           const slotBVat = Math.round(slotBSubtotal * 0.2);
+          const slotBPreDiscount = slotBSubtotal + slotBVat;
+          // Apply Option B's own discount when set, else fall back to the
+          // main-quote discount (which belongs to Option A) so Option B is
+          // discounted consistently when no per-slot override is configured.
+          const slotBDiscType = (slotB as any).discountType ?? discountType;
+          const slotBDiscValue = (slotB as any).discountValue ?? discountValue;
+          let slotBDiscount = 0;
+          if (slotBDiscType && slotBDiscValue) {
+            if (slotBDiscType === 'percentage') {
+              slotBDiscount = Math.round((slotBPreDiscount * Number(slotBDiscValue)) / 100);
+            } else if (slotBDiscType === 'fixed') {
+              slotBDiscount = Number(slotBDiscValue);
+            }
+          }
+          slotBDiscount = Math.min(Math.max(slotBDiscount, 0), slotBPreDiscount);
           enrichedComparisonConfig = {
             ...enrichedComparisonConfig,
             slotB: {
               ...slotB,
               estSubtotal: slotBSubtotal,
               estVAT: slotBVat,
-              estTotal: slotBSubtotal + slotBVat,
+              estTotal: slotBPreDiscount - slotBDiscount,
+              estDiscount: slotBDiscount,
             },
           };
         } catch (err) {
@@ -3393,6 +3409,9 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         customerId: z.string().nullable().optional(),
         // Pipeline wallboard — due-out date
         targetCompletionDate: z.string().nullable().optional(),
+        // Comparison config (A/B compare). Pass-through JSON — slotB pricing
+        // is recomputed server-side below.
+        comparisonConfig: z.any().optional(),
       });
 
       const validatedData = allowedUpdates.parse(req.body);
@@ -3442,7 +3461,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       const needsRecalculation = 'vanId' in validatedData || 'kitId' in validatedData || 
                                   'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData ||
                                   'discountType' in validatedData || 'discountValue' in validatedData ||
-                                  'customVanValue' in validatedData || 'customExtras' in validatedData;
+                                  'customVanValue' in validatedData || 'customExtras' in validatedData ||
+                                  'comparisonConfig' in validatedData;
       
       if (needsRecalculation) {
         const quote = await storage.getQuote(req.params.id);
@@ -3536,6 +3556,62 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         validatedData.estVAT = finalVAT;
         validatedData.estTotal = totalAfterDiscount;
         (validatedData as any).estDiscount = discountAmount;
+
+        // If this is a comparison quote, also recompute slotB pricing so its
+        // estTotal stays in sync with whatever discount is now in effect for
+        // it (its own independent discount when set, or the main quote
+        // discount as a fallback). Without this the chosen-option email for
+        // Option B would still show the pre-edit total.
+        const incomingComparison: any = (validatedData as any).comparisonConfig;
+        const existingComparison: any = (quote as any).comparisonConfig;
+        const mergedComparison: any = incomingComparison ?? existingComparison;
+        if (mergedComparison?.slotA && mergedComparison?.slotB) {
+          const slotB = mergedComparison.slotB;
+          try {
+            const slotBUpgradeIds: string[] = slotB.upgradeIds || [];
+            const slotBTrainingIds: string[] = slotB.trainingOptionIds || [];
+            const [slotBVanData, slotBKitData, slotBUpgradeData, slotBTrainingData] = await Promise.all([
+              slotB.vanId ? storage.getVan(slotB.vanId) : Promise.resolve(null),
+              slotB.kitId ? storage.getKit(slotB.kitId) : Promise.resolve(null),
+              slotBUpgradeIds.length > 0
+                ? Promise.all(slotBUpgradeIds.map((uid: string) => storage.getUpgrade(uid)))
+                : Promise.resolve([]),
+              slotBTrainingIds.length > 0
+                ? Promise.all(slotBTrainingIds.map((tid: string) => storage.getTrainingOption(tid)))
+                : Promise.resolve([]),
+            ]);
+            const slotBSubtotal =
+              ((slotBVanData as any)?.price ?? slotB.customVanValue ?? 0) +
+              ((slotBKitData as any)?.price ?? 0) +
+              slotBUpgradeData.filter(Boolean).reduce((s: number, u: any) => s + (u?.price ?? 0), 0) +
+              slotBTrainingData.filter(Boolean).reduce((s: number, t: any) => s + (t?.price ?? 0), 0);
+            const slotBVat = Math.round(slotBSubtotal * 0.2);
+            const slotBPreDiscount = slotBSubtotal + slotBVat;
+            const slotBDiscType = slotB.discountType ?? discountType;
+            const slotBDiscValue = slotB.discountValue ?? discountValue;
+            let slotBDiscount = 0;
+            if (slotBDiscType && slotBDiscValue) {
+              if (slotBDiscType === 'percentage') {
+                slotBDiscount = Math.round((slotBPreDiscount * Number(slotBDiscValue)) / 100);
+              } else if (slotBDiscType === 'fixed') {
+                slotBDiscount = Number(slotBDiscValue);
+              }
+            }
+            slotBDiscount = Math.min(Math.max(slotBDiscount, 0), slotBPreDiscount);
+            (validatedData as any).comparisonConfig = {
+              ...mergedComparison,
+              slotB: {
+                ...slotB,
+                estSubtotal: slotBSubtotal,
+                estVAT: slotBVat,
+                estTotal: slotBPreDiscount - slotBDiscount,
+                estDiscount: slotBDiscount,
+              },
+            };
+          } catch (err) {
+            console.error('Failed to recompute slotB pricing on PATCH:', err);
+          }
+        }
       }
       
       // Auto-audit note: status change

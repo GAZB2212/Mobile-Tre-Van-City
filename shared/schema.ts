@@ -253,6 +253,13 @@ export const quotes = pgTable("quotes", {
       estSubtotal?: number;
       estVAT?: number;
       estTotal?: number;
+      // Optional per-slot discount. When set, Option B uses this instead of the
+      // main quote discount (which applies to Option A). Lets staff offer one
+      // option at a different discount than the other.
+      // discountValue is in percent for "percentage", or pence for "fixed".
+      discountType?: "percentage" | "fixed" | null;
+      discountValue?: number | null;
+      estDiscount?: number;
     };
   } | null>(),
   chosenOption: text("chosen_option"), // null | 'A' | 'B'

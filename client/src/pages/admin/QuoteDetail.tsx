@@ -285,6 +285,11 @@ export default function AdminQuoteDetail() {
   const [newStageName, setNewStageName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
+  // Independent per-option discount for Option B in comparison mode. When the
+  // toggle is off, Option B inherits Option A's discount (existing behaviour).
+  const [independentDiscountB, setIndependentDiscountB] = useState(false);
+  const [slotBDiscountType, setSlotBDiscountType] = useState<"percentage" | "fixed" | "">("");
+  const [slotBDiscountValue, setSlotBDiscountValue] = useState("");
   const [newAdminNote, setNewAdminNote] = useState("");
   const [customerConfirmed, setCustomerConfirmed] = useState(false);
   const [vanRegistration, setVanRegistration] = useState("");
@@ -463,6 +468,25 @@ export default function AdminQuoteDetail() {
         }
       } else {
         setDiscountValue("");
+      }
+      // Hydrate slot B's independent discount (if previously set).
+      const slotBDisc: any = quote.comparisonConfig?.slotB ?? null;
+      if (slotBDisc?.discountType) {
+        setIndependentDiscountB(true);
+        setSlotBDiscountType(slotBDisc.discountType);
+        if (slotBDisc.discountValue != null) {
+          setSlotBDiscountValue(
+            slotBDisc.discountType === "fixed"
+              ? String(slotBDisc.discountValue / 100)
+              : String(slotBDisc.discountValue),
+          );
+        } else {
+          setSlotBDiscountValue("");
+        }
+      } else {
+        setIndependentDiscountB(false);
+        setSlotBDiscountType("");
+        setSlotBDiscountValue("");
       }
       // Notes are now in history format, no need to set them here
       
@@ -924,6 +948,19 @@ export default function AdminQuoteDetail() {
       ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
       : "";
     if (discountValue !== origDiscountValue) return true;
+    // Slot B independent discount
+    const slotBDiscOrig: any = quote.comparisonConfig?.slotB ?? null;
+    const origIndependentB = Boolean(slotBDiscOrig?.discountType);
+    if (independentDiscountB !== origIndependentB) return true;
+    if (independentDiscountB) {
+      if (slotBDiscountType !== (slotBDiscOrig?.discountType || "")) return true;
+      const origSlotBValue = slotBDiscOrig?.discountValue
+        ? (slotBDiscOrig.discountType === "fixed"
+            ? String(slotBDiscOrig.discountValue / 100)
+            : String(slotBDiscOrig.discountValue))
+        : "";
+      if (slotBDiscountValue !== origSlotBValue) return true;
+    }
     if (vanRegistration !== (quote.vanRegistration ?? quote.customVanDescription ?? "")) return true;
     if (vanMileage !== (quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "")) return true;
     if (quoteNotes !== (quote.notes ?? "")) return true;
@@ -1234,7 +1271,35 @@ export default function AdminQuoteDetail() {
     // Append explicit UTC midnight so the stored timestamp always represents noon-midnight UTC
     // regardless of where the browser's timezone sits, preventing off-by-one calendar days.
     updates.targetCompletionDate = targetCompletionDate ? `${targetCompletionDate}T00:00:00.000Z` : null;
-    
+
+    // Comparison mode: persist Option B's independent discount (if any) onto
+    // the slotB JSON. When the toggle is off we explicitly clear it so Option
+    // B falls back to Option A's discount.
+    if (isComparison && quote?.comparisonConfig) {
+      let slotBDiscValuePence: number | null = null;
+      if (independentDiscountB && slotBDiscountValue) {
+        if (slotBDiscountType === "percentage") {
+          const p = parseInt(slotBDiscountValue);
+          if (Number.isFinite(p)) slotBDiscValuePence = p;
+        } else if (slotBDiscountType === "fixed") {
+          const p = Math.round(parseFloat(slotBDiscountValue) * 100);
+          if (Number.isFinite(p)) slotBDiscValuePence = p;
+        }
+      }
+      const slotBPersistType =
+        independentDiscountB && (slotBDiscountType === "percentage" || slotBDiscountType === "fixed")
+          ? slotBDiscountType
+          : null;
+      updates.comparisonConfig = {
+        ...quote.comparisonConfig,
+        slotB: {
+          ...(quote.comparisonConfig.slotB ?? {}),
+          discountType: slotBPersistType,
+          discountValue: slotBPersistType ? slotBDiscValuePence : null,
+        },
+      };
+    }
+
     updateMutation.mutate(updates);
   };
 
@@ -1312,13 +1377,16 @@ export default function AdminQuoteDetail() {
     customExtras.forEach(e => { subtotal += e.pricePence; });
     const vat = Math.round(subtotal * 0.2);
     const totalWithVat = subtotal + vat;
-    // Apply same discount as Option A
+    // Apply Option B's own discount if the staff member enabled the
+    // "independent discount" toggle; otherwise inherit Option A's discount.
+    const useBType = independentDiscountB ? slotBDiscountType : discountType;
+    const useBValue = independentDiscountB ? slotBDiscountValue : discountValue;
     let discountAmount = 0;
-    if (discountType && discountValue) {
-      if (discountType === "percentage") {
-        discountAmount = Math.round((totalWithVat * parseInt(discountValue)) / 100);
-      } else if (discountType === "fixed") {
-        discountAmount = Math.round(parseFloat(discountValue) * 100);
+    if (useBType && useBValue) {
+      if (useBType === "percentage") {
+        discountAmount = Math.round((totalWithVat * parseInt(useBValue)) / 100);
+      } else if (useBType === "fixed") {
+        discountAmount = Math.round(parseFloat(useBValue) * 100);
       }
     }
     discountAmount = Math.min(discountAmount, totalWithVat);
@@ -1488,6 +1556,23 @@ export default function AdminQuoteDetail() {
                         ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
                         : ""
                     );
+                    // Reset Option B's independent discount
+                    {
+                      const sb: any = quote.comparisonConfig?.slotB ?? null;
+                      if (sb?.discountType) {
+                        setIndependentDiscountB(true);
+                        setSlotBDiscountType(sb.discountType);
+                        setSlotBDiscountValue(
+                          sb.discountValue != null
+                            ? (sb.discountType === "fixed" ? String(sb.discountValue / 100) : String(sb.discountValue))
+                            : "",
+                        );
+                      } else {
+                        setIndependentDiscountB(false);
+                        setSlotBDiscountType("");
+                        setSlotBDiscountValue("");
+                      }
+                    }
                     setVanRegistration(quote.vanRegistration ?? quote.customVanDescription ?? "");
                     setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
                     setCustomerConfirmed(quote.customerConfirmed ?? false);
@@ -2648,7 +2733,7 @@ export default function AdminQuoteDetail() {
 
                 {/* Discount */}
                 <div className="space-y-2">
-                  <Label>Discount</Label>
+                  <Label>{isComparison ? "Discount (Option A)" : "Discount"}</Label>
                   <div className="flex flex-wrap gap-2">
                     <Select
                       value={discountType || "none"}
@@ -2683,6 +2768,62 @@ export default function AdminQuoteDetail() {
                       </div>
                     )}
                   </div>
+
+                  {/* Comparison mode: optional independent discount for Option B */}
+                  {isComparison && (
+                    <div className="pt-3 mt-1 border-t space-y-2">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={independentDiscountB}
+                          onCheckedChange={(v) => setIndependentDiscountB(Boolean(v))}
+                          className="mt-0.5"
+                          data-testid="checkbox-independent-discount-b"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm leading-tight">Use a different discount for Option B</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            By default Option B uses the same discount as Option A. Tick to discount each option independently.
+                          </p>
+                        </div>
+                      </label>
+                      {independentDiscountB && (
+                        <div className="flex flex-wrap gap-2 pl-6">
+                          <Select
+                            value={slotBDiscountType || "none"}
+                            onValueChange={(v: any) => setSlotBDiscountType(v === "none" ? "" : v)}
+                          >
+                            <SelectTrigger className="w-full sm:w-44" data-testid="select-config-discount-type-b">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No discount</SelectItem>
+                              <SelectItem value="percentage">Percentage (%)</SelectItem>
+                              <SelectItem value="fixed">Fixed amount (£)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {slotBDiscountType && (
+                            <div className="relative flex-1">
+                              {slotBDiscountType === "percentage"
+                                ? <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">%</span>
+                                : <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">£</span>
+                              }
+                              <Input
+                                type="number"
+                                min="0"
+                                max={slotBDiscountType === "percentage" ? "100" : undefined}
+                                step={slotBDiscountType === "percentage" ? "1" : "0.01"}
+                                value={slotBDiscountValue}
+                                onChange={(e) => setSlotBDiscountValue(e.target.value)}
+                                className={slotBDiscountType === "percentage" ? "pr-8" : "pl-7"}
+                                placeholder={slotBDiscountType === "percentage" ? "e.g. 5" : "e.g. 250"}
+                                data-testid="input-config-discount-value-b"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Pricing Preview */}
