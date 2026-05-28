@@ -76,6 +76,12 @@ export function DueByCountdown({
     emitChange(dateInputValue, e.target.value);
   };
 
+  // Flash the whole countdown panel when there's less than 24 hours left
+  // (covers overdue too, since c.totalMs goes <= 0). Computed at the root
+  // so the urgent class lives on the bordered card itself.
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const urgent = !!c && c.totalMs < ONE_DAY_MS;
+
   const isDark = variant === "dark";
   const subText = isDark ? "text-zinc-400" : "text-muted-foreground";
   const dim = isDark ? "text-zinc-500" : "text-muted-foreground/60";
@@ -86,9 +92,10 @@ export function DueByCountdown({
 
   return (
     <div
-      className={`rounded-md border px-3 py-2 ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-card"} no-print`}
+      className={`rounded-md border px-3 py-2 ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-card"} no-print ${urgent ? "countdown-panel-urgent" : ""}`}
       style={{ containerType: "inline-size" }}
       data-testid="due-by-countdown"
+      data-urgent={urgent || undefined}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -125,17 +132,10 @@ export function DueByCountdown({
             // wide build-sheet card they grow back to a chunky readable size.
             const digitClass = "font-mono font-bold tabular-nums leading-none text-[clamp(1rem,6.5cqw,2rem)]";
             const colonClass = "font-mono font-bold leading-none text-[clamp(1rem,6.5cqw,2rem)] self-center";
-            // Flash the whole countdown when there's less than 24 hours left
-            // (or it's gone overdue) so it grabs attention from across the
-            // workshop. Uses a custom hard-blink (instant snap, no fade) so
-            // it's deliberately abrupt rather than a soft pulse.
-            const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-            const urgent = !!c && c.totalMs < ONE_DAY_MS;
             return (
               <div
-                className={`flex items-end gap-1 min-w-0 flex-1 ${urgent ? "countdown-urgent" : ""}`}
+                className="flex items-end gap-1 min-w-0 flex-1"
                 data-testid={c ? "text-countdown" : "text-countdown-empty"}
-                data-urgent={urgent || undefined}
                 title={c?.overdue ? "Overdue" : c ? "Time until due date" : undefined}
               >
                 {units.map((u, i) => (
