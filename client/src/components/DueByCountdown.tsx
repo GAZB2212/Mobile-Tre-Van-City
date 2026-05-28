@@ -127,12 +127,13 @@ export function DueByCountdown({
             const colonClass = "font-mono font-bold leading-none text-[clamp(1rem,6.5cqw,2rem)] self-center";
             // Flash the whole countdown when there's less than 24 hours left
             // (or it's gone overdue) so it grabs attention from across the
-            // workshop. Uses Tailwind's built-in animate-pulse.
+            // workshop. Uses a custom hard-blink (instant snap, no fade) so
+            // it's deliberately abrupt rather than a soft pulse.
             const ONE_DAY_MS = 24 * 60 * 60 * 1000;
             const urgent = !!c && c.totalMs < ONE_DAY_MS;
             return (
               <div
-                className={`flex items-end gap-1 min-w-0 flex-1 ${urgent ? "animate-pulse" : ""}`}
+                className={`flex items-end gap-1 min-w-0 flex-1 ${urgent ? "countdown-urgent" : ""}`}
                 data-testid={c ? "text-countdown" : "text-countdown-empty"}
                 data-urgent={urgent || undefined}
                 title={c?.overdue ? "Overdue" : c ? "Time until due date" : undefined}
