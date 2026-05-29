@@ -200,6 +200,11 @@ export default function VanDetails() {
                       {van.year} {van.make} {van.model}
                     </h1>
                     <p className="text-base sm:text-lg text-muted-foreground">{van.title}</p>
+                    {van.effectiveSaleStatus === "sold" && (
+                      <p className="mt-2 text-base font-medium text-accent" data-testid="text-more-coming">
+                        More coming into stock — ask for details.
+                      </p>
+                    )}
                   </div>
                   <Badge className="bg-accent text-accent-foreground text-sm">
                     {van.specs.size}

@@ -297,6 +297,14 @@ export default function Stock() {
                           <span className="text-sm">{van.year}</span>
                         </div>
                       </div>
+                      {van.effectiveSaleStatus === "sold" && (
+                        <p
+                          className="mt-3 text-sm font-medium text-accent"
+                          data-testid={`text-more-coming-${van.id}`}
+                        >
+                          More coming into stock — ask for details.
+                        </p>
+                      )}
                     </CardContent>
 
                     <CardFooter className="pt-0 flex gap-2">
