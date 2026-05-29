@@ -18,7 +18,7 @@ import {
 import { ArrowLeft, Car, Fuel, Gauge, Settings, Calendar, CheckCircle, Phone, Mail, Wrench } from "lucide-react";
 import { useConfigurator } from "@/lib/ConfiguratorContext";
 import SEO, { createVehicleStructuredData, createBreadcrumbStructuredData } from "@/components/SEO";
-import type { Van } from "@shared/schema";
+import type { VanWithSaleStatus } from "@shared/schema";
 
 export default function VanDetails() {
   const [, params] = useRoute("/stock/:slug");
@@ -28,7 +28,7 @@ export default function VanDetails() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  const { data: van, isLoading, error } = useQuery<Van>({
+  const { data: van, isLoading, error } = useQuery<VanWithSaleStatus>({
     queryKey: ['/api/vans/slug', slug],
     queryFn: async () => {
       const response = await fetch(`/api/vans/slug/${slug}`);
@@ -184,6 +184,18 @@ export default function VanDetails() {
               <div>
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div className="flex-1 min-w-0">
+                    {van.effectiveSaleStatus !== "available" && (
+                      <Badge
+                        className={
+                          van.effectiveSaleStatus === "sold"
+                            ? "bg-red-600 text-white border-0 mb-2"
+                            : "bg-amber-500 text-black border-0 mb-2"
+                        }
+                        data-testid="badge-sale-status"
+                      >
+                        {van.effectiveSaleStatus === "sold" ? "Sold" : "Deposit Taken"}
+                      </Badge>
+                    )}
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 break-words" data-testid="text-van-title">
                       {van.year} {van.make} {van.model}
                     </h1>

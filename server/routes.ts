@@ -374,8 +374,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      const vans = await storage.getVans(Object.keys(filters).length > 0 ? filters : undefined);
-      res.json(vans);
+      const [vans, quotes] = await Promise.all([
+        storage.getVans(Object.keys(filters).length > 0 ? filters : undefined),
+        storage.getQuotes(),
+      ]);
+      res.json(vans.map((van) => attachSaleStatus(van, quotes)));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vans" });
     }
@@ -387,7 +390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!van) {
         return res.status(404).json({ error: "Van not found" });
       }
-      res.json(van);
+      const quotes = await storage.getQuotes();
+      res.json(attachSaleStatus(van, quotes));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch van" });
     }
@@ -399,7 +403,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!van) {
         return res.status(404).json({ error: "Van not found" });
       }
-      res.json(van);
+      const quotes = await storage.getQuotes();
+      res.json(attachSaleStatus(van, quotes));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch van" });
     }

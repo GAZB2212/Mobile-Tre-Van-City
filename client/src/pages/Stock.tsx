@@ -11,7 +11,7 @@ import { useConfigurator } from "@/lib/ConfiguratorContext";
 import SEO from "@/components/SEO";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import type { Van } from "@shared/schema";
+import type { VanWithSaleStatus } from "@shared/schema";
 
 const URGENCY_STYLES: Record<string, { className: string; icon: typeof Flame }> = {
   "Only 1 Left":    { className: "bg-red-600 text-white border-0",       icon: Flame },
@@ -33,7 +33,7 @@ export default function Stock() {
   const [, setLocation] = useLocation();
   const { setVan } = useConfigurator();
 
-  const { data: vans = [], isLoading } = useQuery<Van[]>({
+  const { data: vans = [], isLoading } = useQuery<VanWithSaleStatus[]>({
     queryKey: ['/api/vans'],
   });
 
@@ -241,11 +241,26 @@ export default function Stock() {
                         </Badge>
                       </div>
                       {/* Urgency badge */}
-                      {van.urgencyBadge && urgencyStyle && UrgencyIcon && (
+                      {van.urgencyBadge && urgencyStyle && UrgencyIcon && van.effectiveSaleStatus === "available" && (
                         <div className="absolute top-3 left-3">
                           <Badge className={`${urgencyStyle.className} flex items-center gap-1`} data-testid={`badge-urgency-${van.id}`}>
                             <UrgencyIcon className="w-3 h-3" />
                             {van.urgencyBadge}
+                          </Badge>
+                        </div>
+                      )}
+                      {/* Sale status badge */}
+                      {van.effectiveSaleStatus !== "available" && (
+                        <div className="absolute top-3 left-3">
+                          <Badge
+                            className={
+                              van.effectiveSaleStatus === "sold"
+                                ? "bg-red-600 text-white border-0"
+                                : "bg-amber-500 text-black border-0"
+                            }
+                            data-testid={`badge-sale-status-${van.id}`}
+                          >
+                            {van.effectiveSaleStatus === "sold" ? "Sold" : "Deposit Taken"}
                           </Badge>
                         </div>
                       )}
