@@ -35,6 +35,12 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Van sale state — manual (staff-set) or auto-derived from a linked quote.
+// Ranked available < deposit_taken < sold so the effective state can be the
+// "highest" of the manual and auto values.
+export const vanSaleStatuses = ["available", "deposit_taken", "sold"] as const;
+export type VanSaleStatus = typeof vanSaleStatuses[number];
+
 export const vans = pgTable("vans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   slug: text("slug").notNull().unique(),
@@ -58,6 +64,10 @@ export const vans = pgTable("vans", {
   heroImage: text("hero_image"),
   description: text("description"),
   urgencyBadge: text("urgency_badge"), // e.g. "Only 1 Left", "Just In", "Hot Deal", "Selling Fast"
+  // Sale state set manually by staff. Auto-derived state from a linked quote
+  // (deposit taken / in build) is computed on read and never written here, so
+  // a manual mark and an automatic mark stay independent.
+  saleStatus: text("sale_status").$type<VanSaleStatus>().notNull().default("available"),
   expectedArrivalDate: timestamp("expected_arrival_date"), // Date this van is expected to arrive at the workshop from the supplier — shown on the admin calendar
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -438,7 +448,17 @@ export const insertVanSchema = createInsertSchema(vans).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  saleStatus: z.enum(vanSaleStatuses).optional(),
 });
+
+// A van plus its computed sale state. `derivedSaleStatus` comes from any linked
+// quote (deposit taken / in build); `effectiveSaleStatus` is the higher of the
+// manual `saleStatus` and the derived one — that's what staff should see.
+export type VanWithSaleStatus = Van & {
+  derivedSaleStatus: VanSaleStatus;
+  effectiveSaleStatus: VanSaleStatus;
+};
 
 export const insertKitSchema = createInsertSchema(kits).omit({
   id: true,

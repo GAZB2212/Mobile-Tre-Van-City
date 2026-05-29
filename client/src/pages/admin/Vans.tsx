@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { VanImages } from "@/components/VanImages";
 import { VanFormNew } from "./VanFormNew";
 import { VanWizard } from "@/components/VanWizard";
-import type { Van, InsertVan } from "@shared/schema";
+import type { Van, InsertVan, VanWithSaleStatus, VanSaleStatus } from "@shared/schema";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 
@@ -29,9 +29,24 @@ export default function AdminVans() {
   const [editDialogTab, setEditDialogTab] = useState<string>("details");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch vans (using admin endpoint to see all vans including unpublished)
-  const { data: vans = [], isLoading } = useQuery<Van[]>({
+  // Fetch vans (using admin endpoint to see all vans including unpublished).
+  // The admin endpoint also returns the computed sale state for each van.
+  const { data: vans = [], isLoading } = useQuery<VanWithSaleStatus[]>({
     queryKey: ['/api/admin/vans'],
+  });
+
+  // Set a van's manual sale status (available / deposit taken / sold)
+  const saleStatusMutation = useMutation({
+    mutationFn: async ({ id, saleStatus }: { id: string; saleStatus: VanSaleStatus }) => {
+      await apiRequest('PUT', `/api/admin/vans/${id}`, { saleStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/vans'] });
+      toast({ title: "Updated", description: "Van sale status updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update sale status.", variant: "destructive" });
+    },
   });
 
   // Derive editingVan live from query cache so images update immediately after upload
@@ -392,9 +407,23 @@ export default function AdminVans() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <CardTitle className="text-lg">{van.title}</CardTitle>
-                    <Badge variant={van.published ? "default" : "secondary"}>
-                      {van.published ? "Published" : "Draft"}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {van.effectiveSaleStatus !== "available" && (
+                        <Badge
+                          className={
+                            van.effectiveSaleStatus === "sold"
+                              ? "bg-red-600 text-white border-red-600"
+                              : "bg-amber-500 text-black border-amber-500"
+                          }
+                          data-testid={`badge-van-sale-status-${van.id}`}
+                        >
+                          {van.effectiveSaleStatus === "sold" ? "Sold" : "Deposit Taken"}
+                        </Badge>
+                      )}
+                      <Badge variant={van.published ? "default" : "secondary"}>
+                        {van.published ? "Published" : "Draft"}
+                      </Badge>
+                    </div>
                   </div>
                   <CardDescription>
                     {van.year} {van.make} {van.model}
@@ -429,6 +458,30 @@ export default function AdminVans() {
                       <span className="text-muted-foreground">Transmission:</span>
                       <span>{van.specs.transmission}</span>
                     </div>
+                  </div>
+                  <div className="mb-4 space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Sale status</Label>
+                    <Select
+                      value={van.saleStatus ?? "available"}
+                      onValueChange={(value) =>
+                        saleStatusMutation.mutate({ id: van.id, saleStatus: value as VanSaleStatus })
+                      }
+                      disabled={saleStatusMutation.isPending}
+                    >
+                      <SelectTrigger data-testid={`select-van-sale-status-${van.id}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="deposit_taken">Deposit Taken</SelectItem>
+                        <SelectItem value="sold">Sold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {van.derivedSaleStatus !== "available" && (
+                      <p className="text-xs text-muted-foreground" data-testid={`text-van-sale-auto-${van.id}`}>
+                        Auto-set to "{van.derivedSaleStatus === "sold" ? "Sold" : "Deposit Taken"}" from a linked quote.
+                      </p>
+                    )}
                   </div>
                   <div className="flex space-x-2">
                     <Button

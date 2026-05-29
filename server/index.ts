@@ -333,6 +333,9 @@ app.use((req, res, next) => {
       pool.query(`ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE`)
         .then(() => log("✅ Gallery featured column ready"))
         .catch((err: Error) => console.error("Gallery featured migration:", err.message));
+      pool.query(`ALTER TABLE vans ADD COLUMN IF NOT EXISTS sale_status TEXT NOT NULL DEFAULT 'available'`)
+        .then(() => log("✅ Van sale_status column ready"))
+        .catch((err: Error) => console.error("Van sale_status migration:", err.message));
       pool.query(`ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS author_bio TEXT`)
         .then(() => log("✅ Blog post author_bio column ready"))
         .catch((err: Error) => console.error("Blog post author_bio migration:", err.message));

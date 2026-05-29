@@ -28,9 +28,37 @@ import {
   financeStatuses,
   buildStages,
   type User,
-  type Quote
+  type Quote,
+  type Van,
+  type VanSaleStatus,
+  type VanWithSaleStatus,
 } from "@shared/schema";
 import { deriveHeadlineMachines } from "@shared/kitHeadlineMachines";
+
+// Quote statuses that imply a van has been committed to a customer. A quote at
+// "deposit taken" or "finance approved" (ready for build) marks the van as
+// deposit taken; once it's actually in the build/workshop pipeline or completed
+// the van counts as sold.
+const SALE_RANK: Record<VanSaleStatus, number> = { available: 0, deposit_taken: 1, sold: 2 };
+const QUOTE_STATUS_TO_SALE: Record<string, VanSaleStatus> = {
+  deposit_taken: "deposit_taken",
+  finance_approved: "deposit_taken",
+  in_build: "sold",
+  in_workshop: "sold",
+  completed: "sold",
+};
+
+function attachSaleStatus(van: Van, quotes: Quote[]): VanWithSaleStatus {
+  let derived: VanSaleStatus = "available";
+  for (const q of quotes) {
+    if (q.vanId !== van.id) continue;
+    const mapped = QUOTE_STATUS_TO_SALE[q.status];
+    if (mapped && SALE_RANK[mapped] > SALE_RANK[derived]) derived = mapped;
+  }
+  const manual = (van.saleStatus ?? "available") as VanSaleStatus;
+  const effective = SALE_RANK[manual] >= SALE_RANK[derived] ? manual : derived;
+  return { ...van, derivedSaleStatus: derived, effectiveSaleStatus: effective };
+}
 
 const SERVER_START_TIME = Date.now().toString();
 
@@ -1382,8 +1410,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin CRUD endpoints for vans
   app.get("/api/admin/vans", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
-      const vans = await storage.getVansAdmin();
-      res.json(vans);
+      const [vans, quotes] = await Promise.all([
+        storage.getVansAdmin(),
+        storage.getQuotes(),
+      ]);
+      const withStatus = vans.map((van) => attachSaleStatus(van, quotes));
+      res.json(withStatus);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vans" });
     }
