@@ -1,1 +1,2 @@
 - [www redirect vs API writes](www-redirect-api-writes.md) — non-www→www 301 must skip /api and non-GET; redirecting credentialed PUT/PATCH silently breaks writes (empty-body 403, not in Express logs).
+- [Van reg dual source](van-reg-dual-source.md) — chosen-van plate is `quote.vanRegistration || van.reg`; stock vans only have it on the van record, so reg-only-from-quote UIs show blank.

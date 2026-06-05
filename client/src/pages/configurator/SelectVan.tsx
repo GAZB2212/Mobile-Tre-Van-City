@@ -323,10 +323,15 @@ export default function SelectVan() {
                           )}
 
                           <CardHeader className="space-y-0 pb-3 pt-3">
-                            <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center justify-between gap-1.5 mb-1">
                               <Badge variant="secondary" className="text-xs" data-testid={`badge-van-year-${van.id}`}>
                                 {van.year}
                               </Badge>
+                              {van.reg && (
+                                <Badge variant="outline" className="text-xs font-mono font-semibold uppercase tracking-wide" data-testid={`badge-van-reg-${van.id}`}>
+                                  {van.reg}
+                                </Badge>
+                              )}
                             </div>
                             <CardTitle className="text-base leading-tight mb-1" data-testid={`text-van-title-${van.id}`}>
                               {van.make} {van.model}

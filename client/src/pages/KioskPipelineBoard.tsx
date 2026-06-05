@@ -101,7 +101,7 @@ const qtyLabel = (u: { id: string; name: string; variantName?: string | null }, 
 
 interface KioskData {
   quotes: KioskQuote[];
-  vans: { id: string; make: string; model: string; year: number | null }[];
+  vans: { id: string; make: string; model: string; year: number | null; reg: string | null }[];
   kits: { id: string; name: string; headlineMachines?: string[] | null }[];
   upgrades: KioskUpgrade[];
 }
@@ -212,7 +212,7 @@ function JobCard({
   q, van, kit, selectedUpgrades,
 }: {
   q: KioskQuote;
-  van: { make: string; model: string; year: number | null } | undefined;
+  van: { make: string; model: string; year: number | null; reg: string | null } | undefined;
   kit: { name: string; headlineMachines?: string[] | null } | undefined;
   selectedUpgrades: KioskUpgrade[];
 }) {
@@ -365,6 +365,10 @@ function JobCard({
     ? `${van.year ?? ""} ${van.make} ${van.model}`.trim()
     : q.customVanDescription || null;
 
+  // Reg plate: customer's entered reg wins (own-van / finance), otherwise fall
+  // back to the stock van's plate so a chosen stock van still shows its reg.
+  const regPlate = q.vanRegistration || van?.reg || null;
+
   const days = daysUntil(q.targetCompletionDate);
   const dueColour =
     days === null ? "text-zinc-600"
@@ -401,10 +405,10 @@ function JobCard({
           {q.company && (
             <p className="text-yellow-400/80 text-base font-bold leading-tight truncate">{q.company}</p>
           )}
-          {q.vanRegistration && (
+          {regPlate && (
             <div className="pt-1">
               <span className="inline-block bg-yellow-400 text-black font-bold font-mono tracking-widest text-lg px-2 py-0.5 rounded border-2 border-black/20 uppercase">
-                {q.vanRegistration}
+                {regPlate}
               </span>
             </div>
           )}

@@ -505,6 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quote = await storage.getQuote(req.params.id);
       if (!quote) return res.status(404).json({ error: "Not found" });
       const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
+      const van = quote.vanId ? await storage.getVan(quote.vanId) : null;
       const upgrades = await storage.getAllUpgradesAdmin();
       const selectedUpgrades = await sortUpgradesByDisplayOrder(
         upgrades.filter(u => Array.isArray(quote.selectedUpgradeIds) && quote.selectedUpgradeIds.includes(u.id))
@@ -513,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: quote.id,
         userName: quote.userName,
         company: quote.company ?? null,
-        vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
+        vanRegistration: quote.vanRegistration ?? van?.reg ?? quote.customVanDescription ?? null,
         status: quote.status,
         customBuildStages: (quote as any).customBuildStages ?? null,
         completedBuildStages: (quote as any).completedBuildStages ?? [],
@@ -691,9 +692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         typeof e === "string" ? { id: e, initials: null } : { id: e.id, initials: e.initials ?? null }
       );
 
+      const publicVan = quote.vanId ? await storage.getVan(quote.vanId) : null;
       res.json({
         customerName: quote.userName,
-        vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
+        vanRegistration: quote.vanRegistration ?? publicVan?.reg ?? quote.customVanDescription ?? null,
         company: quote.company ?? null,
         stages,
         completedStages,
@@ -817,9 +819,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const kit = quote.kitId ? await storage.getKit(quote.kitId) : null;
+      const tokenVan = quote.vanId ? await storage.getVan(quote.vanId) : null;
       res.json({
         token,
-        vanRegistration: quote.vanRegistration ?? quote.customVanDescription ?? null,
+        vanRegistration: quote.vanRegistration ?? tokenVan?.reg ?? quote.customVanDescription ?? null,
         userName: quote.userName,
         company: quote.company ?? null,
         kitName: kit?.name ?? null,
@@ -10692,7 +10695,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
 
       res.json({
         quotes,
-        vans: vans.map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year })),
+        vans: vans.map((v) => ({ id: v.id, make: v.make, model: v.model, year: v.year, reg: v.reg ?? null })),
         kits: kits.map((k) => ({
           id: k.id,
           name: k.name,
