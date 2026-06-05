@@ -79,6 +79,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveVanReg } from "@/lib/vanDisplay";
 import { Link, useLocation } from "wouter";
 import { AdminBackButton } from "@/components/AdminBackButton";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
@@ -406,6 +407,11 @@ export default function AdminQuotes() {
     if (!vanId) return "No van selected";
     const van = vans.find((v) => v.id === vanId);
     return van ? `${van.make} ${van.model}` : "Unknown van";
+  };
+
+  const getVanReg = (vanId: string | null, typedReg?: string | null): string | null => {
+    const van = vanId ? vans.find((v) => v.id === vanId) : undefined;
+    return resolveVanReg(van ?? null, typedReg ?? null);
   };
 
   const getKitName = (kitId: string | null): string => {
@@ -1429,7 +1435,19 @@ export default function AdminQuotes() {
                             Van
                           </div>
                           {quote.vanId ? (
-                            <p className="text-sm text-muted-foreground">{getVanName(quote.vanId)}</p>
+                            (() => {
+                              const stockReg = getVanReg(quote.vanId, quote.vanRegistration);
+                              return (
+                                <div className="space-y-0.5">
+                                  <p className="text-sm text-muted-foreground">{getVanName(quote.vanId)}</p>
+                                  {stockReg && (
+                                    <p className="text-sm font-medium font-mono uppercase" data-testid={`text-quote-van-reg-${quote.id}`}>
+                                      {stockReg}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()
                           ) : quote.customVanValue || quote.vanRegistration || quote.customVanDescription ? (
                             <div className="space-y-0.5">
                               {quote.vanRegistration && (
