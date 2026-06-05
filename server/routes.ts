@@ -6792,6 +6792,8 @@ ${blogEntries}
     { initials: "NK", name: "Nick" },
     { initials: "RC", name: "Ryan" },
     { initials: "KW", name: "Kenny" },
+    { initials: "PF", name: "Paul" },
+    { initials: "EC", name: "Eddie" },
   ];
   const KIOSK_INITIALS = new Set(KIOSK_PEOPLE.map((p) => p.initials));
 
