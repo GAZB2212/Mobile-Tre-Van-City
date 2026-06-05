@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Car, Package, Wrench, GraduationCap, ChevronRight } from "lucide-react";
 import type { Van, Kit, Upgrade, TrainingOption } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { resolveVanReg } from "@/lib/vanDisplay";
 
 function OwnVanDetails({
   vanPriceStr,
@@ -202,6 +203,9 @@ function SlotSummary({
           <Car className="w-3.5 h-3.5 text-accent mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium truncate">{van.make} {van.model}</p>
+            {resolveVanReg(van, slot.vanReg) && (
+              <p className="text-[11px] font-mono font-semibold uppercase tracking-wide text-muted-foreground">{resolveVanReg(van, slot.vanReg)}</p>
+            )}
             <p className="text-xs text-muted-foreground">{formatPrice(van.price)}</p>
           </div>
         </div>
@@ -532,6 +536,11 @@ export function ConfiguratorSummary({
                       <p className="text-sm font-medium truncate" data-testid="text-summary-van-name">
                         {van.make} {van.model}
                       </p>
+                      {resolveVanReg(van, state.vanReg) && (
+                        <p className="text-xs font-mono font-semibold uppercase tracking-wide text-muted-foreground" data-testid="text-summary-van-reg">
+                          {resolveVanReg(van, state.vanReg)}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground" data-testid="text-summary-van-price">
                         {formatPrice(van.price)}
                       </p>
