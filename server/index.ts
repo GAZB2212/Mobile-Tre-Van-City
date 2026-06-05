@@ -822,6 +822,25 @@ app.use((req, res, next) => {
             .then(r => log(`✅ Compressor/power-inversion exclusive group set (${r.rowCount} row(s))`))
             .catch((err: Error) => console.error("Compressor exclusive group migration:", err.message));
 
+          // ── Mutual exclusivity: 48V Power System vs Lithium Battery Upgrade ──
+          // The customer must pick one OR the other, never both. We assign both
+          // upgrades (parent rows and all their variants share the same `name`)
+          // the same exclusive_group so the configurator's existing group logic
+          // deselects the other when one is chosen. Matching by name keeps this
+          // correct across environments and overrides any earlier manual values
+          // (the 48V system previously sat in the 'air-systems' group and the
+          // Lithium upgrade had a stray free-text group). The 12hp commercial
+          // compressor is intentionally left independent and can be chosen with
+          // either.
+          pool.query(`
+            UPDATE upgrades
+            SET exclusive_group = '48v-lithium-power'
+            WHERE LOWER(name) LIKE '%48v power system%'
+               OR LOWER(name) LIKE '%lithium battery%'
+          `)
+            .then(r => log(`✅ 48V/Lithium exclusive group set (${r.rowCount} row(s))`))
+            .catch((err: Error) => console.error("48V/Lithium exclusive group migration:", err.message));
+
           // ── Backfill: link existing leads/quotes/ai_conversations to customers ──
           // Uses email-first, phone-fallback precedence to avoid cross-matching
           (async () => {
