@@ -8,6 +8,15 @@ import ConfiguratorStepper from "@/components/ConfiguratorStepper";
 import { ConfiguratorSummary } from "@/components/ConfiguratorSummary";
 import { ConfiguratorTutorial } from "@/components/ConfiguratorTutorial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -122,6 +131,7 @@ export default function SelectUpgrades() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedUpgrade, setSelectedUpgrade] = useState<Upgrade | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<Upgrade[]>([]);
+  const [conflictModal, setConflictModal] = useState<{ added: string; removed: string[] } | null>(null);
 
   const { data: configuratorData, isLoading } = useQuery<ConfiguratorData>({
     queryKey: ['/api/configurator/data'],
@@ -279,12 +289,7 @@ export default function SelectUpgrades() {
           })
           .filter(Boolean) as string[];
         if (removedNames.length > 0) {
-          const removed = removedNames.join(" and ");
-          toast({
-            title: "Option removed",
-            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${addedName}.`,
-            duration: 5000,
-          });
+          setConflictModal({ added: addedName, removed: removedNames });
         }
       } else {
         addUpgrade(upgradeId);
@@ -350,12 +355,7 @@ export default function SelectUpgrades() {
           })
           .filter(Boolean) as string[];
         if (removedNames.length > 0) {
-          const removed = removedNames.join(" and ");
-          toast({
-            title: "Option removed",
-            description: `${removed} ${removedNames.length > 1 ? "have" : "has"} been removed — ${removedNames.length > 1 ? "they" : "it"} can't be combined with ${addedName}.`,
-            duration: 5000,
-          });
+          setConflictModal({ added: addedName, removed: removedNames });
         }
       }
     } else if (toRemove.length > 0) {
@@ -767,6 +767,26 @@ export default function SelectUpgrades() {
           variants={selectedVariants}
         />
       )}
+
+      <AlertDialog open={conflictModal !== null} onOpenChange={(open) => { if (!open) setConflictModal(null); }}>
+        <AlertDialogContent data-testid="modal-upgrade-conflict">
+          <AlertDialogHeader>
+            <AlertDialogTitle data-testid="text-conflict-title">Option removed</AlertDialogTitle>
+            <AlertDialogDescription data-testid="text-conflict-description">
+              {conflictModal && (() => {
+                const removed = conflictModal.removed.join(" and ");
+                const plural = conflictModal.removed.length > 1;
+                return `${removed} ${plural ? "have" : "has"} been removed — ${plural ? "they" : "it"} can't be combined with ${conflictModal.added}.`;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction data-testid="button-conflict-ok" onClick={() => setConflictModal(null)}>
+              Got it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
