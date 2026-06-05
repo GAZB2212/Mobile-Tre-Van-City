@@ -12,7 +12,7 @@ type CustomerBuildProgressData = {
   vanRegistration: string | null;
   company: string | null;
   stages: Array<{ id: string; label: string; section?: string }>;
-  completedStageIds: string[];
+  completedStages: Array<{ id: string; initials: string | null }>;
 };
 
 const gajoLine = (
@@ -74,7 +74,7 @@ export default function CustomerBuildProgress() {
     );
   }
 
-  const completedSet = new Set(data.completedStageIds);
+  const completedSet = new Set(data.completedStages.map((s) => s.id));
   const doneCount = data.stages.filter(s => completedSet.has(s.id)).length;
   const totalCount = data.stages.length;
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
