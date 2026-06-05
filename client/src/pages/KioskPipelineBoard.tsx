@@ -4,6 +4,7 @@ import { useParams } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
 import { Lock, Circle, CheckCircle2, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { resolveVanReg } from "@/lib/vanDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -367,7 +368,7 @@ function JobCard({
 
   // Reg plate: customer's entered reg wins (own-van / finance), otherwise fall
   // back to the stock van's plate so a chosen stock van still shows its reg.
-  const regPlate = q.vanRegistration || van?.reg || null;
+  const regPlate = resolveVanReg(van, q.vanRegistration);
 
   const days = daysUntil(q.targetCompletionDate);
   const dueColour =

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ExternalLink, Tv2, Copy, RefreshCw, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { resolveVanReg } from "@/lib/vanDisplay";
 import { useToast } from "@/hooks/use-toast";
 
 const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
@@ -309,9 +310,9 @@ export default function PipelineBoard() {
                 {/* Van */}
                 <div>
                   <p className="text-xs uppercase tracking-widest text-zinc-500 mb-1">Van</p>
-                  {(q.vanRegistration || van?.reg) && (
+                  {resolveVanReg(van, q.vanRegistration) && (
                     <span className="inline-block mb-1.5 bg-yellow-400 text-black font-bold font-mono tracking-widest text-lg px-2 py-0.5 rounded border-2 border-black/20 uppercase" data-testid={`text-pipeline-van-reg-${q.id}`}>
-                      {q.vanRegistration || van?.reg}
+                      {resolveVanReg(van, q.vanRegistration)}
                     </span>
                   )}
                   <p className="text-xl font-bold text-white">{vanLabel}</p>

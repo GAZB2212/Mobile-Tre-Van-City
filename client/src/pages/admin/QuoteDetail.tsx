@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { formatVanWithReg } from "@/lib/vanDisplay";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -2134,7 +2135,7 @@ export default function AdminQuoteDetail() {
                         {(() => {
                           const slotAVan = vans.find(v => v.id === quote.comparisonConfig!.slotA?.vanId);
                           return slotAVan ? (
-                            <p><span className="text-foreground font-medium">Van:</span> {slotAVan.year} {slotAVan.make} {slotAVan.model}{(quote.comparisonConfig!.slotA?.vanRegistration || slotAVan.reg) ? ` (${quote.comparisonConfig!.slotA?.vanRegistration || slotAVan.reg})` : ''}</p>
+                            <p><span className="text-foreground font-medium">Van:</span> {formatVanWithReg(slotAVan, quote.comparisonConfig!.slotA?.vanRegistration)}</p>
                           ) : quote.comparisonConfig!.slotA?.vanRegistration ? (
                             <p><span className="text-foreground font-medium">Van Reg:</span> {quote.comparisonConfig!.slotA.vanRegistration}</p>
                           ) : (
@@ -2197,7 +2198,7 @@ export default function AdminQuoteDetail() {
                         {(() => {
                           const slotBVan = vans.find(v => v.id === quote.comparisonConfig!.slotB?.vanId);
                           return slotBVan ? (
-                            <p><span className="text-foreground font-medium">Van:</span> {slotBVan.year} {slotBVan.make} {slotBVan.model}{(quote.comparisonConfig!.slotB?.vanRegistration || slotBVan.reg) ? ` (${quote.comparisonConfig!.slotB?.vanRegistration || slotBVan.reg})` : ''}</p>
+                            <p><span className="text-foreground font-medium">Van:</span> {formatVanWithReg(slotBVan, quote.comparisonConfig!.slotB?.vanRegistration)}</p>
                           ) : quote.comparisonConfig!.slotB?.vanRegistration ? (
                             <p><span className="text-foreground font-medium">Van Reg:</span> {quote.comparisonConfig!.slotB.vanRegistration}</p>
                           ) : (
@@ -2337,9 +2338,8 @@ export default function AdminQuoteDetail() {
                   {/* Option B van info banner */}
                   {isComparison && viewingSlot === 'B' && (() => {
                     const bVan = vans.find(v => v.id === quote.comparisonConfig?.slotB?.vanId);
-                    const bVanReg = quote.comparisonConfig?.slotB?.vanRegistration || bVan?.reg;
                     const bVanLabel = bVan
-                      ? `${bVan.year} ${bVan.make} ${bVan.model}${bVanReg ? ` (${bVanReg})` : ''} — £${(bVan.price / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
+                      ? `${formatVanWithReg(bVan, quote.comparisonConfig?.slotB?.vanRegistration)} — £${(bVan.price / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`
                       : quote.comparisonConfig?.slotB?.vanRegistration
                         ? `Own van (${quote.comparisonConfig.slotB.vanRegistration})`
                         : null;
@@ -2836,8 +2836,7 @@ export default function AdminQuoteDetail() {
                     {isComparison && viewingSlot === 'B' && (
                       <span className="text-xs text-muted-foreground">Van: {(() => {
                         const bVan = vans.find(v => v.id === quote.comparisonConfig?.slotB?.vanId);
-                        const bVanReg = quote.comparisonConfig?.slotB?.vanRegistration || bVan?.reg;
-                        return bVan ? `${bVan.year} ${bVan.make} ${bVan.model}${bVanReg ? ` (${bVanReg})` : ''}` : (quote.comparisonConfig?.slotB?.vanRegistration ?? 'own van');
+                        return bVan ? formatVanWithReg(bVan, quote.comparisonConfig?.slotB?.vanRegistration) : (quote.comparisonConfig?.slotB?.vanRegistration ?? 'own van');
                       })()}</span>
                     )}
                   </div>
@@ -3319,9 +3318,8 @@ export default function AdminQuoteDetail() {
                     const chosenSlotReg = quote.chosenOption === 'B'
                       ? quote.comparisonConfig?.slotB?.vanRegistration
                       : quote.comparisonConfig?.slotA?.vanRegistration;
-                    const chosenVanReg = chosenSlotReg || chosenVan?.reg;
                     const chosenVanLabel = chosenVan
-                      ? `${chosenVan.year} ${chosenVan.make} ${chosenVan.model}${chosenVanReg ? ` (${chosenVanReg})` : ''}`
+                      ? formatVanWithReg(chosenVan, chosenSlotReg)
                       : quote.chosenOption === 'B'
                         ? (quote.comparisonConfig?.slotB?.vanRegistration ?? 'own van')
                         : (quote.comparisonConfig?.slotA?.vanRegistration ?? 'own van');

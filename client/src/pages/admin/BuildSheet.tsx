@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { resolveVanReg } from "@/lib/vanDisplay";
 import { QrScannerModal } from "@/components/QrScannerModal";
 import { DueByCountdown } from "@/components/DueByCountdown";
 
@@ -1120,11 +1121,11 @@ export default function BuildSheet() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     {/* Registration — shown first and prominently */}
-                    {((quote as any).vanRegistration || van.reg) && (
+                    {resolveVanReg(van, (quote as any).vanRegistration) && (
                       <div className="sm:col-span-2 md:col-span-3">
                         <p className="text-muted-foreground print:text-black">Registration</p>
                         <p className="font-bold text-base uppercase tracking-widest" data-testid="text-van-reg">
-                          {(quote as any).vanRegistration || van.reg}
+                          {resolveVanReg(van, (quote as any).vanRegistration)}
                         </p>
                       </div>
                     )}
