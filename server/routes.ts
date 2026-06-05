@@ -693,9 +693,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       const publicVan = quote.vanId ? await storage.getVan(quote.vanId) : null;
+      // Resolve the plate the same way the shared client helper resolveVanReg
+      // (client/src/lib/vanDisplay.ts) does: a typed reg wins, but only when
+      // it's actually non-empty; otherwise fall back to the chosen stock van's
+      // own plate, then the free-text van description. Using a plain `??` would
+      // keep an empty/whitespace vanRegistration and never reveal a stock van's
+      // plate to the customer.
+      const typedReg = quote.vanRegistration?.trim();
+      const vanRegistration =
+        (typedReg && typedReg.length > 0 ? typedReg : null) ??
+        publicVan?.reg ??
+        quote.customVanDescription ??
+        null;
       res.json({
         customerName: quote.userName,
-        vanRegistration: quote.vanRegistration ?? publicVan?.reg ?? quote.customVanDescription ?? null,
+        vanRegistration,
         company: quote.company ?? null,
         stages,
         completedStages,
