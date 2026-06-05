@@ -1,0 +1,1 @@
+- [www redirect vs API writes](www-redirect-api-writes.md) — non-www→www 301 must skip /api and non-GET; redirecting credentialed PUT/PATCH silently breaks writes (empty-body 403, not in Express logs).

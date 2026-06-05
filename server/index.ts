@@ -19,8 +19,15 @@ app.use(getSession());
 // Gzip compression for all responses
 app.use(compression());
 
-// Redirect non-www to www
+// Redirect non-www to www — pages only.
+// Never redirect API calls: a 301 on a PUT/PATCH/DELETE makes the browser
+// re-issue the request to the www origin, which turns a same-origin write into
+// a cross-origin credentialed request and the browser silently drops it (GETs
+// still work, writes fail). API requests must stay on whatever host the app was
+// loaded from. Canonicalisation only matters for document/page GETs anyway.
 app.use((req, res, next) => {
+  const isPageRequest = (req.method === 'GET' || req.method === 'HEAD') && !req.path.startsWith('/api');
+  if (!isPageRequest) return next();
   const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
   if (host && !host.startsWith('www.') && host.includes('mobiletyrevancity.co.uk')) {
     const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
