@@ -1789,10 +1789,10 @@ export class MemStorage implements IStorage {
   async findCustomerByEmail(_email: string): Promise<Customer | undefined> { return undefined; }
   async findCustomerByPhone(_phone: string): Promise<Customer | undefined> { return undefined; }
   async findOrCreateCustomer(_email: string | null, _phone: string | null, name: string): Promise<Customer> {
-    return { id: randomUUID(), name, email: _email, phone: _phone, company: null, primaryStaffId: null, createdAt: new Date(), updatedAt: new Date() };
+    return { id: randomUUID(), name, email: _email, phone: _phone, company: null, primaryStaffId: null, vrmInstallationId: null, deletedAt: null, createdAt: new Date(), updatedAt: new Date() };
   }
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    return { ...customer, id: randomUUID(), email: customer.email ?? null, phone: customer.phone ?? null, company: customer.company ?? null, primaryStaffId: customer.primaryStaffId ?? null, createdAt: new Date(), updatedAt: new Date() };
+    return { ...customer, id: randomUUID(), email: customer.email ?? null, phone: customer.phone ?? null, company: customer.company ?? null, primaryStaffId: customer.primaryStaffId ?? null, vrmInstallationId: customer.vrmInstallationId ?? null, deletedAt: null, createdAt: new Date(), updatedAt: new Date() };
   }
   async updateCustomer(_id: string, _data: Partial<InsertCustomer>): Promise<Customer | undefined> { return undefined; }
   async getCustomerNotes(_customerId: string): Promise<CustomerNote[]> { return []; }

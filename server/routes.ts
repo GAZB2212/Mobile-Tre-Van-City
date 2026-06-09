@@ -8839,7 +8839,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         phone: z.string().optional(),
         company: z.string().optional(),
         primaryStaffId: z.string().optional().nullable(),
-        vrmInstallationId: z.string().trim().optional().nullable(),
+        vrmInstallationId: z.string().trim().regex(/^\d*$/, "VRM Installation ID must be numeric").optional().nullable(),
       });
       const data = schema_z.parse(req.body);
 
@@ -8884,6 +8884,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const installationId = (customer.vrmInstallationId || "").trim();
       if (!installationId) {
         return res.status(400).json({ error: "No VRM Installation ID set for this customer." });
+      }
+      if (!/^\d+$/.test(installationId)) {
+        return res.status(400).json({ error: "VRM Installation ID must be numeric." });
       }
 
       const vrmUrl = `https://vrmapi.victronenergy.com/v2/installations/${encodeURIComponent(installationId)}/diagnostics?count=100`;
