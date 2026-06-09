@@ -1,0 +1,52 @@
+We are adding Victron VRM power monitoring to the MTVC customer records in our existing Next.js/Supabase platform.
+
+IMPORTANT RULE: Everything VRM-related (the VRM field, the Power System button, the drawer) should ONLY appear on customer records where the existing system type / voltage field is set to 48V. If the customer has any other system type or voltage, none of this UI should render at all.
+
+WHAT WE NEED:
+
+1. DATABASE CHANGE
+Add a new column to the customers table in Supabase:
+- vrm_installation_id (text, nullable)
+This stores the customer's Victron VRM installation ID (numeric, e.g. "12345").
+
+2. CUSTOMER CARD — VRM FIELD (48V customers only)
+On the existing customer detail/record page, IF the customer's system type/voltage field is 48V, add an editable "Power System" field in the customer info section:
+- Label: "VRM Installation ID"
+- Inline edit — click a pencil icon to edit, save on confirm
+- Saves to the vrm_installation_id column in Supabase for that customer
+- If no ID assigned yet, show a subtle "Assign VRM ID" prompt in muted text
+- Sits naturally with the other customer fields, no separate settings page
+- If the customer is NOT a 48V system, this field does not appear at all
+
+3. POWER SYSTEM BUTTON (48V customers only)
+On the customer card/record header (near the existing action buttons), IF the customer is a 48V system, add a "⚡ Power System" button:
+- Only active if vrm_installation_id is set for that customer
+- If no VRM ID is assigned yet, button is greyed out with tooltip "No VRM ID assigned — edit customer record to add one"
+- If customer is NOT a 48V system, this button does not appear at all
+- Clicking it opens a right-side drawer
+
+4. VRM DRAWER
+A full-height right-side drawer (not a modal, slides in from the right):
+- Header: customer name + "Power System" title + close button
+- Body: iframe embedding the VRM dashboard URL:
+  https://vrm.victronenergy.com/installation/{vrm_installation_id}/dashboard
+- iframe should be full height and width of the drawer body
+- Loading spinner while iframe loads
+- If the iframe fails to load or VRM blocks embedding, show a fallback message:
+  "VRM dashboard couldn't load inline. Click here to open in a new tab →"
+  (link opens https://vrm.victronenergy.com/installation/{vrm_installation_id}/dashboard in new tab)
+- Drawer width: 75vw on desktop, full screen on mobile
+
+5. STYLING
+- Match existing MTVC dark theme (dark backgrounds, existing component styles)
+- Use existing drawer/modal pattern if one already exists in the codebase, otherwise build one
+- "⚡ Power System" button should use the existing primary button style
+- Keep it consistent with the rest of the platform — no new design system
+
+6. NOTES
+- VRM URLs follow this pattern: https://vrm.victronenergy.com/installation/{id}/dashboard
+- The VRM ID is purely numeric (e.g. 123456)
+- No VRM API authentication needed at this stage — we are using the public share URL approach
+- This is admin/internal only, not customer-facing
+- Do not break any existing customer record functionality
+- Check the existing codebase to find the exact field name used for system type/voltage before writing any conditional logic — use that exact field and the exact value used for 48V in the database
