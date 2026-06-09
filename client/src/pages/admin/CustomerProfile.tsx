@@ -709,8 +709,11 @@ export default function CustomerProfile() {
     }
   };
 
-  // Populate edit fields when data loads
+  // Populate edit fields when data loads, but never while the user is actively
+  // editing — a background refetch (window focus, polling, invalidation) would
+  // otherwise overwrite whatever they have just typed.
   useEffect(() => {
+    if (editing) return;
     if (data?.customer) {
       setEditName(data.customer.name ?? "");
       setEditEmail(data.customer.email ?? "");
@@ -719,7 +722,7 @@ export default function CustomerProfile() {
       setEditPrimaryStaffId(data.customer.primaryStaffId ?? null);
       setEditVrmId(data.customer.vrmInstallationId ?? "");
     }
-  }, [data?.customer]);
+  }, [data?.customer, editing]);
 
   const updateMutation = useMutation({
     mutationFn: (body: object) => apiRequest("PATCH", `/api/admin/customers/${id}`, body),
