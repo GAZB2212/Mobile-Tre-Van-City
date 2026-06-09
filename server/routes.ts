@@ -8846,9 +8846,9 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const { id } = req.params;
       const schema_z = z.object({
         name: z.string().min(1).optional(),
-        email: z.string().email().optional().or(z.literal("")),
-        phone: z.string().optional(),
-        company: z.string().optional(),
+        email: z.union([z.string().email(), z.literal(""), z.null()]).optional(),
+        phone: z.string().optional().nullable(),
+        company: z.string().optional().nullable(),
         primaryStaffId: z.string().optional().nullable(),
         vrmInstallationId: z.string().trim().regex(/^\d*$/, "VRM Installation ID must be numeric").optional().nullable(),
       });
