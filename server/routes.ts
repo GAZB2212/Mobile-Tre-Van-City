@@ -8936,9 +8936,93 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         timestamp: r.timestamp ?? null,
       })).filter((m: any) => m.value !== null && m.value !== "");
 
+      // Build a clean, dashboard-ready view that mirrors the Victron VRM dashboard
+      // (Grid / AC Loads / Battery / Charging / DC Power tiles + system state).
+      // VRM diagnostics can contain the same `code` on multiple devices/instances,
+      // so we prefer a specific source device per metric and fall back to a
+      // code-only match if that device is absent. Device naming is matched
+      // resiliently across the field variations VRM has used.
+      const deviceName = (r: any): string =>
+        String(r?.Device ?? r?.device ?? r?.deviceName ?? "");
+      const toRaw = (rec: any) =>
+        typeof rec.rawValue === "number"
+          ? rec.rawValue
+          : typeof rec.valueFloat === "number"
+            ? rec.valueFloat
+            : null;
+      const pick = (code: string, preferredDevice?: string) => {
+        let rec: any = undefined;
+        if (preferredDevice) {
+          rec = records.find((r: any) => r.code === code && deviceName(r) === preferredDevice);
+        }
+        if (!rec) rec = records.find((r: any) => r.code === code);
+        if (!rec) return null;
+        return { value: rec.formattedValue ?? null, raw: toRaw(rec), timestamp: rec.timestamp ?? null };
+      };
+
+      const gridPower = pick("IP1", "VE.Bus System");
+      const gridVoltage = pick("IV1", "VE.Bus System");
+      const gridCurrent = pick("II1", "VE.Bus System");
+      const gridFrequency = pick("IF1", "VE.Bus System");
+      const acLoad = pick("a1", "System overview") || pick("o1", "System overview");
+      const acFrequency = pick("OF", "VE.Bus System");
+      const soc = pick("SOC", "Battery Monitor");
+      const battVoltage =
+        pick("bv", "System overview") || pick("CV", "VE.Bus System") || pick("V", "Battery Monitor");
+      const battCurrent =
+        pick("bc", "System overview") || pick("CI", "VE.Bus System") || pick("I", "Battery Monitor");
+      const battTemp = pick("tsT", "Temperature sensor");
+      const dcSystem = pick("dc", "System overview");
+      const systemState = pick("ss", "System overview") || pick("S", "VE.Bus System");
+
+      const fmtW = (n: number | null | undefined) =>
+        n === null || n === undefined ? null : `${Math.round(n)} W`;
+      const battPower =
+        battVoltage?.raw != null && battCurrent?.raw != null
+          ? fmtW(battVoltage.raw * battCurrent.raw)
+          : null;
+      const dcCurrent =
+        dcSystem?.raw != null && battVoltage?.raw
+          ? `${(dcSystem.raw / battVoltage.raw).toFixed(1)} A`
+          : null;
+
+      const latestTimestamp = records.reduce(
+        (acc: number | null, r: any) =>
+          typeof r.timestamp === "number" && (acc === null || r.timestamp > acc) ? r.timestamp : acc,
+        null as number | null,
+      );
+
+      const dashboard = {
+        systemState: systemState?.value ?? null,
+        grid: {
+          power: gridPower?.value ?? null,
+          voltage: gridVoltage?.value ?? null,
+          current: gridCurrent?.value ?? null,
+          frequency: gridFrequency?.value ?? null,
+        },
+        acLoads: {
+          power: acLoad?.value ?? null,
+          frequency: acFrequency?.value ?? null,
+        },
+        battery: {
+          temperature: battTemp?.value ?? null,
+          soc: soc?.value ?? null,
+          voltage: battVoltage?.value ?? null,
+          current: battCurrent?.value ?? null,
+          power: battPower,
+        },
+        dcPower: {
+          power: dcSystem?.value ?? null,
+          voltage: battVoltage?.value ?? null,
+          current: dcCurrent,
+        },
+      };
+
       res.json({
         installationId,
         dashboardUrl: `https://vrm.victronenergy.com/installation/${encodeURIComponent(installationId)}/dashboard`,
+        updatedAt: latestTimestamp,
+        dashboard,
         metrics,
       });
     } catch (error: any) {

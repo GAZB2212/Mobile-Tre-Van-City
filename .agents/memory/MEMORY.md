@@ -1,4 +1,5 @@
 - [www redirect vs API writes](www-redirect-api-writes.md) — non-www→www 301 must skip /api and non-GET; redirecting credentialed PUT/PATCH silently breaks writes (empty-body 403, not in Express logs).
 - [Van reg dual source](van-reg-dual-source.md) — chosen-van plate is `quote.vanRegistration || van.reg`; stock vans only have it on the van record, so reg-only-from-quote UIs show blank.
+- [VRM diagnostics mapping](vrm-diagnostics-mapping.md) — same VRM `code` repeats across devices; select by code + preferred `Device` (codes→tiles listed) or you surface the wrong source.
 - [Edit form refetch reset](edit-form-refetch-reset.md) — a populate-edit-fields useEffect keyed on a query result wipes user input on background refetch; guard with `if (editing) return;`.
 - [48V upgrade identity](48v-upgrade-identity.md) — detect 48V via upgrades where SKU in (MTVC-U044/U021/U072) OR name ILIKE '%48V Power System%'; prod uses UUIDs not the slug `silent-compressor-upgrade`.

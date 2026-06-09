@@ -21,6 +21,7 @@ import {
   Merge, Search, ShieldAlert, Scissors, UserCircle,
   ImageIcon, Upload, Send, ZoomIn, ChevronDown, ChevronUp,
   MessageCircle, RefreshCw, Copy, Loader2, CheckCircle, Zap,
+  PlugZap, Power, BatteryCharging, Thermometer, Cpu, Gauge, Activity,
 } from "lucide-react";
 import {
   Dialog,
@@ -748,6 +749,14 @@ export default function CustomerProfile() {
   const vrmQuery = useQuery<{
     installationId: string;
     dashboardUrl: string;
+    updatedAt: number | null;
+    dashboard: {
+      systemState: string | null;
+      grid: { power: string | null; voltage: string | null; current: string | null; frequency: string | null };
+      acLoads: { power: string | null; frequency: string | null };
+      battery: { temperature: string | null; soc: string | null; voltage: string | null; current: string | null; power: string | null };
+      dcPower: { power: string | null; voltage: string | null; current: string | null };
+    };
     metrics: Array<{ code: string | null; label: string; value: any; timestamp: string | null }>;
   }>({
     queryKey: ["/api/admin/customers", id, "vrm"],
@@ -2261,7 +2270,7 @@ export default function CustomerProfile() {
 
       {/* Live VRM Power System drawer */}
       <Sheet open={vrmDrawerOpen} onOpenChange={setVrmDrawerOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto" data-testid="drawer-power-system">
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-testid="drawer-power-system">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-[hsl(86_53%_60%)]" />
@@ -2294,26 +2303,135 @@ export default function CustomerProfile() {
               </div>
             )}
 
-            {vrmQuery.isSuccess && (
-              vrmQuery.data.metrics.length === 0 ? (
-                <p className="text-sm text-muted-foreground" data-testid="status-vrm-empty">
-                  No live readings are currently available for this installation.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {vrmQuery.data.metrics.map((m, i) => (
-                    <div
-                      key={m.code ?? i}
-                      className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2"
-                      data-testid={`row-vrm-metric-${m.code ?? i}`}
-                    >
-                      <span className="text-xs text-muted-foreground truncate">{m.label}</span>
-                      <span className="text-sm font-medium text-foreground shrink-0">{String(m.value)}</span>
+            {vrmQuery.isSuccess && (() => {
+              const d = vrmQuery.data.dashboard;
+              const hasAny = d && [
+                d.grid.power, d.acLoads.power, d.battery.temperature, d.battery.soc, d.dcPower.power,
+              ].some((v) => v !== null && v !== undefined);
+
+              if (!hasAny) {
+                return (
+                  <p className="text-sm text-muted-foreground" data-testid="status-vrm-empty">
+                    No live readings are currently available for this installation.
+                  </p>
+                );
+              }
+
+              return (
+                <div className="space-y-4" data-testid="vrm-dashboard">
+                  {/* Top row: Grid -> System -> Battery */}
+                  <div className="grid grid-cols-3 items-stretch gap-2">
+                    <Card className="p-3 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <PlugZap className="w-3.5 h-3.5" />
+                        <span className="text-xs">Grid</span>
+                      </div>
+                      <div className="text-xl font-semibold leading-none" data-testid="text-vrm-grid-power">
+                        {d.grid.power ?? "—"}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">
+                        {[d.grid.voltage, d.grid.current].filter(Boolean).join(" · ") || "\u00A0"}
+                      </div>
+                    </Card>
+
+                    <div className="flex flex-col items-center justify-center gap-1.5 px-1">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[hsl(86_53%_60%)]/40 bg-[hsl(86_53%_60%)]/10">
+                        <Cpu className="w-5 h-5 text-[hsl(86_53%_60%)]" />
+                      </div>
+                      {d.systemState && (
+                        <Badge variant="secondary" className="text-[10px]" data-testid="badge-vrm-state">
+                          {d.systemState}
+                        </Badge>
+                      )}
                     </div>
-                  ))}
+
+                    <Card className="p-3 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Thermometer className="w-3.5 h-3.5" />
+                        <span className="text-xs">Battery</span>
+                      </div>
+                      <div className="text-xl font-semibold leading-none" data-testid="text-vrm-battery-temp">
+                        {d.battery.temperature ?? d.battery.soc ?? "—"}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">
+                        {d.battery.soc ? `${d.battery.soc} charge` : "\u00A0"}
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Flow connector */}
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <div className="h-px flex-1 bg-border" />
+                    <Activity className="w-3.5 h-3.5" />
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  {/* Bottom row: AC Loads · Charging · DC Power */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <Card className="p-3 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Power className="w-3.5 h-3.5" />
+                        <span className="text-xs">AC Loads</span>
+                      </div>
+                      <div className="text-xl font-semibold leading-none" data-testid="text-vrm-ac-loads">
+                        {d.acLoads.power ?? "—"}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">
+                        {d.acLoads.frequency ?? "\u00A0"}
+                      </div>
+                    </Card>
+
+                    <Card className="p-3 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <BatteryCharging className="w-3.5 h-3.5" />
+                        <span className="text-xs">Charging</span>
+                      </div>
+                      <div className="text-xl font-semibold leading-none" data-testid="text-vrm-charging">
+                        {d.battery.soc ?? "—"}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">
+                        {d.battery.power ?? "\u00A0"}
+                      </div>
+                    </Card>
+
+                    <Card className="p-3 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Gauge className="w-3.5 h-3.5" />
+                        <span className="text-xs">DC Power</span>
+                      </div>
+                      <div className="text-xl font-semibold leading-none" data-testid="text-vrm-dc-power">
+                        {d.dcPower.power ?? "—"}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight">
+                        {[d.dcPower.voltage, d.dcPower.current].filter(Boolean).join(" · ") || "\u00A0"}
+                      </div>
+                    </Card>
+                  </div>
+
+                  {/* Detail rows */}
+                  <div className="rounded-md border divide-y">
+                    {[
+                      { label: "Battery state of charge", value: d.battery.soc },
+                      { label: "Battery voltage", value: d.battery.voltage },
+                      { label: "Battery current", value: d.battery.current },
+                      { label: "Battery temperature", value: d.battery.temperature },
+                      { label: "Grid frequency", value: d.grid.frequency },
+                    ].filter((r) => r.value).map((r) => (
+                      <div key={r.label} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <span className="text-xs text-muted-foreground">{r.label}</span>
+                        <span className="text-sm font-medium text-foreground shrink-0">{r.value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {vrmQuery.data.updatedAt && (
+                    <p className="text-[11px] text-muted-foreground text-center" data-testid="text-vrm-updated">
+                      Last updated {new Date(vrmQuery.data.updatedAt * 1000).toLocaleString("en-GB")}
+                    </p>
+                  )}
                 </div>
-              )
-            )}
+              );
+            })()}
 
             {vrmQuery.isSuccess && vrmQuery.data.dashboardUrl && (
               <Button variant="outline" size="sm" asChild className="w-full" data-testid="button-vrm-dashboard">
