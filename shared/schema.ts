@@ -685,6 +685,7 @@ export const customers = pgTable("customers", {
   phone: text("phone"),
   company: text("company"),
   primaryStaffId: varchar("primary_staff_id").references(() => users.id),
+  vrmInstallationId: text("vrm_installation_id"), // Victron VRM installation id for 48V power-system monitoring
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),

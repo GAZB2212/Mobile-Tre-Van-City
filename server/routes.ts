@@ -8405,7 +8405,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows, artworkProofsRows, artworkMessagesRows] = await Promise.all([
         storage.getCustomerNotes(id),
         pool.query(`SELECT *, reassignment_history FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
-        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history, wrapgen_preview_url, wrapgen_preview_id, wrapgen_proof_sent_at, artwork_approved_at, artwork_approved_by FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
+        pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history, wrapgen_preview_url, wrapgen_preview_id, wrapgen_proof_sent_at, artwork_approved_at, artwork_approved_by, selected_upgrade_ids FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT id, session_id, status, contact_name, contact_phone, marked_contacted, contacted_note, created_at, completed_at, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history FROM ai_conversations WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT * FROM follow_ups WHERE lead_id IN (SELECT id FROM leads WHERE customer_id = $1) OR quote_id IN (SELECT id FROM quotes WHERE customer_id = $1) ORDER BY scheduled_date ASC`, [id]),
         // Records NOT currently owned by this customer but with any history entry mentioning them
@@ -8767,8 +8767,15 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         }
       }
 
+      // 48V eligibility: any linked quote whose configuration includes the
+      // "Silent Compressor Upgrade – Advanced 48V Power System" upgrade.
+      const is48v = quotes.some((q: any) =>
+        Array.isArray(q.selected_upgrade_ids) && q.selected_upgrade_ids.includes("silent-compressor-upgrade")
+      );
+
       res.json({
         customer: { ...customer, primaryStaffName },
+        is48v,
         leads,
         quotes,
         conversations: convos,
@@ -8832,6 +8839,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         phone: z.string().optional(),
         company: z.string().optional(),
         primaryStaffId: z.string().optional().nullable(),
+        vrmInstallationId: z.string().trim().optional().nullable(),
       });
       const data = schema_z.parse(req.body);
 
@@ -8857,6 +8865,74 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid data", details: error.errors });
       console.error("Update customer error:", error);
       res.status(500).json({ error: "Failed to update customer" });
+    }
+  });
+
+  // Live Victron VRM power data for a customer's installation (48V power-system monitoring).
+  // Proxied server-side so the VRM access token is never exposed to the browser.
+  app.get("/api/admin/customers/:id/vrm", isAuthenticated, isBasicAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const token = process.env.VRM_API_TOKEN;
+      if (!token) {
+        return res.status(503).json({ error: "VRM access token is not configured. Add the VRM_API_TOKEN secret to enable live power data." });
+      }
+
+      const customer = await storage.getCustomer(id);
+      if (!customer) return res.status(404).json({ error: "Customer not found" });
+
+      const installationId = (customer.vrmInstallationId || "").trim();
+      if (!installationId) {
+        return res.status(400).json({ error: "No VRM Installation ID set for this customer." });
+      }
+
+      const vrmUrl = `https://vrmapi.victronenergy.com/v2/installations/${encodeURIComponent(installationId)}/diagnostics?count=100`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      let vrmRes: Response;
+      try {
+        vrmRes = await fetch(vrmUrl, {
+          headers: { "x-authorization": `Token ${token}`, "Accept": "application/json" },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      if (vrmRes.status === 401 || vrmRes.status === 403) {
+        return res.status(502).json({ error: "VRM rejected the access token. Check the VRM_API_TOKEN secret." });
+      }
+      if (vrmRes.status === 429) {
+        return res.status(429).json({ error: "VRM is rate limiting requests. Please try again in a moment." });
+      }
+      if (!vrmRes.ok) {
+        return res.status(502).json({ error: `VRM request failed (status ${vrmRes.status}).` });
+      }
+
+      const payload: any = await vrmRes.json();
+      if (payload?.success === false) {
+        return res.status(502).json({ error: payload?.errors ? JSON.stringify(payload.errors) : "VRM returned an error." });
+      }
+
+      const records: any[] = Array.isArray(payload?.records) ? payload.records : [];
+      const metrics = records.map((r: any) => ({
+        code: r.code ?? null,
+        label: r.description ?? r.customLabel ?? r.code ?? "",
+        value: r.formattedValue ?? (r.formatValueOnly ?? (r.rawValue ?? r.valueFloat ?? r.valueString ?? null)),
+        timestamp: r.timestamp ?? null,
+      })).filter((m: any) => m.value !== null && m.value !== "");
+
+      res.json({
+        installationId,
+        dashboardUrl: `https://vrm.victronenergy.com/installation/${encodeURIComponent(installationId)}/dashboard`,
+        metrics,
+      });
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        return res.status(504).json({ error: "VRM request timed out." });
+      }
+      console.error("VRM fetch error:", error?.message);
+      res.status(500).json({ error: "Failed to fetch VRM power data." });
     }
   });
 

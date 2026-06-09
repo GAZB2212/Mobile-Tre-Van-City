@@ -20,7 +20,7 @@ import {
   AlertCircle, ChevronRight, Plus, Check, UserCheck, UserX, ArrowRightLeft,
   Merge, Search, ShieldAlert, Scissors, UserCircle,
   ImageIcon, Upload, Send, ZoomIn, ChevronDown, ChevronUp,
-  MessageCircle, RefreshCw, Copy, Loader2, CheckCircle,
+  MessageCircle, RefreshCw, Copy, Loader2, CheckCircle, Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -30,6 +30,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
 interface StaffMember {
   id: string;
@@ -68,6 +75,7 @@ interface Customer {
   company?: string | null;
   primaryStaffId?: string | null;
   primaryStaffName?: string | null;
+  vrmInstallationId?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -119,6 +127,7 @@ interface HandoffData {
 
 interface CustomerProfileData {
   customer: Customer;
+  is48v?: boolean;
   leads: any[];
   quotes: any[];
   conversations: any[];
@@ -362,6 +371,8 @@ export default function CustomerProfile() {
   const [editPhone, setEditPhone] = useState("");
   const [editCompany, setEditCompany] = useState("");
   const [editPrimaryStaffId, setEditPrimaryStaffId] = useState<string | null>(null);
+  const [editVrmId, setEditVrmId] = useState("");
+  const [vrmDrawerOpen, setVrmDrawerOpen] = useState(false);
 
   // Note form state
   type NoteType = "call" | "email" | "meeting" | "general";
@@ -706,6 +717,7 @@ export default function CustomerProfile() {
       setEditPhone(data.customer.phone ?? "");
       setEditCompany(data.customer.company ?? "");
       setEditPrimaryStaffId(data.customer.primaryStaffId ?? null);
+      setEditVrmId(data.customer.vrmInstallationId ?? "");
     }
   }, [data?.customer]);
 
@@ -730,6 +742,24 @@ export default function CustomerProfile() {
     onError: () => toast({ variant: "destructive", title: "Failed to add note" }),
   });
 
+  const vrmQuery = useQuery<{
+    installationId: string;
+    dashboardUrl: string;
+    metrics: Array<{ code: string | null; label: string; value: any; timestamp: string | null }>;
+  }>({
+    queryKey: ["/api/admin/customers", id, "vrm"],
+    enabled: vrmDrawerOpen,
+    refetchInterval: vrmDrawerOpen ? 30000 : false,
+    queryFn: async () => {
+      const token = getAuthToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await fetch(`/api/admin/customers/${id}/vrm`, { credentials: "include", headers });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body?.error || "Failed to load power data");
+      return body;
+    },
+  });
+
   const handleSaveEdit = () => {
     updateMutation.mutate({
       name: editName.trim(),
@@ -737,6 +767,7 @@ export default function CustomerProfile() {
       phone: editPhone.trim() || null,
       company: editCompany.trim() || null,
       primaryStaffId: editPrimaryStaffId || null,
+      vrmInstallationId: editVrmId.trim() || null,
     });
   };
 
@@ -785,6 +816,7 @@ export default function CustomerProfile() {
   }
 
   const { customer, leads, quotes, conversations, notes, timeline, handoff } = data;
+  const is48v = data.is48v ?? false;
   const isAssignedToMe = customer.primaryStaffId === user?.id;
 
   return (
@@ -926,6 +958,12 @@ export default function CustomerProfile() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {is48v && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">VRM Installation ID</Label>
+                        <Input value={editVrmId} onChange={e => setEditVrmId(e.target.value)} placeholder="e.g. 123456" data-testid="input-edit-vrm-id" />
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-customer">
                         <Save className="w-3.5 h-3.5 mr-1" />
@@ -967,6 +1005,41 @@ export default function CustomerProfile() {
                 )}
               </CardContent>
             </Card>
+
+            {/* 48V Power System Card */}
+            {is48v && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-[hsl(86_53%_60%)]" />
+                    48V Power System
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <span className="text-xs text-muted-foreground">VRM Installation ID:</span>
+                    <span className="font-medium text-foreground" data-testid="text-vrm-id">
+                      {customer.vrmInstallationId || "Not set"}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={!customer.vrmInstallationId}
+                    onClick={() => setVrmDrawerOpen(true)}
+                    data-testid="button-open-power-system"
+                  >
+                    <Zap className="w-3.5 h-3.5 mr-1.5" />
+                    Power System
+                  </Button>
+                  {!customer.vrmInstallationId && (
+                    <p className="text-[11px] text-muted-foreground italic">
+                      Add a VRM Installation ID (via Edit) to view live power data.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Handoff Card */}
             <Card className="border-[hsl(86_53%_51%/0.25)] bg-[hsl(86_45%_51%/0.04)]">
@@ -2182,6 +2255,74 @@ export default function CustomerProfile() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Live VRM Power System drawer */}
+      <Sheet open={vrmDrawerOpen} onOpenChange={setVrmDrawerOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto" data-testid="drawer-power-system">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[hsl(86_53%_60%)]" />
+              48V Power System
+            </SheetTitle>
+            <SheetDescription>
+              Live data from Victron VRM
+              {customer.vrmInstallationId ? ` · Installation ${customer.vrmInstallationId}` : ""}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-5 space-y-4">
+            {vrmQuery.isLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="status-vrm-loading">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading live power data...
+              </div>
+            )}
+
+            {vrmQuery.isError && (
+              <div className="space-y-3" data-testid="status-vrm-error">
+                <div className="flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{(vrmQuery.error as Error)?.message || "Could not load power data."}</span>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => vrmQuery.refetch()} data-testid="button-vrm-retry">
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                  Try again
+                </Button>
+              </div>
+            )}
+
+            {vrmQuery.isSuccess && (
+              vrmQuery.data.metrics.length === 0 ? (
+                <p className="text-sm text-muted-foreground" data-testid="status-vrm-empty">
+                  No live readings are currently available for this installation.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {vrmQuery.data.metrics.map((m, i) => (
+                    <div
+                      key={m.code ?? i}
+                      className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2"
+                      data-testid={`row-vrm-metric-${m.code ?? i}`}
+                    >
+                      <span className="text-xs text-muted-foreground truncate">{m.label}</span>
+                      <span className="text-sm font-medium text-foreground shrink-0">{String(m.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {vrmQuery.isSuccess && vrmQuery.data.dashboardUrl && (
+              <Button variant="outline" size="sm" asChild className="w-full" data-testid="button-vrm-dashboard">
+                <a href={vrmQuery.data.dashboardUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                  Open full VRM dashboard
+                </a>
+              </Button>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
