@@ -8402,7 +8402,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       if (!customer) return res.status(404).json({ error: "Customer not found" });
 
       // Fetch all linked records in parallel (also fetch records that were moved away from this customer)
-      const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows, artworkProofsRows, artworkMessagesRows] = await Promise.all([
+      const [notes, leadsRows, quotesRows, convosRows, followUpsRows, externalLeadsRows, externalQuotesRows, externalConvosRows, artworkProofsRows, artworkMessagesRows, powerUpgradeRows] = await Promise.all([
         storage.getCustomerNotes(id),
         pool.query(`SELECT *, reassignment_history FROM leads WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
         pool.query(`SELECT id, user_name, email, phone, company, status, status_changed_at, est_total, created_at, admin_notes_history, previous_customer_name, previous_customer_id, reassigned_at, reassignment_history, wrapgen_preview_url, wrapgen_preview_id, wrapgen_proof_sent_at, artwork_approved_at, artwork_approved_by, selected_upgrade_ids FROM quotes WHERE customer_id = $1 ORDER BY created_at DESC`, [id]),
@@ -8414,6 +8414,10 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         pool.query(`SELECT a.id, a.reassignment_history FROM ai_conversations a WHERE a.customer_id != $1 AND EXISTS (SELECT 1 FROM jsonb_array_elements(a.reassignment_history) h WHERE h->>'fromCustomerId' = $1 OR h->>'toCustomerId' = $1)`, [id]),
         pool.query(`SELECT id, created_at, sent_at, responded_at, status, files, admin_notes FROM artwork_proofs WHERE customer_id = $1 ORDER BY created_at ASC`, [id]),
         pool.query(`SELECT apm.id, apm.proof_id, apm.sender_type, apm.sender_name, apm.message, apm.created_at FROM artwork_proof_messages apm JOIN artwork_proofs ap ON ap.id = apm.proof_id WHERE ap.customer_id = $1 ORDER BY apm.created_at ASC`, [id]),
+        // 48V power-system upgrade ids: the "Silent Compressor Upgrade – Advanced 48V Power System"
+        // exists under several upgrade records. Match by the known 48V SKUs or by name (the
+        // published no-SKU duplicate is caught by the name pattern "48V Power System").
+        pool.query(`SELECT id FROM upgrades WHERE sku IN ('MTVC-U044','MTVC-U021','MTVC-U072') OR name ILIKE '%48V Power System%'`),
       ]);
 
       const leads = leadsRows.rows;
@@ -8768,9 +8772,16 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
       }
 
       // 48V eligibility: any linked quote whose configuration includes the
-      // "Silent Compressor Upgrade – Advanced 48V Power System" upgrade.
+      // "Silent Compressor Upgrade – Advanced 48V Power System" upgrade. That
+      // upgrade exists under several UUID ids in production (matched above by
+      // name); the legacy "silent-compressor-upgrade" slug is kept as a fallback.
+      const fortyEightVIds = new Set<string>([
+        "silent-compressor-upgrade",
+        ...powerUpgradeRows.rows.map((r: any) => r.id),
+      ]);
       const is48v = quotes.some((q: any) =>
-        Array.isArray(q.selected_upgrade_ids) && q.selected_upgrade_ids.includes("silent-compressor-upgrade")
+        Array.isArray(q.selected_upgrade_ids) &&
+        q.selected_upgrade_ids.some((u: string) => fortyEightVIds.has(u))
       );
 
       res.json({
