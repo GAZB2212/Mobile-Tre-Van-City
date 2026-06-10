@@ -2424,11 +2424,21 @@ export default function CustomerProfile() {
                     ))}
                   </div>
 
-                  {vrmQuery.data.updatedAt && (
-                    <p className="text-[11px] text-muted-foreground text-center" data-testid="text-vrm-updated">
-                      Last updated {new Date(vrmQuery.data.updatedAt * 1000).toLocaleString("en-GB")}
-                    </p>
-                  )}
+                  {vrmQuery.data.updatedAt && (() => {
+                    const ageMs = Date.now() - vrmQuery.data.updatedAt * 1000;
+                    const stale = ageMs > 2 * 60 * 60 * 1000;
+                    return (
+                      <div
+                        className={`flex items-center justify-center gap-1.5 text-center font-medium ${stale ? "text-orange-500 dark:text-orange-400" : "text-muted-foreground"}`}
+                        data-testid="text-vrm-updated"
+                      >
+                        {stale && <AlertCircle className="w-4 h-4 shrink-0" />}
+                        <span className="text-sm">
+                          Last connected {new Date(vrmQuery.data.updatedAt * 1000).toLocaleString("en-GB")}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
