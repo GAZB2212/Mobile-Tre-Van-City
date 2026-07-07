@@ -286,6 +286,8 @@ export default function AdminQuoteDetail() {
   const [newStageName, setNewStageName] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed" | "">("");
   const [discountValue, setDiscountValue] = useState("");
+  // When true, VAT is removed from the quote total (customer pays VAT separately/deferred).
+  const [vatDeferred, setVatDeferred] = useState(false);
   // Independent per-option discount for Option B in comparison mode. When the
   // toggle is off, Option B inherits Option A's discount (existing behaviour).
   const [independentDiscountB, setIndependentDiscountB] = useState(false);
@@ -460,6 +462,7 @@ export default function AdminQuoteDetail() {
       setVanMileage(quote.vanMileage !== null && quote.vanMileage !== undefined ? String(quote.vanMileage) : "");
       setQuoteNotes(quote.notes ?? "");
       setDiscountType(quote.discountType as any || "");
+      setVatDeferred((quote as any).vatDeferred ?? false);
       // Convert discount from pence to pounds for fixed amounts
       if (quote.discountValue) {
         if (quote.discountType === "fixed") {
@@ -945,6 +948,7 @@ export default function AdminQuoteDetail() {
     if (serviceType !== ((quote.serviceType as any) ?? null)) return true;
     if (status !== (quote.status || "new")) return true;
     if (discountType !== (quote.discountType || "")) return true;
+    if (vatDeferred !== ((quote as any).vatDeferred ?? false)) return true;
     const origDiscountValue = quote.discountValue
       ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
       : "";
@@ -1114,6 +1118,7 @@ export default function AdminQuoteDetail() {
 
     // Check if discount changed
     if (discountType !== (quote?.discountType || "")) return true;
+    if (vatDeferred !== ((quote as any)?.vatDeferred ?? false)) return true;
     const origDiscountValue = quote?.discountValue
       ? (quote.discountType === "fixed" ? String(quote.discountValue / 100) : String(quote.discountValue))
       : "";
@@ -1236,6 +1241,7 @@ export default function AdminQuoteDetail() {
       customBuildStages: customBuildStages,
       discountType: (discountType === 'percentage' || discountType === 'fixed') ? discountType : null,
       discountValue: discountValueInPence,
+      vatDeferred,
       selectedUpgradeIds,
       selectedUpgrades,
       customExtras,
@@ -1309,7 +1315,8 @@ export default function AdminQuoteDetail() {
 
     // Use recalculated pricing from current configuration (not original quote.estSubtotal)
     let subtotal = recalculatePricing();
-    const vat = Math.round(subtotal * 0.2);
+    // When VAT is deferred, the quote total excludes VAT entirely.
+    const vat = vatDeferred ? 0 : Math.round(subtotal * 0.2);
     const totalWithVat = subtotal + vat;
     
     let discountAmount = 0;
@@ -1317,7 +1324,7 @@ export default function AdminQuoteDetail() {
     if (discountType && discountValue) {
       if (discountType === "percentage") {
         const percentValue = parseInt(discountValue);
-        // Apply discount to total including VAT
+        // Apply discount to total (including VAT unless VAT is deferred)
         discountAmount = Math.round((totalWithVat * percentValue) / 100);
       } else if (discountType === "fixed") {
         // Convert pounds to pence for calculation
@@ -1329,8 +1336,9 @@ export default function AdminQuoteDetail() {
     discountAmount = Math.min(discountAmount, totalWithVat);
 
     const totalAfterDiscount = totalWithVat - discountAmount;
-    // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%)
-    const finalVat = Math.round(totalAfterDiscount / 6);
+    // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%).
+    // When VAT is deferred there is no VAT and the whole total is the net subtotal.
+    const finalVat = vatDeferred ? 0 : Math.round(totalAfterDiscount / 6);
     const finalSubtotal = totalAfterDiscount - finalVat;
 
     return {
@@ -1376,7 +1384,7 @@ export default function AdminQuoteDetail() {
     });
     // Bespoke extras: shared from slot A
     customExtras.forEach(e => { subtotal += e.pricePence; });
-    const vat = Math.round(subtotal * 0.2);
+    const vat = vatDeferred ? 0 : Math.round(subtotal * 0.2);
     const totalWithVat = subtotal + vat;
     // Apply Option B's own discount if the staff member enabled the
     // "independent discount" toggle; otherwise inherit Option A's discount.
@@ -1392,7 +1400,7 @@ export default function AdminQuoteDetail() {
     }
     discountAmount = Math.min(discountAmount, totalWithVat);
     const totalAfterDiscount = totalWithVat - discountAmount;
-    const finalVat = Math.round(totalAfterDiscount / 6);
+    const finalVat = vatDeferred ? 0 : Math.round(totalAfterDiscount / 6);
     const finalSubtotal = totalAfterDiscount - finalVat;
     return { subtotal: finalSubtotal, discount: discountAmount, subtotalAfterDiscount: finalSubtotal, vat: finalVat, total: totalAfterDiscount };
   };
@@ -2853,8 +2861,8 @@ export default function AdminQuoteDetail() {
                           <span className="font-medium">£{(subtotal / 100).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">VAT (20%):</span>
-                          <span className="font-medium">£{(vat / 100).toLocaleString()}</span>
+                          <span className="text-muted-foreground">{vatDeferred ? "VAT (deferred):" : "VAT (20%):"}</span>
+                          <span className="font-medium">{vatDeferred ? "Deferred" : `£${(vat / 100).toLocaleString()}`}</span>
                         </div>
                         {hasDiscount && (
                           <>
@@ -3998,6 +4006,40 @@ export default function AdminQuoteDetail() {
 
             </>}
 
+            {/* VAT treatment — finance tab only */}
+            {activeTab === "finance" && canEdit && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Percent className="w-5 h-5" />
+                    VAT Treatment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={vatDeferred}
+                      onCheckedChange={(v) => setVatDeferred(Boolean(v))}
+                      className="mt-0.5"
+                      data-testid="checkbox-vat-deferred"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm leading-tight font-medium">Defer VAT (remove from quote)</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        When ticked, VAT is removed from the quote total. The customer pays the VAT
+                        separately. Standard 20% VAT applies when unticked.
+                      </p>
+                    </div>
+                  </label>
+                  {vatDeferred && (
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400" data-testid="text-vat-deferred-notice">
+                      VAT is deferred — the total below is shown ex. VAT.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Price Summary — visible in both overview and finance tabs */}
             <Card>
               <CardHeader>
@@ -4013,7 +4055,7 @@ export default function AdminQuoteDetail() {
               <CardContent className="space-y-3">
                 {viewingPricing.discount > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Original Price (inc. VAT)</span>
+                    <span className="text-muted-foreground">{vatDeferred ? "Original Price (ex. VAT)" : "Original Price (inc. VAT)"}</span>
                     <span className="font-medium">
                       £{((viewingPricing.total + viewingPricing.discount) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                     </span>
@@ -4092,15 +4134,17 @@ export default function AdminQuoteDetail() {
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">VAT (20%)</span>
-                  <span className="font-medium">
-                    £{(viewingPricing.vat / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                  <span className="text-muted-foreground">{vatDeferred ? "VAT (deferred)" : "VAT (20%)"}</span>
+                  <span className="font-medium" data-testid="text-price-summary-vat">
+                    {vatDeferred
+                      ? "Deferred"
+                      : `£${(viewingPricing.vat / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">Total (inc. VAT)</span>
-                  <span className="text-2xl font-bold text-accent">
+                  <span className="text-lg font-semibold">{vatDeferred ? "Total (ex. VAT)" : "Total (inc. VAT)"}</span>
+                  <span className="text-2xl font-bold text-accent" data-testid="text-price-summary-total">
                     £{(viewingPricing.total / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </span>
                 </div>

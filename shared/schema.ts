@@ -199,6 +199,7 @@ export const quotes = pgTable("quotes", {
   // Admin adjustments
   discountType: text("discount_type"), // "percentage" or "fixed"
   discountValue: integer("discount_value"), // percentage (e.g., 10 = 10%) or pence amount
+  vatDeferred: boolean("vat_deferred").notNull().default(false), // When true, VAT is removed from the quote total (customer pays VAT separately)
   adminNotesHistory: json("admin_notes_history").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]), // Internal notes history for staff
   customerNotesHistory: json("customer_notes_history").$type<Array<{text: string; timestamp: string; author?: string}>>().notNull().default([]), // Customer notes history
   

@@ -3413,6 +3413,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         graphicsArtworkNotes: z.string().nullable().optional(),
         discountType: z.enum(['percentage', 'fixed']).nullable().optional(),
         discountValue: z.number().int().nullable().optional(),
+        vatDeferred: z.boolean().optional(),
         adminNotes: z.string().nullable().optional(),
         customerNotes: z.string().nullable().optional(),
         // New note text to append to history

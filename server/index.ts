@@ -327,7 +327,11 @@ app.use((req, res, next) => {
       // Add custom_extras column to quotes (bespoke line items not in standard configurator)
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS custom_extras JSONB DEFAULT '[]'`)
         .then(() => log("✅ Custom extras column ready"))
-        .catch((err: Error) => console.error("Custom extras migration:", err.message));
+        .catch((err) => log(`⚠️ Custom extras column error: ${err.message}`));
+
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS vat_deferred BOOLEAN NOT NULL DEFAULT FALSE`)
+        .then(() => log("✅ Quote VAT deferred column ready"))
+        .catch((err: Error) => console.error("VAT deferred migration:", err.message));
       pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS ai_session_id VARCHAR`)
         .then(() => log("✅ Quote AI session link column ready"))
         .catch((err: Error) => console.error("Quote AI session migration:", err.message));
