@@ -3833,6 +3833,88 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
     }
   });
 
+  // Duplicate an existing quote/configuration. Copies the configuration,
+  // customer details and pricing, but resets all workflow state, tokens,
+  // timestamps and external-integration IDs so the copy is a fresh draft the
+  // staff member can edit (change the van, upgrades, etc.).
+  app.post("/api/admin/quotes/:id/duplicate", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const original = await storage.getQuote(req.params.id);
+      if (!original) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+
+      const currentUser = await getCurrentUser(req);
+
+      // Start from the original, then strip the auto-generated primary key and
+      // creation timestamp. All other workflow/token fields are overridden below.
+      const { id: _id, createdAt: _createdAt, ...rest } = original as any;
+
+      const duplicateData = {
+        ...rest,
+        // Fresh workflow state
+        status: "new",
+        statusChangedAt: null,
+        confirmationToken: null,
+        confirmedAt: null,
+        approvalToken: null,
+        specApprovalStatus: null,
+        specApprovalComments: null,
+        chooseOptionToken: null,
+        chosenOption: null,
+        customerConfirmed: false,
+        financeSentAt: null,
+        specSentAt: null,
+        financeStatus: "pending",
+        financeNotes: null,
+        financeDecisionAt: null,
+        // Build state
+        buildStage: null,
+        completedBuildStages: [],
+        customBuildStages: null,
+        targetCompletionDate: null,
+        featuredInPortfolio: false,
+        // Notes start fresh
+        adminNotesHistory: [
+          {
+            text: `Duplicated from quote ${original.id}`,
+            timestamp: new Date().toISOString(),
+            author: currentUser?.username || "Admin",
+          },
+        ],
+        customerNotesHistory: [],
+        // Graphics / artwork
+        graphicsArtworkUrl: null,
+        graphicsArtworkApproved: false,
+        graphicsArtworkNotes: null,
+        wrapgenPreviewId: null,
+        wrapgenPreviewUrl: null,
+        wrapgenProofSentAt: null,
+        artworkApprovedAt: null,
+        artworkApprovedBy: null,
+        // External integrations
+        sageInvoiceId: null,
+        sagePushedAt: null,
+        stockBuildId: null,
+        autotradePushes: [],
+        aiSessionId: null,
+        // Reassignment history is per-record
+        previousCustomerName: null,
+        previousCustomerId: null,
+        reassignedAt: null,
+        reassignmentHistory: [],
+        // Attribute the copy to whoever duplicated it
+        staffName: currentUser?.username || original.staffName || null,
+      };
+
+      const created = await storage.createQuote(duplicateData);
+      res.status(201).json(created);
+    } catch (error) {
+      console.error('Error duplicating quote:', error);
+      res.status(500).json({ error: "Failed to duplicate quote" });
+    }
+  });
+
   // Edit a specific note in the history
   app.post("/api/admin/quotes/:id/notes", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {

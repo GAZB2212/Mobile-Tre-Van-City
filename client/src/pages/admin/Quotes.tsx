@@ -129,6 +129,7 @@ import {
   XCircle,
   RefreshCw,
   PhoneCall,
+  Copy,
   Building2,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -280,6 +281,22 @@ export default function AdminQuotes() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (quoteId: string) => {
+      const res = await apiRequest("POST", `/api/admin/quotes/${quoteId}/duplicate`);
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || "Failed to duplicate"); }
+      return res.json() as Promise<Quote>;
+    },
+    onSuccess: (newQuote) => {
+      toast({ title: "Configurator duplicated", description: "Opening the copy so you can edit it." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/quotes"] });
+      setLocation(`/admin/quotes/${newQuote.id}?tab=configuration&from=quotes`);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Duplicate failed", description: err.message });
     },
   });
 
@@ -1138,6 +1155,15 @@ export default function AdminQuotes() {
                                       <Printer className="w-3 h-3" />
                                       Build Sheet
                                     </Link>
+                                    <button
+                                      onClick={e => { e.stopPropagation(); duplicateMutation.mutate(quote.id); }}
+                                      disabled={duplicateMutation.isPending}
+                                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                                      data-testid={`button-duplicate-kanban-${quote.id}`}
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                      Duplicate
+                                    </button>
                                   </div>
                                   {twilioConfigured && staffPhones.length > 0 && (
                                     <Tooltip>
@@ -1585,6 +1611,15 @@ export default function AdminQuotes() {
                             <Printer className="w-4 h-4 mr-2" />
                             View Build Sheet
                           </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => duplicateMutation.mutate(quote.id)}
+                          disabled={duplicateMutation.isPending}
+                          data-testid={`button-duplicate-${quote.id}`}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
                         </Button>
                       </div>
                     </CardContent>
