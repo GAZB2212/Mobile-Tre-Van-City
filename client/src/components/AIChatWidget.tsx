@@ -442,20 +442,22 @@ export default function AIChatWidget() {
     }
   }, [sessionId, toast]);
 
+  const isValidCapturePhone = (phone: string) => (phone.match(/\d/g) ?? []).length >= 7;
+
   const handleContactStart = (name: string, phone: string) => {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
+    // Hard gate: chat cannot start without a name AND a usable phone number
+    if (!trimmedName || !isValidCapturePhone(trimmedPhone)) return;
     // Write to ref FIRST so triggerGreeting (useCallback) always reads the latest value
-    capturedContactRef.current = { name: trimmedName || null, phone: trimmedPhone || null };
-    const updatedConfig = { ...config, contactName: trimmedName || null, contactPhone: trimmedPhone || null };
-    if (trimmedName || trimmedPhone) setConfig(updatedConfig);
+    capturedContactRef.current = { name: trimmedName, phone: trimmedPhone };
+    const updatedConfig = { ...config, contactName: trimmedName, contactPhone: trimmedPhone };
+    setConfig(updatedConfig);
     setShowContactCapture(false);
     setCaptureNameInput("");
     setCapturePhoneInput("");
     // Persist the contact details to DB immediately — captures the lead even if they abandon
-    if (trimmedName || trimmedPhone) {
-      saveToDb([], updatedConfig, trackers, "in_progress");
-    }
+    saveToDb([], updatedConfig, trackers, "in_progress");
     triggerGreeting();
   };
 
@@ -755,7 +757,7 @@ export default function AIChatWidget() {
                     <div>
                       <p className="text-white font-semibold text-sm leading-snug mb-1">Quick one before we get going</p>
                       <p className="text-white/50 text-xs leading-relaxed">
-                        Leave your name and number — if you need to step away, one of the team can ring you back and pick up right where you left off.
+                        Pop in your name and number so we can get started — if the chat drops or you need to step away, one of the team can ring you back and pick up right where you left off.
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -779,12 +781,9 @@ export default function AIChatWidget() {
                         className="w-full bg-[#242424] text-white text-sm rounded-xl px-3.5 py-2.5 outline-none border border-white/10 focus:border-white/25 placeholder:text-white/30 transition-colors"
                       />
                     </div>
-                    <Button onClick={() => handleContactStart(captureNameInput, capturePhoneInput)} disabled={!captureNameInput.trim() && !capturePhoneInput.trim()} data-testid="button-contact-capture-submit" className="w-full bg-[#8bc440] text-[#191919] font-semibold">
+                    <Button onClick={() => handleContactStart(captureNameInput, capturePhoneInput)} disabled={!captureNameInput.trim() || !isValidCapturePhone(capturePhoneInput.trim())} data-testid="button-contact-capture-submit" className="w-full bg-[#8bc440] text-[#191919] font-semibold">
                       Get started <ArrowRight size={15} className="ml-1" />
                     </Button>
-                    <button onClick={() => handleContactStart("", "")} data-testid="button-contact-capture-skip" className="w-full text-white/30 text-xs text-center hover:text-white/60 transition-colors pt-1">
-                      Skip for now
-                    </button>
                   </div>
                 )}
 
