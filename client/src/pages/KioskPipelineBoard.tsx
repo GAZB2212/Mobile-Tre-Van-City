@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { DueByCountdown } from "@/components/DueByCountdown";
 
-const COMMITTED_STATUSES = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
+const COMMITTED_STATUSES = new Set(["in_build"]);
 
 // Display priority — in_workshop floats to the top of the kiosk grid
 const STATUS_PRIORITY: Record<string, number> = {

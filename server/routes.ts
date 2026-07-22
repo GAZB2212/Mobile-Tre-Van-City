@@ -10908,7 +10908,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         return res.status(401).json({ error: "Invalid or expired kiosk token" });
       }
 
-      const COMMITTED = new Set(["deposit_taken", "finance_approved", "in_build", "in_workshop"]);
+      const COMMITTED = new Set(["in_build"]);
       const [allQuotes, vans, kits, upgrades] = await Promise.all([
         storage.getQuotes(),
         storage.getVans(),
