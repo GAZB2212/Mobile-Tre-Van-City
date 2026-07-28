@@ -1246,7 +1246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leads endpoints
-  app.get("/api/leads", async (req, res) => {
+  app.get("/api/leads", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const leads = await storage.getLeads();
       res.json(leads);
@@ -3537,6 +3537,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         const trainingOptionIds = quote.trainingOptionIds || [];
         const discountType = 'discountType' in validatedData ? validatedData.discountType : quote.discountType;
         const discountValue = 'discountValue' in validatedData ? validatedData.discountValue : quote.discountValue;
+        // When VAT is deferred, the quote total excludes VAT entirely.
+        const vatDeferred = 'vatDeferred' in validatedData ? !!validatedData.vatDeferred : !!(quote as any).vatDeferred;
         
         // Recalculate base pricing (before discount)
         let baseSubtotal = 0;
@@ -3582,8 +3584,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         const customExtrasTotal = updatedCustomExtras.reduce((sum: number, e: any) => sum + (e.pricePence || 0), 0);
         baseSubtotal += customExtrasTotal;
         
-        // Calculate total with VAT first
-        const baseVAT = Math.round(baseSubtotal * 0.2);
+        // Calculate total with VAT first (zero when VAT is deferred)
+        const baseVAT = vatDeferred ? 0 : Math.round(baseSubtotal * 0.2);
         const baseTotalWithVat = baseSubtotal + baseVAT;
         
         // Apply discount to total including VAT
@@ -3600,8 +3602,9 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         discountAmount = Math.min(discountAmount, baseTotalWithVat);
         
         const totalAfterDiscount = baseTotalWithVat - discountAmount;
-        // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%)
-        const finalVAT = Math.round(totalAfterDiscount / 6);
+        // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%);
+        // zero when VAT is deferred — the whole total is the net subtotal.
+        const finalVAT = vatDeferred ? 0 : Math.round(totalAfterDiscount / 6);
         const finalSubtotal = totalAfterDiscount - finalVAT;
         
         // Store final pricing and discount amount
@@ -3638,7 +3641,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
               ((slotBKitData as any)?.price ?? 0) +
               slotBUpgradeData.filter(Boolean).reduce((s: number, u: any) => s + (u?.price ?? 0), 0) +
               slotBTrainingData.filter(Boolean).reduce((s: number, t: any) => s + (t?.price ?? 0), 0);
-            const slotBVat = Math.round(slotBSubtotal * 0.2);
+            const slotBVat = vatDeferred ? 0 : Math.round(slotBSubtotal * 0.2);
             const slotBPreDiscount = slotBSubtotal + slotBVat;
             const slotBDiscType = slotB.discountType ?? discountType;
             const slotBDiscValue = slotB.discountValue ?? discountValue;
@@ -4554,7 +4557,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
 
   // Send depot invoice request email to the admin invoicing team
   // (recipients are whoever is subscribed to the depot_invoice channel in
-  // Settings → Notification Recipients; falls back to sharon@geg.co).
+  // Settings → Notification Recipients; skipped if none configured).
   app.post("/api/admin/quotes/:id/send-to-depot", isAuthenticated, isBasicAdmin, async (req, res) => {
     try {
       const quote = await storage.getQuote(req.params.id);
@@ -4642,7 +4645,10 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
 
       // Get finance company email from site settings
       const settings = await storage.getSiteSettings();
-      const financeEmail = settings.finance_company_email || 'stephen.quinn@jigsawfinance.com';
+      const financeEmail = settings.finance_company_email;
+      if (!financeEmail) {
+        return res.status(400).json({ error: "No finance company email configured. Set it in Admin → Settings before sending finance applications." });
+      }
 
       // Fetch van, kit, upgrade details
       const [van, kit, selectedUpgrades] = await Promise.all([
@@ -6980,20 +6986,6 @@ ${blogEntries}
     });
   });
 
-  (async () => {
-    try {
-      const settings = await storage.getSiteSettings();
-      if (!settings._finance_email_reset_v1) {
-        if (settings.finance_company_email && settings.finance_company_email !== 'stephen.quinn@jigsawfinance.com') {
-          await storage.setSiteSetting('finance_company_email', 'stephen.quinn@jigsawfinance.com');
-          console.log('Reset finance_company_email to stephen.quinn@jigsawfinance.com');
-        }
-        await storage.setSiteSetting('_finance_email_reset_v1', 'done');
-      }
-    } catch (e) {
-      console.error('Failed to reset finance_company_email:', e);
-    }
-  })();
 
   // ─── AI Chat Configurator ────────────────────────────────────────────────────
 

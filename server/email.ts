@@ -32,9 +32,9 @@ export type NotifyChannel = typeof NOTIFY_CHANNELS[number]['id'];
 const ALL_CHANNEL_IDS = NOTIFY_CHANNELS.map((c) => c.id) as readonly NotifyChannel[];
 const NON_DEPOT_CHANNELS = ALL_CHANNEL_IDS.filter((c) => c !== 'depot_invoice');
 
-// Channel-specific safety-net defaults used when nothing is configured.
-const DEFAULT_BROAD_RECIPIENTS = ['carl@geg.co', 'graham@wirralvans.co.uk', 'sharon@geg.co', 'info@gfukgroup.co.uk'];
-const DEFAULT_DEPOT_RECIPIENTS = ['sharon@geg.co'];
+// No hardcoded fallback recipients: notification recipients MUST be configured
+// in Admin → Settings → Notification Recipients. Emailing hardcoded third-party
+// addresses would leak customer data.
 
 export const ADMIN_NOTIFY_RECIPIENTS_KEY = 'admin_notify_recipients';
 export const ADMIN_NOTIFY_EMAILS_KEY = 'admin_notify_emails'; // legacy (back-compat)
@@ -94,7 +94,8 @@ export async function getInternalNotifyEmails(channel: NotifyChannel): Promise<s
   if (matched.length > 0) {
     return Array.from(new Set(matched));
   }
-  return channel === 'depot_invoice' ? DEFAULT_DEPOT_RECIPIENTS : DEFAULT_BROAD_RECIPIENTS;
+  console.warn(`⚠️ No notification recipients configured for channel "${channel}" — internal notification email not sent. Configure recipients in Admin → Settings → Notification Recipients.`);
+  return [];
 }
 
 /** Returns true for email addresses that belong to test/e2e runs and must never receive real mail. */
@@ -717,7 +718,6 @@ export async function sendFinanceSubmissionEmail({
 
   await client.emails.send({
     to: financeCompanyEmail,
-    cc: ['carl@geg.co'],
     from: fromEmail,
     replyTo: [fromEmail],
     subject: `Finance Application – ${customerName} – ${fmt(totalAfterDiscount)} – Ref #${ref}`,
@@ -969,9 +969,10 @@ export async function sendQuoteReceivedEmails({
 
   const adminText = `New configurator submission\n\nName: ${quote.userName}\nEmail: ${quote.email}\nPhone: ${quote.phone}\n${quote.company ? `Company: ${quote.company}\n` : ''}Reference: #${ref}\n\n${comparisonSlotB ? 'OPTION A\n' : ''}${vanTitle ? `Van: ${vanTitle}\n` : ''}${kitName ? `Pack: ${kitName}\n` : ''}${upgradeNames && upgradeNames.length > 0 ? `Upgrades:\n${upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}Subtotal: ${subtotal}\nVAT: ${vat}\n${discountFmt ? `Discount: -${discountFmt}\n` : ''}Total: ${total}${financeInfoA ? `\nFinance (10.9% APR): £${(financeInfoA.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoA.weeklyPayment/100).toFixed(2)}/week (${financeInfoA.termMonths} months, £${(financeInfoA.depositAmount/100).toFixed(0)} deposit)` : ''}${comparisonSlotB ? `\n\nOPTION B\n${comparisonSlotB.vanTitle ? `Van: ${comparisonSlotB.vanTitle}\n` : ''}${comparisonSlotB.kitName ? `Pack: ${comparisonSlotB.kitName}\n` : ''}${comparisonSlotB.upgradeNames && comparisonSlotB.upgradeNames.length > 0 ? `Upgrades:\n${comparisonSlotB.upgradeNames.map(u => `  - ${u}`).join('\n')}\n` : ''}${qrExtrasTextBlock}${comparisonSlotB.estSubtotal != null ? `Subtotal: £${(comparisonSlotB.estSubtotal/100).toFixed(2)}\n` : ''}${comparisonSlotB.estVAT != null ? `VAT: £${(comparisonSlotB.estVAT/100).toFixed(2)}\n` : ''}${comparisonSlotB.estTotal != null ? `Total: £${(comparisonSlotB.estTotal/100).toFixed(2)}` : ''}${financeInfoB ? `\nFinance (10.9% APR): £${(financeInfoB.monthlyPayment/100).toFixed(2)}/month, £${(financeInfoB.weeklyPayment/100).toFixed(2)}/week (${financeInfoB.termMonths} months, £${(financeInfoB.depositAmount/100).toFixed(0)} deposit)` : ''}` : ''}`;
 
-  if (!testMode || testMode.variant === 'admin') {
+  const configuratorAdminTo = testMode ? [testMode.testAddress] : await getInternalNotifyEmails('configurator_submission');
+  if ((!testMode || testMode.variant === 'admin') && configuratorAdminTo.length > 0) {
     await client.emails.send({
-      to: testMode ? testMode.testAddress : await getInternalNotifyEmails('configurator_submission'),
+      to: configuratorAdminTo,
       from: fromEmail,
       subject: `New configurator submission – ${quote.userName} – ${total} – Ref #${ref}`,
       html: emailLayout(adminBodyHtml, {
@@ -1040,8 +1041,13 @@ export async function sendOptionChosenAdminNotification({
     <p style="margin-top:16px;font-size:13px;color:#6b7280;">Log in to the admin panel to view the full quote and continue the build process.</p>
   `;
 
+  const optionChosenTo = toOverride ? [toOverride].flat() : await getInternalNotifyEmails('option_chosen');
+  if (optionChosenTo.length === 0) {
+    console.warn('⚠️ Option-chosen email skipped — no option_chosen recipients configured.');
+    return;
+  }
   await client.emails.send({
-    to: toOverride ?? await getInternalNotifyEmails('option_chosen'),
+    to: optionChosenTo,
     from: fromEmail,
     subject: `Customer chose Option ${chosenOption} – ${customerName} – Ref #${ref}`,
     html: emailLayout(bodyHtml, {
@@ -1116,9 +1122,10 @@ export async function sendLeadReceivedEmails(lead: {
     ${lead.message ? `<p><strong>Message:</strong></p><div class="message-box">${lead.message}</div>` : '<p><em>No message provided.</em></p>'}
   `;
 
-  if (!lead.testMode || lead.testMode.variant === 'admin') {
+  const leadAdminTo = lead.testMode ? [lead.testMode.testAddress] : await getInternalNotifyEmails('lead_enquiry');
+  if ((!lead.testMode || lead.testMode.variant === 'admin') && leadAdminTo.length > 0) {
     await client.emails.send({
-      to: lead.testMode ? lead.testMode.testAddress : await getInternalNotifyEmails('lead_enquiry'),
+      to: leadAdminTo,
       from: fromEmail,
       subject: `New enquiry – ${lead.name}${lead.phone ? ` – ${lead.phone}` : ''} – Ref #${ref}`,
       html: emailLayout(adminBodyHtml, {
@@ -1339,7 +1346,7 @@ export async function sendDepotInvoiceEmail({
   // Pre-discount breakdown — needed so the email shows the full list price
   // before the discount row, making the maths immediately obvious to admins.
   // `total` is always the pre-discount total inc. VAT; back-calculate ex-VAT parts.
-  const preDiscountVAT = discount && discount > 0 ? Math.round(total / 6) : vat;
+  const preDiscountVAT = discount && discount > 0 ? (vat === 0 ? 0 : Math.round(total / 6)) : vat;
   const preDiscountSubtotal = discount && discount > 0 ? total - preDiscountVAT : subtotal;
 
   const vanDescriptionLines: string[] = [];
@@ -1441,8 +1448,13 @@ ${financeText}
 Mobile Tyre Van City | ${PHONE}
 ${ADDRESS}`;
 
+  const depotTo = toOverride ? [toOverride].flat() : await getInternalNotifyEmails('depot_invoice');
+  if (depotTo.length === 0) {
+    console.warn('⚠️ Depot invoice email skipped — no depot_invoice recipients configured.');
+    return;
+  }
   await client.emails.send({
-    to: toOverride ?? await getInternalNotifyEmails('depot_invoice'),
+    to: depotTo,
     from: fromEmail,
     subject: `Invoice Request – Quote #${ref} – ${customerName}`,
     html: emailLayout(depotBodyHtml, {
@@ -2102,8 +2114,12 @@ export async function sendEmail({
   html: string;
   text?: string;
 }) {
+  const recipients = (Array.isArray(to) ? to : [to]).filter((e) => e && e.trim().length > 0);
+  if (recipients.length === 0) {
+    console.warn(`⚠️ sendEmail skipped — no recipients for "${subject}".`);
+    return;
+  }
   const { client, fromEmail } = await getUncachableResendClient();
-  const recipients = Array.isArray(to) ? to : [to];
   await client.emails.send({
     from: fromEmail,
     to: recipients,

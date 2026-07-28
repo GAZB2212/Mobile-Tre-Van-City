@@ -62,7 +62,6 @@ defaultBucketID = "replit-objstore-0c1756d1-950b-4a98-a3ee-b578220f8ce4"
 [userenv]
 
 [userenv.production]
-ADMIN_PASSWORD = "password123!"
 
 [userenv.shared]
 AUTOTRADEOS_API_URL = "https://autotradeos.autotradeportal.com"

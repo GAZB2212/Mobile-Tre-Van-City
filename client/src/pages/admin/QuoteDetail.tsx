@@ -687,7 +687,7 @@ export default function AdminQuoteDetail() {
     queryKey: ["/api/site-settings"],
   });
   const [financeEmailOverride, setFinanceEmailOverride] = useState("");
-  const defaultFinanceEmail = siteSettings?.finance_company_email ?? "stephen.quinn@jigsawfinance.com";
+  const defaultFinanceEmail = siteSettings?.finance_company_email ?? "";
   const financeEmail = financeEmailOverride || defaultFinanceEmail;
 
   const saveFinanceEmailMutation = useMutation({
