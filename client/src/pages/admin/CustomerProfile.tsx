@@ -77,6 +77,7 @@ interface Customer {
   primaryStaffId?: string | null;
   primaryStaffName?: string | null;
   vrmInstallationId?: string | null;
+  powerSystemNotes?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -373,6 +374,7 @@ export default function CustomerProfile() {
   const [editCompany, setEditCompany] = useState("");
   const [editPrimaryStaffId, setEditPrimaryStaffId] = useState<string | null>(null);
   const [editVrmId, setEditVrmId] = useState("");
+  const [editPowerNotes, setEditPowerNotes] = useState("");
   const [vrmDrawerOpen, setVrmDrawerOpen] = useState(false);
 
   // Note form state
@@ -722,6 +724,7 @@ export default function CustomerProfile() {
       setEditCompany(data.customer.company ?? "");
       setEditPrimaryStaffId(data.customer.primaryStaffId ?? null);
       setEditVrmId(data.customer.vrmInstallationId ?? "");
+      setEditPowerNotes(data.customer.powerSystemNotes ?? "");
     }
   }, [data?.customer, editing]);
 
@@ -789,6 +792,7 @@ export default function CustomerProfile() {
       company: editCompany.trim() || null,
       primaryStaffId: editPrimaryStaffId || null,
       vrmInstallationId: editVrmId.trim() || null,
+      powerSystemNotes: editPowerNotes.trim() || null,
     });
   };
 
@@ -986,6 +990,18 @@ export default function CustomerProfile() {
                         <p className="text-[11px] text-muted-foreground">Numbers only — from the VRM portal URL, not the van registration plate.</p>
                       </div>
                     )}
+                    {is48v && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Power System Notes</Label>
+                        <Textarea
+                          value={editPowerNotes}
+                          onChange={e => setEditPowerNotes(e.target.value)}
+                          placeholder="e.g. split charger model, battery fitted, extra accessories added..."
+                          rows={4}
+                          data-testid="input-edit-power-notes"
+                        />
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <Button size="sm" onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-customer">
                         <Save className="w-3.5 h-3.5 mr-1" />
@@ -1043,6 +1059,18 @@ export default function CustomerProfile() {
                     <span className="font-medium text-foreground" data-testid="text-vrm-id">
                       {customer.vrmInstallationId || "Not set"}
                     </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Power System Notes:</span>
+                    {customer.powerSystemNotes ? (
+                      <p className="text-sm text-foreground whitespace-pre-wrap" data-testid="text-power-notes">
+                        {customer.powerSystemNotes}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground italic">
+                        None yet — use Edit to record the split charger, battery, and any accessories fitted.
+                      </p>
+                    )}
                   </div>
                   <Button
                     size="sm"

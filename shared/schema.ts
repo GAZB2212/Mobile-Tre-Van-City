@@ -687,6 +687,7 @@ export const customers = pgTable("customers", {
   company: text("company"),
   primaryStaffId: varchar("primary_staff_id").references(() => users.id),
   vrmInstallationId: text("vrm_installation_id"), // Victron VRM installation id for 48V power-system monitoring
+  powerSystemNotes: text("power_system_notes"), // free-text: split charger, battery, accessories fitted to the power system
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),

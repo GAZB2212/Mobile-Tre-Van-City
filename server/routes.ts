@@ -8941,6 +8941,7 @@ Only use IDs that appear in the lists above. Never invent IDs. Update config pro
         company: z.string().optional().nullable(),
         primaryStaffId: z.string().optional().nullable(),
         vrmInstallationId: z.string().trim().regex(/^\d*$/, "VRM Installation ID must be numeric").optional().nullable(),
+        powerSystemNotes: z.string().optional().nullable(),
       });
       const data = schema_z.parse(req.body);
 

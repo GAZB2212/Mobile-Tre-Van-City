@@ -579,6 +579,11 @@ app.use((req, res, next) => {
           // Add soft-delete column to customers
           pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`)
             .catch((err: Error) => console.error("Customer deleted_at migration:", err.message));
+          // Victron VRM installation id + power system notes (split charger, battery, accessories)
+          pool.query(`
+            ALTER TABLE customers ADD COLUMN IF NOT EXISTS vrm_installation_id TEXT;
+            ALTER TABLE customers ADD COLUMN IF NOT EXISTS power_system_notes TEXT;
+          `).catch((err: Error) => console.error("Customer VRM/power notes migration:", err.message));
 
           // Add customer_id FK columns to leads, quotes, ai_conversations
           // Also add FK constraints for primary_staff_id (→ users) and customer_notes.author_id (→ users) if users table exists
