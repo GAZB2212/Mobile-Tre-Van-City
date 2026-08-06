@@ -52,6 +52,7 @@ export const vans = pgTable("vans", {
   mileage: integer("mileage").notNull(),
   price: integer("price").notNull(), // in pence
   vatIncluded: boolean("vat_included").notNull().default(false),
+  noVat: boolean("no_vat").notNull().default(false), // van is not VAT-qualifying (e.g. margin scheme) — no VAT charged on the van price
   euroStatus: text("euro_status"), // e.g., "Euro 6", "Euro 5", "Euro 4"
   specs: json("specs").$type<{
     transmission: string;

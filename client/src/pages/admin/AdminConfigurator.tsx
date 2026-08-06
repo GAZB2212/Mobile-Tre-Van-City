@@ -473,7 +473,8 @@ export default function AdminConfigurator() {
   }, 0);
   const _customExtrasTotal = customExtras.reduce((sum, e) => sum + e.pricePence, 0);
   const _pricingSubtotal = _pricingVanPrice + (_pricingKit?.price ?? 0) + _pricingUpgradesTotal + _customExtrasTotal;
-  const _pricingVat = Math.round(_pricingSubtotal * 0.2);
+  // No-VAT vans (margin scheme): van price carries no VAT
+  const _pricingVat = Math.round((_pricingSubtotal - ((selectedVanData as any)?.noVat ? _pricingVanPrice : 0)) * 0.2);
   const pricing = {
     subtotal: _pricingSubtotal / 100,
     vat: _pricingVat / 100,
@@ -491,7 +492,7 @@ export default function AdminConfigurator() {
     return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
   }, 0);
   const _slotASubtotal = _slotAVanPrice + (_slotAKit?.price ?? 0) + _slotAUpgradesTotal + _customExtrasTotal;
-  const _slotAVat = Math.round(_slotASubtotal * 0.2);
+  const _slotAVat = Math.round((_slotASubtotal - ((allVans.find(v => v.id === slotA.vanId) as any)?.noVat ? _slotAVanPrice : 0)) * 0.2);
   const slotAPricing = { subtotalPence: _slotASubtotal, vatPence: _slotAVat, totalPence: _slotASubtotal + _slotAVat };
 
   // SlotB pricing — always uses slotA's kit/upgrades, only slotB's van differs
@@ -505,7 +506,7 @@ export default function AdminConfigurator() {
       return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
     }, 0);
     const subtotalPence = _slotBVanPrice + kitPrice + upgradesTotal + _customExtrasTotal;
-    const vatPence = Math.round(subtotalPence * 0.2);
+    const vatPence = Math.round((subtotalPence - ((_slotBVan as any)?.noVat ? _slotBVanPrice : 0)) * 0.2);
     return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
   })() : null;
 

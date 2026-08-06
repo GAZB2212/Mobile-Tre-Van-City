@@ -146,7 +146,7 @@ function SlotSummary({
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
 
   const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
-  const vat = Math.round(subtotal * 0.2);
+  const vat = Math.round((subtotal - ((van as any)?.noVat ? vanPrice : 0)) * 0.2);
   const total = subtotal + vat;
 
   const hasItems = van ? true : slot.customVanValue
@@ -352,7 +352,7 @@ function CompareSummary({
     const upgradesTotal = (upgrades || []).reduce((s, u) => s + u.price * (slot.upgradeQuantities[u.id] ?? 1), 0);
     const trainingTotal = (training || []).reduce((s, t) => s + t.price, 0);
     const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
-    const vat = Math.round(subtotal * 0.2);
+    const vat = Math.round((subtotal - ((van as any)?.noVat ? (van?.price ?? 0) : 0)) * 0.2);
     return subtotal + vat;
   };
 
@@ -482,7 +482,7 @@ export function ConfiguratorSummary({
   const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
 
   const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal;
-  const vat = Math.round(subtotal * 0.2);
+  const vat = Math.round((subtotal - ((van as any)?.noVat ? vanPrice : 0)) * 0.2);
   const total = subtotal + vat;
 
   const displayTotal = discountedTotal ?? total;

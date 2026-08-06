@@ -341,7 +341,9 @@ export default function VanDetails() {
                       <p className="text-4xl font-bold text-accent" data-testid="text-van-price">
                         £{(van.price / 100).toLocaleString()}
                       </p>
-                      {!van.vatIncluded && (
+                      {(van as any).noVat ? (
+                        <p className="text-sm text-muted-foreground mt-1">No VAT</p>
+                      ) : !van.vatIncluded && (
                         <p className="text-sm text-muted-foreground mt-1">+ VAT</p>
                       )}
                     </div>

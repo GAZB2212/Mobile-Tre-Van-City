@@ -994,7 +994,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal + customExtrasTotal;
       const vatRate = 0.20; // 20% VAT
-      const vat = Math.round(subtotal * vatRate);
+      // No-VAT vans (e.g. margin scheme): the van price carries no VAT; VAT applies to everything else
+      const vatableSubtotal = van?.noVat ? subtotal - vanPrice : subtotal;
+      const vat = Math.round(vatableSubtotal * vatRate);
       const total = subtotal + vat;
 
       // Validate client-submitted prices match server calculation
@@ -1065,12 +1067,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? Promise.all(slotBTrainingIds.map((tid) => storage.getTrainingOption(tid)))
               : Promise.resolve([]),
           ]);
+          const slotBVanPrice = slotBVanData?.price ?? slotB.customVanValue ?? 0;
           const slotBSubtotal =
-            (slotBVanData?.price ?? slotB.customVanValue ?? 0) +
+            slotBVanPrice +
             (slotBKitData?.price ?? 0) +
             slotBUpgradeData.filter(Boolean).reduce((s, u) => s + ((u as { price: number })?.price ?? 0), 0) +
             slotBTrainingData.filter(Boolean).reduce((s, t) => s + ((t as { price: number })?.price ?? 0), 0);
-          const slotBVat = Math.round(slotBSubtotal * 0.2);
+          const slotBVat = Math.round(((slotBVanData as any)?.noVat ? slotBSubtotal - slotBVanPrice : slotBSubtotal) * 0.2);
           const slotBPreDiscount = slotBSubtotal + slotBVat;
           // Apply Option B's own discount when set, else fall back to the
           // main-quote discount (which belongs to Option A) so Option B is
@@ -1381,10 +1384,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let subtotal = 0;
       
       // Add van price if selected
+      let nonVatablePortion = 0;
       if (vanId) {
         const van = await storage.getVan(vanId);
         if (van) {
           subtotal += van.price;
+          if ((van as any).noVat) nonVatablePortion += van.price;
         }
       }
       
@@ -1413,7 +1418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const vat = Math.round(subtotal * 0.2); // 20% VAT
+      const vat = Math.round((subtotal - nonVatablePortion) * 0.2); // 20% VAT (no-VAT van portion excluded)
       const total = subtotal + vat;
       
       res.json({
@@ -3542,12 +3547,15 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         
         // Recalculate base pricing (before discount)
         let baseSubtotal = 0;
+        // Portion of the subtotal that carries no VAT (no-VAT / margin-scheme vans)
+        let nonVatablePortion = 0;
         
         // Add van price — either a system van lookup or a custom van value
         if (vanId) {
           const van = await storage.getVan(vanId);
           if (van) {
             baseSubtotal += van.price;
+            if ((van as any).noVat) nonVatablePortion += van.price;
           }
         } else if (customVanValue) {
           // Custom/off-website van — value stored in pence directly
@@ -3584,8 +3592,9 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         const customExtrasTotal = updatedCustomExtras.reduce((sum: number, e: any) => sum + (e.pricePence || 0), 0);
         baseSubtotal += customExtrasTotal;
         
-        // Calculate total with VAT first (zero when VAT is deferred)
-        const baseVAT = vatDeferred ? 0 : Math.round(baseSubtotal * 0.2);
+        // Calculate total with VAT first (zero when VAT is deferred;
+        // no-VAT van portions are excluded from the VATable amount)
+        const baseVAT = vatDeferred ? 0 : Math.round((baseSubtotal - nonVatablePortion) * 0.2);
         const baseTotalWithVat = baseSubtotal + baseVAT;
         
         // Apply discount to total including VAT
@@ -3602,9 +3611,12 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         discountAmount = Math.min(discountAmount, baseTotalWithVat);
         
         const totalAfterDiscount = baseTotalWithVat - discountAmount;
-        // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%);
-        // zero when VAT is deferred — the whole total is the net subtotal.
-        const finalVAT = vatDeferred ? 0 : Math.round(totalAfterDiscount / 6);
+        // Back-calculate VAT from final total. When everything is VATable this is
+        // total/6 (20% rate); with a no-VAT van portion, scale the base VAT by the
+        // discounted total so VAT stays proportional. Zero when VAT is deferred.
+        const finalVAT = vatDeferred || baseTotalWithVat === 0
+          ? 0
+          : Math.round(baseVAT * (totalAfterDiscount / baseTotalWithVat));
         const finalSubtotal = totalAfterDiscount - finalVAT;
         
         // Store final pricing and discount amount
@@ -3636,12 +3648,13 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
                 ? Promise.all(slotBTrainingIds.map((tid: string) => storage.getTrainingOption(tid)))
                 : Promise.resolve([]),
             ]);
+            const slotBVanPriceB = (slotBVanData as any)?.price ?? slotB.customVanValue ?? 0;
             const slotBSubtotal =
-              ((slotBVanData as any)?.price ?? slotB.customVanValue ?? 0) +
+              slotBVanPriceB +
               ((slotBKitData as any)?.price ?? 0) +
               slotBUpgradeData.filter(Boolean).reduce((s: number, u: any) => s + (u?.price ?? 0), 0) +
               slotBTrainingData.filter(Boolean).reduce((s: number, t: any) => s + (t?.price ?? 0), 0);
-            const slotBVat = vatDeferred ? 0 : Math.round(slotBSubtotal * 0.2);
+            const slotBVat = vatDeferred ? 0 : Math.round(((slotBVanData as any)?.noVat ? slotBSubtotal - slotBVanPriceB : slotBSubtotal) * 0.2);
             const slotBPreDiscount = slotBSubtotal + slotBVat;
             const slotBDiscType = slotB.discountType ?? discountType;
             const slotBDiscValue = slotB.discountValue ?? discountValue;

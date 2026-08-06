@@ -116,7 +116,8 @@ export default function RequestQuote() {
       trainingOptions.forEach(option => {
         subtotal += option.price;
       });
-      const vat = Math.round(subtotal * 0.2);
+      // No-VAT vans (margin scheme) carry no VAT on the van price
+      const vat = Math.round((subtotal - ((van as any)?.noVat ? van!.price : 0)) * 0.2);
       const total = subtotal + vat;
 
       // Option B pricing (compare mode — only van differs; kit/upgrades/training are shared from slot A)
@@ -128,7 +129,7 @@ export default function RequestQuote() {
         upgrades.forEach(upgrade => { subtotalB += upgrade.price * (selectedUpgrades[upgrade.id] ?? 1); });
         trainingOptions.forEach(option => { subtotalB += option.price; });
       }
-      const vatB = Math.round(subtotalB * 0.2);
+      const vatB = Math.round((subtotalB - ((vanB as any)?.noVat ? (vanB?.price ?? 0) : 0)) * 0.2);
       const totalB = subtotalB + vatB;
 
       const sharedFinanceInputs = state.financeInputs ?? undefined;
@@ -236,7 +237,7 @@ export default function RequestQuote() {
       subtotal += option.price;
     });
     
-    const vat = Math.round(subtotal * 0.2);
+    const vat = Math.round((subtotal - ((van as any)?.noVat ? van!.price : 0)) * 0.2);
     const total = subtotal + vat;
     
     return { subtotal, vat, total };
@@ -559,7 +560,7 @@ export default function RequestQuote() {
                             const upgsTotal = upgrades.reduce((s, u) => s + u.price * (state.upgradeQuantities[u.id] ?? 1), 0);
                             const trainTotal = trainingOptions.reduce((s, t) => s + t.price, 0);
                             const subB = vanBPrice + kitPrice + upgsTotal + trainTotal;
-                            const totalB = subB + Math.round(subB * 0.2);
+                            const totalB = subB + Math.round((subB - ((vanB as any)?.noVat ? vanBPrice : 0)) * 0.2);
                             return <p className="text-sm font-bold text-foreground border-t pt-1.5" data-testid="text-summary-total-b">{formatPrice(totalB)}</p>;
                           })()}
                         </div>

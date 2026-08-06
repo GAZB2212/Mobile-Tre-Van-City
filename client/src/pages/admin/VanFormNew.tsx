@@ -453,6 +453,19 @@ export function VanFormNew({ van, onSubmit, isLoading }: VanFormProps) {
 
         <div className="flex items-center space-x-2">
           <AdminSwitch
+            id="noVat"
+            name="noVat"
+            defaultChecked={(van as any)?.noVat || false}
+            data-testid="switch-van-no-vat"
+          />
+          <div>
+            <Label htmlFor="noVat">No VAT on this van</Label>
+            <p className="text-xs text-muted-foreground">For non-VAT-qualifying vans (e.g. margin scheme). No VAT is charged on the van price — VAT still applies to the kit, upgrades, and training.</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <AdminSwitch
             id="published"
             name="published"
             defaultChecked={van ? van.published !== false : true}

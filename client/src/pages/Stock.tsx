@@ -274,7 +274,9 @@ export default function Stock() {
                       </div>
                       <p className="text-2xl font-bold text-accent" data-testid={`text-van-price-${van.id}`}>
                         £{(van.price / 100).toLocaleString()}
-                        {!van.vatIncluded && <span className="text-sm font-normal text-muted-foreground ml-1">+ VAT</span>}
+                        {(van as any).noVat
+                          ? <span className="text-sm font-normal text-muted-foreground ml-1">No VAT</span>
+                          : !van.vatIncluded && <span className="text-sm font-normal text-muted-foreground ml-1">+ VAT</span>}
                       </p>
                     </CardHeader>
 

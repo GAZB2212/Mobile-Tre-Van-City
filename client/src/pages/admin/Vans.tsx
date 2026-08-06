@@ -192,6 +192,7 @@ export default function AdminVans() {
       mileage: parseInt(formData.get('mileage') as string),
       price: parseInt(formData.get('price') as string) * 100,
       vatIncluded: formData.get('vatIncluded') === 'on',
+      noVat: formData.get('noVat') === 'on',
       specs: {
         transmission: formData.get('transmission') as string,
         size: formData.get('size') as string,
@@ -275,6 +276,7 @@ export default function AdminVans() {
       mileage: parseInt(formData.get('mileage') as string),
       price: parseInt(formData.get('price') as string) * 100, // Convert to pence
       vatIncluded: formData.get('vatIncluded') === 'on',
+      noVat: formData.get('noVat') === 'on',
       specs: {
         transmission: formData.get('transmission') as string,
         size: formData.get('size') as string,

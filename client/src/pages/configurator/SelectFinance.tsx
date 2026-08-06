@@ -95,7 +95,7 @@ export default function SelectFinance() {
     const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
     const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
     const subtotalPence = vanPrice + kitPrice + upgradesTotal + trainingTotal;
-    const vatPence = Math.round(subtotalPence * 0.2);
+    const vatPence = Math.round((subtotalPence - ((van as any)?.noVat ? vanPrice : 0)) * 0.2);
     return {
       subtotal: subtotalPence / 100,
       vat: vatPence / 100,
@@ -111,7 +111,7 @@ export default function SelectFinance() {
     const upgradesTotal = upgrades.reduce((sum, upgrade) => sum + upgrade.price, 0);
     const trainingTotal = trainingOptions.reduce((sum, option) => sum + option.price, 0);
     const subtotalPence = vanPrice + kitPrice + upgradesTotal + trainingTotal;
-    const vatPence = Math.round(subtotalPence * 0.2);
+    const vatPence = Math.round((subtotalPence - ((vanB as any)?.noVat ? vanPrice : 0)) * 0.2);
     return {
       subtotal: subtotalPence / 100,
       vat: vatPence / 100,

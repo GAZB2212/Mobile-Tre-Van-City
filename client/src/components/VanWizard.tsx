@@ -40,6 +40,7 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
   const [mileage, setMileage] = useState("");
   const [published, setPublished] = useState(true); // Default to published
   const [vatIncluded, setVatIncluded] = useState(false);
+  const [noVat, setNoVat] = useState(false);
 
   const handleLookup = async () => {
     if (!registration.trim()) return;
@@ -246,6 +247,7 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
       <input type="hidden" name="mileage" value={mileage} />
       <input type="hidden" name="published" value={published ? "on" : ""} />
       <input type="hidden" name="vatIncluded" value={vatIncluded ? "on" : ""} />
+      <input type="hidden" name="noVat" value={noVat ? "on" : ""} />
 
       <Tabs defaultValue="pricing" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -393,6 +395,17 @@ export function VanWizard({ onComplete, isLoading }: VanWizardProps) {
                 className="w-4 h-4"
               />
               <Label htmlFor="vatIncluded-visible">Price includes VAT</Label>
+            </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                type="checkbox"
+                id="noVat-visible"
+                checked={noVat}
+                onChange={(e) => setNoVat(e.target.checked)}
+                className="w-4 h-4"
+                data-testid="checkbox-van-no-vat"
+              />
+              <Label htmlFor="noVat-visible">No VAT on this van (margin scheme)</Label>
             </div>
           </div>
 
