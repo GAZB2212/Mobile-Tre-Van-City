@@ -733,7 +733,16 @@ export default function CustomerProfile() {
       setEditing(false);
       toast({ title: "Customer updated" });
     },
-    onError: () => toast({ variant: "destructive", title: "Failed to update customer" }),
+    onError: (error: any) => {
+      const msg = String(error?.message || "");
+      toast({
+        variant: "destructive",
+        title: "Failed to update customer",
+        description: msg.includes("must be numeric")
+          ? "VRM Installation ID must be numbers only — it's the Victron VRM installation number, not the van registration plate."
+          : msg || undefined,
+      });
+    },
   });
 
   const addNoteMutation = useMutation({
@@ -972,8 +981,9 @@ export default function CustomerProfile() {
                     </div>
                     {is48v && (
                       <div className="space-y-1">
-                        <Label className="text-xs">VRM Installation ID</Label>
-                        <Input value={editVrmId} onChange={e => setEditVrmId(e.target.value)} placeholder="e.g. 123456" data-testid="input-edit-vrm-id" />
+                        <Label className="text-xs">Victron VRM Installation ID</Label>
+                        <Input value={editVrmId} onChange={e => setEditVrmId(e.target.value.replace(/\s/g, ""))} placeholder="e.g. 123456" data-testid="input-edit-vrm-id" />
+                        <p className="text-[11px] text-muted-foreground">Numbers only — from the VRM portal URL, not the van registration plate.</p>
                       </div>
                     )}
                     <div className="flex gap-2">

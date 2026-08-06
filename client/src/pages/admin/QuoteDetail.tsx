@@ -4540,7 +4540,7 @@ export default function AdminQuoteDetail() {
 
       {/* Follow-up scheduling dialog — shown when "Mark as Contacted" is clicked */}
       <Dialog open={fuDialogOpen} onOpenChange={setFuDialogOpen}>
-        <DialogContent className="max-w-sm" data-testid="modal-schedule-followup-detail">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" data-testid="modal-schedule-followup-detail">
           <DialogHeader>
             <DialogTitle>When do you want to follow up?</DialogTitle>
             <DialogDescription>
