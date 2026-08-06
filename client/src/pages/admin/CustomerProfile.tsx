@@ -738,13 +738,23 @@ export default function CustomerProfile() {
     },
     onError: (error: any) => {
       const msg = String(error?.message || "");
-      toast({
-        variant: "destructive",
-        title: "Failed to update customer",
-        description: msg.includes("must be numeric")
-          ? "VRM Installation ID must be numbers only — it's the Victron VRM installation number, not the van registration plate."
-          : msg || undefined,
-      });
+      let description: string | undefined = msg || undefined;
+      if (msg.includes("must be numeric")) {
+        description = "VRM Installation ID must be numbers only — it's the Victron VRM installation number, not the van registration plate.";
+      } else {
+        // Try to turn zod validation details ("400: {json}") into a readable field list
+        try {
+          const parsed = JSON.parse(msg.replace(/^\d+:\s*/, ""));
+          if (Array.isArray(parsed?.details) && parsed.details.length) {
+            description = parsed.details
+              .map((d: any) => `${(d.path || []).join(".") || "field"}: ${d.message}`)
+              .join("; ");
+          } else if (parsed?.error) {
+            description = parsed.error;
+          }
+        } catch { /* keep raw message */ }
+      }
+      toast({ variant: "destructive", title: "Failed to update customer", description });
     },
   });
 
@@ -785,6 +795,23 @@ export default function CustomerProfile() {
   });
 
   const handleSaveEdit = () => {
+    const email = editEmail.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid email address",
+        description: `"${email}" isn't a valid email. Correct it or clear the field before saving.`,
+      });
+      return;
+    }
+    if (editVrmId && !/^\d+$/.test(editVrmId.trim())) {
+      toast({
+        variant: "destructive",
+        title: "Invalid VRM Installation ID",
+        description: "The Victron VRM Installation ID must be numbers only (e.g. 123456).",
+      });
+      return;
+    }
     updateMutation.mutate({
       name: editName.trim(),
       email: editEmail.trim() || null,
