@@ -379,6 +379,7 @@ export default function AdminQuoteDetail() {
   // Custom van state (for vans not in the system)
   const [customVanDescription, setCustomVanDescription] = useState<string>("");
   const [customVanValue, setCustomVanValue] = useState<string>("");
+  const [customVanNoVat, setCustomVanNoVat] = useState(false);
 
   // WrapGen artwork approval — URL pasted by staff after design team creates the render
   const [wrapgenUrl, setWrapgenUrl] = useState("");
@@ -501,6 +502,7 @@ export default function AdminQuoteDetail() {
       // Fall back to registration number if no description entered yet (e.g. submitted via configurator)
       setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
       setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
+      setCustomVanNoVat(!!(quote as any).customVanNoVat);
       setWrapgenUrl(quote.wrapgenPreviewUrl ?? "");
 
       // Pipeline wallboard due-out date
@@ -1133,6 +1135,7 @@ export default function AdminQuoteDetail() {
     const origCustomVanValue = quote?.customVanValue !== null && quote?.customVanValue !== undefined
       ? String(quote.customVanValue / 100) : "";
     if (customVanValue !== origCustomVanValue) return true;
+    if (customVanNoVat !== !!(quote as any)?.customVanNoVat) return true;
 
     return false;
   };
@@ -1267,10 +1270,12 @@ export default function AdminQuoteDetail() {
       updates.vanId = null;
       updates.customVanDescription = customVanDescription.trim() || null;
       updates.customVanValue = customVanValue ? Math.round(parseFloat(customVanValue) * 100) : null;
+      updates.customVanNoVat = customVanNoVat;
     } else {
       updates.vanId = selectedVanId;
       updates.customVanDescription = null;
       updates.customVanValue = null;
+      updates.customVanNoVat = false;
     }
     updates.kitId = selectedKitId;
 
@@ -1315,8 +1320,16 @@ export default function AdminQuoteDetail() {
 
     // Use recalculated pricing from current configuration (not original quote.estSubtotal)
     let subtotal = recalculatePricing();
+    // No-VAT vans (margin scheme): exclude the van price from the VATable portion
+    const selVanData = selectedVanId && selectedVanId !== "custom" ? vans.find(v => v.id === selectedVanId) : null;
+    let nonVatablePortion = 0;
+    if (selVanData && (selVanData as any).noVat) {
+      nonVatablePortion = selVanData.price;
+    } else if (selectedVanId === "custom" && customVanNoVat && customVanValue) {
+      nonVatablePortion = Math.round(parseFloat(customVanValue) * 100);
+    }
     // When VAT is deferred, the quote total excludes VAT entirely.
-    const vat = vatDeferred ? 0 : Math.round(subtotal * 0.2);
+    const vat = vatDeferred ? 0 : Math.round((subtotal - nonVatablePortion) * 0.2);
     const totalWithVat = subtotal + vat;
     
     let discountAmount = 0;
@@ -1336,9 +1349,9 @@ export default function AdminQuoteDetail() {
     discountAmount = Math.min(discountAmount, totalWithVat);
 
     const totalAfterDiscount = totalWithVat - discountAmount;
-    // Back-calculate VAT from final total (VAT is 1/6 of total when rate is 20%).
-    // When VAT is deferred there is no VAT and the whole total is the net subtotal.
-    const finalVat = vatDeferred ? 0 : Math.round(totalAfterDiscount / 6);
+    // Back-calculate VAT from the final total, scaling the base VAT proportionally so
+    // no-VAT van portions stay VAT-free (reduces to total/6 when everything is VATable).
+    const finalVat = vatDeferred || totalWithVat === 0 ? 0 : Math.round(vat * (totalAfterDiscount / totalWithVat));
     const finalSubtotal = totalAfterDiscount - finalVat;
 
     return {
@@ -1384,7 +1397,13 @@ export default function AdminQuoteDetail() {
     });
     // Bespoke extras: shared from slot A
     customExtras.forEach(e => { subtotal += e.pricePence; });
-    const vat = vatDeferred ? 0 : Math.round(subtotal * 0.2);
+    let slotBNonVatable = 0;
+    if (slotBVan && (slotBVan as any).noVat) {
+      slotBNonVatable = slotBVan.price;
+    } else if (!slotBVan && slotBStored.customVanValue && (slotBStored as any).customVanNoVat) {
+      slotBNonVatable = slotBStored.customVanValue;
+    }
+    const vat = vatDeferred ? 0 : Math.round((subtotal - slotBNonVatable) * 0.2);
     const totalWithVat = subtotal + vat;
     // Apply Option B's own discount if the staff member enabled the
     // "independent discount" toggle; otherwise inherit Option A's discount.
@@ -1400,7 +1419,7 @@ export default function AdminQuoteDetail() {
     }
     discountAmount = Math.min(discountAmount, totalWithVat);
     const totalAfterDiscount = totalWithVat - discountAmount;
-    const finalVat = vatDeferred ? 0 : Math.round(totalAfterDiscount / 6);
+    const finalVat = vatDeferred || totalWithVat === 0 ? 0 : Math.round(vat * (totalAfterDiscount / totalWithVat));
     const finalSubtotal = totalAfterDiscount - finalVat;
     return { subtotal: finalSubtotal, discount: discountAmount, subtotalAfterDiscount: finalSubtotal, vat: finalVat, total: totalAfterDiscount };
   };
@@ -1596,6 +1615,7 @@ export default function AdminQuoteDetail() {
                     setServiceType((quote.serviceType as any) ?? null);
                     setCustomVanDescription(quote.customVanDescription ?? quote.vanRegistration ?? "");
                     setCustomVanValue(quote.customVanValue !== null && quote.customVanValue !== undefined ? String(quote.customVanValue / 100) : "");
+      setCustomVanNoVat(!!(quote as any).customVanNoVat);
                   }
                   setSelectedVanId(originalVanId);
                   setSelectedKitId(originalKitId);
@@ -2445,6 +2465,20 @@ export default function AdminQuoteDetail() {
                             onChange={(e) => setCustomVanValue(e.target.value)}
                             data-testid="input-custom-van-value"
                           />
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id="custom-van-no-vat"
+                          className="w-4 h-4 mt-0.5"
+                          checked={customVanNoVat}
+                          onChange={(e) => setCustomVanNoVat(e.target.checked)}
+                          data-testid="checkbox-custom-van-no-vat"
+                        />
+                        <div>
+                          <Label htmlFor="custom-van-no-vat" className="text-sm">No VAT on this van</Label>
+                          <p className="text-xs text-muted-foreground">For non-VAT-qualifying vans (margin scheme). VAT still applies to the kit, upgrades and extras.</p>
                         </div>
                       </div>
                     </div>
