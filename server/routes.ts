@@ -994,8 +994,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const subtotal = vanPrice + kitPrice + upgradesTotal + trainingTotal + customExtrasTotal;
       const vatRate = 0.20; // 20% VAT
-      // No-VAT vans (e.g. margin scheme): the van price carries no VAT; VAT applies to everything else
-      const vatableSubtotal = van?.noVat ? subtotal - vanPrice : subtotal;
+      // No-VAT vans (e.g. margin scheme): the van price carries no VAT; VAT applies to everything else.
+      // Applies to system vans flagged noVat and custom/off-website vans flagged customVanNoVat.
+      const vanIsNoVat = van ? !!van.noVat : !!validatedData.customVanNoVat;
+      const vatableSubtotal = vanIsNoVat ? subtotal - vanPrice : subtotal;
       const vat = Math.round(vatableSubtotal * vatRate);
       const total = subtotal + vat;
 
@@ -1073,7 +1075,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (slotBKitData?.price ?? 0) +
             slotBUpgradeData.filter(Boolean).reduce((s, u) => s + ((u as { price: number })?.price ?? 0), 0) +
             slotBTrainingData.filter(Boolean).reduce((s, t) => s + ((t as { price: number })?.price ?? 0), 0);
-          const slotBVat = Math.round(((slotBVanData as any)?.noVat ? slotBSubtotal - slotBVanPrice : slotBSubtotal) * 0.2);
+          const slotBNoVat = slotBVanData ? !!(slotBVanData as any).noVat : !!(slotB as any).customVanNoVat;
+          const slotBVat = Math.round((slotBNoVat ? slotBSubtotal - slotBVanPrice : slotBSubtotal) * 0.2);
           const slotBPreDiscount = slotBSubtotal + slotBVat;
           // Apply Option B's own discount when set, else fall back to the
           // main-quote discount (which belongs to Option A) so Option B is
@@ -3438,6 +3441,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         // Custom van (off-website) fields
         customVanDescription: z.string().nullable().optional(),
         customVanValue: z.number().int().nullable().optional(),
+        customVanNoVat: z.boolean().optional(),
         // Finance overrides
         financePlanId: z.string().nullable().optional(),
         financeInputs: z.object({
@@ -3519,7 +3523,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
       const needsRecalculation = 'vanId' in validatedData || 'kitId' in validatedData || 
                                   'selectedUpgradeIds' in validatedData || 'selectedUpgrades' in validatedData ||
                                   'discountType' in validatedData || 'discountValue' in validatedData ||
-                                  'customVanValue' in validatedData || 'customExtras' in validatedData ||
+                                  'customVanValue' in validatedData || 'customVanNoVat' in validatedData || 'customExtras' in validatedData ||
                                   'comparisonConfig' in validatedData;
       
       if (needsRecalculation) {
@@ -3536,6 +3540,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         // Get the configuration (use updated values or fall back to existing)
         const vanId = 'vanId' in validatedData ? validatedData.vanId : quote.vanId;
         const customVanValue = 'customVanValue' in validatedData ? validatedData.customVanValue : (quote as any).customVanValue;
+        const customVanNoVat = 'customVanNoVat' in validatedData ? !!validatedData.customVanNoVat : !!(quote as any).customVanNoVat;
         const kitId = 'kitId' in validatedData ? validatedData.kitId : quote.kitId;
         const selectedUpgradeIds = validatedData.selectedUpgradeIds || quote.selectedUpgradeIds || [];
         const selectedUpgrades = validatedData.selectedUpgrades || quote.selectedUpgrades || {};
@@ -3560,6 +3565,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         } else if (customVanValue) {
           // Custom/off-website van — value stored in pence directly
           baseSubtotal += customVanValue;
+          if (customVanNoVat) nonVatablePortion += customVanValue;
         }
         
         // Add kit price
@@ -3654,7 +3660,8 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
               ((slotBKitData as any)?.price ?? 0) +
               slotBUpgradeData.filter(Boolean).reduce((s: number, u: any) => s + (u?.price ?? 0), 0) +
               slotBTrainingData.filter(Boolean).reduce((s: number, t: any) => s + (t?.price ?? 0), 0);
-            const slotBVat = vatDeferred ? 0 : Math.round(((slotBVanData as any)?.noVat ? slotBSubtotal - slotBVanPriceB : slotBSubtotal) * 0.2);
+            const slotBNoVatB = slotBVanData ? !!(slotBVanData as any).noVat : !!(slotB as any).customVanNoVat;
+            const slotBVat = vatDeferred ? 0 : Math.round((slotBNoVatB ? slotBSubtotal - slotBVanPriceB : slotBSubtotal) * 0.2);
             const slotBPreDiscount = slotBSubtotal + slotBVat;
             const slotBDiscType = slotB.discountType ?? discountType;
             const slotBDiscValue = slotB.discountValue ?? discountValue;
@@ -4169,6 +4176,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         updateData.vanId = slotData.vanId ?? null;
         updateData.customVanDescription = slotData.customVanDescription ?? null;
         updateData.customVanValue = slotData.customVanValue ?? null;
+        updateData.customVanNoVat = !!(slotData as any).customVanNoVat;
         updateData.vanRegistration = slotData.vanRegistration ?? null;
         updateData.serviceType = slotData.serviceType ?? null;
         updateData.kitId = slotData.kitId ?? null;
@@ -4274,6 +4282,7 @@ Always refer the user to the exact admin menu path when describing a feature. Ke
         updateData.vanId = slotData.vanId ?? null;
         updateData.customVanDescription = slotData.customVanDescription ?? null;
         updateData.customVanValue = slotData.customVanValue ?? null;
+        updateData.customVanNoVat = !!(slotData as any).customVanNoVat;
         updateData.vanRegistration = slotData.vanRegistration ?? null;
         updateData.serviceType = (slotData.serviceType as Quote['serviceType']) ?? null;
         updateData.kitId = slotData.kitId ?? null;

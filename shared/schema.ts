@@ -180,6 +180,7 @@ export const quotes = pgTable("quotes", {
   vanId: varchar("van_id").references(() => vans.id),
   customVanDescription: text("custom_van_description"), // Free-text van details when not in system
   customVanValue: integer("custom_van_value"), // Van purchase price in pence (custom van only)
+  customVanNoVat: boolean("custom_van_no_vat").notNull().default(false), // no VAT on the custom/off-website van price (margin scheme)
   kitId: varchar("kit_id").references(() => kits.id),
   selectedUpgradeIds: json("selected_upgrade_ids").$type<string[]>().notNull().default([]),
   selectedUpgrades: json("selected_upgrades").$type<Record<string, number>>().notNull().default({}),
@@ -240,6 +241,7 @@ export const quotes = pgTable("quotes", {
       vanId?: string | null;
       customVanDescription?: string | null;
       customVanValue?: number | null;
+      customVanNoVat?: boolean | null;
       vanRegistration?: string | null;
       serviceType?: string | null;
       kitId?: string | null;
@@ -255,6 +257,7 @@ export const quotes = pgTable("quotes", {
       vanId?: string | null;
       customVanDescription?: string | null;
       customVanValue?: number | null;
+      customVanNoVat?: boolean | null;
       vanRegistration?: string | null;
       serviceType?: string | null;
       kitId?: string | null;

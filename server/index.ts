@@ -345,6 +345,10 @@ app.use((req, res, next) => {
         .then(() => log("✅ Van no_vat column ready"))
         .catch((err: Error) => console.error("Van no_vat migration:", err.message));
 
+      pool.query(`ALTER TABLE quotes ADD COLUMN IF NOT EXISTS custom_van_no_vat BOOLEAN NOT NULL DEFAULT FALSE`)
+        .then(() => log("✅ Quote custom_van_no_vat column ready"))
+        .catch((err: Error) => console.error("Quote custom_van_no_vat migration:", err.message));
+
       pool.query(`ALTER TABLE gallery_items ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT FALSE`)
         .then(() => log("✅ Gallery featured column ready"))
         .catch((err: Error) => console.error("Gallery featured migration:", err.message));

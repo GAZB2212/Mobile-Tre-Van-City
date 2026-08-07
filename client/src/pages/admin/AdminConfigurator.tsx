@@ -151,7 +151,7 @@ export default function AdminConfigurator() {
   };
 
   const {
-    state, setVan, setVanOnly, setVanReg, setCustomVanValue,
+    state, setVan, setVanOnly, setVanReg, setCustomVanValue, setCustomVanNoVat,
     setServiceTypeOnly, setKitOnly, setUpgrades,
     addUpgrade, removeUpgrade, replaceUpgrades, clearAll,
     compareMode, activeSlot, enableCompareMode, slotA, slotB,
@@ -474,7 +474,8 @@ export default function AdminConfigurator() {
   const _customExtrasTotal = customExtras.reduce((sum, e) => sum + e.pricePence, 0);
   const _pricingSubtotal = _pricingVanPrice + (_pricingKit?.price ?? 0) + _pricingUpgradesTotal + _customExtrasTotal;
   // No-VAT vans (margin scheme): van price carries no VAT
-  const _pricingVat = Math.round((_pricingSubtotal - ((selectedVanData as any)?.noVat ? _pricingVanPrice : 0)) * 0.2);
+  const _pricingNoVat = selectedVanData ? !!(selectedVanData as any).noVat : (!!state.customVanValue && !!state.customVanNoVat);
+  const _pricingVat = Math.round((_pricingSubtotal - (_pricingNoVat ? _pricingVanPrice : 0)) * 0.2);
   const pricing = {
     subtotal: _pricingSubtotal / 100,
     vat: _pricingVat / 100,
@@ -492,7 +493,9 @@ export default function AdminConfigurator() {
     return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
   }, 0);
   const _slotASubtotal = _slotAVanPrice + (_slotAKit?.price ?? 0) + _slotAUpgradesTotal + _customExtrasTotal;
-  const _slotAVat = Math.round((_slotASubtotal - ((allVans.find(v => v.id === slotA.vanId) as any)?.noVat ? _slotAVanPrice : 0)) * 0.2);
+  const _slotAVanData = allVans.find(v => v.id === slotA.vanId);
+  const _slotANoVat = _slotAVanData ? !!(_slotAVanData as any).noVat : (!!slotA.customVanValue && !!slotA.customVanNoVat);
+  const _slotAVat = Math.round((_slotASubtotal - (_slotANoVat ? _slotAVanPrice : 0)) * 0.2);
   const slotAPricing = { subtotalPence: _slotASubtotal, vatPence: _slotAVat, totalPence: _slotASubtotal + _slotAVat };
 
   // SlotB pricing — always uses slotA's kit/upgrades, only slotB's van differs
@@ -506,7 +509,8 @@ export default function AdminConfigurator() {
       return sum + (u?.price ?? 0) * (upgradeQuantities[id] ?? 1);
     }, 0);
     const subtotalPence = _slotBVanPrice + kitPrice + upgradesTotal + _customExtrasTotal;
-    const vatPence = Math.round((subtotalPence - ((_slotBVan as any)?.noVat ? _slotBVanPrice : 0)) * 0.2);
+    const _slotBNoVat = _slotBVan ? !!(_slotBVan as any).noVat : (!!slotB.customVanValue && !!slotB.customVanNoVat);
+    const vatPence = Math.round((subtotalPence - (_slotBNoVat ? _slotBVanPrice : 0)) * 0.2);
     return { subtotalPence, vatPence, totalPence: subtotalPence + vatPence };
   })() : null;
 
@@ -559,6 +563,7 @@ export default function AdminConfigurator() {
         vanId: slotA.vanId || undefined,
         customVanDescription: slotA.customVanDescription || undefined,
         customVanValue: slotA.customVanValue || undefined,
+        customVanNoVat: !slotA.vanId && !!slotA.customVanValue ? !!slotA.customVanNoVat : undefined,
         kitId: slotA.kitId || undefined,
         selectedUpgradeIds: slotA.upgradeIds,
         selectedUpgrades: upgradesMap,
@@ -585,6 +590,7 @@ export default function AdminConfigurator() {
                 vanId: slotA.vanId,
                 customVanDescription: slotA.customVanDescription ?? undefined,
                 customVanValue: slotA.customVanValue ?? undefined,
+                customVanNoVat: slotA.customVanNoVat || undefined,
                 vanRegistration: slotA.vanReg ?? undefined,
                 serviceType: slotA.serviceType,
                 kitId: slotA.kitId,
@@ -597,6 +603,7 @@ export default function AdminConfigurator() {
                 vanId: slotB.vanId,
                 customVanDescription: slotB.customVanDescription ?? undefined,
                 customVanValue: slotB.customVanValue ?? undefined,
+                customVanNoVat: slotB.customVanNoVat || undefined,
                 vanRegistration: slotB.vanReg ?? undefined,
                 // Config is shared from slot A — only the van differs in compare mode
                 serviceType: slotA.serviceType,
@@ -809,6 +816,20 @@ export default function AdminConfigurator() {
                               }}
                               data-testid="input-own-van-price" />
                           </div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 max-w-md">
+                        <input
+                          type="checkbox"
+                          id="own-van-no-vat"
+                          className="w-4 h-4 mt-0.5"
+                          checked={!!state.customVanNoVat}
+                          onChange={e => setCustomVanNoVat(e.target.checked)}
+                          data-testid="checkbox-own-van-no-vat"
+                        />
+                        <div>
+                          <Label htmlFor="own-van-no-vat">No VAT on this van</Label>
+                          <p className="text-xs text-muted-foreground">For non-VAT-qualifying vans (margin scheme). VAT still applies to the kit, upgrades and extras.</p>
                         </div>
                       </div>
                     </CardContent>

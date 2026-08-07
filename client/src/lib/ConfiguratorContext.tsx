@@ -6,6 +6,7 @@ export interface ConfiguratorSlotState {
   vanId: string | null;
   customVanDescription: string | null;
   customVanValue: number | null; // in pence
+  customVanNoVat: boolean; // no VAT charged on the custom van price (margin scheme)
   vanReg: string | null;
   serviceType: KitServiceType | null;
   kitId: string | null;
@@ -44,6 +45,7 @@ interface ConfiguratorContextValue {
   setKitOnly: (kitId: string | null) => void;
   setCustomVan: (description: string, valueInPence: number) => void;
   setCustomVanValue: (valueInPence: number | null) => void;
+  setCustomVanNoVat: (noVat: boolean) => void;
   setVanReg: (reg: string | null) => void;
   setServiceType: (serviceType: KitServiceType | null) => void;
   setKit: (kitId: string | null) => void;
@@ -73,6 +75,7 @@ const defaultSlotState: ConfiguratorSlotState = {
   vanId: null,
   customVanDescription: null,
   customVanValue: null,
+  customVanNoVat: false,
   vanReg: null,
   serviceType: null,
   kitId: null,
@@ -249,6 +252,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
         vanId: null,
         customVanDescription: null,
         customVanValue: null,
+        customVanNoVat: false,
         vanReg: null,
       },
       activeSlot: 'B',
@@ -288,6 +292,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
             vanId,
             customVanDescription: null,
             customVanValue: null,
+            customVanNoVat: false,
             vanReg: null,
           },
         };
@@ -301,6 +306,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           vanId,
           customVanDescription: null,
           customVanValue: null,
+          customVanNoVat: false,
           serviceType: null,
           kitId: null,
           upgradeIds: [],
@@ -351,6 +357,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           vanId,
           customVanDescription: null,
           customVanValue: null,
+          customVanNoVat: false,
           vanReg: null,
         },
       };
@@ -368,6 +375,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
             vanId: null,
             customVanDescription: description,
             customVanValue: valueInPence,
+            customVanNoVat: false,
           },
         };
       }
@@ -379,6 +387,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
           vanId: null,
           customVanDescription: description,
           customVanValue: valueInPence,
+          customVanNoVat: false,
           serviceType: null,
           kitId: null,
           upgradeIds: [],
@@ -394,6 +403,10 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
 
   const setCustomVanValue = (valueInPence: number | null) => {
     updateActiveSlot(prev => ({ ...prev, customVanValue: valueInPence }));
+  };
+
+  const setCustomVanNoVat = (noVat: boolean) => {
+    updateActiveSlot(prev => ({ ...prev, customVanNoVat: noVat }));
   };
 
   const setVanReg = (reg: string | null) => {
@@ -604,6 +617,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
         vanId: null,
         customVanDescription: null,
         customVanValue: null,
+        customVanNoVat: false,
         vanReg: null,
       }));
       return;
@@ -612,6 +626,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
       ...prev,
       customVanDescription: null,
       customVanValue: null,
+      customVanNoVat: false,
       vanReg: null,
       serviceType: null,
       kitId: null,
@@ -688,6 +703,7 @@ export function ConfiguratorProvider({ children }: { children: ReactNode }) {
     setKitOnly,
     setCustomVan,
     setCustomVanValue,
+    setCustomVanNoVat,
     setVanReg,
     setServiceType,
     setKit,
