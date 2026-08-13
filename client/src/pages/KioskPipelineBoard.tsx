@@ -472,6 +472,7 @@ function JobCard({
           targetCompletionDate={q.targetCompletionDate}
           artworkApprovedAt={q.artworkApprovedAt}
           variant="dark"
+          showLeadChips={false}
         />
       </div>
 

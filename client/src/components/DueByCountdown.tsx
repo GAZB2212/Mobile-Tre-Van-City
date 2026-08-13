@@ -7,6 +7,8 @@ interface DueByCountdownProps {
   editable?: boolean;
   onChange?: (isoDateOrNull: string | null) => void;
   variant?: "light" | "dark";
+  /** Hide the 6wk/9wk lead-time chips (e.g. on the kiosk, where only the due date + time matter). */
+  showLeadChips?: boolean;
 }
 
 function pad(n: number, width = 2) {
@@ -23,6 +25,7 @@ export function DueByCountdown({
   editable = false,
   onChange,
   variant = "light",
+  showLeadChips = true,
 }: DueByCountdownProps) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -167,12 +170,12 @@ export function DueByCountdown({
               Overdue
             </span>
           )}
-          {showSixWeekChip && sixWeekDate && (
+          {showLeadChips && showSixWeekChip && sixWeekDate && (
             <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-1 rounded border ${chipBase}`} data-testid="chip-6wk">
               6wk · {fmtDate(sixWeekDate)}
             </span>
           )}
-          {nineWeekDate && (
+          {showLeadChips && nineWeekDate && (
             <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-1 rounded border ${chipBase}`} data-testid="chip-9wk">
               9wk · {fmtDate(nineWeekDate)}
             </span>
